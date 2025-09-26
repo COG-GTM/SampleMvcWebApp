@@ -25,7 +25,7 @@
 // SOFTWARE.
 #endregion
 using System.Runtime.CompilerServices;
-using Autofac;
+// using Autofac;
 using DataLayer.DataClasses;
 using GenericServices;
 
@@ -33,18 +33,18 @@ using GenericServices;
 
 namespace DataLayer.Startup
 {
-    public class DataLayerModule : Module
+    // public class DataLayerModule : Module
+    public class DataLayerModule
     {
-
-        protected override void Load(ContainerBuilder builder)
+        // protected override void Load(ContainerBuilder builder)
+        public static void RegisterServices(/* IServiceCollection services */)
         {
-
             //Autowire the classes with interfaces
-            builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
+            // builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
 
             //set Entity Framework context to instance per lifetime scope. 
             //This is important as we get one context per lifetime, so all db classes are tracked together.
-            builder.RegisterType<SampleWebAppDb>().As<SampleWebAppDb>().As<IGenericServicesDbContext>().InstancePerLifetimeScope();
+            // builder.RegisterType<SampleWebAppDb>().As<SampleWebAppDb>().As<IGenericServicesDbContext>().InstancePerLifetimeScope();
         }
     }
 }
