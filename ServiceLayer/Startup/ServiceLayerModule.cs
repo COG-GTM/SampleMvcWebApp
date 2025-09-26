@@ -25,31 +25,33 @@
 // SOFTWARE.
 #endregion
 
-using Autofac;
+// using Autofac;
 using DataLayer.Startup;
 using GenericServices;
 
 namespace ServiceLayer.Startup
 {
-    public class ServiceLayerModule : Module
+    // public class ServiceLayerModule : Module
+    public class ServiceLayerModule
     {
 
         /// <summary>
         /// This registers all items in service layer and below
         /// </summary>
-        /// <param name="builder"></param>
-        protected override void Load(ContainerBuilder builder)
+        /// <param name="services"></param>
+        // protected override void Load(ContainerBuilder builder)
+        public static void RegisterServices(/* IServiceCollection services */)
         {
-
             //Now register the DataLayer
-            builder.RegisterModule(new DataLayerModule());
+            // builder.RegisterModule(new DataLayerModule());
+            DataLayerModule.RegisterServices(/* services */);
 
             //---------------------------
             //Register service layer: autowire all 
-            builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
+            // builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
 
             //and register the GenericServices assembly
-            builder.RegisterAssemblyTypes(typeof(IListService).Assembly).AsImplementedInterfaces();
+            // builder.RegisterAssemblyTypes(typeof(IListService).Assembly).AsImplementedInterfaces();
 
         }
 
