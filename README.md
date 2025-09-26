@@ -8,6 +8,41 @@ The code for this sample MVC web application, and the associated
 by [Jon Smith](http://www.thereformedprogrammer.net/about-me/) 
 under the [MIT licence](http://opensource.org/licenses/MIT).
 
+## .NET Core 6 Migration
+
+**NEW: HomeController Migration to .NET Core 6**
+
+This repository now includes a .NET Core 6 version of the HomeController in the `SampleWebApp.Core` project, demonstrating the migration path from ASP.NET MVC 5 (.NET Framework 4.5.1) to .NET Core 6.
+
+### Project Structure
+
+- **SampleWebApp** - Original ASP.NET MVC 5 (.NET Framework 4.5.1) project
+- **SampleWebApp.Core** - New .NET Core 6 project with migrated HomeController
+
+### Key Migration Changes
+
+The HomeController migration includes the following updates:
+
+1. **Namespace Updates**: Changed from `System.Web.Mvc` to `Microsoft.AspNetCore.Mvc`
+2. **Return Types**: Updated from `ActionResult` to `IActionResult`
+3. **Memory Metrics**: Updated `InternalsInfo` model to use .NET Core compatible APIs (`GC.GetGCMemoryInfo()` instead of `PerformanceCounter`)
+4. **Views**: Migrated to use tag helpers and .NET Core conventions
+5. **Project Structure**: Created with modern .NET Core 6 project structure and configuration
+
+### Running the .NET Core 6 Version
+
+```bash
+cd SampleWebApp.Core
+dotnet run
+```
+
+The .NET Core 6 version includes all HomeController actions:
+- **Index**: Welcome page with application information
+- **About**: Application description page
+- **Contact**: Contact information page
+- **Internals**: System metrics display (WorkerThreads, AvailableThreads, Memory usage)
+- **CodeView**: Migration explanation and code documentation
+
 This code is available as a [live web site](http://samplemvcwebapp.net/) which includes explanations 
 of the code - see an example of this on the [Posts code explanation](http://samplemvcwebapp.net/Posts/CodeView) page.
 
@@ -20,7 +55,9 @@ See [NuGet Package Page](https://www.nuget.org/packages/GenericServices/) for mo
 Visit [Complex.SampleMvcWebApp](http://complex.samplemvcwebapp.net/) to see more.
 
 
-The specific features in the code in this example are:
+## Original ASP.NET MVC5 Features
+
+The specific features in the code in the original ASP.NET MVC5 example are:
 
 ### 1. Simple, but robust database services
 
