@@ -1,0 +1,79 @@
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<h2>Welcome to the Sample MVC Web Application - .NET Core 6 version</h2>
+
+<p>
+    <strong>
+        This web site is designed as a basic introduction to GenericServices Framework's CRUD commands
+        by showing them working in an ASP.NET MVC web site.
+        The <a href="https://github.com/JonPSmith/GenericServices" target="_blank">GenericServices library</a>
+        and this <a href="https://github.com/JonPSmith/SampleMvcWebApp" target="_blank">example web site</a>
+        are both open source projects by
+        <a href="http://www.thereformedprogrammer.net/about-me/" target="_blank">Jon Smith</a> under the
+        <a href="http://opensource.org/licenses/MIT" target="_blank">MIT licence</a>.
+    </strong>
+</p>
+<h2>UPDATE for 2015</h2>
+<ul>
+    <li>
+        <h4>
+            GenericService is now available on Nuget - see <a href="https://www.nuget.org/packages/GenericServices/" target="_blank">GenericServices on NuGet</a>.
+        </h4>
+    </li>
+    <li>
+        <h4>
+            A new, more complex example is now available at <a href="http://complex.samplemvcwebapp.net/">Complex.SampleMvcWebApp</a>.
+        </h4>
+    </li>
+    <li>
+        <h4>
+            The <a href="https://github.com/JonPSmith/GenericServices/wiki" target="_blank">GenericServices Wiki</a>
+            now contains comprehensive documentation on GenericServices.
+        </h4>
+    </li>
+</ul>
+
+<h3 class="text-info">Where should I start?</h3>
+<ul>
+    <li>You dive right in by clicking one of the menu links at the top of this page. Try Sync database -> <a asp-controller="Posts" asp-action="Index">Posts</a> as a start.</li>
+    <li>Go to <a asp-controller="Home" asp-action="CodeView">this page</a> for more detail on what code features are shown on this site.</li>
+    <li>
+        You can look at the the GenericServices's <a href="https://github.com/JonPSmith/GenericServices/blob/master/README.md" target="_blank">read.me</a> file
+        or SampleMvcWebApp's <a href="https://github.com/JonPSmith/SampleMvcWebApp/blob/master/README.md" target="_blank">read.me</a> file on GitHub.
+    </li>
+</ul>
+
+<hr />
+<h3>Some notes about what this site is, and is not</h3>
+
+<h3 class="text-info">This site is about programming, not styling</h3>
+<h4 class="text-muted">
+    The site introduces the GenericServices Framework for back-end development.
+</h4>
+<p>
+    As much as possible the site uses the standard MVC5 BootStrap style and templates, because the main emphasis is on the back-end code. <br />
+    I have made the styling as basic as possible, which should make it easier for you to restyle it the way you want it.
+</p>
+<small>Of course I have tried to stop it looking ugly. You can decide whether I succeeded.</small>
+
+<h3 class="text-info">The pages are examples, not solutions</h3>
+<h4 class="text-muted">
+    The site demos framework commands. The data is irrelevant.
+</h4>
+<p>
+    The aim is to show how you can use the GenericServices commands to manipulate data. <br />
+    I have used fictitious, but credible data classes to do this. Some of the data validation rules are a somewhat bizarre to make a point.
+</p>
+<small>I have tried to make the data interesting. Enjoy.</small>
+
+<h3 class="text-info">The pages contain explanations</h3>
+<h4 class="text-muted">
+    As well as showing the framework in action it includes links to explanations of the code.
+</h4>
+<p>
+    On most pages you will see a <a asp-controller="Home" asp-action="CodeView">Explanation of the code</a> link. It is normally on the right hand side above the data.<br />
+    This takes you to a page that a) has links to the actual source on GitHub and b) tries to explain how it all hangs together.
+</p>
+<small>Remember, the links to the code on GitHub are always the best documentation.</small>

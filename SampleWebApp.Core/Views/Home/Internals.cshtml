@@ -1,0 +1,45 @@
+@model SampleWebApp.Core.Models.InternalsInfo
+@{
+    ViewData["Title"] = "Internals";
+}
+
+<div>
+    <h4>InternalsInfo</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.WorkerThreads)
+        </dt>
+
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.WorkerThreads)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.AvailableThreads)
+        </dt>
+
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.AvailableThreads)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.AvailableMbytes)
+        </dt>
+
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.AvailableMbytes)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.HeapMemoryUsedKbytes)
+        </dt>
+
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.HeapMemoryUsedKbytes)
+        </dd>
+    </dl>
+</div>
+<p>
+    <a asp-controller="Home" asp-action="Index">Back to List</a>
+</p>
