@@ -1,0 +1,21 @@
+@{
+    ViewData["Title"] = "Code View";
+}
+
+<h2>Code Explanation</h2>
+
+<p>This page would normally contain code explanations and links to the actual source code on GitHub.</p>
+
+<p>
+    This is the .NET Core 6 version of the Sample MVC Web Application, demonstrating the migration 
+    of the HomeController from ASP.NET MVC 5 (.NET Framework 4.5.1) to .NET Core 6.
+</p>
+
+<h3>Key Migration Changes:</h3>
+<ul>
+    <li><strong>Namespace:</strong> Changed from <code>System.Web.Mvc</code> to <code>Microsoft.AspNetCore.Mvc</code></li>
+    <li><strong>Return Types:</strong> Updated from <code>ActionResult</code> to <code>IActionResult</code></li>
+    <li><strong>Memory Metrics:</strong> Updated InternalsInfo model to use .NET Core compatible APIs</li>
+    <li><strong>Views:</strong> Updated to use tag helpers and .NET Core conventions</li>
+    <li><strong>Project Structure:</strong> Created new .NET Core 6 project with modern conventions</li>
+</ul>
