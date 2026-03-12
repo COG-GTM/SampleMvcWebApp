@@ -1,0 +1,33 @@
+initialize: |
+  # Add Mono repository (for .NET Framework 4.5.1 support on Linux)
+  sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+  echo "deb https://download.mono-project.com/repo/ubuntu stable-focal main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
+  sudo apt-get update
+  # Install Mono runtime, MSBuild, NuGet, and NUnit console runner
+  sudo apt-get install -y mono-devel mono-complete nuget msbuild nunit-console
+maintenance: |
+  nuget restore SampleWebApp.sln
+  msbuild SampleWebApp.sln /p:Configuration=Debug
+knowledge:
+  - name: project-overview
+    contents: |
+      ASP.NET MVC5 (.NET Framework 4.5.1) app with Entity Framework 6.
+      Solution has 5 projects: SampleWebApp, DataLayer, ServiceLayer, BizLayer, Tests.
+      Uses NuGet packages.config format (not PackageReference).
+  - name: build
+    contents: |
+      nuget restore SampleWebApp.sln
+      msbuild SampleWebApp.sln /p:Configuration=Debug
+  - name: test
+    contents: |
+      # Tests require SQL Server LocalDB (not available on Linux/Mono).
+      # On Linux, tests will fail with PlatformNotSupportedException for LocalDB.
+      # On Windows: nunit-console Tests/bin/Debug/Tests.dll
+      nunit-console Tests/bin/Debug/Tests.dll
+  - name: notes
+    contents: |
+      - This is a classic .NET Framework project, NOT .NET Core/.NET 5+.
+      - Built on Linux using Mono 6.x with MSBuild.
+      - Build succeeds with 0 errors (some warnings about System.Web.Entity and System.configuration are benign).
+      - Tests depend on SQL Server LocalDB which is Windows-only; tests cannot run on Linux.
+      - No Dockerfile, Makefile, or pre-commit hooks in this repo.
