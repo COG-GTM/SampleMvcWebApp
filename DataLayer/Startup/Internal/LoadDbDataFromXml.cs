@@ -57,11 +57,11 @@ namespace DataLayer.Startup.Internal
         private static Dictionary<string, Tag> DecodeTags(XElement element)
         {
             return element.Elements("Tag").ToDictionary(
-                el => el.Attribute("Slug").Value,
+                el => el.Element("Slug").Value,
                 el => new Tag
                 {
-                    Slug = el.Attribute("Slug").Value,
-                    Name = el.Attribute("Name").Value
+                    Slug = el.Element("Slug").Value,
+                    Name = el.Element("Name").Value
                 });
         }
 
@@ -70,8 +70,8 @@ namespace DataLayer.Startup.Internal
             return element.Elements("Blog").Select(
                 blogXml => new Blog
                 {
-                    Name = blogXml.Attribute("Name").Value,
-                    EmailAddress = blogXml.Attribute("Email").Value,
+                    Name = blogXml.Element("Name").Value,
+                    EmailAddress = blogXml.Element("Email").Value,
                     Posts = DecodePosts(blogXml.Element("Posts"), tagsDict).ToList()
                 });
         }
@@ -79,14 +79,19 @@ namespace DataLayer.Startup.Internal
         private static IEnumerable<Post> DecodePosts(XElement element, Dictionary<string, Tag> tagsDict)
         {
             return element.Elements("Post").Select(
-                postXml => new Post
+                postXml =>
                 {
-                    Title = postXml.Attribute("Title").Value,
-                    Content = postXml.Value,
-                    Tags = postXml.Attribute("TagSlugs").Value.Split(',')
-                        .Select(x => x.Trim())
-                        .Where(x => !string.IsNullOrEmpty(x))
-                        .Select(x => tagsDict[x]).ToList()
+                    var content = postXml.Element("Content").Value;
+                    var trimmedContent = string.Join("\n", content.Split('\n').Select(x => x.Trim()));
+                    return new Post
+                    {
+                        Title = postXml.Element("Title").Value,
+                        Content = trimmedContent,
+                        Tags = postXml.Element("TagSlugs").Value.Split(',')
+                            .Select(x => x.Trim())
+                            .Where(x => !string.IsNullOrEmpty(x))
+                            .Select(x => tagsDict[x]).ToList()
+                    };
                 });
         }
     }
