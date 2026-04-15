@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: PostsController.cs
@@ -24,143 +24,221 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Web.Mvc;
 using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
-using GenericServices;
-using SampleWebApp.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ServiceLayer.PostServices;
-
+using ServiceLayer.UiClasses;
 
 namespace SampleWebApp.Controllers
 {
     /// <summary>
-    /// This is an example of a Controller using GenericServices database commands with a DTO.
-    /// In this case we are using normal, non-async commands
+    /// This is an example of a Controller using EF Core database commands with a DTO.
+    /// In this case we are using normal, non-async commands.
     /// </summary>
     public class PostsController : Controller
     {
-        /// <summary>
-        /// Note that is Index is different in that it has an optional id to filter the list on.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="service"></param>
-        /// <returns></returns>
-        public ActionResult Index(int? id, IListService service)
+        private readonly SampleWebAppDb _db;
+
+        public PostsController(SampleWebAppDb db)
         {
-            var filtered = id != null && id != 0;
-            var query = filtered ? service.GetAll<SimplePostDto>().Where(x => x.BlogId == id) : service.GetAll<SimplePostDto>();
-            if (filtered)
+            _db = db;
+        }
+
+        public IActionResult Index(int? id)
+        {
+            var query = _db.Posts
+                .Include(p => p.Blogger)
+                .Include(p => p.Tags)
+                .AsQueryable();
+
+            if (id != null && id != 0)
+            {
+                query = query.Where(x => x.BlogId == id);
                 TempData["message"] = "Filtered list";
+            }
 
-            return View(query.ToList());
+            var list = query.Select(p => new SimplePostDto
+            {
+                PostId = p.PostId,
+                BlogId = p.BlogId,
+                BloggerName = p.Blogger.Name,
+                Title = p.Title,
+                LastUpdated = p.LastUpdated,
+                TagNamesList = p.Tags.Select(t => t.Name).ToList()
+            }).ToList();
+
+            return View(list);
         }
 
-        public ActionResult Details(int id, IDetailService service)
+        public IActionResult Details(int id)
         {
-            return View(service.GetDetail<DetailPostDto>(id).Result);
+            var post = _db.Posts
+                .Include(p => p.Blogger)
+                .Include(p => p.Tags)
+                .FirstOrDefault(p => p.PostId == id);
+            if (post == null) return NotFound();
+
+            var dto = MapToDetailDto(post);
+            return View(dto);
         }
 
-        public ActionResult Edit(int id, IUpdateSetupService service)
+        public IActionResult Edit(int id)
         {
-            return View(service.GetOriginal<DetailPostDto>(id).Result);
+            var post = _db.Posts
+                .Include(p => p.Blogger)
+                .Include(p => p.Tags)
+                .FirstOrDefault(p => p.PostId == id);
+            if (post == null) return NotFound();
+
+            var dto = MapToDetailDto(post);
+            SetupDropDownsAndMultiSelect(dto);
+            return View(dto);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(DetailPostDto dto, IUpdateService service)
+        public IActionResult Edit(DetailPostDto dto)
         {
             if (!ModelState.IsValid)
-                //model errors so return immediately
-                return View(service.ResetDto(dto));
-
-            var response = service.Update(dto);
-            if (response.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
+                SetupDropDownsAndMultiSelect(dto);
+                return View(dto);
             }
 
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, dto);
-            return View(dto);
-        }
+            var post = _db.Posts
+                .Include(p => p.Tags)
+                .FirstOrDefault(p => p.PostId == dto.PostId);
+            if (post == null) return NotFound();
 
-        public ActionResult Create(ICreateSetupService setupService)
-        {
-            var dto = setupService.GetDto<DetailPostDto>();
-            return View(dto);
-        }
+            post.Title = dto.Title;
+            post.Content = dto.Content;
+            post.BlogId = GetBlogIdFromDropDown(dto.Bloggers);
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(DetailPostDto dto, ICreateService service)
-        {
-            if (!ModelState.IsValid)
-                //model errors so return immediately
-                return View(service.ResetDto(dto));
+            // Update tags
+            var selectedTagIds = dto.UserChosenTags.GetFinalSelectionAsInts();
+            post.Tags = _db.Tags.Where(t => selectedTagIds.Contains(t.TagId)).ToList();
 
-            var response = service.Create(dto);
-            if (response.IsValid)
-            {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
-            }
-
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, dto);
-            return View(dto);
-        }
-
-        public ActionResult Delete(int id, IDeleteService service)
-        {
-
-            var response = service.Delete<Post>(id);
-            if (response.IsValid)
-                TempData["message"] = response.SuccessMessage;
-            else
-                //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
-            
+            _db.SaveChanges();
+            TempData["message"] = "Successfully updated Post.";
             return RedirectToAction("Index");
         }
 
-        //-----------------------------------------------------
-        //Code used in https://www.simple-talk.com/dotnet/.net-framework/the-.net-4.5-asyncawait-commands-in-promise-and-practice/
-
-        public ActionResult NumPosts(SampleWebAppDb db)
+        public IActionResult Create()
         {
-            //The cast to object is to stop the View using the string as a view name
-            return View((object)GetNumPosts(db));
+            var dto = new DetailPostDto();
+            SetupDropDownsAndMultiSelect(dto);
+            return View(dto);
         }
 
-        public static string GetNumPosts(SampleWebAppDb db)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Create(DetailPostDto dto)
         {
-            var numPosts = db.Posts.Count();
-            return string.Format("The total number of Posts is {0}", numPosts);
+            if (!ModelState.IsValid)
+            {
+                SetupDropDownsAndMultiSelect(dto);
+                return View(dto);
+            }
+
+            var post = new Post
+            {
+                Title = dto.Title,
+                Content = dto.Content,
+                BlogId = GetBlogIdFromDropDown(dto.Bloggers)
+            };
+
+            var selectedTagIds = dto.UserChosenTags.GetFinalSelectionAsInts();
+            post.Tags = _db.Tags.Where(t => selectedTagIds.Contains(t.TagId)).ToList();
+
+            _db.Posts.Add(post);
+            _db.SaveChanges();
+            TempData["message"] = "Successfully created Post.";
+            return RedirectToAction("Index");
         }
 
-        //--------------------------------------------
+        public IActionResult Delete(int id)
+        {
+            var post = _db.Posts.Find(id);
+            if (post != null)
+            {
+                _db.Posts.Remove(post);
+                _db.SaveChanges();
+                TempData["message"] = "Successfully deleted Post.";
+            }
+            else
+            {
+                TempData["errorMessage"] = "Could not find the Post to delete.";
+            }
+            return RedirectToAction("Index");
+        }
 
-        public ActionResult CodeView()
+        public IActionResult NumPosts()
+        {
+            var numPosts = _db.Posts.Count();
+            return View((object)string.Format("The total number of Posts is {0}", numPosts));
+        }
+
+        public IActionResult CodeView()
         {
             return View();
         }
 
-        public ActionResult Delay()
+        public IActionResult Delay()
         {
             Thread.Sleep(500);
             return View(500);
         }
 
-        public ActionResult Reset(SampleWebAppDb db)
+        public IActionResult Reset()
         {
-            DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
+            DataLayerInitialise.ResetBlogs(_db, TestDataSelection.Medium);
             TempData["message"] = "Successfully reset the blogs data";
             return RedirectToAction("Index");
+        }
+
+        //---------------------------------------------------
+        //private helpers
+
+        private DetailPostDto MapToDetailDto(Post post)
+        {
+            return new DetailPostDto
+            {
+                PostId = post.PostId,
+                Title = post.Title,
+                Content = post.Content,
+                BloggerName = post.Blogger?.Name,
+                BlogId = post.BlogId,
+                LastUpdated = post.LastUpdated,
+                Tags = post.Tags?.ToList() ?? new List<Tag>()
+            };
+        }
+
+        private void SetupDropDownsAndMultiSelect(DetailPostDto dto)
+        {
+            dto.Bloggers.SetupDropDownListContent(
+                _db.Blogs.ToList().Select(x => new KeyValuePair<string, string>(x.Name, x.BlogId.ToString("D"))),
+                "--- choose blogger ---");
+            if (dto.PostId != 0)
+                dto.Bloggers.SetSelectedValue(dto.BlogId.ToString("D"));
+
+            var preselectedTags = dto.Tags != null && dto.Tags.Any()
+                ? dto.Tags.Select(x => new KeyValuePair<string, int>(x.Name, x.TagId)).ToList()
+                : new List<KeyValuePair<string, int>>();
+            dto.UserChosenTags.SetupMultiSelectList(
+                _db.Tags.ToList().Select(x => new KeyValuePair<string, int>(x.Name, x.TagId)),
+                preselectedTags);
+        }
+
+        private int GetBlogIdFromDropDown(DropDownListType bloggers)
+        {
+            var blogId = bloggers.SelectedValueAsInt;
+            return blogId ?? 0;
         }
     }
 }

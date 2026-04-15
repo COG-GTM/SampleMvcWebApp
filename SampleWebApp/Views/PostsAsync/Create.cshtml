@@ -1,4 +1,4 @@
-﻿@model ServiceLayer.PostServices.DetailPostDtoAsync
+@model ServiceLayer.PostServices.DetailPostDtoAsync
 
 @{
     ViewBag.Title = "Create";
@@ -6,59 +6,70 @@
 
 <h2>Create (Async)</h2>
 
-
-@using (Html.BeginForm()) 
-{
+<form asp-action="Create" method="post">
     @Html.AntiForgeryToken()
     
     <div class="form-horizontal">
         <h4>Post</h4>
         <hr />
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
         <div class="form-group">
-            @Html.LabelFor(model => model.Title, htmlAttributes: new { @class = "control-label col-md-2" })
+            <label asp-for="Title" class="control-label col-md-2"></label>
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Title, new { htmlAttributes = new { @class = "form-control" } })
-                @Html.ValidationMessageFor(model => model.Title, "", new { @class = "text-danger" })
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger"></span>
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.Content, htmlAttributes: new { @class = "control-label col-md-2" })
+            <label asp-for="Content" class="control-label col-md-2"></label>
             <div class="col-md-10">
-                @Html.EditorFor(model => model.Content, new { htmlAttributes = new { @class = "form-control" } })
-                @Html.ValidationMessageFor(model => model.Content, "", new { @class = "text-danger" })
-            </div>
-        </div>
-        <div class="form-group">
-            @Html.LabelFor(model => model.Bloggers, htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
-                @Html.EditorFor(model => model.Bloggers, new { htmlAttributes = new { @class = "form-control" } })
-                @Html.ValidationMessageFor(model => model.Bloggers, "", new { @class = "text-danger" })
+                <textarea asp-for="Content" class="form-control"></textarea>
+                <span asp-validation-for="Content" class="text-danger"></span>
             </div>
         </div>
 
         <div class="form-group">
-            @Html.Label("Tags", htmlAttributes: new { @class = "control-label col-md-2" })
+            <label class="control-label col-md-2">Blogger</label>
             <div class="col-md-10">
-                @Html.EditorFor(model => model.UserChosenTags, new { htmlAttributes = new { @class = "form-control" } })
-                @Html.ValidationMessageFor(model => model.UserChosenTags, "", new { @class = "text-danger" })
+                @if (Model.Bloggers?.KeyValueList != null)
+                {
+                    <select name="Bloggers.SelectedValue" class="form-control">
+                        @foreach (var item in Model.Bloggers.KeyValueList)
+                        {
+                            <option value="@item.Value">@item.Key</option>
+                        }
+                    </select>
+                }
             </div>
         </div>
+
+        <div class="form-group">
+            <label class="control-label col-md-2">Tags</label>
+            <div class="col-md-10">
+                @if (Model.UserChosenTags?.AllPossibleOptions != null)
+                {
+                    <select name="UserChosenTags.FinalSelection" multiple class="form-control">
+                        @foreach (var item in Model.UserChosenTags.AllPossibleOptions)
+                        {
+                            <option value="@item.Value">@item.Key</option>
+                        }
+                    </select>
+                }
+            </div>
+        </div>
+
         <div class="form-group">
             <div class="col-md-offset-2 col-md-10">
                 <input type="submit" value="Create" class="btn btn-default" />
             </div>
         </div>
     </div>
-}
+</form>
 
 <div>
-    @Html.ActionLink("Back to List", "Index")
+    <a asp-action="Index">Back to List</a>
 </div>
 <hr />
-@Html.Partial("PostValidation")
-
-@section Scripts {
-    @Scripts.Render("~/bundles/jqueryval")
-}
+@await Html.PartialAsync("PostValidation")

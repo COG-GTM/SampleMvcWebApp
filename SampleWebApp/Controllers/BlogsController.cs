@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: BlogsController.cs
@@ -25,88 +25,90 @@
 // SOFTWARE.
 #endregion
 using System.Linq;
-using System.Web.Mvc;
+using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
-using GenericServices;
-using SampleWebApp.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
 using ServiceLayer.BlogServices;
 
 namespace SampleWebApp.Controllers
 {
-
     /// <summary>
-    /// This is an example of a Controller using GenericServices database commands directly to the data class (other that List, which needs a DTO)
-    /// In this case we are using normal, non-async commands
+    /// This is an example of a Controller using EF Core database commands directly to the data class.
+    /// In this case we are using normal, non-async commands.
     /// </summary>
     public class BlogsController : Controller
     {
-       
-        public ActionResult Index(IListService service)
+        private readonly SampleWebAppDb _db;
+
+        public BlogsController(SampleWebAppDb db)
         {
-            return View(service.GetAll<BlogListDto>().ToList());
+            _db = db;
         }
 
-        public ActionResult Edit(int id, IUpdateSetupService service)
+        public IActionResult Index()
         {
-            return View(service.GetOriginal<Blog>(id).Result);
+            var list = _db.Blogs.Select(b => new BlogListDto
+            {
+                BlogId = b.BlogId,
+                Name = b.Name,
+                EmailAddress = b.EmailAddress,
+                PostsCount = b.Posts.Count
+            }).ToList();
+            return View(list);
+        }
+
+        public IActionResult Edit(int id)
+        {
+            var blog = _db.Blogs.Find(id);
+            if (blog == null) return NotFound();
+            return View(blog);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(Blog blog, IUpdateService service)
+        public IActionResult Edit(Blog blog)
         {
             if (!ModelState.IsValid)
-                //model errors so return immediately
                 return View(blog);
 
-            var response = service.Update(blog);
-            if (response.IsValid)
-            {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
-            }
+            var existingBlog = _db.Blogs.Find(blog.BlogId);
+            if (existingBlog == null) return NotFound();
 
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, blog);
-            return View(blog);
+            existingBlog.Name = blog.Name;
+            existingBlog.EmailAddress = blog.EmailAddress;
+            _db.SaveChanges();
+            TempData["message"] = "Successfully updated Blog.";
+            return RedirectToAction("Index");
         }
 
-        public ActionResult Create()
+        public IActionResult Create()
         {
             return View(new Blog());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Blog blog, ICreateService service)
+        public IActionResult Create(Blog blog)
         {
             if (!ModelState.IsValid)
-                //model errors so return immediately
                 return View(blog);
 
-            var response = service.Create(blog);
-            if (response.IsValid)
-            {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
-            }
-
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, blog);
-            return View(blog);
-        }
-
-        public ActionResult Delete(int id, IDeleteService service)
-        {
-
-            var response = service.Delete<Blog>(id);
-            if (response.IsValid)
-                TempData["message"] = response.SuccessMessage;
-            //else it throws a concurrecy error, which shows the default error page.
-
+            _db.Blogs.Add(blog);
+            _db.SaveChanges();
+            TempData["message"] = "Successfully created Blog.";
             return RedirectToAction("Index");
         }
 
-
+        public IActionResult Delete(int id)
+        {
+            var blog = _db.Blogs.Find(id);
+            if (blog != null)
+            {
+                _db.Blogs.Remove(blog);
+                _db.SaveChanges();
+                TempData["message"] = "Successfully deleted Blog.";
+            }
+            return RedirectToAction("Index");
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: BlogListDto.cs
@@ -24,19 +24,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-
 using System.ComponentModel.DataAnnotations;
-using System.Runtime.CompilerServices;
-using DataLayer.DataClasses.Concrete;
-using GenericServices.Core;
-
-[assembly: InternalsVisibleTo("Tests")]
 
 namespace ServiceLayer.BlogServices
 {
-    public class BlogListDto : EfGenericDto<Blog, BlogListDto>
+    public class BlogListDto
     {
-
         [UIHint("HiddenInput")]
         [Key]
         public int BlogId { get; set; }
@@ -46,14 +39,6 @@ namespace ServiceLayer.BlogServices
         [EmailAddress]
         public string EmailAddress { get; set; }
 
-        public int PostsCount { get; set; }         //Uses AutoMapper Aggregate
-
-        //----------------------------------------------
-        //overridden properties or methods
-
-        protected override CrudFunctions SupportedFunctions
-        {
-            get { return CrudFunctions.List; }
-        }
+        public int PostsCount { get; set; }
     }
 }

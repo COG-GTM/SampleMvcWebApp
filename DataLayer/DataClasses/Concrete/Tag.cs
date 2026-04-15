@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: Tag.cs
@@ -31,7 +31,6 @@ namespace DataLayer.DataClasses.Concrete
 {
     public class Tag
     {
-        [UIHint("HiddenInput")]
         public int TagId { get; set; }
 
         [MaxLength(64)]
@@ -44,10 +43,5 @@ namespace DataLayer.DataClasses.Concrete
         public string Name { get; set; }
 
         public ICollection<Post> Posts { get; set; }
-
-        public override string ToString()
-        {
-            return string.Format("TagId: {0}, Name: {1}, Slug: {2}", TagId, Name, Slug);
-        }
     }
 }

@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: SimplePostDtoAsync.cs
@@ -28,17 +28,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using DataLayer.DataClasses.Concrete;
-using GenericServices.Core;
-
-[assembly: InternalsVisibleTo("Tests")]
 
 namespace ServiceLayer.PostServices
 {
-    public class SimplePostDtoAsync : EfGenericDtoAsync<Post, SimplePostDtoAsync>
+    public class SimplePostDtoAsync
     {
-
         [UIHint("HiddenInput")]
         [Key]
         public int PostId { get; set; }
@@ -48,8 +42,7 @@ namespace ServiceLayer.PostServices
         [MinLength(2), MaxLength(128)]
         public string Title { get; set; }
 
-        [ScaffoldColumn(false)]
-        public ICollection<Tag> Tags { get; set; }
+        public List<string> TagNamesList { get; set; } = new List<string>();
 
         [ScaffoldColumn(false)]
         public DateTime LastUpdated { get; set; }
@@ -59,14 +52,6 @@ namespace ServiceLayer.PostServices
         /// </summary>
         public DateTime LastUpdatedUtc { get { return DateTime.SpecifyKind(LastUpdated, DateTimeKind.Utc); } }
 
-        public string TagNames { get { return string.Join(", ", Tags.Select(x => x.Name)); } }
-
-        //----------------------------------------------
-        //overridden properties or methods
-
-        protected override CrudFunctions SupportedFunctions
-        {
-            get { return CrudFunctions.List; }
-        }
+        public string TagNames { get { return string.Join(", ", TagNamesList); } }
     }
 }

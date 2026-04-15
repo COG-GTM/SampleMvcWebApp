@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: TagsAsyncController.cs
@@ -24,103 +24,109 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Data.Entity;
+using System.Linq;
 using System.Threading.Tasks;
-using System.Web.Mvc;
+using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
-using GenericServices;
-using SampleWebApp.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ServiceLayer.TagServices;
 
 namespace SampleWebApp.Controllers
 {
     /// <summary>
-    /// This is an example of a Controller using GenericServices database commands directly to the data class (other that List, which needs a DTO)
-    /// In this case we are using async commands
+    /// This is an example of a Controller using EF Core database commands directly to the data class.
+    /// In this case we are using async commands.
     /// </summary>
     public class TagsAsyncController : Controller
     {
-        // GET: TagsAsync
-        public async Task<ActionResult> Index(IListService service)
+        private readonly SampleWebAppDb _db;
+
+        public TagsAsyncController(SampleWebAppDb db)
         {
-            return View(await service.GetAll<TagListDto>().ToListAsync());
+            _db = db;
         }
 
-        public async Task<ActionResult> Details(int id, IDetailServiceAsync service)
+        public async Task<IActionResult> Index()
         {
-            return View((await service.GetDetailAsync<Tag>(id)).Result);
+            var list = await _db.Tags.Select(t => new TagListDto
+            {
+                TagId = t.TagId,
+                Name = t.Name,
+                Slug = t.Slug,
+                PostsCount = t.Posts.Count
+            }).ToListAsync();
+            return View(list);
         }
 
-
-        public async Task<ActionResult> Edit(int id, IUpdateSetupServiceAsync service)
+        public async Task<IActionResult> Details(int id)
         {
-            return View((await service.GetOriginalAsync<Tag>(id)).Result);
+            var tag = await _db.Tags.FindAsync(id);
+            if (tag == null) return NotFound();
+            return View(tag);
+        }
+
+        public async Task<IActionResult> Edit(int id)
+        {
+            var tag = await _db.Tags.FindAsync(id);
+            if (tag == null) return NotFound();
+            return View(tag);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Edit(Tag tag, IUpdateServiceAsync service)
+        public async Task<IActionResult> Edit(Tag tag)
         {
             if (!ModelState.IsValid)
-                //model errors so return immediately
                 return View(tag);
 
-            var response = await service.UpdateAsync(tag);
-            if (response.IsValid)
-            {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
-            }
+            var existingTag = await _db.Tags.FindAsync(tag.TagId);
+            if (existingTag == null) return NotFound();
 
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, tag);
-            return View(tag);
+            existingTag.Name = tag.Name;
+            existingTag.Slug = tag.Slug;
+            await _db.SaveChangesAsync();
+            TempData["message"] = "Successfully updated Tag.";
+            return RedirectToAction("Index");
         }
 
-        public ActionResult Create()
+        public IActionResult Create()
         {
             return View(new Tag());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Create(Tag tag, ICreateServiceAsync service)
+        public async Task<IActionResult> Create(Tag tag)
         {
             if (!ModelState.IsValid)
-                //model errors so return immediately
                 return View(tag);
 
-            var response = await service.CreateAsync(tag);
-            if (response.IsValid)
-            {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
-            }
-
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, tag);
-            return View(tag);
-        }
-
-        public async Task<ActionResult> Delete(int id, IDeleteServiceAsync service)
-        {
-
-            var response = await service.DeleteAsync<Tag>(id);
-            if (response.IsValid)
-                TempData["message"] = response.SuccessMessage;
-            else
-                //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
-
+            _db.Tags.Add(tag);
+            await _db.SaveChangesAsync();
+            TempData["message"] = "Successfully created Tag.";
             return RedirectToAction("Index");
         }
 
-        //--------------------------------------------
+        public async Task<IActionResult> Delete(int id)
+        {
+            var tag = await _db.Tags.FindAsync(id);
+            if (tag != null)
+            {
+                _db.Tags.Remove(tag);
+                await _db.SaveChangesAsync();
+                TempData["message"] = "Successfully deleted Tag.";
+            }
+            else
+            {
+                TempData["errorMessage"] = "Could not find the Tag to delete.";
+            }
+            return RedirectToAction("Index");
+        }
 
-        public ActionResult CodeView()
+        public IActionResult CodeView()
         {
             return View();
         }
-
     }
 }

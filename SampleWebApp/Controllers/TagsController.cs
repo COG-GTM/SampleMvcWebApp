@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: TagsController.cs
@@ -25,100 +25,106 @@
 // SOFTWARE.
 #endregion
 using System.Linq;
-using System.Web.Mvc;
+using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
-using GenericServices;
-using SampleWebApp.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
 using ServiceLayer.TagServices;
 
 namespace SampleWebApp.Controllers
 {
+    /// <summary>
+    /// This is an example of a Controller using EF Core database commands directly to the data class.
+    /// In this case we are using normal, non-async commands.
+    /// </summary>
     public class TagsController : Controller
     {
-        /// <summary>
-        /// This is an example of a Controller using GenericServices database commands directly to the data class (other that List, which needs a DTO)
-        /// In this case we are using normal, non-async commands
-        /// </summary>
-        public ActionResult Index(IListService service)
+        private readonly SampleWebAppDb _db;
+
+        public TagsController(SampleWebAppDb db)
         {
-            return View(service.GetAll<TagListDto>().ToList());
+            _db = db;
         }
 
-        public ActionResult Details(int id, IDetailService service)
+        public IActionResult Index()
         {
-            return View(service.GetDetail<Tag>(id).Result);
+            var list = _db.Tags.Select(t => new TagListDto
+            {
+                TagId = t.TagId,
+                Name = t.Name,
+                Slug = t.Slug,
+                PostsCount = t.Posts.Count
+            }).ToList();
+            return View(list);
         }
 
-
-        public ActionResult Edit(int id, IUpdateSetupService service)
+        public IActionResult Details(int id)
         {
-            return View(service.GetOriginal<Tag>(id).Result);
+            var tag = _db.Tags.Find(id);
+            if (tag == null) return NotFound();
+            return View(tag);
+        }
+
+        public IActionResult Edit(int id)
+        {
+            var tag = _db.Tags.Find(id);
+            if (tag == null) return NotFound();
+            return View(tag);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(Tag tag, IUpdateService service)
+        public IActionResult Edit(Tag tag)
         {
             if (!ModelState.IsValid)
-                //model errors so return immediately
                 return View(tag);
 
-            var response = service.Update(tag);
-            if (response.IsValid)
-            {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
-            }
+            var existingTag = _db.Tags.Find(tag.TagId);
+            if (existingTag == null) return NotFound();
 
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, tag);
-            return View(tag);
+            existingTag.Name = tag.Name;
+            existingTag.Slug = tag.Slug;
+            _db.SaveChanges();
+            TempData["message"] = "Successfully updated Tag.";
+            return RedirectToAction("Index");
         }
 
-        public ActionResult Create()
+        public IActionResult Create()
         {
             return View(new Tag());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Tag tag, ICreateService service)
+        public IActionResult Create(Tag tag)
         {
             if (!ModelState.IsValid)
-                //model errors so return immediately
                 return View(tag);
 
-            var response = service.Create(tag);
-            if (response.IsValid)
-            {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
-            }
-
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, tag);
-            return View(tag);
-        }
-
-        public ActionResult Delete(int id, IDeleteService service)
-        {
-
-            var response = service.Delete<Tag>(id);
-            if (response.IsValid)
-                TempData["message"] = response.SuccessMessage;
-            else
-                //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
-
+            _db.Tags.Add(tag);
+            _db.SaveChanges();
+            TempData["message"] = "Successfully created Tag.";
             return RedirectToAction("Index");
         }
 
-        //--------------------------------------------
+        public IActionResult Delete(int id)
+        {
+            var tag = _db.Tags.Find(id);
+            if (tag != null)
+            {
+                _db.Tags.Remove(tag);
+                _db.SaveChanges();
+                TempData["message"] = "Successfully deleted Tag.";
+            }
+            else
+            {
+                TempData["errorMessage"] = "Could not find the Tag to delete.";
+            }
+            return RedirectToAction("Index");
+        }
 
-        public ActionResult CodeView()
+        public IActionResult CodeView()
         {
             return View();
         }
-
     }
 }

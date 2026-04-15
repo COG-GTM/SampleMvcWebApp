@@ -1,12 +1,11 @@
-﻿@using SampleWebApp.Infrastructure
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewBag.Title - SampleMvcWebApp</title>
-    @Styles.Render("~/Content/css")
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
 </head>
 <body>
     <div class="navbar navbar-inverse navbar-fixed-top">
@@ -17,44 +16,42 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                @*@Html.ActionLink("Example web app", "Index", "Home", new { area = "" }, new { @class = "navbar-brand" })*@
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
-                    <li>@Html.ActionLink("Home", "Index", "Home")</li>                    
+                    <li><a asp-controller="Home" asp-action="Index">Home</a></li>
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Sync database<span class="caret"></span></a>
                         <ul class="dropdown-menu" role="menu">
-                            <li>@Html.ActionLink("Posts", "Index", "Posts", new { id = 0 }, null)</li>
-                            <li>@Html.ActionLink("Tags", "Index", "Tags")</li>
+                            <li><a asp-controller="Posts" asp-action="Index" asp-route-id="0">Posts</a></li>
+                            <li><a asp-controller="Tags" asp-action="Index">Tags</a></li>
                             <li class="divider"></li>
-                            <li>@Html.ActionLink("Blogs", "Index", "Blogs")</li>
+                            <li><a asp-controller="Blogs" asp-action="Index">Blogs</a></li>
                         </ul>
                     </li>
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Async database<span class="caret"></span></a>
                         <ul class="dropdown-menu" role="menu">
-                            <li>@Html.ActionLink("Posts", "Index", "PostsAsync", new { id = 0 }, null)</li>
-                            <li>@Html.ActionLink("Tags", "Index", "TagsAsync")</li>
+                            <li><a asp-controller="PostsAsync" asp-action="Index">Posts</a></li>
+                            <li><a asp-controller="TagsAsync" asp-action="Index">Tags</a></li>
                         </ul>
                     </li>
-                    <li>@Html.ActionLink("About", "About", "Home")</li>
-                    <li>@Html.ActionLink("Contact", "Contact", "Home")</li>
+                    <li><a asp-controller="Home" asp-action="About">About</a></li>
+                    <li><a asp-controller="Home" asp-action="Contact">Contact</a></li>
                 </ul>
-                @*@Html.Partial("_LoginPartial")*@
             </div>
         </div>
     </div>
     <div class="container body-content">
         @RenderBody()
         <hr />
-        <footer class="small  text-muted">
+        <footer class="small text-muted">
             <span>An open source project under the <a href="http://opensource.org/licenses/MIT" target="_blank">MIT licence</a>, created by <a href="http://www.thereformedprogrammer.net/about-me/" target="_blank">Jon Smith</a>.</span>
-            <span class="pull-right">Hosted on @WebUiInitialise.HostType</span>
         </footer>
     </div>
 
-    @Scripts.Render("~/bundles/javascript")
-    @RenderSection("scripts", required: false)
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
