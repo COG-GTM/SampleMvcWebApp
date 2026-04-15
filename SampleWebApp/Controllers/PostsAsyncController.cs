@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: PostsAsyncController.cs
@@ -25,132 +25,212 @@
 // SOFTWARE.
 #endregion
 using System.Collections.Generic;
-using System.Data.Entity;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Web.Mvc;
 using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
-using GenericServices;
-using SampleWebApp.Infrastructure;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ServiceLayer.PostServices;
+using ServiceLayer.UiClasses;
 
 namespace SampleWebApp.Controllers
 {
+    /// <summary>
+    /// This is an example of a Controller using EF Core database commands with a DTO.
+    /// In this case we are using async commands.
+    /// </summary>
     public class PostsAsyncController : Controller
     {
-        /// <summary>
-        /// This is an example of a Controller using GenericServices database commands with a DTO.
-        /// In this case we are using async commands
-        /// </summary>
-        public async Task<ActionResult> Index(IListService service)
+        private readonly SampleWebAppDb _db;
+
+        public PostsAsyncController(SampleWebAppDb db)
         {
-            return View(await service.GetAll<SimplePostDtoAsync>().ToListAsync());
+            _db = db;
         }
 
-        public async Task<ActionResult> Details(int id, IDetailServiceAsync service)
+        public async Task<IActionResult> Index()
         {
-            return View((await service.GetDetailAsync<DetailPostDtoAsync>(id)).Result);
+            var list = await _db.Posts
+                .Include(p => p.Blogger)
+                .Include(p => p.Tags)
+                .Select(p => new SimplePostDtoAsync
+                {
+                    PostId = p.PostId,
+                    BloggerName = p.Blogger.Name,
+                    Title = p.Title,
+                    LastUpdated = p.LastUpdated,
+                    TagNamesList = p.Tags.Select(t => t.Name).ToList()
+                }).ToListAsync();
+
+            return View(list);
         }
 
-
-        public async Task<ActionResult> Edit(int id, IUpdateSetupServiceAsync service)
+        public async Task<IActionResult> Details(int id)
         {
-            return View((await service.GetOriginalAsync<DetailPostDtoAsync>(id)).Result);
+            var post = await _db.Posts
+                .Include(p => p.Blogger)
+                .Include(p => p.Tags)
+                .FirstOrDefaultAsync(p => p.PostId == id);
+            if (post == null) return NotFound();
+
+            var dto = MapToDetailDto(post);
+            return View(dto);
+        }
+
+        public async Task<IActionResult> Edit(int id)
+        {
+            var post = await _db.Posts
+                .Include(p => p.Blogger)
+                .Include(p => p.Tags)
+                .FirstOrDefaultAsync(p => p.PostId == id);
+            if (post == null) return NotFound();
+
+            var dto = MapToDetailDto(post);
+            await SetupDropDownsAndMultiSelectAsync(dto);
+            return View(dto);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Edit(DetailPostDtoAsync dto, IUpdateServiceAsync service)
+        public async Task<IActionResult> Edit(DetailPostDtoAsync dto)
         {
             if (!ModelState.IsValid)
-                //model errors so return immediately
-                return View(await service.ResetDtoAsync(dto));
-
-            var response = await service.UpdateAsync(dto);
-            if (response.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
+                await SetupDropDownsAndMultiSelectAsync(dto);
+                return View(dto);
             }
 
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, dto);
-            return View(dto);
-        }
+            var post = await _db.Posts
+                .Include(p => p.Tags)
+                .FirstOrDefaultAsync(p => p.PostId == dto.PostId);
+            if (post == null) return NotFound();
 
-        public async Task<ActionResult> Create(ICreateSetupServiceAsync setupService)
-        {
-            var dto = await setupService.GetDtoAsync<DetailPostDtoAsync>();
-            return View(dto);
-        }
+            post.Title = dto.Title;
+            post.Content = dto.Content;
+            post.BlogId = GetBlogIdFromDropDown(dto.Bloggers);
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Create(DetailPostDtoAsync dto, ICreateServiceAsync service)
-        {
-            if (!ModelState.IsValid)
-                //model errors so return immediately
-                return View(await service.ResetDtoAsync(dto));
+            var selectedTagIds = dto.UserChosenTags.GetFinalSelectionAsInts();
+            post.Tags = await _db.Tags.Where(t => selectedTagIds.Contains(t.TagId)).ToListAsync();
 
-            var response = await service.CreateAsync(dto);
-            if (response.IsValid)
-            {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
-            }
-
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, dto);
-            return View(dto);
-        }
-
-        public async Task<ActionResult> Delete(int id, IDeleteServiceAsync service)
-        {
-
-            var response = await service.DeleteAsync<Post>(id);
-            if (response.IsValid)
-                TempData["message"] = response.SuccessMessage;
-            else
-                //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
-           
+            await _db.SaveChangesAsync();
+            TempData["message"] = "Successfully updated Post.";
             return RedirectToAction("Index");
         }
 
-        //-----------------------------------------------------
-        //Code used in https://www.simple-talk.com/dotnet/.net-framework/the-.net-4.5-asyncawait-commands-in-promise-and-practice/
-
-        public async Task<ActionResult> NumPosts(SampleWebAppDb db)
+        public async Task<IActionResult> Create()
         {
-            return View((object)await GetNumPostsAsync(db));
+            var dto = new DetailPostDtoAsync();
+            await SetupDropDownsAndMultiSelectAsync(dto);
+            return View(dto);
         }
 
-        private static async Task<string> GetNumPostsAsync(SampleWebAppDb db)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(DetailPostDtoAsync dto)
         {
-            var numPosts = await db.Posts.CountAsync();
-            return string.Format("The total number of Posts is {0}", numPosts);
+            if (!ModelState.IsValid)
+            {
+                await SetupDropDownsAndMultiSelectAsync(dto);
+                return View(dto);
+            }
+
+            var post = new Post
+            {
+                Title = dto.Title,
+                Content = dto.Content,
+                BlogId = GetBlogIdFromDropDown(dto.Bloggers)
+            };
+
+            var selectedTagIds = dto.UserChosenTags.GetFinalSelectionAsInts();
+            post.Tags = await _db.Tags.Where(t => selectedTagIds.Contains(t.TagId)).ToListAsync();
+
+            _db.Posts.Add(post);
+            await _db.SaveChangesAsync();
+            TempData["message"] = "Successfully created Post.";
+            return RedirectToAction("Index");
         }
 
-        //--------------------------------------------
+        public async Task<IActionResult> Delete(int id)
+        {
+            var post = await _db.Posts.FindAsync(id);
+            if (post != null)
+            {
+                _db.Posts.Remove(post);
+                await _db.SaveChangesAsync();
+                TempData["message"] = "Successfully deleted Post.";
+            }
+            else
+            {
+                TempData["errorMessage"] = "Could not find the Post to delete.";
+            }
+            return RedirectToAction("Index");
+        }
 
-        public ActionResult CodeView()
+        public async Task<IActionResult> NumPosts()
+        {
+            var numPosts = await _db.Posts.CountAsync();
+            return View((object)string.Format("The total number of Posts is {0}", numPosts));
+        }
+
+        public IActionResult CodeView()
         {
             return View();
         }
 
-        public async Task<ActionResult> Delay()
+        public async Task<IActionResult> Delay()
         {
             await Task.Delay(500);
             return View(500);
         }
 
-        public ActionResult Reset(SampleWebAppDb db)
+        public IActionResult Reset()
         {
-            DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
+            DataLayerInitialise.ResetBlogs(_db, TestDataSelection.Medium);
             TempData["message"] = "Successfully reset the blogs data";
             return RedirectToAction("Index");
+        }
+
+        //---------------------------------------------------
+        //private helpers
+
+        private DetailPostDtoAsync MapToDetailDto(Post post)
+        {
+            return new DetailPostDtoAsync
+            {
+                PostId = post.PostId,
+                Title = post.Title,
+                Content = post.Content,
+                BloggerName = post.Blogger?.Name,
+                BlogId = post.BlogId,
+                LastUpdated = post.LastUpdated,
+                Tags = post.Tags?.ToList() ?? new List<Tag>()
+            };
+        }
+
+        private async Task SetupDropDownsAndMultiSelectAsync(DetailPostDtoAsync dto)
+        {
+            var bloggers = await _db.Blogs.ToListAsync();
+            dto.Bloggers.SetupDropDownListContent(
+                bloggers.Select(x => new KeyValuePair<string, string>(x.Name, x.BlogId.ToString("D"))),
+                "--- choose blogger ---");
+            if (dto.PostId != 0)
+                dto.Bloggers.SetSelectedValue(dto.BlogId.ToString("D"));
+
+            var preselectedTags = dto.Tags != null && dto.Tags.Any()
+                ? dto.Tags.Select(x => new KeyValuePair<string, int>(x.Name, x.TagId)).ToList()
+                : new List<KeyValuePair<string, int>>();
+            var allTags = await _db.Tags.ToListAsync();
+            dto.UserChosenTags.SetupMultiSelectList(
+                allTags.Select(x => new KeyValuePair<string, int>(x.Name, x.TagId)),
+                preselectedTags);
+        }
+
+        private int GetBlogIdFromDropDown(DropDownListType bloggers)
+        {
+            var blogId = bloggers.SelectedValueAsInt;
+            return blogId ?? 0;
         }
     }
 }

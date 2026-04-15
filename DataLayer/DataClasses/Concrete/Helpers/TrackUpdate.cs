@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: TrackUpdate.cs
@@ -30,7 +30,7 @@ namespace DataLayer.DataClasses.Concrete.Helpers
 {
     public abstract class TrackUpdate
     {
-        public DateTime LastUpdated { get; protected set; }
+        public DateTime LastUpdated { get; set; }
 
         internal void UpdateTrackingInfo()
         {
@@ -39,7 +39,7 @@ namespace DataLayer.DataClasses.Concrete.Helpers
 
         protected TrackUpdate()
         {
-            UpdateTrackingInfo();           //on creation then set date
+            UpdateTrackingInfo();
         }
     }
 }

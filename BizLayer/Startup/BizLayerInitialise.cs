@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: BizLayerInitialise.cs
@@ -24,7 +24,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using DataLayer.Startup;
 
 namespace BizLayer.Startup
 {
@@ -33,14 +32,11 @@ namespace BizLayer.Startup
     /// </summary>
     public static class BizLayerInitialise
     {
-
         /// <summary>
         /// This should be called at Startup
         /// </summary>
         public static void InitialiseThis()
         {
-
-
         }
     }
 }

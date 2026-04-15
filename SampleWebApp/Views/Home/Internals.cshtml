@@ -1,4 +1,4 @@
-﻿@model SampleWebApp.Models.InternalsInfo
+@model SampleWebApp.Models.InternalsInfo
 
 <div>
     <h4>InternalsInfo</h4>
@@ -21,14 +21,6 @@
         </dd>
 
         <dt>
-            @Html.DisplayNameFor(model => model.AvailableMbytes)
-        </dt>
-
-        <dd>
-            @Html.DisplayFor(model => model.AvailableMbytes)
-        </dd>
-
-        <dt>
             @Html.DisplayNameFor(model => model.HeapMemoryUsedKbytes)
         </dt>
 
@@ -38,5 +30,5 @@
     </dl>
 </div>
 <p>
-    @Html.ActionLink("Back to List", "Index")
+    <a asp-controller="Home" asp-action="Index">Back to List</a>
 </p>

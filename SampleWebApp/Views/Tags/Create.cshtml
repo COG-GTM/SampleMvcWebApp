@@ -1,4 +1,4 @@
-﻿@model DataLayer.DataClasses.Concrete.Tag
+@model DataLayer.DataClasses.Concrete.Tag
 
 @{
     ViewBag.Title = "Create";
@@ -43,4 +43,4 @@
     @Html.ActionLink("Back to List", "Index")
 </div>
 <hr />
-@Html.Partial("TagValidation")
+@await Html.PartialAsync("TagValidation")

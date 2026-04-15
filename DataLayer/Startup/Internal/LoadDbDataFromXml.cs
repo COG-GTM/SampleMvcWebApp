@@ -1,8 +1,8 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: LoadDbDataFromXml.cs
-// Date Created: 2014/05/22
+// Date Created: 2014/06/09
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -26,26 +26,15 @@
 #endregion
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using DataLayer.DataClasses.Concrete;
 
-[assembly: InternalsVisibleTo("Tests")]
-
 namespace DataLayer.Startup.Internal
 {
-
     internal static class LoadDbDataFromXml
     {
-
-        /// <summary>
-        /// Loads the Blogs, Posts and Tags from Xml file
-        /// </summary>
-        /// <param name="filepathWithinAssembly"></param>
-        /// <returns></returns>
         public static IEnumerable<Blog> FormBlogsWithPosts(string filepathWithinAssembly)
         {
             var assemblyHoldingFile = Assembly.GetAssembly(typeof(LoadDbDataFromXml));
@@ -62,49 +51,43 @@ namespace DataLayer.Startup.Internal
             }
         }
 
-        private static IEnumerable<Blog> DecodeBlogs(XElement element, Dictionary<string, Tag> tagsDict)
-        {
-            var result = new Collection<Blog>();
-            foreach (var blogXml in element.Elements("Blog"))
-            {
-                var newBlogger = new Blog()
-                {
-                    Name = blogXml.Element("Name").Value,
-                    EmailAddress = blogXml.Element("Email").Value,
-                    Posts = new Collection<Post>()
-                };
-
-                foreach (var postXml in blogXml.Element("Posts").Elements("Post"))
-                {
-                    var content = postXml.Element("Content").Value;
-                    var trimmedContent = string.Join("\n", content.Split('\n').Select(x => x.Trim()));
-                    var newPost = new Post()
-                    {
-                        Blogger = newBlogger,
-                        Title = postXml.Element("Title").Value,
-                        Content = trimmedContent,
-                        Tags = postXml.Element("TagSlugs").Value.Split(',').Select(x => tagsDict[x.Trim()]).ToList()
-                    };
-                    newBlogger.Posts.Add(newPost );
-                }    
-                result.Add( newBlogger);
-            }
-            return result;
-
-        }
+        //---------------------------------------------------
+        //private helpers
 
         private static Dictionary<string, Tag> DecodeTags(XElement element)
         {
-            var result = new Dictionary<string, Tag>();
-            foreach (var newTag in element.Elements("Tag").Select(tagXml => new Tag()
-            {
-                Name = tagXml.Element("Name").Value,
-                Slug = tagXml.Element("Slug").Value
-            }))
-            {
-                result[newTag.Slug] = newTag;
-            }
-            return result;
+            return element.Elements("Tag").ToDictionary(
+                el => el.Attribute("Slug").Value,
+                el => new Tag
+                {
+                    Slug = el.Attribute("Slug").Value,
+                    Name = el.Attribute("Name").Value
+                });
+        }
+
+        private static IEnumerable<Blog> DecodeBlogs(XElement element, Dictionary<string, Tag> tagsDict)
+        {
+            return element.Elements("Blog").Select(
+                blogXml => new Blog
+                {
+                    Name = blogXml.Attribute("Name").Value,
+                    EmailAddress = blogXml.Attribute("Email").Value,
+                    Posts = DecodePosts(blogXml.Element("Posts"), tagsDict).ToList()
+                });
+        }
+
+        private static IEnumerable<Post> DecodePosts(XElement element, Dictionary<string, Tag> tagsDict)
+        {
+            return element.Elements("Post").Select(
+                postXml => new Post
+                {
+                    Title = postXml.Attribute("Title").Value,
+                    Content = postXml.Value,
+                    Tags = postXml.Attribute("TagSlugs").Value.Split(',')
+                        .Select(x => x.Trim())
+                        .Where(x => !string.IsNullOrEmpty(x))
+                        .Select(x => tagsDict[x]).ToList()
+                });
         }
     }
 }

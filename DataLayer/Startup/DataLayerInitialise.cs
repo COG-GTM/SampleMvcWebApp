@@ -1,8 +1,8 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: DataLayerInitialise.cs
-// Date Created: 2014/05/20
+// Date Created: 2014/06/09
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -25,74 +25,66 @@
 // SOFTWARE.
 #endregion
 using System;
-using System.Collections.Generic;
-using System.Data.Entity;
 using System.Linq;
 using DataLayer.DataClasses;
 using DataLayer.Startup.Internal;
-using GenericLibsBase;
-using GenericServices;
+using Microsoft.Extensions.Logging;
 
 namespace DataLayer.Startup
 {
-    public enum TestDataSelection { Small = 0, Medium = 1}
+    public enum TestDataSelection
+    {
+        Small,
+        Medium
+    }
 
     public static class DataLayerInitialise
     {
+        private static ILogger _logger;
 
-        private static IGenericLogger _logger;
-
-        private static readonly Dictionary<TestDataSelection, string> XmlBlogsDataFileManifestPath = new Dictionary<TestDataSelection, string>
-            {
-                {TestDataSelection.Small, "DataLayer.Startup.Internal.BlogsContentSimple.xml"},
-                {TestDataSelection.Medium, "DataLayer.Startup.Internal.BlogsContextMedium.xml"}
-            };
-
-        /// <summary>
-        /// This should be called at Startup
-        /// </summary>
-        /// <param name="isAzure">true if running on azure (used for configuring retry policy and BuildSqlConnectionString UserId)</param>
-        /// <param name="canCreateDatabase">true if the database provider allows the app to drop/create a database</param>
-        public static void InitialiseThis(bool isAzure, bool canCreateDatabase)
+        public static void InitialiseThis(ILoggerFactory loggerFactory = null)
         {
-            EfConfiguration.IsAzure = isAzure;
-            _logger = GenericLibsBaseConfig.GetLogger("DataLayerInitialise");
-
-            //Initialiser for the database. Only used when first access is made
-            if (canCreateDatabase)
-                Database.SetInitializer(new CreateDatabaseIfNotExists<SampleWebAppDb>());
-            else
-                //This initializer will not try to change the database
-                Database.SetInitializer(new NullDatabaseInitializer<SampleWebAppDb>());
+            if (loggerFactory != null)
+                _logger = loggerFactory.CreateLogger("DataLayerInitialise");
         }
 
-        public static void ResetBlogs(SampleWebAppDb context, TestDataSelection selection)
+        /// <summary>
+        /// Seeds the database with initial data if the database is empty,
+        /// or resets the data if called explicitly.
+        /// </summary>
+        public static void SeedDatabase(SampleWebAppDb context, TestDataSelection selection = TestDataSelection.Small)
+        {
+            if (context.Blogs.Any()) return;
+            ResetBlogs(context, selection);
+        }
+
+        /// <summary>
+        /// This resets the blogs content by deleting all existing data and reloading from the XML file.
+        /// </summary>
+        public static void ResetBlogs(SampleWebAppDb context, TestDataSelection selection = TestDataSelection.Small)
         {
             try
             {
-                context.Posts.ToList().ForEach(x => context.Posts.Remove(x));
-                context.Tags.ToList().ForEach(x => context.Tags.Remove(x));
-                context.Blogs.ToList().ForEach(x => context.Blogs.Remove(x));
+                context.Posts.RemoveRange(context.Posts);
+                context.Tags.RemoveRange(context.Tags);
+                context.Blogs.RemoveRange(context.Blogs);
                 context.SaveChanges();
+
+                var filepath = selection == TestDataSelection.Small
+                    ? "DataLayer.Startup.Internal.BlogsContentSimple.xml"
+                    : "DataLayer.Startup.Internal.BlogsContextMedium.xml";
+
+                var blogs = LoadDbDataFromXml.FormBlogsWithPosts(filepath);
+                context.Blogs.AddRange(blogs);
+                context.SaveChanges();
+
+                _logger?.LogInformation("Successfully reset blogs data with {Selection} dataset.", selection);
             }
             catch (Exception ex)
             {
-                _logger.Critical("Exception when resetting the blogs", ex);
+                _logger?.LogError(ex, "Error resetting blogs data.");
                 throw;
             }
-
-            var bloggers = LoadDbDataFromXml.FormBlogsWithPosts(XmlBlogsDataFileManifestPath[selection]);
-
-            context.Blogs.AddRange(bloggers);
-            var status = context.SaveChangesWithChecking();
-            if (!status.IsValid)
-            {
-                _logger.CriticalFormat("Error when resetting courses data. Error:\n{0}",
-                    string.Join(",", status.Errors));
-                throw new FormatException("problem writing to database. See log.");
-            }
         }
-
     }
-
 }

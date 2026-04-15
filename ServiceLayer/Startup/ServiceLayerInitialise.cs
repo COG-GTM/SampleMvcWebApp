@@ -1,8 +1,8 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: ServiceLayerInitialise.cs
-// Date Created: 2014/05/20
+// Date Created: 2014/06/09
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -24,32 +24,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using DataLayer.Startup;
-
+using Microsoft.Extensions.Logging;
 
 namespace ServiceLayer.Startup
 {
-    /// <summary>
-    /// This handles the initialisation of this layer and any other layers 
-    /// </summary>
     public static class ServiceLayerInitialise
     {
-        /// <summary>
-        /// This should be called at Startup
-        /// </summary>
-        /// <param name="isAzure">true if working with azure database</param>
-        /// <param name="canCreateDatabase">true if the database provider allows the app to drop/create a database</param>
-        public static void InitialiseThis(bool isAzure, bool canCreateDatabase)
+        public static void InitialiseThis(ILoggerFactory loggerFactory = null)
         {
-
-            //Place any tasks that need initialising here
-
-            DataLayerInitialise.InitialiseThis(isAzure, canCreateDatabase);
-
+            DataLayerInitialise.InitialiseThis(loggerFactory);
         }
     }
 }

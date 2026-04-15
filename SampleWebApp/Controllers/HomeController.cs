@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: HomeController.cs
@@ -24,36 +24,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Web.Mvc;
-using SampleWebApp.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace SampleWebApp.Controllers
 {
     public class HomeController : Controller
     {
-        public ActionResult Index()
+        public IActionResult Index()
         {
             return View();
         }
 
-        public ActionResult About()
+        public IActionResult About()
         {
             ViewBag.Message = "Your application description page.";
-
             return View();
         }
 
-        public ActionResult Contact()
+        public IActionResult Contact()
         {
             return View();
         }
 
-        public ActionResult Internals()
-        {
-            return View(new InternalsInfo());
-        }
-
-        public ActionResult CodeView()
+        public IActionResult CodeView()
         {
             return View();
         }
