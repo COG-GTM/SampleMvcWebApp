@@ -163,3 +163,10 @@ SampleWebApp/Properties/PublishProfiles/samplemvcwebapp - Web Deploy.pubxml
 SampleWebApp/Properties/PublishProfiles/samplemvcwebapp.net - WebWiz.pubxml
 git/.gitattributes
 git/.gitignore
+
+# Coverage reports
+coverage.cobertura.xml
+coverage.*.xml
+TestResults/
+# BenchmarkDotNet artifacts
+BenchmarkDotNet.Artifacts/
