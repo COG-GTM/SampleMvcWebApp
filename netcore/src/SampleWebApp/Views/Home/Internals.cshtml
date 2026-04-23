@@ -1,0 +1,11 @@
+@model SampleWebApp.Models.InternalsInfo
+@{
+    ViewData["Title"] = "Internals";
+}
+<h2>Runtime internals</h2>
+<dl>
+    <dt>Worker threads</dt><dd>@Model.WorkerThreads</dd>
+    <dt>Available threads</dt><dd>@Model.AvailableThreads</dd>
+    <dt>Available memory (MB)</dt><dd>@Model.AvailableMbytes</dd>
+    <dt>Heap memory used (KB)</dt><dd>@Model.HeapMemoryUsedKbytes</dd>
+</dl>
