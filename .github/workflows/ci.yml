@@ -98,7 +98,7 @@ jobs:
 
       - name: Install ReportGenerator
         if: success()
-        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.2.5
 
       - name: Generate coverage report
         if: success()
