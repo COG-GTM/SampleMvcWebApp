@@ -7,7 +7,7 @@
         <Configuration>
           <Format>cobertura</Format>
           <Include>[SampleWebApp]*</Include>
-          <ExcludeByFile>**/Program.cs,**/*.cshtml,**/obj/**/*.cs</ExcludeByFile>
+          <ExcludeByFile>**/Program.cs,**/*.cshtml,**/obj/**/*.cs,**/Extensions/**/*.cs</ExcludeByFile>
         </Configuration>
       </DataCollector>
     </DataCollectors>
