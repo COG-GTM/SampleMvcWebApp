@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.vs/
+**/node_modules/
+**/*.user
+**/*.suo
+**/coverage-report/
+**/test-results/
+**/.idea/
+*.md
+!README.md
