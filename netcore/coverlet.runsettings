@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Coverage configuration for `dotnet test --collect:"XPlat Code Coverage"`.
-  Program.cs is the ASP.NET bootstrap (DI wiring) and cshtml Razor views are
-  compiled views; neither is meaningfully unit-testable, so both are excluded.
--->
+<!-- Coverage configuration for XPlat Code Coverage collection. -->
 <RunSettings>
   <DataCollectionRunSettings>
     <DataCollectors>
