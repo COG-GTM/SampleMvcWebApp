@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main, 'release/**']
+    paths:
+      - 'netcore/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [master, main, 'release/**']
+    paths:
+      - 'netcore/**'
+      - '.github/workflows/ci.yml'
+
+env:
+  DOTNET_VERSION: '6.0.x'
+  SOLUTION_PATH: 'netcore/SampleWebApp.NetCore.sln'
+  COVERAGE_THRESHOLD: 80
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Build solution
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            netcore/src/**/bin/Release/
+            netcore/tests/**/bin/Release/
+          retention-days: 7
+
+  test:
+    name: Test
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Build solution
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+
+      - name: Run unit tests
+        run: >
+          dotnet test netcore/tests/SampleWebApp.UnitTests/SampleWebApp.UnitTests.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=unit-tests.trx"
+          --results-directory ./test-results
+          --collect:"XPlat Code Coverage"
+          --settings netcore/coverlet.runsettings
+
+      - name: Run integration tests
+        run: >
+          dotnet test netcore/tests/SampleWebApp.IntegrationTests/SampleWebApp.IntegrationTests.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=integration-tests.trx"
+          --results-directory ./test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./test-results/
+          retention-days: 30
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ./test-results/**/coverage.cobertura.xml
+          retention-days: 30
+
+      - name: Install ReportGenerator
+        if: success()
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+      - name: Generate coverage report
+        if: success()
+        run: >
+          reportgenerator
+          -reports:"./test-results/**/coverage.cobertura.xml"
+          -targetdir:"./coverage-report"
+          -reporttypes:"HtmlInline_AzurePipelines;Cobertura;TextSummary"
+
+      - name: Upload HTML coverage report
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html-report
+          path: ./coverage-report/
+          retention-days: 30
+
+      - name: Check coverage threshold
+        if: success()
+        run: |
+          SUMMARY_FILE="./coverage-report/Summary.txt"
+          if [ -f "$SUMMARY_FILE" ]; then
+            LINE_COVERAGE=$(grep "Line coverage" "$SUMMARY_FILE" | grep -oP '[\d.]+(?=%)' | head -1)
+            if [ -n "$LINE_COVERAGE" ]; then
+              echo "Line coverage: ${LINE_COVERAGE}%"
+              THRESHOLD=${{ env.COVERAGE_THRESHOLD }}
+              if (( $(echo "$LINE_COVERAGE < $THRESHOLD" | bc -l) )); then
+                echo "::error::Coverage ${LINE_COVERAGE}% is below threshold ${THRESHOLD}%"
+                exit 1
+              else
+                echo "Coverage ${LINE_COVERAGE}% meets threshold ${THRESHOLD}%"
+              fi
+            else
+              echo "::warning::Could not parse coverage value"
+            fi
+          else
+            echo "::warning::Coverage summary file not found"
+          fi

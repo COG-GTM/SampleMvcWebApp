@@ -1,0 +1,95 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [master, main, 'release/**']
+    paths:
+      - 'netcore/**'
+      - '.github/workflows/code-quality.yml'
+  pull_request:
+    branches: [master, main, 'release/**']
+    paths:
+      - 'netcore/**'
+      - '.github/workflows/code-quality.yml'
+
+env:
+  DOTNET_VERSION: '6.0.x'
+  SOLUTION_PATH: 'netcore/SampleWebApp.NetCore.sln'
+
+jobs:
+  format-check:
+    name: Code Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Check code formatting
+        run: dotnet format ${{ env.SOLUTION_PATH }} --verify-no-changes --verbosity diagnostic
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Run security audit
+        run: dotnet list ${{ env.SOLUTION_PATH }} package --vulnerable --include-transitive 2>&1 | tee security-report.txt
+
+      - name: Check for critical vulnerabilities
+        run: |
+          if grep -qi "critical\|high" security-report.txt; then
+            echo "::warning::Vulnerable packages detected. Review security-report.txt."
+          fi
+
+      - name: Upload security report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security-report.txt
+          retention-days: 30
+
+  build-analysis:
+    name: Build Warnings Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Build with warnings as errors
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore /warnaserror
+        continue-on-error: true
+
+      - name: Build with detailed warnings
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore -v detailed 2>&1 | grep -i "warning" | tee build-warnings.txt || true
+
+      - name: Upload build warnings report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-warnings
+          path: build-warnings.txt
+          retention-days: 30

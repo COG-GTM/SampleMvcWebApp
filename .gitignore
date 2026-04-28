@@ -163,3 +163,11 @@ SampleWebApp/Properties/PublishProfiles/samplemvcwebapp - Web Deploy.pubxml
 SampleWebApp/Properties/PublishProfiles/samplemvcwebapp.net - WebWiz.pubxml
 git/.gitattributes
 git/.gitignore
+
+# .NET Core
+netcore/**/bin/
+netcore/**/obj/
+netcore/**/TestResults/
+coverage-report/
+test-results/
+*.trx
