@@ -1,6 +1,17 @@
 SampleMvcWebApp
 ===============
 
+> **.NET Upgrade in progress.** This repository is being migrated from
+> ASP.NET MVC 5 (.NET Framework 4.5.1) to ASP.NET Core 6 using the
+> [Strangler Fig pattern](https://martinfowler.com/bliki/StranglerFigApplication.html).
+> The legacy app described below stays under `SampleWebApp/`,
+> `BizLayer/`, `DataLayer/`, `ServiceLayer/`, and `Tests/`. The new
+> ASP.NET Core 6 app lives in `netcore/`. See [`docs/`](docs/README.md)
+> for the migration documentation index, starting with the
+> [Phase 1 Migration Guide](docs/Phase1-Migration-Guide.md) and the
+> [Onboarding doc](docs/Onboarding.md). The Jira epic is
+> [NET-1](https://cog-gtm.atlassian.net/browse/NET-1).
+
 SampleMvcWebApp is a ASP.NET MVC5 web site designed to show number of useful methods for building enterprise
  grade web applications using ASP.NET MVC5 and Entity Framework 6. 
 The code for this sample MVC web application, and the associated 
