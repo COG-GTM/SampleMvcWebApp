@@ -59,7 +59,7 @@ namespace ServiceLayer.PostServices
         /// </summary>
         public DateTime LastUpdatedUtc { get { return DateTime.SpecifyKind(LastUpdated, DateTimeKind.Utc); } }
 
-        public string TagNames { get { return string.Join(", ", Tags.Select(x => x.Name)); } }
+        public string TagNames { get { return Tags == null ? string.Empty : string.Join(", ", Tags.Select(x => x.Name)); } }
 
         //----------------------------------------------
         //overridden properties or methods
