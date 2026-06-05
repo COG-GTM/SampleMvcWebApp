@@ -110,6 +110,19 @@ namespace Tests
         }
 
         [Fact]
+        public void TagNamesGetterIsNullSafeOnPostedBackDto()
+        {
+            //ASP.NET Core's validation visitor invokes computed getters during
+            //model binding on the posted-back DTO, where Tags is null.
+            var dto = new DetailPostDto();
+            Assert.Null(dto.Tags);
+            Assert.Equal(string.Empty, dto.TagNames);
+
+            var simpleDto = new SimplePostDto();
+            Assert.Equal(string.Empty, simpleDto.TagNames);
+        }
+
+        [Fact]
         public void DetailServiceReturnsPost()
         {
             using var db = TestHelpers.CreateInMemoryDb();
