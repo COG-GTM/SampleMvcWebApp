@@ -1,11 +1,11 @@
-﻿@using SampleWebApp.Infrastructure
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewBag.Title - SampleMvcWebApp</title>
-    @Styles.Render("~/Content/css")
+    <link rel="stylesheet" href="~/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
 
 </head>
 <body>
@@ -50,11 +50,14 @@
         <hr />
         <footer class="small  text-muted">
             <span>An open source project under the <a href="http://opensource.org/licenses/MIT" target="_blank">MIT licence</a>, created by <a href="http://www.thereformedprogrammer.net/about-me/" target="_blank">Jon Smith</a>.</span>
-            <span class="pull-right">Hosted on @WebUiInitialise.HostType</span>
+            <span class="pull-right">Running on .NET 9</span>
         </footer>
     </div>
 
-    @Scripts.Render("~/bundles/javascript")
-    @RenderSection("scripts", required: false)
+    <script src="~/js/jquery.min.js"></script>
+    <script src="~/js/bootstrap.min.js"></script>
+    <script src="~/js/jquery.validate.min.js"></script>
+    <script src="~/js/jquery.validate.unobtrusive.min.js"></script>
+    @await RenderSectionAsync("scripts", required: false)
 </body>
 </html>

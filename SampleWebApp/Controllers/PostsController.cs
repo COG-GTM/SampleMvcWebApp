@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: PostsController.cs
@@ -26,7 +26,7 @@
 #endregion
 using System.Linq;
 using System.Threading;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
@@ -49,7 +49,7 @@ namespace SampleWebApp.Controllers
         /// <param name="id"></param>
         /// <param name="service"></param>
         /// <returns></returns>
-        public ActionResult Index(int? id, IListService service)
+        public ActionResult Index(int? id, [FromServices] IListService service)
         {
             var filtered = id != null && id != 0;
             var query = filtered ? service.GetAll<SimplePostDto>().Where(x => x.BlogId == id) : service.GetAll<SimplePostDto>();
@@ -59,19 +59,19 @@ namespace SampleWebApp.Controllers
             return View(query.ToList());
         }
 
-        public ActionResult Details(int id, IDetailService service)
+        public ActionResult Details(int id, [FromServices] IDetailService service)
         {
             return View(service.GetDetail<DetailPostDto>(id).Result);
         }
 
-        public ActionResult Edit(int id, IUpdateSetupService service)
+        public ActionResult Edit(int id, [FromServices] IUpdateSetupService service)
         {
             return View(service.GetOriginal<DetailPostDto>(id).Result);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(DetailPostDto dto, IUpdateService service)
+        public ActionResult Edit(DetailPostDto dto, [FromServices] IUpdateService service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -89,7 +89,7 @@ namespace SampleWebApp.Controllers
             return View(dto);
         }
 
-        public ActionResult Create(ICreateSetupService setupService)
+        public ActionResult Create([FromServices] ICreateSetupService setupService)
         {
             var dto = setupService.GetDto<DetailPostDto>();
             return View(dto);
@@ -97,7 +97,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(DetailPostDto dto, ICreateService service)
+        public ActionResult Create(DetailPostDto dto, [FromServices] ICreateService service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -115,7 +115,7 @@ namespace SampleWebApp.Controllers
             return View(dto);
         }
 
-        public ActionResult Delete(int id, IDeleteService service)
+        public ActionResult Delete(int id, [FromServices] IDeleteService service)
         {
 
             var response = service.Delete<Post>(id);
@@ -123,7 +123,7 @@ namespace SampleWebApp.Controllers
                 TempData["message"] = response.SuccessMessage;
             else
                 //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
+                TempData["errorMessage"] = response.ErrorsAsHtml();
             
             return RedirectToAction("Index");
         }
@@ -131,13 +131,13 @@ namespace SampleWebApp.Controllers
         //-----------------------------------------------------
         //Code used in https://www.simple-talk.com/dotnet/.net-framework/the-.net-4.5-asyncawait-commands-in-promise-and-practice/
 
-        public ActionResult NumPosts(SampleWebAppDb db)
+        public ActionResult NumPosts([FromServices] SampleWebAppDb db)
         {
             //The cast to object is to stop the View using the string as a view name
             return View((object)GetNumPosts(db));
         }
 
-        public static string GetNumPosts(SampleWebAppDb db)
+        public static string GetNumPosts([FromServices] SampleWebAppDb db)
         {
             var numPosts = db.Posts.Count();
             return string.Format("The total number of Posts is {0}", numPosts);
@@ -156,7 +156,7 @@ namespace SampleWebApp.Controllers
             return View(500);
         }
 
-        public ActionResult Reset(SampleWebAppDb db)
+        public ActionResult Reset([FromServices] SampleWebAppDb db)
         {
             DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
             TempData["message"] = "Successfully reset the blogs data";

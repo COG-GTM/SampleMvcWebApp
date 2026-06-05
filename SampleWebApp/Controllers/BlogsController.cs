@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: BlogsController.cs
@@ -25,7 +25,7 @@
 // SOFTWARE.
 #endregion
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using DataLayer.DataClasses.Concrete;
 using GenericServices;
 using SampleWebApp.Infrastructure;
@@ -41,19 +41,19 @@ namespace SampleWebApp.Controllers
     public class BlogsController : Controller
     {
        
-        public ActionResult Index(IListService service)
+        public ActionResult Index([FromServices] IListService service)
         {
             return View(service.GetAll<BlogListDto>().ToList());
         }
 
-        public ActionResult Edit(int id, IUpdateSetupService service)
+        public ActionResult Edit(int id, [FromServices] IUpdateSetupService service)
         {
             return View(service.GetOriginal<Blog>(id).Result);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(Blog blog, IUpdateService service)
+        public ActionResult Edit(Blog blog, [FromServices] IUpdateService service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -78,7 +78,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Blog blog, ICreateService service)
+        public ActionResult Create(Blog blog, [FromServices] ICreateService service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -96,7 +96,7 @@ namespace SampleWebApp.Controllers
             return View(blog);
         }
 
-        public ActionResult Delete(int id, IDeleteService service)
+        public ActionResult Delete(int id, [FromServices] IDeleteService service)
         {
 
             var response = service.Delete<Blog>(id);

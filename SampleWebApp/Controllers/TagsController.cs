@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: TagsController.cs
@@ -25,7 +25,7 @@
 // SOFTWARE.
 #endregion
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using DataLayer.DataClasses.Concrete;
 using GenericServices;
 using SampleWebApp.Infrastructure;
@@ -39,25 +39,25 @@ namespace SampleWebApp.Controllers
         /// This is an example of a Controller using GenericServices database commands directly to the data class (other that List, which needs a DTO)
         /// In this case we are using normal, non-async commands
         /// </summary>
-        public ActionResult Index(IListService service)
+        public ActionResult Index([FromServices] IListService service)
         {
             return View(service.GetAll<TagListDto>().ToList());
         }
 
-        public ActionResult Details(int id, IDetailService service)
+        public ActionResult Details(int id, [FromServices] IDetailService service)
         {
             return View(service.GetDetail<Tag>(id).Result);
         }
 
 
-        public ActionResult Edit(int id, IUpdateSetupService service)
+        public ActionResult Edit(int id, [FromServices] IUpdateSetupService service)
         {
             return View(service.GetOriginal<Tag>(id).Result);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(Tag tag, IUpdateService service)
+        public ActionResult Edit(Tag tag, [FromServices] IUpdateService service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -82,7 +82,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Tag tag, ICreateService service)
+        public ActionResult Create(Tag tag, [FromServices] ICreateService service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -100,7 +100,7 @@ namespace SampleWebApp.Controllers
             return View(tag);
         }
 
-        public ActionResult Delete(int id, IDeleteService service)
+        public ActionResult Delete(int id, [FromServices] IDeleteService service)
         {
 
             var response = service.Delete<Tag>(id);
@@ -108,7 +108,7 @@ namespace SampleWebApp.Controllers
                 TempData["message"] = response.SuccessMessage;
             else
                 //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
+                TempData["errorMessage"] = response.ErrorsAsHtml();
 
             return RedirectToAction("Index");
         }

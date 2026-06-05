@@ -163,3 +163,8 @@ SampleWebApp/Properties/PublishProfiles/samplemvcwebapp - Web Deploy.pubxml
 SampleWebApp/Properties/PublishProfiles/samplemvcwebapp.net - WebWiz.pubxml
 git/.gitattributes
 git/.gitignore
+
+# SQLite dev database
+*.db
+*.db-shm
+*.db-wal

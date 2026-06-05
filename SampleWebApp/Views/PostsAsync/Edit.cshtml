@@ -41,7 +41,7 @@
         </div>
 
         <div class="form-group">
-            @Html.Label("Tags", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.Label("Tags", "Tags", new { @class = "control-label col-md-2" })
             <div class="col-md-10">
                 @Html.EditorFor(model => model.UserChosenTags, new { htmlAttributes = new { @class = "form-control" } })
                 @Html.ValidationMessageFor(model => model.UserChosenTags, "", new { @class = "text-danger" })
@@ -63,5 +63,5 @@
 @Html.Partial("PostValidation")
 
 @section Scripts {
-    @Scripts.Render("~/bundles/jqueryval")
+    @* validation scripts loaded globally in _Layout *@
 }
