@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <!-- Emit a packages.lock.json per project so dependency resolution is
+         deterministic and tooling (e.g. Snyk) can scan the dependency graph
+         without performing a restore. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+</Project>
