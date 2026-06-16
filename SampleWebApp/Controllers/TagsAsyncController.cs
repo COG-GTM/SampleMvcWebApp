@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: TagsAsyncController.cs
@@ -24,9 +24,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Data.Entity;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using DataLayer.DataClasses.Concrete;
 using GenericServices;
 using SampleWebApp.Infrastructure;
@@ -41,25 +41,25 @@ namespace SampleWebApp.Controllers
     public class TagsAsyncController : Controller
     {
         // GET: TagsAsync
-        public async Task<ActionResult> Index(IListService service)
+        public async Task<ActionResult> Index([FromServices] IListService service)
         {
             return View(await service.GetAll<TagListDto>().ToListAsync());
         }
 
-        public async Task<ActionResult> Details(int id, IDetailServiceAsync service)
+        public async Task<ActionResult> Details(int id, [FromServices] IDetailServiceAsync service)
         {
             return View((await service.GetDetailAsync<Tag>(id)).Result);
         }
 
 
-        public async Task<ActionResult> Edit(int id, IUpdateSetupServiceAsync service)
+        public async Task<ActionResult> Edit(int id, [FromServices] IUpdateSetupServiceAsync service)
         {
             return View((await service.GetOriginalAsync<Tag>(id)).Result);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Edit(Tag tag, IUpdateServiceAsync service)
+        public async Task<ActionResult> Edit(Tag tag, [FromServices] IUpdateServiceAsync service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -84,7 +84,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Create(Tag tag, ICreateServiceAsync service)
+        public async Task<ActionResult> Create(Tag tag, [FromServices] ICreateServiceAsync service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -102,7 +102,7 @@ namespace SampleWebApp.Controllers
             return View(tag);
         }
 
-        public async Task<ActionResult> Delete(int id, IDeleteServiceAsync service)
+        public async Task<ActionResult> Delete(int id, [FromServices] IDeleteServiceAsync service)
         {
 
             var response = await service.DeleteAsync<Tag>(id);
@@ -110,7 +110,7 @@ namespace SampleWebApp.Controllers
                 TempData["message"] = response.SuccessMessage;
             else
                 //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
+                TempData["errorMessage"] = response.ErrorsAsHtml();
 
             return RedirectToAction("Index");
         }

@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: PostsAsyncController.cs
@@ -25,10 +25,10 @@
 // SOFTWARE.
 #endregion
 using System.Collections.Generic;
-using System.Data.Entity;
+using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
@@ -44,25 +44,25 @@ namespace SampleWebApp.Controllers
         /// This is an example of a Controller using GenericServices database commands with a DTO.
         /// In this case we are using async commands
         /// </summary>
-        public async Task<ActionResult> Index(IListService service)
+        public async Task<ActionResult> Index([FromServices] IListService service)
         {
             return View(await service.GetAll<SimplePostDtoAsync>().ToListAsync());
         }
 
-        public async Task<ActionResult> Details(int id, IDetailServiceAsync service)
+        public async Task<ActionResult> Details(int id, [FromServices] IDetailServiceAsync service)
         {
             return View((await service.GetDetailAsync<DetailPostDtoAsync>(id)).Result);
         }
 
 
-        public async Task<ActionResult> Edit(int id, IUpdateSetupServiceAsync service)
+        public async Task<ActionResult> Edit(int id, [FromServices] IUpdateSetupServiceAsync service)
         {
             return View((await service.GetOriginalAsync<DetailPostDtoAsync>(id)).Result);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Edit(DetailPostDtoAsync dto, IUpdateServiceAsync service)
+        public async Task<ActionResult> Edit(DetailPostDtoAsync dto, [FromServices] IUpdateServiceAsync service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -80,7 +80,7 @@ namespace SampleWebApp.Controllers
             return View(dto);
         }
 
-        public async Task<ActionResult> Create(ICreateSetupServiceAsync setupService)
+        public async Task<ActionResult> Create([FromServices] ICreateSetupServiceAsync setupService)
         {
             var dto = await setupService.GetDtoAsync<DetailPostDtoAsync>();
             return View(dto);
@@ -88,7 +88,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Create(DetailPostDtoAsync dto, ICreateServiceAsync service)
+        public async Task<ActionResult> Create(DetailPostDtoAsync dto, [FromServices] ICreateServiceAsync service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -106,7 +106,7 @@ namespace SampleWebApp.Controllers
             return View(dto);
         }
 
-        public async Task<ActionResult> Delete(int id, IDeleteServiceAsync service)
+        public async Task<ActionResult> Delete(int id, [FromServices] IDeleteServiceAsync service)
         {
 
             var response = await service.DeleteAsync<Post>(id);
@@ -114,7 +114,7 @@ namespace SampleWebApp.Controllers
                 TempData["message"] = response.SuccessMessage;
             else
                 //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
+                TempData["errorMessage"] = response.ErrorsAsHtml();
            
             return RedirectToAction("Index");
         }
@@ -122,12 +122,12 @@ namespace SampleWebApp.Controllers
         //-----------------------------------------------------
         //Code used in https://www.simple-talk.com/dotnet/.net-framework/the-.net-4.5-asyncawait-commands-in-promise-and-practice/
 
-        public async Task<ActionResult> NumPosts(SampleWebAppDb db)
+        public async Task<ActionResult> NumPosts([FromServices] SampleWebAppDb db)
         {
             return View((object)await GetNumPostsAsync(db));
         }
 
-        private static async Task<string> GetNumPostsAsync(SampleWebAppDb db)
+        private static async Task<string> GetNumPostsAsync([FromServices] SampleWebAppDb db)
         {
             var numPosts = await db.Posts.CountAsync();
             return string.Format("The total number of Posts is {0}", numPosts);
@@ -146,7 +146,7 @@ namespace SampleWebApp.Controllers
             return View(500);
         }
 
-        public ActionResult Reset(SampleWebAppDb db)
+        public ActionResult Reset([FromServices] SampleWebAppDb db)
         {
             DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
             TempData["message"] = "Successfully reset the blogs data";
