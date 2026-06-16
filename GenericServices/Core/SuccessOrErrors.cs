@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Net;
 using System.Text;
 
 namespace GenericLibsBase.Core
@@ -99,7 +100,7 @@ namespace GenericLibsBase.Core
             {
                 if (sb.Length > 0)
                     sb.Append("<br/>");
-                sb.Append(error.ErrorMessage);
+                sb.Append(WebUtility.HtmlEncode(error.ErrorMessage));
             }
             return sb.ToString();
         }
@@ -169,7 +170,7 @@ namespace GenericLibsBase.Core
             {
                 if (sb.Length > 0)
                     sb.Append("<br/>");
-                sb.Append(error.ErrorMessage);
+                sb.Append(WebUtility.HtmlEncode(error.ErrorMessage));
             }
             return sb.ToString();
         }

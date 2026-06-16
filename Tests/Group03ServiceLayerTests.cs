@@ -1,6 +1,7 @@
 using System.Linq;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
+using GenericLibsBase.Core;
 using GenericServices;
 using ServiceLayer.BlogServices;
 using ServiceLayer.PostServices;
@@ -120,6 +121,23 @@ namespace Tests
 
             var simpleDto = new SimplePostDto();
             Assert.Equal(string.Empty, simpleDto.TagNames);
+        }
+
+        [Fact]
+        public void ErrorsAsHtmlEncodesMessageButKeepsLineBreaks()
+        {
+            //ErrorsAsHtml output is rendered with @Html.Raw, so message text
+            //(which can contain user input like a tag name) must be HTML-encoded
+            //to prevent stored XSS, while the <br/> separators stay as markup.
+            var status = new SuccessOrErrors();
+            status.AddSingleError("Bad tag '{0}' rejected.", "<script>alert('xss')</script>");
+            status.AddSingleError("Second error.");
+
+            var html = status.ErrorsAsHtml();
+
+            Assert.DoesNotContain("<script>", html);
+            Assert.Contains("&lt;script&gt;", html);
+            Assert.Contains("<br/>", html);
         }
 
         [Fact]
