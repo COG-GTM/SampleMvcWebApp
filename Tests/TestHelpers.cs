@@ -2,6 +2,7 @@ using System;
 using AutoMapper;
 using DataLayer.DataClasses;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using ServiceLayer.Startup;
 
 namespace Tests
@@ -26,7 +27,9 @@ namespace Tests
         /// </summary>
         public static IMapper CreateMapper()
         {
-            var config = new MapperConfiguration(cfg => cfg.AddProfile<ServiceLayerMappingProfile>());
+            var config = new MapperConfiguration(
+                cfg => cfg.AddProfile<ServiceLayerMappingProfile>(),
+                NullLoggerFactory.Instance);
             config.AssertConfigurationIsValid();
             return config.CreateMapper();
         }

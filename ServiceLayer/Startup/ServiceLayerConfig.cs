@@ -45,9 +45,7 @@ namespace ServiceLayer.Startup
         public static IServiceCollection AddServiceLayer(this IServiceCollection services)
         {
             //AutoMapper
-            var mapperConfig = new MapperConfiguration(cfg => cfg.AddProfile<ServiceLayerMappingProfile>());
-            mapperConfig.AssertConfigurationIsValid();
-            services.AddSingleton(mapperConfig.CreateMapper());
+            services.AddAutoMapper(cfg => cfg.AddProfile<ServiceLayerMappingProfile>());
 
             //expose the DbContext through the GenericServices abstraction
             services.AddScoped<IGenericServicesDbContext>(sp => sp.GetRequiredService<SampleWebAppDb>());
