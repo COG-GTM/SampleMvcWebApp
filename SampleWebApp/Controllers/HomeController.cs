@@ -24,7 +24,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using SampleWebApp.Models;
 
 namespace SampleWebApp.Controllers
@@ -32,6 +32,11 @@ namespace SampleWebApp.Controllers
     public class HomeController : Controller
     {
         public ActionResult Index()
+        {
+            return View();
+        }
+
+        public ActionResult Error()
         {
             return View();
         }

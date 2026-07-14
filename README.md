@@ -1,6 +1,51 @@
 SampleMvcWebApp
 ===============
 
+> ### .NET 8 modernization
+>
+> This repository has been migrated from **ASP.NET MVC 5 / .NET Framework 4.5.1** to
+> **cross-platform ASP.NET Core MVC on .NET 8**, while preserving the app's pages, CRUD
+> flows, and business rules. The historical description below is retained for context.
+>
+> **What changed**
+>
+> | Area | Before | After |
+> |------|--------|-------|
+> | Projects | old MSBuild + `packages.config` | SDK-style `.csproj`, `net8.0` |
+> | Web framework | ASP.NET MVC 5 (`System.Web`, `Global.asax`) | ASP.NET Core MVC (`Program.cs`, middleware) |
+> | ORM | Entity Framework 6.1.3 | EF Core 8 (SQLite, cross-platform, with migrations) |
+> | DI | Autofac 3.5 | built-in ASP.NET Core DI |
+> | Mapping | AutoMapper 4.2 | AutoMapper 14 |
+> | Logging | log4net | Microsoft.Extensions.Logging |
+> | Config | `web.config` | `appsettings.json` |
+> | GenericServices | EF6-only NuGet package | in-repo `GenericServices`/`GenericLibsBase` compatibility port on EF Core 8 |
+> | Tests | NUnit 2.6 (.NET 4.5.1) | NUnit 4 (`net8.0`) |
+>
+> **Prerequisites:** [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+>
+> **Build, test and run:**
+> ```bash
+> dotnet build SampleWebApp.sln
+> dotnet test SampleWebApp.sln
+> dotnet run --project SampleWebApp
+> ```
+> On first run the app creates and seeds a local SQLite database (`SampleWebAppDb.db`) via
+> EF Core migrations. The connection string and host type live in
+> `SampleWebApp/appsettings.json`.
+>
+> **CI:** `.github/workflows/ci.yml` builds and tests the solution on .NET 8.
+>
+> **Remaining risks / review notes:**
+> - The default database provider is now **SQLite** for cross-platform demo use; the original
+>   used SQL Server LocalDB. Production SQL Server compatibility is not re-validated.
+> - EF Core validation/tracking/cascade behaviour can differ subtly from EF6.
+> - AutoMapper is pinned to **14.0.0** (last MIT-licensed line); a single, scoped NuGet audit
+>   suppression is applied for advisory `GHSA-rvv3-g6hj-g44x`.
+> - The legacy test suite (which asserted EF6/Autofac/MVC5 internals that no longer exist) was
+>   replaced with focused regression tests covering the preserved CRUD/service-layer behaviour.
+>
+> ---
+
 SampleMvcWebApp is a ASP.NET MVC5 web site designed to show number of useful methods for building enterprise
  grade web applications using ASP.NET MVC5 and Entity Framework 6. 
 The code for this sample MVC web application, and the associated 
