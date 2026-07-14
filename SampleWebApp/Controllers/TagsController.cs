@@ -25,7 +25,7 @@
 // SOFTWARE.
 #endregion
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using DataLayer.DataClasses.Concrete;
 using GenericServices;
 using SampleWebApp.Infrastructure;
@@ -108,7 +108,7 @@ namespace SampleWebApp.Controllers
                 TempData["message"] = response.SuccessMessage;
             else
                 //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
+                TempData["errorMessage"] = response.ErrorsAsHtml();
 
             return RedirectToAction("Index");
         }

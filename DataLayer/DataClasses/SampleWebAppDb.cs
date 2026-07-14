@@ -1,134 +1,102 @@
-﻿#region licence
-// The MIT License (MIT)
-// 
-// Filename: SampleWebAppDb.cs
-// Date Created: 2014/05/20
-// 
-// Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-#endregion
+using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using System.Data.Entity.Validation;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.DataClasses.Concrete.Helpers;
 using GenericServices;
+using Microsoft.EntityFrameworkCore;
 
 [assembly: InternalsVisibleTo("Tests")]
 
 namespace DataLayer.DataClasses
 {
-
-    public class SampleWebAppDb : DbContext, IGenericServicesDbContext
+    /// <summary>
+    /// EF Core replacement for the original EF6 context. It keeps the same public shape
+    /// (DbSets, SaveChanges override, database-level Tag uniqueness check) so the rest of
+    /// the application is unchanged.
+    /// </summary>
+    public class SampleWebAppDb : DbContext, IGenericServicesDbContext, IValidateOnSave
     {
         internal const string NameOfConnectionString = "SampleWebAppDb";
+
+        /// <summary>
+        /// Fallback configuration used when the context is created without DI (tests, EF tooling,
+        /// the parameterless constructor). The web host configures the context through DI instead.
+        /// </summary>
+        public static Action<DbContextOptionsBuilder> DefaultOptionsAction { get; set; }
 
         public DbSet<Blog> Blogs { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Tag> Tags { get; set; }
 
-        public SampleWebAppDb() : base("name=" + NameOfConnectionString) {}
+        public SampleWebAppDb()
+        {
+        }
 
-        internal SampleWebAppDb(string connectionString) : base(connectionString) { }
+        public SampleWebAppDb(DbContextOptions<SampleWebAppDb> options) : base(options)
+        {
+        }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (optionsBuilder.IsConfigured)
+                return;
 
-        /// <summary>
-        /// This has been overridden to handle:
-        /// a) Updating of modified items (see p194 in DbContext book)
-        /// </summary>
-        /// <returns></returns>
+            if (DefaultOptionsAction != null)
+                DefaultOptionsAction(optionsBuilder);
+            else
+                optionsBuilder.UseSqlite("Data Source=SampleWebAppDb.db");
+        }
+
         public override int SaveChanges()
         {
             HandleChangeTracking();
             return base.SaveChanges();
         }
 
-        /// <summary>
-        /// Same for async
-        /// </summary>
-        /// <returns></returns>
-        public override Task<int> SaveChangesAsync()
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             HandleChangeTracking();
-            return base.SaveChangesAsync();
+            return base.SaveChangesAsync(cancellationToken);
         }
 
         /// <summary>
-        /// This does validations that can only be done at the database level
+        /// Database-level validation. Replaces the EF6 <c>ValidateEntity</c> override: ensures a
+        /// Tag's Slug is unique (excluding the Tag being edited).
         /// </summary>
-        /// <param name="entityEntry"></param>
-        /// <param name="items"></param>
-        /// <returns></returns>
-        protected override DbEntityValidationResult ValidateEntity(DbEntityEntry entityEntry,
-            IDictionary<object, object> items)
+        public IEnumerable<ValidationResult> ValidateEntity(object entity)
         {
+            var tagToCheck = entity as Tag;
+            if (tagToCheck == null)
+                yield break;
 
-            if (entityEntry.Entity is Tag && (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified))
-            {
-                var tagToCheck = ((Tag)entityEntry.Entity);
-
-                //check for uniqueness of Tag's Slug property (note: because we may alter a Tag we need to exclude check against itself)
-                if (Tags.Any(x => x.TagId != tagToCheck.TagId && x.Slug == tagToCheck.Slug))
-                    return new DbEntityValidationResult(entityEntry,
-                                                        new List<DbValidationError>
-                                                            {
-                                                                new DbValidationError( "Slug",
-                                                                    string.Format( "The Slug on tag '{0}' must be unique and is already being used.", tagToCheck.Name))
-                                                            });
-            }
-
-            return base.ValidateEntity(entityEntry, items);
+            if (Tags.Any(x => x.TagId != tagToCheck.TagId && x.Slug == tagToCheck.Slug))
+                yield return new ValidationResult(
+                    string.Format("The Slug on tag '{0}' must be unique and is already being used.", tagToCheck.Name),
+                    new[] { "Slug" });
         }
-
 
         //--------------------------------------------------
         //private helpers
 
         /// <summary>
-        /// This handles going through all the entities that have changed and seeing if they need any special handling.
+        /// Stamps <see cref="TrackUpdate.LastUpdated"/> on every added/modified entity that
+        /// tracks updates.
         /// </summary>
         private void HandleChangeTracking()
         {
-            //Debug.WriteLine("----------------------------------------------");
-            //foreach (var entity in ChangeTracker.Entries()
-            //.Where(
-            //    e =>
-            //    e.State == EntityState.Added || e.State == EntityState.Modified))
-            //{
-            //    Debug.WriteLine("Entry {0}, state {1}", entity.Entity, entity.State);
-            //}       
-
-            foreach (var entity in ChangeTracker.Entries()
-                                                .Where(
-                                                    e =>
-                                                    e.State == EntityState.Added || e.State == EntityState.Modified))
+            foreach (var entry in ChangeTracker.Entries()
+                         .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified))
             {
-                var trackUpdateClass = entity.Entity as TrackUpdate;
-                if (trackUpdateClass == null) return;
+                var trackUpdateClass = entry.Entity as TrackUpdate;
+                if (trackUpdateClass == null)
+                    continue;
                 trackUpdateClass.UpdateTrackingInfo();
             }
         }
-
     }
 }

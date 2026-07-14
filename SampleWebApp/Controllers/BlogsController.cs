@@ -25,7 +25,7 @@
 // SOFTWARE.
 #endregion
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using DataLayer.DataClasses.Concrete;
 using GenericServices;
 using SampleWebApp.Infrastructure;

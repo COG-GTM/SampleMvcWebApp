@@ -53,7 +53,9 @@ namespace SampleWebApp.Models
             WorkerThreads = workerThreads;
             AvailableThreads = availableThreads;
 
-            AvailableMbytes = (int)new PerformanceCounter("Memory", "Available MBytes", true).RawValue;
+            //PerformanceCounter is Windows-only; use the cross-platform GC memory info instead
+            var gcInfo = GC.GetGCMemoryInfo();
+            AvailableMbytes = (int)(gcInfo.TotalAvailableMemoryBytes / (1024 * 1024));
 
             HeapMemoryUsedKbytes = (int)(GC.GetTotalMemory(true)/1000);
         }
