@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: Test10SetupBlogs.cs
@@ -26,7 +26,6 @@
 #endregion
 using System;
 using System.Linq;
-using DataLayer.DataClasses;
 using DataLayer.Startup;
 using DataLayer.Startup.Internal;
 using NUnit.Framework;
@@ -34,7 +33,7 @@ using Tests.Helpers;
 
 namespace Tests.UnitTests.Group01DataLayer
 {
-    class Test10SetupBlogs
+    public class Test10SetupBlogs
     {
         [Test]
         public void Check01XmlFileLoadOk()
@@ -69,10 +68,10 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check10BlogsResetSmallOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var connection = TestDbContext.CreateOpenConnection())
+            using (var db = TestDbContext.CreateContext(connection))
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, true);
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
@@ -87,10 +86,10 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check11BlogsResetMediumOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var connection = TestDbContext.CreateOpenConnection())
+            using (var db = TestDbContext.CreateContext(connection))
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, true);
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
@@ -105,13 +104,16 @@ namespace Tests.UnitTests.Group01DataLayer
         //---------------------------------------------------------
 
         [Test]
-        public void Check20NullInitialiserOk()
+        public void Check20ResetBlogsIsRepeatableOk()
         {
-            Check10BlogsResetSmallOk();             //we call this to ensure the database is setup
-            using (var db = new SampleWebAppDb())
+            //The old test toggled the EF6 "null database initialiser" (Database.SetInitializer) which no longer
+            //exists under EF Core. The behaviour worth preserving is that ResetBlogs can be run repeatedly against
+            //an already-seeded database (it deletes then reseeds) and leaves the same counts each time.
+            using (var connection = TestDbContext.CreateOpenConnection())
+            using (var db = TestDbContext.CreateContext(connection))
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, false);           //select null initialiser
+                DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);

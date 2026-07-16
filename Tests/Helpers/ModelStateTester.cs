@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: ModelStateTester.cs
@@ -25,14 +25,13 @@
 // SOFTWARE.
 #endregion
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
-using System.Web.Mvc;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Tests.Helpers
 {
-    static class ModelStateTester
+    public static class ModelStateTester
     {
 
         public class TestModel : IValidatableObject
@@ -67,36 +66,53 @@ namespace Tests.Helpers
             }
         }
 
-
-        private class TestController : Controller
-        {
-            public ActionResult ValidDateTestModel(TestModel model)
-            {
-                // ReSharper disable once Mvc.ViewNotResolved
-                return View(model);
-            }
-        }
-
+        /// <summary>
+        /// The old version drove System.Web.Mvc's DefaultModelBinder (which no longer exists). This rebuilds the
+        /// same result the ASP.NET Core MVC validation pipeline produces: the property-level DataAnnotations are
+        /// validated first and, only if there are no property errors, the object-level IValidatableObject.Validate
+        /// is run. Errors are written into an ASP.NET Core <see cref="ModelStateDictionary"/> keyed by member name,
+        /// with top-level (no member) errors under the "" key.
+        /// </summary>
         public static ModelStateDictionary ReturnModelState(this TestModel model)
         {
-            var testController = new TestController();
+            var modelState = new ModelStateDictionary();
 
-            var modelBinder = new ModelBindingContext()
+            var hasPropertyErrors = false;
+            foreach (var property in model.GetType().GetProperties())
             {
-                ModelMetadata = ModelMetadataProviders.Current.GetMetadataForType(
-                                  () => model, model.GetType()),
-                ValueProvider = new NameValueCollectionValueProvider(
-                                    new NameValueCollection(), CultureInfo.InvariantCulture)
-            };
-            var binder = new DefaultModelBinder().BindModel(
-                             new ControllerContext(), modelBinder);
-            testController.ModelState.Clear();
-            testController.ModelState.Merge(modelBinder.ModelState);
+                var value = property.GetValue(model);
+                var context = new ValidationContext(model) { MemberName = property.Name };
 
-            var viewResult = (ViewResult) testController.ValidDateTestModel(model);
-            return viewResult.ViewData.ModelState;
+                //Each DataAnnotations attribute is evaluated independently (as the old MVC validators did).
+                //Validator.TryValidateProperty is not used because it short-circuits after a failing
+                //RequiredAttribute, which would hide the other attribute errors the tests expect.
+                foreach (var attribute in property.GetCustomAttributes(true).OfType<ValidationAttribute>())
+                {
+                    var result = attribute.GetValidationResult(value, context);
+                    if (result != ValidationResult.Success)
+                    {
+                        hasPropertyErrors = true;
+                        modelState.AddModelError(property.Name, result.ErrorMessage);
+                    }
+                }
+            }
+
+            //ASP.NET Core (like the old MVC binder) only runs IValidatableObject.Validate when there are no
+            //property-level attribute errors.
+            if (!hasPropertyErrors)
+            {
+                foreach (var result in model.Validate(new ValidationContext(model)))
+                {
+                    var members = result.MemberNames?.ToList() ?? new List<string>();
+                    if (members.Count == 0)
+                        modelState.AddModelError("", result.ErrorMessage);
+                    else
+                        foreach (var member in members)
+                            modelState.AddModelError(member, result.ErrorMessage);
+                }
+            }
+
+            return modelState;
         }
-
-
     }
 }
