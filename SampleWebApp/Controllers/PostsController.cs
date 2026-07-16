@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: PostsController.cs
@@ -26,11 +26,11 @@
 #endregion
 using System.Linq;
 using System.Threading;
-using System.Web.Mvc;
 using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
 using GenericServices;
+using Microsoft.AspNetCore.Mvc;
 using SampleWebApp.Infrastructure;
 using ServiceLayer.PostServices;
 
@@ -46,84 +46,92 @@ namespace SampleWebApp.Controllers
         /// <summary>
         /// Note that is Index is different in that it has an optional id to filter the list on.
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="service"></param>
-        /// <returns></returns>
-        public ActionResult Index(int? id, IListService service)
+        public IActionResult Index(int? id, [FromServices] ICrudServices service)
         {
             var filtered = id != null && id != 0;
-            var query = filtered ? service.GetAll<SimplePostDto>().Where(x => x.BlogId == id) : service.GetAll<SimplePostDto>();
+            var query = filtered ? service.ReadManyNoTracked<SimplePostDto>().Where(x => x.BlogId == id) : service.ReadManyNoTracked<SimplePostDto>();
             if (filtered)
                 TempData["message"] = "Filtered list";
 
             return View(query.ToList());
         }
 
-        public ActionResult Details(int id, IDetailService service)
+        public IActionResult Details(int id, [FromServices] ICrudServices service)
         {
-            return View(service.GetDetail<DetailPostDto>(id).Result);
+            return View(service.ReadSingle<DetailPostDto>(id));
         }
 
-        public ActionResult Edit(int id, IUpdateSetupService service)
+        public IActionResult Edit(int id, [FromServices] ICrudServices service, [FromServices] IPostCrudHelper crudHelper)
         {
-            return View(service.GetOriginal<DetailPostDto>(id).Result);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(DetailPostDto dto, IUpdateService service)
-        {
-            if (!ModelState.IsValid)
-                //model errors so return immediately
-                return View(service.ResetDto(dto));
-
-            var response = service.Update(dto);
-            if (response.IsValid)
-            {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
-            }
-
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, dto);
-            return View(dto);
-        }
-
-        public ActionResult Create(ICreateSetupService setupService)
-        {
-            var dto = setupService.GetDto<DetailPostDto>();
+            var dto = service.ReadSingle<DetailPostDto>(id);
+            crudHelper.SetupSecondaryData(dto);
             return View(dto);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(DetailPostDto dto, ICreateService service)
+        public IActionResult Edit(DetailPostDto dto, [FromServices] IPostCrudHelper crudHelper)
         {
             if (!ModelState.IsValid)
-                //model errors so return immediately
-                return View(service.ResetDto(dto));
-
-            var response = service.Create(dto);
-            if (response.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
+                //model errors so refill the secondary data and return immediately
+                crudHelper.SetupSecondaryData(dto);
+                return View(dto);
+            }
+
+            var status = crudHelper.UpdatePost(dto);
+            if (status.IsValid)
+            {
+                TempData["message"] = status.Message;
                 return RedirectToAction("Index");
             }
 
             //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, dto);
+            ModelState.CopyErrorsToModelState(status);
+            crudHelper.SetupSecondaryData(dto);
             return View(dto);
         }
 
-        public ActionResult Delete(int id, IDeleteService service)
+        public IActionResult Create([FromServices] IPostCrudHelper crudHelper)
+        {
+            var dto = new DetailPostDto();
+            crudHelper.SetupSecondaryData(dto);
+            return View(dto);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Create(DetailPostDto dto, [FromServices] IPostCrudHelper crudHelper)
+        {
+            if (!ModelState.IsValid)
+            {
+                //model errors so refill the secondary data and return immediately
+                crudHelper.SetupSecondaryData(dto);
+                return View(dto);
+            }
+
+            var status = crudHelper.CreatePost(dto);
+            if (status.IsValid)
+            {
+                TempData["message"] = status.Message;
+                return RedirectToAction("Index");
+            }
+
+            //else errors, so copy the errors over to the ModelState and return to view
+            ModelState.CopyErrorsToModelState(status);
+            crudHelper.SetupSecondaryData(dto);
+            return View(dto);
+        }
+
+        public IActionResult Delete(int id, [FromServices] ICrudServices service)
         {
 
-            var response = service.Delete<Post>(id);
-            if (response.IsValid)
-                TempData["message"] = response.SuccessMessage;
+            service.DeleteAndSave<Post>(id);
+            if (service.IsValid)
+                TempData["message"] = service.Message;
             else
                 //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
+                TempData["errorMessage"] = service.GetAllErrors();
             
             return RedirectToAction("Index");
         }
@@ -131,7 +139,7 @@ namespace SampleWebApp.Controllers
         //-----------------------------------------------------
         //Code used in https://www.simple-talk.com/dotnet/.net-framework/the-.net-4.5-asyncawait-commands-in-promise-and-practice/
 
-        public ActionResult NumPosts(SampleWebAppDb db)
+        public IActionResult NumPosts([FromServices] SampleWebAppDb db)
         {
             //The cast to object is to stop the View using the string as a view name
             return View((object)GetNumPosts(db));
@@ -145,18 +153,18 @@ namespace SampleWebApp.Controllers
 
         //--------------------------------------------
 
-        public ActionResult CodeView()
+        public IActionResult CodeView()
         {
             return View();
         }
 
-        public ActionResult Delay()
+        public IActionResult Delay()
         {
             Thread.Sleep(500);
             return View(500);
         }
 
-        public ActionResult Reset(SampleWebAppDb db)
+        public IActionResult Reset([FromServices] SampleWebAppDb db)
         {
             DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
             TempData["message"] = "Successfully reset the blogs data";
