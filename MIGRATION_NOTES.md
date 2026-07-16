@@ -349,3 +349,43 @@ After merge: `dotnet ef migrations add InitialCreate` for `SampleWebAppDb`, upda
   (list, details, create, edit, delete) end-to-end through the `EfCore.GenericServices` path; confirm persistence.
 - No SignalR behavior to verify (feature already removed, §5).
 - Record a screen video of the CRUD flows as proof and reference the artifact here / in the final summary.
+
+---
+
+## 13. Migration outcome (what was actually done)
+
+Executed across three parallel child sessions off this branch, then merged and finalized here:
+
+- **A — Data/Service/Biz** (PR #24): SDK-style `net10.0`; EF Core 10; `SampleWebAppDb(DbContextOptions<>)`;
+  `HandleChangeTracking` ported into `SaveChanges`/`SaveChangesAsync` (the EF6 early-`return` bug fixed to
+  `continue`); `Tag.Slug` uniqueness = unique index in `OnModelCreating` **plus** a pre-save duplicate check;
+  `EfConfiguration`/initializers removed; DTOs re-based on `ILinkToEntity<T>`; the old `SetupSecondaryData`
+  dropdown/multiselect lifecycle moved into a hand-written `IPostCrudHelper` (Post create/update run there,
+  not through `ICrudServices.CreateAndSave`, so the many-to-many Tag + blogger selection and `IValidatableObject`
+  rules are preserved); Autofac modules → `IServiceCollection` extensions (`AddDataLayer`/`AddServiceLayer`/`AddBizLayer`).
+- **B — Web app** (PR #25): SDK-style `Microsoft.NET.Sdk.Web`; single `Program.cs` (minimal hosting, endpoint
+  routing, `AddControllersWithViews`, `AddDbContext<SampleWebAppDb>(UseSqlServer)`); `Global.asax`/`App_Start`/OWIN/
+  `DiModelBinder`/`WebUiInitialise`/`AutofacDi` all deleted; controllers on `Microsoft.AspNetCore.Mvc` with
+  `[FromServices]`; `MvcHtmlString`→`Html.Raw`; a hand-written `CopyErrorsToModelState(IStatusGeneric)` (the
+  `EfCore.GenericServices.AspNetCore` helper has no 10.x release); `Content`/`Scripts`/`fonts`→`wwwroot` with
+  plain `<link>`/`<script>` tags; `_ViewImports.cshtml` added; `appsettings.json`+`appsettings.Development.json`.
+- **C — Tests** (PR #26): SDK-style `net10.0`; NUnit 4 / Moq 4.20 / Test.Sdk 17.11; in-memory **SQLite**
+  `SampleWebAppDb` (honors the Slug unique index); Autofac-module tests rebuilt as DI-extension tests;
+  `ModelStateTester` re-implemented on ASP.NET Core validation; `DbSnapShot` join-count re-pointed at `PostTag`.
+  **45/45 tests pass.** `InternalsVisibleTo("Tests")` restored via `DataLayer/Properties/AssemblyInfo.cs`
+  (the `<InternalsVisibleTo>` MSBuild item is a no-op when `GenerateAssemblyInfo=false`).
+
+Finalized on this branch: EF Core `InitialCreate` migration + `DesignTimeDbContextFactory`, README rewrite,
+`BizLayer` re-added to `SampleWebApp.sln`. `dotnet build SampleWebApp.sln` → 0 errors; `dotnet test` → 45/45.
+
+### Package versions
+EF Core / EFCore.SqlServer / EFCore.Design / EFCore.Sqlite `10.0.0`; `EfCore.GenericServices 10.0.0`;
+`AutoMapper 13.0.1`; NUnit `4.2.2`; NUnit3TestAdapter `4.6.0`; Microsoft.NET.Test.Sdk `17.11.1`; Moq `4.20.72`.
+
+### Known build warnings (NU1903) — accepted, with rationale
+- `AutoMapper 13.0.1` (GHSA-rvv3-g6hj-g44x / CVE-2026-32933): a DoS that requires ~25,000-level self-referential
+  object graphs. `EfCore.GenericServices 10.0.0` depends on AutoMapper `13.0.1`; AutoMapper 14/15 introduce
+  breaking API changes that break GenericServices' mapper. The app's flat DTOs cannot produce such graphs, so the
+  version is kept to preserve verified-working mapping. Revisit when GenericServices supports the patched AutoMapper.
+- `System.Security.Cryptography.Xml 9.0.0`: pulled **transitively, design-time only** via
+  `Microsoft.EntityFrameworkCore.Design` (`PrivateAssets=all`); not shipped in the app output.
