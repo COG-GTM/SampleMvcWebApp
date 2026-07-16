@@ -1,8 +1,8 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
-// Filename: ServiceLayerModule.cs
-// Date Created: 2014/05/20
+// Filename: BizLayerServiceCollectionExtensions.cs
+// Date Created: 2014/07/11
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -24,34 +24,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
+using Microsoft.Extensions.DependencyInjection;
 
-using Autofac;
-using DataLayer.Startup;
-using GenericServices;
-
-namespace ServiceLayer.Startup
+namespace BizLayer.Startup
 {
-    public class ServiceLayerModule : Module
+    /// <summary>
+    /// Replaces the old Autofac <c>BizLayerModule</c>. Registers the business-layer services with the host container.
+    /// </summary>
+    public static class BizLayerServiceCollectionExtensions
     {
-
         /// <summary>
-        /// This registers all items in service layer and below
+        /// Registers the business-layer services. Currently the BizLayer contains no runtime services
+        /// (the original layer only held an empty Autofac module), so this is the extension point that
+        /// business services should be registered through as they are added.
         /// </summary>
-        /// <param name="builder"></param>
-        protected override void Load(ContainerBuilder builder)
+        public static IServiceCollection AddBizLayer(this IServiceCollection services)
         {
-
-            //Now register the DataLayer
-            builder.RegisterModule(new DataLayerModule());
-
-            //---------------------------
-            //Register service layer: autowire all 
-            builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
-
-            //and register the GenericServices assembly
-            builder.RegisterAssemblyTypes(typeof(IListService).Assembly).AsImplementedInterfaces();
-
+            return services;
         }
-
     }
 }

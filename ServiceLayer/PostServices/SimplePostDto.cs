@@ -28,16 +28,15 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using DataLayer.DataClasses.Concrete;
 using GenericServices;
-using GenericServices.Core;
-
-[assembly: InternalsVisibleTo("Tests")]
 
 namespace ServiceLayer.PostServices
 {
-    public class SimplePostDto : EfGenericDto<Post, SimplePostDto>
+    /// <summary>
+    /// Read-only list DTO for a Post. Consume via <c>ICrudServices.ReadManyNoTracked&lt;SimplePostDto&gt;()</c>.
+    /// </summary>
+    public class SimplePostDto : ILinkToEntity<Post>
     {
 
         [UIHint("HiddenInput")]
@@ -64,13 +63,5 @@ namespace ServiceLayer.PostServices
         public DateTime LastUpdatedUtc { get { return DateTime.SpecifyKind(LastUpdated, DateTimeKind.Utc); } }
 
         public string TagNames { get { return string.Join(", ", Tags.Select(x => x.Name)); } }
-
-        //----------------------------------------------
-        //overridden properties or methods
-
-        protected override CrudFunctions SupportedFunctions
-        {
-            get { return CrudFunctions.List; }
-        }
     }
 }

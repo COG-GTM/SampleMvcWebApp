@@ -1,7 +1,7 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
-// Filename: ServiceLayerInitialise.cs
+// Filename: DataLayerServiceCollectionExtensions.cs
 // Date Created: 2014/05/20
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
@@ -24,32 +24,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using DataLayer.Startup;
+using Microsoft.Extensions.DependencyInjection;
 
-
-namespace ServiceLayer.Startup
+namespace DataLayer.Startup
 {
     /// <summary>
-    /// This handles the initialisation of this layer and any other layers 
+    /// Replaces the old Autofac <c>DataLayerModule</c>. Registers the data-layer's own services.
+    /// The <see cref="DataLayer.DataClasses.SampleWebAppDb"/> context itself is registered by the
+    /// web app via <c>AddDbContext&lt;SampleWebAppDb&gt;(...)</c> so it can supply the connection string.
     /// </summary>
-    public static class ServiceLayerInitialise
+    public static class DataLayerServiceCollectionExtensions
     {
         /// <summary>
-        /// This should be called at Startup
+        /// Registers the data-layer services (excluding the DbContext, which the host registers via AddDbContext).
         /// </summary>
-        /// <param name="isAzure">true if working with azure database</param>
-        /// <param name="canCreateDatabase">true if the database provider allows the app to drop/create a database</param>
-        public static void InitialiseThis(bool isAzure, bool canCreateDatabase)
+        public static IServiceCollection AddDataLayer(this IServiceCollection services)
         {
-
-            //Place any tasks that need initialising here
-
-            DataLayerInitialise.InitialiseThis(isAzure, canCreateDatabase);
-
+            //No standalone data-layer services need registering today; this is the extension point that
+            //replaces the old DataLayerModule so the host has a single, discoverable call for the layer.
+            return services;
         }
     }
 }
