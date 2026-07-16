@@ -389,3 +389,36 @@ EF Core / EFCore.SqlServer / EFCore.Design / EFCore.Sqlite `10.0.0`; `EfCore.Gen
   version is kept to preserve verified-working mapping. Revisit when GenericServices supports the patched AutoMapper.
 - `System.Security.Cryptography.Xml 9.0.0`: pulled **transitively, design-time only** via
   `Microsoft.EntityFrameworkCore.Design` (`PrivateAssets=all`); not shipped in the app output.
+
+---
+
+## Phase 2 — Runtime verification (VM, .NET 10 + EF Core + SQL Server)
+
+The migrated solution was run in the VM: `dotnet run` on `SampleWebApp` (.NET 10 SDK `10.0.302`),
+EF Core `InitialCreate` migration applied to SQL Server 2022 (Docker), XML seed data loaded, app served at
+`http://localhost:5080`. Blogs/Posts/Tags CRUD were exercised through the browser (recorded).
+
+### Runtime defects found on the first pass (both fixed on this branch)
+1. **Posts create → HTTP 500 (`ArgumentNullException`).** ASP.NET Core MVC validation visits every gettable
+   DTO property during model binding. `DetailPostDto.TagNames` / `DetailPostDtoAsync.TagNames` ran
+   `string.Join(", ", Tags.Select(...))` over `Tags`, which is `null` on the posted form (the form only posts
+   `Bloggers` + `UserChosenTags`), throwing before the controller action ran. **Fix:** null-guard the getter
+   (`Tags == null ? string.Empty : ...`). Regression tests added in `Test12PostDtoValidation.cs`.
+2. **Duplicate Tag slug → unhandled HTTP 500.** The pre-save uniqueness check in `SampleWebAppDb.SaveChanges`
+   throws `ValidationException` (correct for direct-DbContext callers, incl. tests), but through
+   EfCore.GenericServices that surfaced as a 500 instead of a friendly validation error. **Fix:** added
+   `SampleWebAppDb.GetSlugUniquenessErrors()` and a `GenericServicesConfig.BeforeSaveChanges` hook
+   (`ServiceLayerServiceCollectionExtensions`) that returns an invalid `IStatusGeneric`; the controller maps it
+   into `ModelState` (`ModelStateExtensions.CopyErrorsToModelState`). Direct DbContext behavior is unchanged.
+   Regression tests added in `Test13SlugUniqueness.cs`. Full suite after fixes: **50/50 pass.**
+
+### Final runtime results (second pass — all passed)
+- Duplicate Tag slug (`Dup`/`about`): form redisplays with validation message, **no 500**, no row inserted.
+- Posts: create (blogger + 2 tags) → details (many-to-many tags persisted) → edit (title + tag set) → delete;
+  list returned to baseline. No `ArgumentNullException`.
+- Tags CRUD (create/edit/delete) and Blogs list/edit regressions pass.
+
+### Artifacts
+- Screen recording: `rec-b0efa9f3-5bfd-4d16-bf6b-e58b6c26d4cc`
+  (`/home/ubuntu/screencasts/rec-b0efa9f3-5bfd-4d16-bf6b-e58b6c26d4cc/rec-b0efa9f3-5bfd-4d16-bf6b-e58b6c26d4cc-edited.mp4`).
+- Full evidence + inline screenshots: `test-report.md` (repo root).
