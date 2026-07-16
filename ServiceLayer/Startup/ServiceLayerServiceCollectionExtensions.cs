@@ -27,9 +27,11 @@
 using System.Reflection;
 using DataLayer.DataClasses;
 using DataLayer.Startup;
+using GenericServices.Configuration;
 using GenericServices.Setup;
 using Microsoft.Extensions.DependencyInjection;
 using ServiceLayer.PostServices;
+using StatusGeneric;
 
 namespace ServiceLayer.Startup
 {
@@ -48,9 +50,25 @@ namespace ServiceLayer.Startup
         {
             services.AddDataLayer();
 
+            //Runs just before every GenericServices SaveChanges. Reports duplicate Tag.Slug values as
+            //validation errors (which controllers copy into ModelState) instead of letting the data layer's
+            //ValidationException escape as an unhandled 500. This is the GenericServices replacement for the
+            //EF6 ValidateEntity hook.
+            var config = new GenericServicesConfig
+            {
+                BeforeSaveChanges = context =>
+                {
+                    var status = new StatusGenericHandler();
+                    if (context is SampleWebAppDb sampleDb)
+                        foreach (var error in sampleDb.GetSlugUniquenessErrors())
+                            status.AddError(error);
+                    return status;
+                }
+            };
+
             //Registers ICrudServices/ICrudServicesAsync and builds the AutoMapper mappings by scanning
             //this assembly for ILinkToEntity<T> DTOs and PerDtoConfig<,> classes.
-            services.GenericServicesSimpleSetup<SampleWebAppDb>(Assembly.GetExecutingAssembly());
+            services.GenericServicesSimpleSetup<SampleWebAppDb>(config, Assembly.GetExecutingAssembly());
 
             //Hand-written helper that replaces the DTO's old SetupSecondaryData/Create/Update hooks.
             services.AddScoped<IPostCrudHelper, PostCrudHelper>();

@@ -24,6 +24,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading;
@@ -109,10 +110,27 @@ namespace DataLayer.DataClasses
 
         /// <summary>
         /// This reimplements the EF6 ValidateEntity Slug-uniqueness check: for any added/modified Tag,
-        /// ensure no other Tag already uses the same Slug (excluding the Tag itself).
+        /// ensure no other Tag already uses the same Slug (excluding the Tag itself). It throws on a
+        /// direct <see cref="SaveChanges()"/> so callers that bypass GenericServices still get protection.
+        /// GenericServices callers surface the same problem gracefully via <see cref="GetSlugUniquenessErrors"/>
+        /// wired into its BeforeSaveChanges hook, so the throw is not reached on that path.
         /// </summary>
         private void CheckForUniqueSlugs()
         {
+            var firstError = GetSlugUniquenessErrors().FirstOrDefault();
+            if (firstError != null)
+                throw new ValidationException(firstError);
+        }
+
+        /// <summary>
+        /// Returns a user-friendly error message for every added/modified Tag whose Slug collides with
+        /// another Tag's Slug. Empty when all Slugs are unique. Used both by the throwing
+        /// <see cref="CheckForUniqueSlugs"/> and by GenericServices' BeforeSaveChanges hook so a duplicate
+        /// Slug is reported as a validation error rather than an unhandled exception.
+        /// </summary>
+        public IReadOnlyList<string> GetSlugUniquenessErrors()
+        {
+            var errors = new List<string>();
             var changedTags = ChangeTracker.Entries<Tag>()
                 .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
                 .Select(e => e.Entity)
@@ -121,9 +139,10 @@ namespace DataLayer.DataClasses
             foreach (var tagToCheck in changedTags)
             {
                 if (Tags.Any(x => x.TagId != tagToCheck.TagId && x.Slug == tagToCheck.Slug))
-                    throw new ValidationException(
-                        string.Format("The Slug on tag '{0}' must be unique and is already being used.", tagToCheck.Name));
+                    errors.Add(string.Format("The Slug on tag '{0}' must be unique and is already being used.", tagToCheck.Name));
             }
+
+            return errors;
         }
     }
 }
