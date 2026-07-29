@@ -23,6 +23,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
+using System;
 using System.Linq;
 using BizLayer.Startup;
 using DataLayer.DataClasses;
@@ -46,11 +47,17 @@ namespace SampleWebApp
             builder.Services.AddControllersWithViews();
 
             //Register the EF Core context. The connection string comes from configuration
-            //(appsettings.json / appsettings.{Environment}.json / environment variables).
+            //(user secrets / environment variables / appsettings.{Environment}.json). The
+            //checked-in appsettings files leave it empty so no credentials live in source control.
+            var connectionString = builder.Configuration.GetConnectionString("SampleWebAppDb");
+            if (string.IsNullOrWhiteSpace(connectionString))
+                throw new InvalidOperationException(
+                    "No connection string named 'SampleWebAppDb' was found. Set it via " +
+                    "`dotnet user-secrets set \"ConnectionStrings:SampleWebAppDb\" \"...\"` or the " +
+                    "ConnectionStrings__SampleWebAppDb environment variable. See README.md.");
+
             builder.Services.AddDbContext<SampleWebAppDb>(options =>
-                options.UseSqlServer(
-                    builder.Configuration.GetConnectionString("SampleWebAppDb"),
-                    sql => sql.EnableRetryOnFailure()));
+                options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure()));
 
             //Registers the service layer (ICrudServices/ICrudServicesAsync + DTO mappings + IPostCrudHelper),
             //which internally also registers the data layer.

@@ -60,10 +60,15 @@ instance (LocalDB on Windows, or SQL Server in Docker on Linux/macOS).
    ```
 
 2. **Set the connection string.** The app reads the connection string named `SampleWebAppDb`.
-   Put it in `SampleWebApp/appsettings.Development.json`, or override it with an environment
-   variable (recommended, keeps secrets out of source):
+   The checked-in `appsettings*.json` files deliberately leave it empty so that no credentials
+   live in source control — supply it with user secrets or an environment variable:
 
    ```bash
+   # option A - user secrets (Development only, stored outside the repo)
+   dotnet user-secrets --project SampleWebApp set "ConnectionStrings:SampleWebAppDb" \
+     "Server=localhost,1433;Database=SampleWebAppDb;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;MultipleActiveResultSets=True"
+
+   # option B - environment variable (works in any environment)
    export ConnectionStrings__SampleWebAppDb="Server=localhost,1433;Database=SampleWebAppDb;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;MultipleActiveResultSets=True"
    ```
 

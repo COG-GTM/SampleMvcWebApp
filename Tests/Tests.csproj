@@ -28,6 +28,7 @@
     <ProjectReference Include="..\DataLayer\DataLayer.csproj" />
     <ProjectReference Include="..\ServiceLayer\ServiceLayer.csproj" />
     <ProjectReference Include="..\BizLayer\BizLayer.csproj" />
+    <ProjectReference Include="..\SampleWebApp\SampleWebApp.csproj" />
   </ItemGroup>
 
 </Project>

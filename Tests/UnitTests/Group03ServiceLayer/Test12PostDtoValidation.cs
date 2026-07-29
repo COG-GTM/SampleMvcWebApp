@@ -67,6 +67,32 @@ namespace Tests.UnitTests.Group03ServiceLayer
         }
 
         [Test]
+        public void Check03SimpleTagNamesWhenTagsNullReturnsEmpty()
+        {
+            //SETUP
+            var dto = new SimplePostDto { Tags = null };
+
+            //ATTEMPT
+            var tagNames = dto.TagNames;
+
+            //VERIFY
+            tagNames.ShouldEqual(string.Empty);
+        }
+
+        [Test]
+        public void Check04SimpleTagNamesAsyncWhenTagsNullReturnsEmpty()
+        {
+            //SETUP
+            var dto = new SimplePostDtoAsync { Tags = null };
+
+            //ATTEMPT
+            var tagNames = dto.TagNames;
+
+            //VERIFY
+            tagNames.ShouldEqual(string.Empty);
+        }
+
+        [Test]
         public void Check05TagNamesWhenTagsPopulatedJoinsNames()
         {
             //SETUP

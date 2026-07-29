@@ -133,5 +133,31 @@ namespace Tests.UnitTests.Group03ServiceLayer
                 posts.Count.ShouldEqual(3);
             }
         }
+
+        /// <summary>
+        /// The Post DTOs expose the Tag entity collection directly, so the GenericServices read
+        /// projection has to project Post.Tags into DTO.Tags. This asserts the projection really does
+        /// fill that collection, which is what the computed TagNames property renders.
+        /// </summary>
+        [Test]
+        public void Test17CrudServicesReadProjectsTagsCollection()
+        {
+            //SETUP & ATTEMPT
+            using (var scope = _provider.CreateScope())
+            {
+                var service = scope.ServiceProvider.GetRequiredService<ICrudServices>();
+                var postId = service.ReadManyNoTracked<SimplePostDto>().First().PostId;
+
+                var simple = service.ReadManyNoTracked<SimplePostDto>()
+                    .Single(x => x.PostId == postId);
+                var detail = service.ReadSingle<DetailPostDto>(postId);
+
+                //VERIFY
+                ClassicAssert.NotNull(simple.Tags);
+                ClassicAssert.NotNull(detail.Tags);
+                ClassicAssert.IsTrue(detail.Tags.Any());
+                ClassicAssert.IsFalse(string.IsNullOrEmpty(detail.TagNames));
+            }
+        }
     }
 }

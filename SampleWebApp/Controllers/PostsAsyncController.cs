@@ -56,6 +56,9 @@ namespace SampleWebApp.Controllers
         public async Task<IActionResult> Edit(int id, [FromServices] ICrudServicesAsync service, [FromServices] IPostCrudHelper crudHelper)
         {
             var dto = await service.ReadSingleAsync<DetailPostDtoAsync>(id);
+            if (dto == null)
+                return NotFound();
+
             await crudHelper.SetupSecondaryDataAsync(dto);
             return View(dto);
         }

@@ -64,6 +64,9 @@ namespace SampleWebApp.Controllers
         public IActionResult Edit(int id, [FromServices] ICrudServices service, [FromServices] IPostCrudHelper crudHelper)
         {
             var dto = service.ReadSingle<DetailPostDto>(id);
+            if (dto == null)
+                return NotFound();
+
             crudHelper.SetupSecondaryData(dto);
             return View(dto);
         }

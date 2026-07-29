@@ -169,6 +169,8 @@ namespace ServiceLayer.PostServices
             if (status.HasErrors)
                 return status;
 
+            if (!isUpdate)
+                _db.Posts.Add(post);
             _db.SaveChanges();
             status.Message = isUpdate ? "Successfully updated the post." : "Successfully created the post.";
             return status;
@@ -187,8 +189,6 @@ namespace ServiceLayer.PostServices
                 status.AddError("Could not find the post you asked for. Did another user delete it?");
                 return status;
             }
-            if (!isUpdate)
-                _db.Posts.Add(post);
 
             var blogId = ResolveBlogId(bloggers, status);
             var tags = await ResolveTagsAsync(userChosenTags, status);
@@ -201,19 +201,22 @@ namespace ServiceLayer.PostServices
             if (status.HasErrors)
                 return status;
 
+            if (!isUpdate)
+                _db.Posts.Add(post);
             await _db.SaveChangesAsync();
             status.Message = isUpdate ? "Successfully updated the post." : "Successfully created the post.";
             return status;
         }
 
+        /// <summary>
+        /// Returns the Post to write to. A newly created Post is deliberately left untracked until
+        /// validation has passed, so a failed create cannot leave an Added entity in the request's
+        /// change tracker for a later SaveChanges to persist.
+        /// </summary>
         private Post ResolvePost(int postId, bool isUpdate, StatusGenericHandler status)
         {
             if (!isUpdate)
-            {
-                var newPost = new Post();
-                _db.Posts.Add(newPost);
-                return newPost;
-            }
+                return new Post();
 
             var post = _db.Posts.Include(p => p.Tags).SingleOrDefault(p => p.PostId == postId);
             if (post == null)
