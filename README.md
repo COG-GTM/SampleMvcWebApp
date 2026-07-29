@@ -1,47 +1,101 @@
 SampleMvcWebApp
 ===============
 
-SampleMvcWebApp is a ASP.NET MVC5 web site designed to show number of useful methods for building enterprise
- grade web applications using ASP.NET MVC5 and Entity Framework 6. 
-The code for this sample MVC web application, and the associated 
-[GenericServices Framework](https://github.com/JonPSmith/GenericServices) are both an open source project 
-by [Jon Smith](http://www.thereformedprogrammer.net/about-me/) 
+SampleMvcWebApp is an **ASP.NET Core MVC** web site (targeting **.NET 10**) that demonstrates a
+number of useful patterns for building enterprise‑grade web applications using ASP.NET Core MVC and
+**Entity Framework Core**.
+
+This project was originally an ASP.NET MVC 5 / .NET Framework 4.5.1 / Entity Framework 6 sample by
+[Jon Smith](http://www.thereformedprogrammer.net/about-me/) built around the EF6
+[GenericServices](https://github.com/JonPSmith/GenericServices) framework. It has been re‑platformed
+to ASP.NET Core / .NET 10 / EF Core using the EF Core successor
+[EfCore.GenericServices](https://github.com/JonPSmith/EfCore.GenericServices). It remains open source
 under the [MIT licence](http://opensource.org/licenses/MIT).
 
-This code is available as a [live web site](http://samplemvcwebapp.net/) which includes explanations 
-of the code - see an example of this on the [Posts code explanation](http://samplemvcwebapp.net/Posts/CodeView) page.
+See [`MIGRATION_NOTES.md`](./MIGRATION_NOTES.md) for the detailed record of what changed during the
+migration (the gotchas, the affected files, and the chosen replacement for each legacy dependency).
 
-The GenericService Framework is available on [GitHub](https://github.com/JonPSmith/GenericServices) and soon via NuGet (when the release is stable).
+Solution layout
+---------------
 
-**GenericServices is now available on NuGet.**
-See [NuGet Package Page](https://www.nuget.org/packages/GenericServices/) for more details.
+| Project        | Purpose                                                                  |
+| -------------- | ------------------------------------------------------------------------ |
+| `DataLayer`    | EF Core `SampleWebAppDb` DbContext, entities, migrations and XML seeding. |
+| `BizLayer`     | Business‑logic layer (DI extension point).                               |
+| `ServiceLayer` | `EfCore.GenericServices` DTOs + `IPostCrudHelper`, DI registration.      |
+| `SampleWebApp` | ASP.NET Core MVC web front end (minimal hosting `Program.cs`).           |
+| `Tests`        | NUnit test project.                                                       |
 
-**An additinal, more complex example is now available.** 
-Visit [Complex.SampleMvcWebApp](http://complex.samplemvcwebapp.net/) to see more.
+Technology
+----------
 
+- ASP.NET Core MVC on .NET 10 (SDK‑style projects, `Program.cs` minimal hosting, endpoint routing).
+- Entity Framework Core 10 with SQL Server, code‑first migrations.
+- `EfCore.GenericServices` (`ICrudServices` / `ICrudServicesAsync`) for the generic CRUD/DTO layer.
+- Built‑in `Microsoft.Extensions.DependencyInjection` (the legacy Autofac + `DiModelBinder`
+  action‑parameter injection was replaced with constructor / `[FromServices]` injection).
+- Static assets served from `wwwroot/` (the legacy `System.Web.Optimization` bundling was removed).
 
-The specific features in the code in this example are:
+Features demonstrated
+---------------------
 
-### 1. Simple, but robust database services
+- Synchronous DTO‑shaped access – `PostsController` (`ICrudServices`).
+- Asynchronous DTO‑shaped access – `PostsAsyncController` (`ICrudServicesAsync`).
+- Direct entity access – `TagsController` / `TagsAsyncController`.
+- Dependency injection throughout, including the many‑to‑many Post/Tag "secondary data"
+  (blogger dropdown + tags multi‑select) handled by `IPostCrudHelper`.
 
-Database accesses are normally a big part of enterprise systems build with APS.NET MVC. 
-However, my experience is that creating these services in a robust and comprehensive form can lead to 
-a lot of repetative code that does the same thing, but for different data. 
-My aim has been to produce a generic framework that handles most of the cases, and is 
-easily extensible when special handling is required. Examples of there use on this web site are:
+Running locally
+---------------
 
- - See normal, synchronous access using a DTO for shaping in the [Posts Controller](https://github.com/JonPSmith/SampleMvcWebApp/blob/master/SampleWebApp/Controllers/PostsController.cs)
- - See new EF6 async access using a DTO for shaping in the [PostsAsync Controller](https://github.com/JonPSmith/SampleMvcWebApp/blob/master/SampleWebApp/Controllers/PostsAsyncController.cs)
- - See normal, synchronous access directly via data class in the [Tags Controller](https://github.com/JonPSmith/SampleMvcWebApp/blob/master/SampleWebApp/Controllers/TagsController.cs)
- - See new EF6 async access directly via data class in the [TagsAsync Controller](https://github.com/JonPSmith/SampleMvcWebApp/blob/master/SampleWebApp/Controllers/TagsAsyncController.cs)
+Prerequisites: the [.NET 10 SDK](https://dotnet.microsoft.com/download) and a reachable SQL Server
+instance (LocalDB on Windows, or SQL Server in Docker on Linux/macOS).
 
-### 1. Use of Dependency Injection
+1. **Start SQL Server** (example, Docker – Linux/macOS):
 
-The GenericService framework is designed specifically to work with Dependency Injection (DI). 
-DI is used throughout this web site, but specific examples are:
+   ```bash
+   docker run -d --name sqlserver -e "ACCEPT_EULA=Y" \
+     -e "MSSQL_SA_PASSWORD=Your_Strong_Passw0rd!" -p 1433:1433 \
+     mcr.microsoft.com/mssql/server:2022-latest
+   ```
 
- - Inserting the required services into a controller by action parameter injection.
- - DI is also used for creating the GenericService etc. See Code Explanation for more information.
+2. **Set the connection string.** The app reads the connection string named `SampleWebAppDb`.
+   The checked-in `appsettings*.json` files deliberately leave it empty so that no credentials
+   live in source control — supply it with user secrets or an environment variable:
 
-Note that the SampleMvcWebApp uses AutoFac dependency injection framework, 
-but the framework allows you to replace AutoFac with your own favourite DI tool.
+   ```bash
+   # option A - user secrets (Development only, stored outside the repo)
+   dotnet user-secrets --project SampleWebApp set "ConnectionStrings:SampleWebAppDb" \
+     "Server=localhost,1433;Database=SampleWebAppDb;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;MultipleActiveResultSets=True"
+
+   # option B - environment variable (works in any environment)
+   export ConnectionStrings__SampleWebAppDb="Server=localhost,1433;Database=SampleWebAppDb;User Id=sa;Password=Your_Strong_Passw0rd!;TrustServerCertificate=True;MultipleActiveResultSets=True"
+   ```
+
+   On Windows with LocalDB you can instead use:
+   `Server=(localdb)\\mssqllocaldb;Database=SampleWebAppDb;Trusted_Connection=True;MultipleActiveResultSets=True`.
+
+3. **Run the app.** On startup `Program.cs` applies the EF Core migration and seeds the sample
+   blogs/posts/tags if the database is empty:
+
+   ```bash
+   dotnet run --project SampleWebApp
+   ```
+
+   Then browse to the URL shown in the console (e.g. `http://localhost:5080`).
+
+   To create/apply migrations manually you can use the EF Core tools:
+
+   ```bash
+   dotnet tool install --global dotnet-ef
+   dotnet ef database update --project DataLayer --startup-project SampleWebApp
+   ```
+
+Running the tests
+-----------------
+
+```bash
+dotnet test
+```
+
+The tests use an in‑memory SQLite `SampleWebAppDb` so they do not require a running SQL Server.
