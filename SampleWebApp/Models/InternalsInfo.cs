@@ -25,7 +25,6 @@
 // SOFTWARE.
 #endregion
 using System;
-using System.Diagnostics;
 using System.Threading;
 
 namespace SampleWebApp.Models
@@ -53,7 +52,10 @@ namespace SampleWebApp.Models
             WorkerThreads = workerThreads;
             AvailableThreads = availableThreads;
 
-            AvailableMbytes = (int)new PerformanceCounter("Memory", "Available MBytes", true).RawValue;
+            //PerformanceCounter("Memory", "Available MBytes") is Windows-only and throws on Linux,
+            //so the GC's view of the memory the process may still use is reported instead
+            var gcInfo = GC.GetGCMemoryInfo();
+            AvailableMbytes = (int)((gcInfo.TotalAvailableMemoryBytes - gcInfo.MemoryLoadBytes) / (1024 * 1024));
 
             HeapMemoryUsedKbytes = (int)(GC.GetTotalMemory(true)/1000);
         }

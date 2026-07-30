@@ -25,9 +25,9 @@
 // SOFTWARE.
 #endregion
 using System.Linq;
-using System.Web.Mvc;
 using DataLayer.DataClasses.Concrete;
 using GenericServices;
+using Microsoft.AspNetCore.Mvc;
 using SampleWebApp.Infrastructure;
 using ServiceLayer.TagServices;
 
@@ -36,86 +36,94 @@ namespace SampleWebApp.Controllers
     public class TagsController : Controller
     {
         /// <summary>
-        /// This is an example of a Controller using GenericServices database commands directly to the data class (other that List, which needs a DTO)
+        /// This is an example of a Controller using EfCore.GenericServices database commands directly to the data class (other that List, which needs a DTO)
         /// In this case we are using normal, non-async commands
         /// </summary>
-        public ActionResult Index(IListService service)
+        public IActionResult Index([FromServices] ICrudServices service)
         {
-            return View(service.GetAll<TagListDto>().ToList());
+            return View(service.ReadManyNoTracked<TagListDto>().ToList());
         }
 
-        public ActionResult Details(int id, IDetailService service)
+        public IActionResult Details(int id, [FromServices] ICrudServices service)
         {
-            return View(service.GetDetail<Tag>(id).Result);
+            var tag = service.ReadSingle<Tag>(id);
+            if (tag == null)
+                return NotFound();
+
+            return View(tag);
         }
 
 
-        public ActionResult Edit(int id, IUpdateSetupService service)
+        public IActionResult Edit(int id, [FromServices] ICrudServices service)
         {
-            return View(service.GetOriginal<Tag>(id).Result);
+            var tag = service.ReadSingle<Tag>(id);
+            if (tag == null)
+                return NotFound();
+
+            return View(tag);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(Tag tag, IUpdateService service)
+        public IActionResult Edit(Tag tag, [FromServices] ICrudServices service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
                 return View(tag);
 
-            var response = service.Update(tag);
-            if (response.IsValid)
+            service.UpdateAndSave(tag);
+            if (service.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
+                TempData["message"] = service.Message;
                 return RedirectToAction("Index");
             }
 
             //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, tag);
+            service.CopyErrorsToModelState(ModelState, tag);
             return View(tag);
         }
 
-        public ActionResult Create()
+        public IActionResult Create()
         {
             return View(new Tag());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Tag tag, ICreateService service)
+        public IActionResult Create(Tag tag, [FromServices] ICrudServices service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
                 return View(tag);
 
-            var response = service.Create(tag);
-            if (response.IsValid)
+            service.CreateAndSave(tag);
+            if (service.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
+                TempData["message"] = service.Message;
                 return RedirectToAction("Index");
             }
 
             //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, tag);
+            service.CopyErrorsToModelState(ModelState, tag);
             return View(tag);
         }
 
-        public ActionResult Delete(int id, IDeleteService service)
+        public IActionResult Delete(int id, [FromServices] ICrudServices service)
         {
 
-            var response = service.Delete<Tag>(id);
-            if (response.IsValid)
-                TempData["message"] = response.SuccessMessage;
+            service.DeleteAndSave<Tag>(id);
+            if (service.IsValid)
+                TempData["message"] = service.Message;
             else
                 //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
+                TempData["errorMessage"] = service.ErrorsAsHtml();
 
             return RedirectToAction("Index");
         }
 
         //--------------------------------------------
 
-        public ActionResult CodeView()
+        public IActionResult CodeView()
         {
             return View();
         }

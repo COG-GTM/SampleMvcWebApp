@@ -24,38 +24,60 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Web.Mvc;
+using System.Diagnostics;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using SampleWebApp.Models;
 
 namespace SampleWebApp.Controllers
 {
     public class HomeController : Controller
     {
-        public ActionResult Index()
+        public IActionResult Index()
         {
             return View();
         }
 
-        public ActionResult About()
+        public IActionResult About()
         {
             ViewBag.Message = "Your application description page.";
 
             return View();
         }
 
-        public ActionResult Contact()
+        public IActionResult Contact()
         {
             return View();
         }
 
-        public ActionResult Internals()
+        public IActionResult Internals()
         {
             return View(new InternalsInfo());
         }
 
-        public ActionResult CodeView()
+        public IActionResult CodeView()
         {
             return View();
+        }
+
+        /// <summary>
+        /// This replaces the MVC5 HandleErrorAttribute. It is reached via UseExceptionHandler
+        /// and UseStatusCodePagesWithReExecute, both of which put the original path in a feature.
+        /// </summary>
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error(int? code)
+        {
+            var exceptionFeature = HttpContext.Features.Get<IExceptionHandlerPathFeature>();
+            var reExecuteFeature = HttpContext.Features.Get<IStatusCodeReExecuteFeature>();
+
+            return View(new ErrorViewModel
+            {
+                RequestId = Activity.Current == null ? HttpContext.TraceIdentifier : Activity.Current.Id,
+                OriginalPath = exceptionFeature != null
+                    ? exceptionFeature.Path
+                    : (reExecuteFeature == null ? null : reExecuteFeature.OriginalPath),
+                StatusCode = code
+            });
         }
     }
 }

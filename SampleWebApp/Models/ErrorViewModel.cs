@@ -1,7 +1,7 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: FilterConfig.cs
+// Filename: ErrorViewModel.cs
 // Date Created: 2014/05/20
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
@@ -24,16 +24,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Web;
-using System.Web.Mvc;
-
-namespace SampleWebApp
+namespace SampleWebApp.Models
 {
-    public class FilterConfig
+    /// <summary>
+    /// This replaces System.Web.Mvc.HandleErrorInfo, which does not exist in ASP.NET Core.
+    /// </summary>
+    public class ErrorViewModel
     {
-        public static void RegisterGlobalFilters(GlobalFilterCollection filters)
-        {
-            filters.Add(new HandleErrorAttribute());
-        }
+        public string RequestId { get; set; }
+
+        public bool ShowRequestId { get { return !string.IsNullOrEmpty(RequestId); } }
+
+        /// <summary>
+        /// The path that failed, taken from IExceptionHandlerPathFeature/IStatusCodeReExecuteFeature
+        /// </summary>
+        public string OriginalPath { get; set; }
+
+        /// <summary>
+        /// The http status code when the error came from UseStatusCodePagesWithReExecute, otherwise null
+        /// </summary>
+        public int? StatusCode { get; set; }
     }
 }

@@ -1,7 +1,7 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: RouteConfig.cs
+// Filename: AppSettings.cs
 // Date Created: 2014/05/20
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
@@ -24,26 +24,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using System.Web.Mvc;
-using System.Web.Routing;
-
-namespace SampleWebApp
+namespace SampleWebApp.Infrastructure
 {
-    public class RouteConfig
-    {
-        public static void RegisterRoutes(RouteCollection routes)
-        {
-            routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
+    public enum HostTypes { NotSet, LocalHost, WebWiz, Azure };
 
-            routes.MapRoute(
-                name: "Default",
-                url: "{controller}/{action}/{id}",
-                defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional }
-            );
-        }
+    /// <summary>
+    /// This replaces the Properties/Settings.settings (ApplicationSettingsBase) that WebUiInitialise read,
+    /// which does not exist on .NET Core. It is bound to the "AppSettings" section of appsettings.json.
+    /// </summary>
+    public class AppSettings
+    {
+        public const string SectionName = "AppSettings";
+
+        public HostTypes HostType { get; set; }
     }
 }
