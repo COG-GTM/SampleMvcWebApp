@@ -1,7 +1,7 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: DataLayerModule.cs
+// Filename: SampleWebAppDbDesignTimeFactory.cs
 // Date Created: 2014/05/20
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
@@ -24,27 +24,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Runtime.CompilerServices;
-using Autofac;
-using DataLayer.DataClasses;
-using GenericServices;
+using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 
-[assembly: InternalsVisibleTo("Tests")]
-
-namespace DataLayer.Startup
+namespace DataLayer.DataClasses
 {
-    public class DataLayerModule : Module
+    /// <summary>
+    /// This allows "dotnet ef ..." to build a SampleWebAppDb without needing a startup project.
+    /// The connection string comes from the SampleWebAppDb environment variable.
+    /// </summary>
+    public class SampleWebAppDbDesignTimeFactory : IDesignTimeDbContextFactory<SampleWebAppDb>
     {
+        internal const string DefaultConnectionString =
+            "Server=localhost,1433;Database=SampleWebAppDb;User Id=sa;Password=Str0ng!Passw0rd;TrustServerCertificate=True";
 
-        protected override void Load(ContainerBuilder builder)
+        public SampleWebAppDb CreateDbContext(string[] args)
         {
+            var connectionString = Environment.GetEnvironmentVariable(SampleWebAppDb.NameOfConnectionString);
+            if (string.IsNullOrEmpty(connectionString))
+                connectionString = DefaultConnectionString;
 
-            //Autowire the classes with interfaces
-            builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
+            var options = new DbContextOptionsBuilder<SampleWebAppDb>()
+                .UseSqlServer(connectionString)
+                .Options;
 
-            //set Entity Framework context to instance per lifetime scope. 
-            //This is important as we get one context per lifetime, so all db classes are tracked together.
-            builder.RegisterType<SampleWebAppDb>().As<SampleWebAppDb>().As<IGenericServicesDbContext>().InstancePerLifetimeScope();
+            return new SampleWebAppDb(options);
         }
     }
 }

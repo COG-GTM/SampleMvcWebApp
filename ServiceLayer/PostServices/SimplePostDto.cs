@@ -28,16 +28,12 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using DataLayer.DataClasses.Concrete;
 using GenericServices;
-using GenericServices.Core;
-
-[assembly: InternalsVisibleTo("Tests")]
 
 namespace ServiceLayer.PostServices
 {
-    public class SimplePostDto : EfGenericDto<Post, SimplePostDto>
+    public class SimplePostDto : ILinkToEntity<Post>
     {
 
         [UIHint("HiddenInput")]
@@ -58,19 +54,14 @@ namespace ServiceLayer.PostServices
         [ScaffoldColumn(false)]
         public DateTime LastUpdated { get;  set; }
 
+        //-------------------------------------------
+        //calculated properties. They are get-only so that they are never written back to the entity
+
         /// <summary>
         /// When it was last updated in DateTime format
         /// </summary>
         public DateTime LastUpdatedUtc { get { return DateTime.SpecifyKind(LastUpdated, DateTimeKind.Utc); } }
 
-        public string TagNames { get { return string.Join(", ", Tags.Select(x => x.Name)); } }
-
-        //----------------------------------------------
-        //overridden properties or methods
-
-        protected override CrudFunctions SupportedFunctions
-        {
-            get { return CrudFunctions.List; }
-        }
+        public string TagNames { get { return Tags == null ? string.Empty : string.Join(", ", Tags.Select(x => x.Name)); } }
     }
 }

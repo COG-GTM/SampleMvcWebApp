@@ -1,8 +1,8 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: BizLayerModule.cs
-// Date Created: 2014/07/11
+// Filename: IPostDtoServiceAsync.cs
+// Date Created: 2014/05/20
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -24,23 +24,35 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using Autofac;
+using System.Threading.Tasks;
+using StatusGeneric;
 
-namespace BizLayer.Startup
+namespace ServiceLayer.PostServices
 {
-    public class BizLayerModule : Module
+    /// <summary>
+    /// The async version of IPostDtoService, which works on DetailPostDtoAsync
+    /// </summary>
+    public interface IPostDtoServiceAsync
     {
+        /// <summary>
+        /// This returns an empty DTO with the blogger and tag lists filled in, ready for a create
+        /// </summary>
+        Task<DetailPostDtoAsync> GetDtoForCreateAsync();
 
         /// <summary>
-        /// This registers all items in service layer and below
+        /// This returns the DTO of the given post with the blogger and tag lists filled in,
+        /// or null if the post was not found
         /// </summary>
-        /// <param name="builder"></param>
-        protected override void Load(ContainerBuilder builder)
-        {
-            //---------------------------
-            //Register service layer: autowire all 
-            builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
-        }
+        Task<DetailPostDtoAsync> GetDtoForUpdateAsync(int postId);
 
+        /// <summary>
+        /// This refills the blogger and tag lists after a failed create/update, so the DTO can be
+        /// shown again. It replaces the old IUpdateServiceAsync.ResetDtoAsync
+        /// </summary>
+        Task ResetSecondaryDataAsync(DetailPostDtoAsync dto);
+
+        Task<IStatusGeneric> CreateAsync(DetailPostDtoAsync dto);
+
+        Task<IStatusGeneric> UpdateAsync(DetailPostDtoAsync dto);
     }
 }

@@ -1,7 +1,7 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: ServiceLayerModule.cs
+// Filename: IPostDtoService.cs
 // Date Created: 2014/05/20
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
@@ -24,34 +24,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
+using StatusGeneric;
 
-using Autofac;
-using DataLayer.Startup;
-using GenericServices;
-
-namespace ServiceLayer.Startup
+namespace ServiceLayer.PostServices
 {
-    public class ServiceLayerModule : Module
+    /// <summary>
+    /// EfCore.GenericServices has no equivalent of the old SetupSecondaryData/CreateDataFromDto/
+    /// UpdateDataFromDto hooks, so the blogger drop-down and the tags multi-select handling that
+    /// DetailPostDto used to do lives here.
+    /// </summary>
+    public interface IPostDtoService
     {
+        /// <summary>
+        /// This returns an empty DTO with the blogger and tag lists filled in, ready for a create
+        /// </summary>
+        DetailPostDto GetDtoForCreate();
 
         /// <summary>
-        /// This registers all items in service layer and below
+        /// This returns the DTO of the given post with the blogger and tag lists filled in,
+        /// or null if the post was not found
         /// </summary>
-        /// <param name="builder"></param>
-        protected override void Load(ContainerBuilder builder)
-        {
+        DetailPostDto GetDtoForUpdate(int postId);
 
-            //Now register the DataLayer
-            builder.RegisterModule(new DataLayerModule());
+        /// <summary>
+        /// This refills the blogger and tag lists after a failed create/update, so the DTO can be
+        /// shown again. It replaces the old IUpdateService.ResetDto
+        /// </summary>
+        void ResetSecondaryData(DetailPostDto dto);
 
-            //---------------------------
-            //Register service layer: autowire all 
-            builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
+        IStatusGeneric Create(DetailPostDto dto);
 
-            //and register the GenericServices assembly
-            builder.RegisterAssemblyTypes(typeof(IListService).Assembly).AsImplementedInterfaces();
-
-        }
-
+        IStatusGeneric Update(DetailPostDto dto);
     }
 }

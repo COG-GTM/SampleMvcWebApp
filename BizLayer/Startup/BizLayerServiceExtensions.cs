@@ -1,7 +1,7 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: ServiceLayerInitialise.cs
+// Filename: BizLayerServiceExtensions.cs
 // Date Created: 2014/05/20
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
@@ -24,32 +24,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using DataLayer.Startup;
+using Microsoft.Extensions.DependencyInjection;
 
-
-namespace ServiceLayer.Startup
+namespace BizLayer.Startup
 {
     /// <summary>
-    /// This handles the initialisation of this layer and any other layers 
+    /// This replaces the Autofac BizLayerModule
     /// </summary>
-    public static class ServiceLayerInitialise
+    public static class BizLayerServiceExtensions
     {
         /// <summary>
-        /// This should be called at Startup
+        /// This registers everything in the business layer. There is nothing in it yet, but the
+        /// call site exists so services can be added here without changing the web app.
         /// </summary>
-        /// <param name="isAzure">true if working with azure database</param>
-        /// <param name="canCreateDatabase">true if the database provider allows the app to drop/create a database</param>
-        public static void InitialiseThis(bool isAzure, bool canCreateDatabase)
+        public static IServiceCollection AddBizLayer(this IServiceCollection services)
         {
-
-            //Place any tasks that need initialising here
-
-            DataLayerInitialise.InitialiseThis(isAzure, canCreateDatabase);
-
+            return services;
         }
     }
 }

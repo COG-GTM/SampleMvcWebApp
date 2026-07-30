@@ -1,8 +1,8 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: EfConfiguration.cs
-// Date Created: 2014/08/14
+// Filename: DataLayerServiceExtensions.cs
+// Date Created: 2014/05/20
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -24,25 +24,35 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
+using DataLayer.DataClasses;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
-using System.Data.Entity;
-using System.Data.Entity.SqlServer;
-
-namespace DataLayer.DataClasses
+namespace DataLayer.Startup
 {
-    public class EfConfiguration : DbConfiguration
+    /// <summary>
+    /// This replaces the Autofac DataLayerModule
+    /// </summary>
+    public static class DataLayerServiceExtensions
     {
         /// <summary>
-        /// This flag should be set to true if we are working with an Azure database.
-        /// It should be set before EF uses the configuration, i.e. beofre the first access 
+        /// This registers the SampleWebAppDb as a scoped service, so all the classes in one
+        /// request/lifetime share the same DbContext.
         /// </summary>
-        public static bool IsAzure { get; internal set; }
-
-        public EfConfiguration()
+        /// <param name="services"></param>
+        /// <param name="connectionString"></param>
+        /// <param name="isAzure">true if running against an Azure database, which needs a retry policy</param>
+        public static IServiceCollection AddDataLayer(this IServiceCollection services, string connectionString,
+            bool isAzure = false)
         {
-            if (IsAzure)
-                SetExecutionStrategy("System.Data.SqlClient", () => new SqlAzureExecutionStrategy());
-        }
+            services.AddDbContext<SampleWebAppDb>(options =>
+                options.UseSqlServer(connectionString, sqlOptions =>
+                {
+                    if (isAzure)
+                        sqlOptions.EnableRetryOnFailure();
+                }));
 
+            return services;
+        }
     }
 }
