@@ -24,17 +24,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-
 using System.ComponentModel.DataAnnotations;
-using System.Runtime.CompilerServices;
 using DataLayer.DataClasses.Concrete;
-using GenericServices.Core;
-
-[assembly: InternalsVisibleTo("Tests")]
+using GenericServices;
 
 namespace ServiceLayer.BlogServices
 {
-    public class BlogListDto : EfGenericDto<Blog, BlogListDto>
+    public class BlogListDto : ILinkToEntity<Blog>
     {
 
         [UIHint("HiddenInput")]
@@ -47,13 +43,5 @@ namespace ServiceLayer.BlogServices
         public string EmailAddress { get; set; }
 
         public int PostsCount { get; set; }         //Uses AutoMapper Aggregate
-
-        //----------------------------------------------
-        //overridden properties or methods
-
-        protected override CrudFunctions SupportedFunctions
-        {
-            get { return CrudFunctions.List; }
-        }
     }
 }

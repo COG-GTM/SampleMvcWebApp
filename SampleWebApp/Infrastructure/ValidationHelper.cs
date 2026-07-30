@@ -28,37 +28,38 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Web.Mvc;
-using GenericLibsBase;
-using GenericServices;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using StatusGeneric;
 
 namespace SampleWebApp.Infrastructure
 {
     public static class ValidationHelper
     {
         /// <summary>
-        /// This transfers error messages from the DtoValidation methods to the MVC modelState error dictionary.
-        /// It looks for errors that have member names corresponding to the properties in the displayDto.
-        /// This means that errors assciated with a field on display will show next to the name. 
+        /// This transfers error messages from the status returned by the service layer to the MVC modelState
+        /// error dictionary. It looks for errors that have member names corresponding to the properties in the
+        /// displayDto. This means that errors assciated with a field on display will show next to the name. 
         /// Other errors will be shown in the ValidationSummary
         /// </summary>
         /// <param name="errorHolder">The interface that holds the errors</param>
         /// <param name="modelState">The MVC modelState to add errors to</param>
         /// <param name="displayDto">This is the Dto that will be used to display the error messages</param>
-        public static void CopyErrorsToModelState<T>(this ISuccessOrErrors errorHolder, ModelStateDictionary modelState, T displayDto) 
+        public static void CopyErrorsToModelState<T>(this IStatusGeneric errorHolder, ModelStateDictionary modelState, T displayDto)
         {
             if (errorHolder.IsValid) return;
 
             var namesThatWeShouldInclude = PropertyNamesInDto(displayDto);
             foreach (var error in errorHolder.Errors)
             {
-                if (!error.MemberNames.Any())
-                    modelState.AddModelError("", error.ErrorMessage);
+                var memberNames = error.ErrorResult.MemberNames.ToList();
+                if (!memberNames.Any())
+                    modelState.AddModelError("", error.ErrorResult.ErrorMessage);
                 else
-                    foreach (var errorKeyName in error.MemberNames)
+                    foreach (var errorKeyName in memberNames)
                         modelState.AddModelError(
                             (namesThatWeShouldInclude.Any(x => x == errorKeyName) ? errorKeyName : ""),
-                            error.ErrorMessage);
+                            error.ErrorResult.ErrorMessage);
             }
         }
 
@@ -67,21 +68,30 @@ namespace SampleWebApp.Infrastructure
         /// </summary>
         /// <param name="errorHolder"></param>
         /// <param name="modelState"></param>
-        public static void CopyErrorsToModelState(this ISuccessOrErrors errorHolder, ModelStateDictionary modelState)
+        public static void CopyErrorsToModelState(this IStatusGeneric errorHolder, ModelStateDictionary modelState)
         {
             if (errorHolder.IsValid) return;
 
             foreach (var error in errorHolder.Errors)
-                    modelState.AddModelError("", error.ErrorMessage);
+                modelState.AddModelError("", error.ErrorResult.ErrorMessage);
         }
 
+        /// <summary>
+        /// This turns the errors in a status into the html that the views show via TempData["errorMessage"].
+        /// ASP.NET Core's TempData can only round-trip primitives and strings, so it replaces the old
+        /// new MvcHtmlString(response.ErrorsAsHtml()) and is rendered with @Html.Raw(...)
+        /// </summary>
+        public static string ErrorsAsHtml(this IStatusGeneric errorHolder)
+        {
+            return string.Join("<br/>", errorHolder.Errors.Select(x => x.ErrorResult.ErrorMessage));
+        }
 
         /// <summary>
         /// This returns the ModelState errors as a json array containing objects with the PropertyName and the first error message.
         /// Must only be called if there are model errors.
         /// </summary>
         /// <param name="modelState"></param>
-        /// <returns>It returns a JsonNetResult with one parameter called errors which contains key value pairs.
+        /// <returns>It returns a JsonResult with one parameter called errorsDict which contains key value pairs.
         /// The key is the name of the property which had the error, or is empty string if global error.
         /// The value is an array of error strings for that property key</returns>
         public static JsonResult ReturnModelErrorsAsJson(this ModelStateDictionary modelState)
@@ -103,13 +113,11 @@ namespace SampleWebApp.Infrastructure
             if (emptyNameErrors.Any())
                 dict[string.Empty] = new { errors = emptyNameErrors };
 
-            var result = new JsonResult { Data = new { errorsDict = dict } };
-
-            return result;
+            return new JsonResult(new { errorsDict = dict });
         }
 
         /// <summary>
-        /// This returns and errorsDict with any errors in ISuccessOrErrors transferred
+        /// This returns and errorsDict with any errors in the status transferred
         /// It looks for errors that have member names corresponding to the properties in the displayDto.
         /// This means that errors assciated with a field on display will show next to the name. 
         /// Other errors will be shown in the ValidationSummary
@@ -117,10 +125,10 @@ namespace SampleWebApp.Infrastructure
         /// </summary>
         /// <param name="errorHolder">The interface that holds the errors</param>
         /// <param name="displayDto">Dto that the error messages came from</param>
-        /// <returns>It returns a JsonNetResult with one parameter called errors which contains key value pairs.
+        /// <returns>It returns a JsonResult with one parameter called errorsDict which contains key value pairs.
         /// The key is the name of the property which had the error, or is empty string if global error.
         /// The value is an array of error strings for that property key</returns>
-        public static JsonResult ReturnErrorsAsJson<T>(this ISuccessOrErrors errorHolder, T displayDto)
+        public static JsonResult ReturnErrorsAsJson<T>(this IStatusGeneric errorHolder, T displayDto)
         {
             if (errorHolder.IsValid)
                 throw new ArgumentException("You should only call ReturnErrorsAsJson when there are errors in the status", "errorHolder");
@@ -130,7 +138,7 @@ namespace SampleWebApp.Infrastructure
             return modelState.ReturnModelErrorsAsJson();
         }
 
-        private static IList<string> PropertyNamesInDto<T> ( T objectToCheck)
+        private static IList<string> PropertyNamesInDto<T>(T objectToCheck)
         {
             return
                 objectToCheck.GetType()
@@ -138,6 +146,5 @@ namespace SampleWebApp.Infrastructure
                              .Select(x => x.Name)
                              .ToList();
         }
-
     }
 }

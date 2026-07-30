@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: Test13Validation.cs
@@ -25,34 +25,33 @@
 // SOFTWARE.
 #endregion
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
-using GenericServices;
 using NUnit.Framework;
 using Tests.Helpers;
 
 namespace Tests.UnitTests.Group01DataLayer
 {
-    class Test13Validation
+    /// <summary>
+    /// EF6 ran the data annotations and IValidatableObject inside SaveChanges and GenericServices'
+    /// SaveChangesWithChecking turned them into an ISuccessOrErrors. EF Core does no validation at all,
+    /// so SampleWebAppDb.SaveChangesWithValidation reimplements it and returns a StatusGeneric status.
+    /// This fixture is the safety net for that reimplementation.
+    /// </summary>
+    public class Test13Validation
     {
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUpFixture()
         {
-            using (var db = new SampleWebAppDb())
-            {
-                DataLayerInitialise.InitialiseThis(false, true);
-                DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
-            }
+            TestDbHelper.ResetDatabase(TestDataSelection.Small);
         }
 
         [Test]
         public void Check01ValidateTagOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateContext())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
@@ -60,7 +59,7 @@ namespace Tests.UnitTests.Group01DataLayer
                 //ATTEMPT
                 var dupTag = new Tag { Name = "non-duplicate slug", Slug = Guid.NewGuid().ToString("N") };
                 db.Tags.Add(dupTag);
-                var status = db.SaveChangesWithChecking();
+                var status = db.SaveChangesWithValidation();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(true, status.Errors);
@@ -71,7 +70,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check02ValidateTagError()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateContext())
             {
                 //SETUP
                 var existingTag = db.Tags.First();
@@ -79,19 +78,19 @@ namespace Tests.UnitTests.Group01DataLayer
                 //ATTEMPT
                 var dupTag = new Tag {Name = "duplicate slug", Slug = existingTag.Slug};
                 db.Tags.Add(dupTag);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithValidation();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(false);
                 status.Errors.Count.ShouldEqual(1);
-                status.Errors[0].ErrorMessage.ShouldEqual("The Slug on tag 'duplicate slug' must be unique and is already being used.");
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("The Slug on tag 'duplicate slug' must be unique and is already being used.");
             }
         }
 
         [Test]
         public void Check10ValidatePostOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateContext())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
@@ -107,7 +106,7 @@ namespace Tests.UnitTests.Group01DataLayer
                     Tags = new[] { existingTag }
                 };
                 db.Posts.Add(newPost);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithValidation();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(true, status.Errors);
@@ -119,7 +118,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check15ValidatePostTitleError()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateContext())
             {
                 //SETUP
                 var existingTag = db.Tags.First();
@@ -134,19 +133,19 @@ namespace Tests.UnitTests.Group01DataLayer
                     Tags = new[] { existingTag }
                 };
                 db.Posts.Add(newPost);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithValidation();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(false);
                 status.Errors.Count.ShouldEqual(1);
-                status.Errors[0].ErrorMessage.ShouldEqual("Sorry, but you can't get too excited and include a ! in the title.");
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("Sorry, but you can't get too excited and include a ! in the title.");
             }
         }
 
         [Test]
         public void Check16ValidatePostTitleError()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateContext())
             {
                 //SETUP
                 var existingTag = db.Tags.First();
@@ -161,19 +160,19 @@ namespace Tests.UnitTests.Group01DataLayer
                     Tags = new[] { existingTag }
                 };
                 db.Posts.Add(newPost);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithValidation();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(false);
                 status.Errors.Count.ShouldEqual(1);
-                status.Errors[0].ErrorMessage.ShouldEqual("Sorry, but you can't ask a question, i.e. the title can't end with '?'.");
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("Sorry, but you can't ask a question, i.e. the title can't end with '?'.");
             }
         }
 
         [Test]
         public void Check20ValidatePostContentOneError()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateContext())
             {
                 //SETUP
                 var existingTag = db.Tags.First();
@@ -188,12 +187,12 @@ namespace Tests.UnitTests.Group01DataLayer
                     Tags = new[] { existingTag }
                 };
                 db.Posts.Add(newPost);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithValidation();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(false);
                 status.Errors.Count.ShouldEqual(1);
-                status.Errors[0].ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'sheep'.");
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'sheep'.");
             }
         }
 
@@ -201,7 +200,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check21ValidatePostContentTwoErrors()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateContext())
             {
                 //SETUP
                 var existingTag = db.Tags.First();
@@ -216,15 +215,69 @@ namespace Tests.UnitTests.Group01DataLayer
                     Tags = new[] { existingTag }
                 };
                 db.Posts.Add(newPost);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithValidation();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(false);
                 status.Errors.Count.ShouldEqual(2);
-                status.Errors[0].ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'sheep'.");
-                status.Errors[1].ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'lamb'.");
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'sheep'.");
+                status.Errors[1].ErrorResult.ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'lamb'.");
+            }
+        }
+
+        [Test]
+        public void Check22ValidatePostContentCowAndCalfErrors()
+        {
+            using (var db = TestDbHelper.CreateContext())
+            {
+                //SETUP
+                var existingTag = db.Tags.First();
+                var existingBlogger = db.Blogs.First();
+
+                //ATTEMPT
+                var newPost = new Post()
+                {
+                    Blogger = existingBlogger,
+                    Title = "Test post",
+                    Content = "Should not end sentence with cow. Nor end sentence with calf.",
+                    Tags = new[] { existingTag }
+                };
+                db.Posts.Add(newPost);
+                var status = db.SaveChangesWithValidation();
+
+                //VERIFY
+                status.IsValid.ShouldEqual(false);
+                status.Errors.Count.ShouldEqual(2);
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'cow'.");
+                status.Errors[1].ErrorResult.ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'calf'.");
+            }
+        }
+
+        [Test]
+        public void Check25ValidatePostNoTagsError()
+        {
+            using (var db = TestDbHelper.CreateContext())
+            {
+                //SETUP
+                var existingBlogger = db.Blogs.First();
+
+                //ATTEMPT
+                var newPost = new Post()
+                {
+                    Blogger = existingBlogger,
+                    Title = "Test post",
+                    Content = "Nothing special",
+                    Tags = new Tag[0]
+                };
+                db.Posts.Add(newPost);
+                var status = db.SaveChangesWithValidation();
+
+                //VERIFY
+                status.IsValid.ShouldEqual(false);
+                status.Errors.Count.ShouldEqual(1);
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("The post must have at least one Tag.");
+                status.Errors[0].ErrorResult.MemberNames.Single().ShouldEqual("AllocatedTags");
             }
         }
     }
 }
-

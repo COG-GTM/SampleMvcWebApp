@@ -25,22 +25,19 @@
 // SOFTWARE.
 #endregion
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using System.Data.Entity.Validation;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.DataClasses.Concrete.Helpers;
-using GenericServices;
-
-[assembly: InternalsVisibleTo("Tests")]
+using Microsoft.EntityFrameworkCore;
+using StatusGeneric;
 
 namespace DataLayer.DataClasses
 {
 
-    public class SampleWebAppDb : DbContext, IGenericServicesDbContext
+    public class SampleWebAppDb : DbContext
     {
         internal const string NameOfConnectionString = "SampleWebAppDb";
 
@@ -48,59 +45,118 @@ namespace DataLayer.DataClasses
         public DbSet<Post> Posts { get; set; }
         public DbSet<Tag> Tags { get; set; }
 
-        public SampleWebAppDb() : base("name=" + NameOfConnectionString) {}
+        public SampleWebAppDb(DbContextOptions<SampleWebAppDb> options) : base(options) {}
 
-        internal SampleWebAppDb(string connectionString) : base(connectionString) { }
-
+        /// <summary>
+        /// Convenience constructor for tests and tools that only have a connection string.
+        /// The application itself should use AddDataLayer/AddDbContext.
+        /// </summary>
+        internal SampleWebAppDb(string connectionString)
+            : base(new DbContextOptionsBuilder<SampleWebAppDb>().UseSqlServer(connectionString).Options) {}
 
         /// <summary>
         /// This has been overridden to handle:
-        /// a) Updating of modified items (see p194 in DbContext book)
+        /// a) Updating of modified items that inherit from TrackUpdate
+        /// b) The validation that EF6 used to run automatically, which EF Core does not do at all
         /// </summary>
-        /// <returns></returns>
-        public override int SaveChanges()
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
             HandleChangeTracking();
-            return base.SaveChanges();
+            ThrowIfInvalid(ValidateChangedEntities());
+            return base.SaveChanges(acceptAllChangesOnSuccess);
         }
 
         /// <summary>
         /// Same for async
         /// </summary>
-        /// <returns></returns>
-        public override Task<int> SaveChangesAsync()
+        public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess,
+            CancellationToken cancellationToken = default)
         {
             HandleChangeTracking();
-            return base.SaveChangesAsync();
+            ThrowIfInvalid(await ValidateChangedEntitiesAsync(cancellationToken).ConfigureAwait(false));
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// This does validations that can only be done at the database level
+        /// This validates every added/modified entity and only saves if there are no errors.
+        /// It replaces the EF6-era GenericServices SaveChangesWithChecking method.
         /// </summary>
-        /// <param name="entityEntry"></param>
-        /// <param name="items"></param>
-        /// <returns></returns>
-        protected override DbEntityValidationResult ValidateEntity(DbEntityEntry entityEntry,
-            IDictionary<object, object> items)
+        /// <returns>A status containing any validation errors. No save happens if the status has errors.</returns>
+        public IStatusGeneric SaveChangesWithValidation()
         {
-
-            if (entityEntry.Entity is Tag && (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified))
-            {
-                var tagToCheck = ((Tag)entityEntry.Entity);
-
-                //check for uniqueness of Tag's Slug property (note: because we may alter a Tag we need to exclude check against itself)
-                if (Tags.Any(x => x.TagId != tagToCheck.TagId && x.Slug == tagToCheck.Slug))
-                    return new DbEntityValidationResult(entityEntry,
-                                                        new List<DbValidationError>
-                                                            {
-                                                                new DbValidationError( "Slug",
-                                                                    string.Format( "The Slug on tag '{0}' must be unique and is already being used.", tagToCheck.Name))
-                                                            });
-            }
-
-            return base.ValidateEntity(entityEntry, items);
+            var status = new StatusGenericHandler();
+            HandleChangeTracking();
+            status.AddValidationResults(ValidateChangedEntities());
+            if (status.IsValid)
+                SaveChanges();
+            return status;
         }
 
+        /// <summary>
+        /// Same for async
+        /// </summary>
+        public async Task<IStatusGeneric> SaveChangesWithValidationAsync(CancellationToken cancellationToken = default)
+        {
+            var status = new StatusGenericHandler();
+            HandleChangeTracking();
+            status.AddValidationResults(await ValidateChangedEntitiesAsync(cancellationToken).ConfigureAwait(false));
+            if (status.IsValid)
+                await SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return status;
+        }
+
+        /// <summary>
+        /// This runs the validation that EF6 used to run inside SaveChanges: the data annotations and
+        /// IValidatableObject on every added/modified entity, plus the database-level checks.
+        /// </summary>
+        public IReadOnlyList<ValidationResult> ValidateChangedEntities()
+        {
+            var errors = new List<ValidationResult>();
+            foreach (var entity in EntitiesToValidate())
+            {
+                errors.AddRange(ValidateEntity(entity));
+                if (entity is Tag tag && Tags.Any(x => x.TagId != tag.TagId && x.Slug == tag.Slug))
+                    errors.Add(DuplicateSlugError(tag));
+            }
+            return errors;
+        }
+
+        /// <summary>
+        /// Same for async
+        /// </summary>
+        public async Task<IReadOnlyList<ValidationResult>> ValidateChangedEntitiesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var errors = new List<ValidationResult>();
+            foreach (var entity in EntitiesToValidate())
+            {
+                errors.AddRange(ValidateEntity(entity));
+                if (entity is Tag tag && await Tags
+                        .AnyAsync(x => x.TagId != tag.TagId && x.Slug == tag.Slug, cancellationToken)
+                        .ConfigureAwait(false))
+                    errors.Add(DuplicateSlugError(tag));
+            }
+            return errors;
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            //The uniqueness of a Tag's Slug is also checked before save so that the user gets a friendly error
+            modelBuilder.Entity<Tag>()
+                .HasIndex(x => x.Slug)
+                .IsUnique();
+
+            //EF6 auto-created a join table called TagPosts with Tag_TagId/Post_PostId columns.
+            //EF Core's convention would call it PostTag with PostsPostId/TagsTagId, so it is set explicitly.
+            modelBuilder.Entity<Post>()
+                .HasMany(x => x.Tags)
+                .WithMany(x => x.Posts)
+                .UsingEntity("TagPosts",
+                    l => l.HasOne(typeof(Tag)).WithMany().HasForeignKey("Tag_TagId"),
+                    r => r.HasOne(typeof(Post)).WithMany().HasForeignKey("Post_PostId"));
+
+            base.OnModelCreating(modelBuilder);
+        }
 
         //--------------------------------------------------
         //private helpers
@@ -110,25 +166,45 @@ namespace DataLayer.DataClasses
         /// </summary>
         private void HandleChangeTracking()
         {
-            //Debug.WriteLine("----------------------------------------------");
-            //foreach (var entity in ChangeTracker.Entries()
-            //.Where(
-            //    e =>
-            //    e.State == EntityState.Added || e.State == EntityState.Modified))
-            //{
-            //    Debug.WriteLine("Entry {0}, state {1}", entity.Entity, entity.State);
-            //}       
-
-            foreach (var entity in ChangeTracker.Entries()
-                                                .Where(
-                                                    e =>
-                                                    e.State == EntityState.Added || e.State == EntityState.Modified))
+            foreach (var entry in ChangeTracker.Entries<TrackUpdate>()
+                         .Where(e => e.State is EntityState.Added or EntityState.Modified))
             {
-                var trackUpdateClass = entity.Entity as TrackUpdate;
-                if (trackUpdateClass == null) return;
-                trackUpdateClass.UpdateTrackingInfo();
+                entry.Entity.UpdateTrackingInfo();
             }
         }
 
+        private List<object> EntitiesToValidate()
+        {
+            //ToList is needed, otherwise a "collection has changed" exception can happen
+            return ChangeTracker.Entries()
+                .Where(e => e.State is EntityState.Added or EntityState.Modified)
+                .Select(e => e.Entity)
+                .ToList();
+        }
+
+        private static IEnumerable<ValidationResult> ValidateEntity(object entity)
+        {
+            var errors = new List<ValidationResult>();
+            Validator.TryValidateObject(entity, new ValidationContext(entity), errors, true);
+            return errors;
+        }
+
+        private static ValidationResult DuplicateSlugError(Tag tag)
+        {
+            return new ValidationResult(
+                string.Format("The Slug on tag '{0}' must be unique and is already being used.", tag.Name),
+                new[] { "Slug" });
+        }
+
+        private static void ThrowIfInvalid(IReadOnlyList<ValidationResult> errors)
+        {
+            if (!errors.Any())
+                return;
+
+            //EF6 threw a DbEntityValidationException here. Callers that want the errors without an
+            //exception should use SaveChangesWithValidation.
+            throw new ValidationException(
+                string.Join("\n", errors.Select(x => x.ErrorMessage)), null, null);
+        }
     }
 }

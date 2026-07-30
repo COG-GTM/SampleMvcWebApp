@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: DbSnapShot.cs
@@ -26,6 +26,7 @@
 #endregion
 using System.Linq;
 using DataLayer.DataClasses;
+using Microsoft.EntityFrameworkCore;
 
 namespace Tests.Helpers
 {
@@ -43,7 +44,10 @@ namespace Tests.Helpers
         public DbSnapShot(SampleWebAppDb db)
         {
             NumBlogs = db.Blogs.Count();
-            NumPostTagLinks = db.Database.SqlQuery<int>("SELECT COUNT(*) FROM dbo.TagPosts").First();
+            //EF6's db.Database.SqlQuery<int> is gone. EF Core's SqlQueryRaw composes over the sql and
+            //reads a column called Value, so the count has to be aliased. The many-to-many join table
+            //is still called TagPosts with Post_PostId/Tag_TagId columns - see SampleWebAppDb.OnModelCreating
+            NumPostTagLinks = db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM dbo.TagPosts").Single();
             NumPosts = db.Posts.Count();
             NumTags = db.Tags.Count();
         }

@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: Test10SetupBlogs.cs
@@ -26,15 +26,15 @@
 #endregion
 using System;
 using System.Linq;
-using DataLayer.DataClasses;
 using DataLayer.Startup;
 using DataLayer.Startup.Internal;
+using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 using Tests.Helpers;
 
 namespace Tests.UnitTests.Group01DataLayer
 {
-    class Test10SetupBlogs
+    public class Test10SetupBlogs
     {
         [Test]
         public void Check01XmlFileLoadOk()
@@ -69,10 +69,10 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check10BlogsResetSmallOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateContext())
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, true);
+                db.Database.Migrate();
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
@@ -87,10 +87,10 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check11BlogsResetMediumOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateContext())
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, true);
+                db.Database.Migrate();
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
@@ -105,18 +105,24 @@ namespace Tests.UnitTests.Group01DataLayer
         //---------------------------------------------------------
 
         [Test]
-        public void Check20NullInitialiserOk()
+        public void Check20MigrateAndSeedOk()
         {
-            Check10BlogsResetSmallOk();             //we call this to ensure the database is setup
-            using (var db = new SampleWebAppDb())
+            //SETUP
+            using (var db = TestDbHelper.CreateContext())
             {
-                //SETUP
-                DataLayerInitialise.InitialiseThis(false, false);           //select null initialiser
+                db.Database.EnsureDeleted();
+            }
 
-                //ATTEMPT
-                DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
+            //ATTEMPT
+            //EF Core has no database initialisers, so MigrateAndSeed replaces InitialiseThis
+            using (var db = TestDbHelper.CreateContext())
+            {
+                DataLayerInitialise.MigrateAndSeed(db, TestDataSelection.Small);
+            }
 
-                //VERIFY
+            //VERIFY
+            using (var db = TestDbHelper.CreateContext())
+            {
                 db.Blogs.Count().ShouldEqual(2);
                 db.Posts.Count().ShouldEqual(3);
                 db.Tags.Count().ShouldEqual(3);

@@ -1,8 +1,8 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: ModelStateTester.cs
-// Date Created: 2014/06/10
+// Date Created: 2014/05/20
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -25,14 +25,24 @@
 // SOFTWARE.
 #endregion
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Tests.Helpers
 {
-    static class ModelStateTester
+    /// <summary>
+    /// System.Web.Mvc's DefaultModelBinder/ModelStateDictionary are gone. ASP.NET Core exposes the
+    /// same validation through IObjectModelValidator, which fills a
+    /// Microsoft.AspNetCore.Mvc.ModelBinding.ModelStateDictionary in exactly the same way MVC does
+    /// for a controller action.
+    /// </summary>
+    internal static class ModelStateTester
     {
 
         public class TestModel : IValidatableObject
@@ -67,36 +77,25 @@ namespace Tests.Helpers
             }
         }
 
-
-        private class TestController : Controller
-        {
-            public ActionResult ValidDateTestModel(TestModel model)
-            {
-                // ReSharper disable once Mvc.ViewNotResolved
-                return View(model);
-            }
-        }
+        private static readonly IObjectModelValidator Validator = BuildValidator();
 
         public static ModelStateDictionary ReturnModelState(this TestModel model)
         {
-            var testController = new TestController();
+            var actionContext = new ActionContext(new DefaultHttpContext(), new RouteData(),
+                new ActionDescriptor(), new ModelStateDictionary());
 
-            var modelBinder = new ModelBindingContext()
-            {
-                ModelMetadata = ModelMetadataProviders.Current.GetMetadataForType(
-                                  () => model, model.GetType()),
-                ValueProvider = new NameValueCollectionValueProvider(
-                                    new NameValueCollection(), CultureInfo.InvariantCulture)
-            };
-            var binder = new DefaultModelBinder().BindModel(
-                             new ControllerContext(), modelBinder);
-            testController.ModelState.Clear();
-            testController.ModelState.Merge(modelBinder.ModelState);
+            Validator.Validate(actionContext, null, string.Empty, model);
 
-            var viewResult = (ViewResult) testController.ValidDateTestModel(model);
-            return viewResult.ViewData.ModelState;
+            return actionContext.ModelState;
         }
 
-
+        private static IObjectModelValidator BuildValidator()
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+            //AddDataAnnotations is what puts the DataAnnotationsModelValidatorProvider into MvcOptions
+            services.AddMvcCore().AddDataAnnotations();
+            return services.BuildServiceProvider().GetRequiredService<IObjectModelValidator>();
+        }
     }
 }
