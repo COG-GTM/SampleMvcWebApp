@@ -509,10 +509,34 @@ Everything else goes through `ICrudServices` / `ICrudServicesAsync` injected wit
 
 ---
 
-## 12. Verification (Phase 2)
+## 12. Verification (Phase 2) — done
 
-Runs in the VM on Linux: .NET 10 SDK 10.0.301, SQL Server 2022 in Docker, `dotnet ef database update`,
-`dotnet run --project SampleWebApp`, then a recorded browser pass over the Blogs / Posts / Tags
-list-details-create-edit-delete flows.
+Run in the VM on Linux: .NET 10 SDK 10.0.301, SQL Server 2022 in Docker,
+`ASPNETCORE_ENVIRONMENT=Development dotnet run --project SampleWebApp --urls http://localhost:5000`
+(which applies the initial migration and seeds on startup), then one continuous recorded browser pass
+over the Blogs / Posts / Tags list-details-create-edit-delete flows plus the async controllers.
 
-**Video proof:** see `docs/migration-verification.md` (link added at the end of Phase 2).
+**Video proof:**
+[net10-migration-e2e.mp4](https://app.devin.ai/attachments/e1b3a484-612e-4eaf-9622-af69b66e3b25/net10-migration-e2e-edited.mp4)
+· [test report](https://app.devin.ai/attachments/dba3b141-6399-4952-bb81-fd3a7d289a01/test-report.md)
+
+Every assertion passed. Across the whole run the server log had **zero** occurrences of
+`Unhandled exception`, `DbUpdateException`, `SqlException` or `HTTP/1.1 500`; the status distribution was
+64×200, 11×302, 22×304 — no 4xx and no 5xx.
+
+| Flow | Result |
+|---|---|
+| Home + navigation, Bootstrap assets served from `wwwroot` | pass |
+| Tags CRUD (create / edit / details / delete) | pass |
+| Tag duplicate-slug validation — friendly message, not a SQL error (§2.2) | pass |
+| Blogs create + edit | pass |
+| Posts CRUD with the blogger drop-down and tag multi-select (§3.4) | pass |
+| Post `!`-in-title validation *and* secondary data still populated on the redisplayed form | pass |
+| Async controllers via `ICrudServicesAsync` | pass |
+| Persistence across fresh reads | pass |
+
+### Known remaining staleness (not a functional defect)
+
+The long `CodeView` explanation pages (`Views/*/CodeView.cshtml`) still describe the EF6-era
+GenericServices design and Autofac open-generic registration. The short, plainly-wrong claims were
+corrected; rewriting the essays is out of scope for the re-platform and is left as follow-up.

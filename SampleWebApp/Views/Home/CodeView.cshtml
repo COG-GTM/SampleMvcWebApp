@@ -27,14 +27,15 @@
 </p>
 <ul>
     <li>See normal, synchronous access using a <abbr title="Data Transfer Object">DTO</abbr> for shaping in the @Html.ActionLink("Posts", "Index", "Posts") Controller</li>
-    <li>See new EF6 async access using a <abbr title="Data Transfer Object">DTO</abbr> for shaping in the @Html.ActionLink("PostsAsync", "Index", "PostsAsync") Controller</li>
+    <li>See async access using a <abbr title="Data Transfer Object">DTO</abbr> for shaping in the @Html.ActionLink("PostsAsync", "Index", "PostsAsync") Controller</li>
     <li>See normal, synchronous access directly via data class in the @Html.ActionLink("Tags", "Index", "Tags") Controller</li>
-    <li>See new EF6 async access directly via data class in the @Html.ActionLink("TagsAsync", "Index", "TagsAsync") Controller</li>
+    <li>See async access directly via data class in the @Html.ActionLink("TagsAsync", "Index", "TagsAsync") Controller</li>
 </ul>
 
 <p>
-    Note that the SampleMvcWebApp uses <a href="https://github.com/autofac/Autofac/wiki/Getting-Started" target="_blank">AutoFac</a>
-    dependency injection framework to insert calls to the various GenericServices services.
+    Note that the SampleMvcWebApp uses ASP.NET Core's
+    <a href="https://learn.microsoft.com/aspnet/core/fundamentals/dependency-injection" target="_blank">built-in dependency injection</a>
+    to insert the various GenericServices services into the controller actions.
 </p>
 
 
