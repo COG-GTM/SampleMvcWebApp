@@ -32,18 +32,22 @@ namespace DataLayer.DataClasses
 {
     /// <summary>
     /// This allows "dotnet ef ..." to build a SampleWebAppDb without needing a startup project.
-    /// The connection string comes from the SampleWebAppDb environment variable.
+    /// The connection string comes from the SampleWebAppDb or ConnectionStrings__SampleWebAppDb
+    /// environment variable, falling back to the local development container in README.md.
     /// </summary>
     public class SampleWebAppDbDesignTimeFactory : IDesignTimeDbContextFactory<SampleWebAppDb>
     {
-        internal const string DefaultConnectionString =
-            "Server=localhost,1433;Database=SampleWebAppDb;User Id=sa;Password=Str0ng!Passw0rd;TrustServerCertificate=True";
+        //this only ever points at the throwaway local development container described in README.md
+        private const string LocalDevelopmentConnectionString =
+            "Server=localhost,1433;Database=SampleWebAppDb;User Id=sa;Password=Str0ng!Passw0rd;" +
+            "TrustServerCertificate=True;Encrypt=False";
 
         public SampleWebAppDb CreateDbContext(string[] args)
         {
-            var connectionString = Environment.GetEnvironmentVariable(SampleWebAppDb.NameOfConnectionString);
-            if (string.IsNullOrEmpty(connectionString))
-                connectionString = DefaultConnectionString;
+            var connectionString = Environment.GetEnvironmentVariable(SampleWebAppDb.NameOfConnectionString)
+                                   ?? Environment.GetEnvironmentVariable(
+                                       "ConnectionStrings__" + SampleWebAppDb.NameOfConnectionString)
+                                   ?? LocalDevelopmentConnectionString;
 
             var options = new DbContextOptionsBuilder<SampleWebAppDb>()
                 .UseSqlServer(connectionString)

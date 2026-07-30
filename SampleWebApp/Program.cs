@@ -53,10 +53,15 @@ namespace SampleWebApp
 
             builder.Services.AddControllersWithViews();
 
+            var connectionString = builder.Configuration.GetConnectionString("SampleWebAppDb");
+            if (string.IsNullOrWhiteSpace(connectionString))
+                throw new InvalidOperationException(
+                    "No SampleWebAppDb connection string. Set ConnectionStrings:SampleWebAppDb via the " +
+                    "ConnectionStrings__SampleWebAppDb environment variable, user secrets, or " +
+                    "appsettings.Development.json. See README.md.");
+
             //This registers the service layer, which registers every layer below it
-            builder.Services.AddServiceLayer(
-                builder.Configuration.GetConnectionString("SampleWebAppDb"),
-                appSettings.HostType == HostTypes.Azure);
+            builder.Services.AddServiceLayer(connectionString, appSettings.HostType == HostTypes.Azure);
 
             var app = builder.Build();
 
