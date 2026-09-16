@@ -1,7 +1,9 @@
 # .NET 8 Migration Assessment — SampleMvcWebApp
 
 Status: assessment + first migrated slice (see "Slice 1" below).
-Toolchain used for the migrated projects: .NET SDK 8.0.425 on Linux (pinned via `global.json`).
+Toolchain used for the migrated projects: .NET SDK 8.0.425 on Linux. `global.json` constrains
+the build to the .NET 8 SDK (`8.0.100` with `rollForward: latestFeature`), so any installed 8.0.x
+feature band is accepted and .NET 9/10 SDKs are not; it does not pin an exact patch.
 
 ## 1. Inventory
 
@@ -94,7 +96,7 @@ New projects (added, nothing deleted or retargeted):
   unchanged when the legacy library is retired.
 - `tests/DataLayer.Domain.Tests/DataLayer.Domain.Tests.csproj` — xunit 2.6.6, `net8.0`.
 - `SampleWebApp.Net8.sln` — holds only the migrated projects; `SampleWebApp.sln` is untouched.
-- `global.json` — pins the .NET 8 SDK feature band for the migrated projects.
+- `global.json` — constrains the migrated projects to a .NET 8 SDK (8.0.100 or a later 8.0.x band).
 
 The seed XML files are **not** copied: the new project embeds the originals from
 `DataLayer/Startup/Internal/` with `LogicalName` set to the manifest names the .NET Framework
