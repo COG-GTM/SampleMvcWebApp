@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>DataLayer.Domain</AssemblyName>
+    <RootNamespace>DataLayer</RootNamespace>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DataLayer.Domain.Tests" />
+  </ItemGroup>
+
+  <!-- The seed data files stay in the legacy DataLayer project so both builds read the same
+       bytes. LogicalName keeps the manifest resource names the .NET Framework build produces. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\DataLayer\Startup\Internal\BlogsContentSimple.xml"
+                      LogicalName="DataLayer.Startup.Internal.BlogsContentSimple.xml" />
+    <EmbeddedResource Include="..\..\DataLayer\Startup\Internal\BlogsContextMedium.xml"
+                      LogicalName="DataLayer.Startup.Internal.BlogsContextMedium.xml" />
+  </ItemGroup>
+
+</Project>
