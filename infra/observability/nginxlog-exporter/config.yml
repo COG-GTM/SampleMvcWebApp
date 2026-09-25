@@ -1,0 +1,37 @@
+listen:
+  port: 4040
+  address: "0.0.0.0"
+
+namespaces:
+  - name: lb
+    # Must match log_format lb_json in nginx/nginx.conf
+    format: >-
+      {"time":"$time_iso8601","remote_addr":"$remote_addr","method":"$request_method","uri":"$uri","status":$status,"body_bytes_sent":$body_bytes_sent,"request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream":"$upstream_addr","service":"$service","env":"$env"}
+    parser: json
+    source:
+      files:
+        - /var/log/nginx/lb-access.log
+    labels:
+      service: samplewebapp
+      env: demo
+    relabel_configs:
+      - target_label: method
+        from: request_method
+        whitelist: [GET, POST, PUT, DELETE, HEAD]
+      - target_label: status
+        from: status
+      - target_label: route
+        from: uri
+        # Collapse ids so the cardinality stays sane: /Posts/Edit/12 -> /Posts/Edit/:id
+        matches:
+          - regexp: "^/(Posts|Blogs|Tags)/(Edit|Details|Delete)/[0-9]+$"
+            replacement: "/$1/$2/:id"
+          - regexp: "^/(Posts|Blogs|Tags|Home)(/[A-Za-z]+)?$"
+            replacement: "/$1$2"
+          - regexp: "^/$"
+            replacement: "/"
+          - regexp: "^/(Content|Scripts|fonts|lib|css|js)/.*"
+            replacement: "/static"
+          - regexp: ".*"
+            replacement: "/other"
+    histogram_buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]

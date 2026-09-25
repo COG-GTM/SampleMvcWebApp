@@ -163,3 +163,13 @@ SampleWebApp/Properties/PublishProfiles/samplemvcwebapp - Web Deploy.pubxml
 SampleWebApp/Properties/PublishProfiles/samplemvcwebapp.net - WebWiz.pubxml
 git/.gitattributes
 git/.gitignore
+
+# infra demo
+infra/secrets/.env
+infra/firewall/generated/
+load/out/*.json
+infra/aws/.terraform/
+infra/aws/*.tfstate*
+infra/aws/.terraform.lock.hcl
+infra/aws/*.tfvars
+demo/dependency-graph.dot

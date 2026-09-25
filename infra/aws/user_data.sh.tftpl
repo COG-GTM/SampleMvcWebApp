@@ -1,0 +1,43 @@
+#!/bin/bash
+# EC2 bootstrap: sqlserver container + legacy app container. Logs: /var/log/cloud-init-output.log
+set -euxo pipefail
+dnf install -y docker
+systemctl enable --now docker
+
+# ---- SQL Server (same image as infra/docker-compose.yml) ------------------------------------------
+docker run -d --name db --restart unless-stopped -p 1433:1433 \
+  -e ACCEPT_EULA=Y -e MSSQL_PID=Developer -e 'MSSQL_SA_PASSWORD=${sa_password}' \
+  mcr.microsoft.com/mssql/server:2022-latest
+
+cat > /root/01-schema.sql <<'SQL'
+${schema_sql}
+SQL
+
+for i in $(seq 1 60); do
+  docker exec db /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${sa_password}' -C -Q 'SELECT 1' -b && break
+  sleep 5
+done
+docker cp /root/01-schema.sql db:/tmp/01-schema.sql
+docker exec db /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${sa_password}' -C -b \
+  -v REPORTING_DB_PASSWORD='${reporting_pwd}' -i /tmp/01-schema.sql
+
+# ---- legacy app: pulls image from ECR, reads its connection string from Secrets Manager ------------
+aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin "$(echo '${app_image}' | cut -d/ -f1)"
+docker pull '${app_image}'
+
+# The key NAME (${secret_env}) is the contract between the platform (this secret) and the app.
+CONN="$(aws secretsmanager get-secret-value --region ${region} --secret-id '${secret_id}' --query SecretString --output text)"
+# db.demo.internal resolves via the private zone from inside the VPC; the container uses the host network
+# so the private-zone name resolves and the SQL port is host-local.
+docker run -d --name app --restart unless-stopped --network host \
+  -e APP_PORT=${app_port} -e '${secret_env}'="$CONN" \
+  -e DD_SERVICE=samplewebapp -e DD_ENV=aws-demo \
+  '${app_image}'
+
+for i in $(seq 1 60); do
+  curl -fsS "http://localhost:${app_port}${health_path}" && break
+  sleep 5
+done
+# seed sample data through the app's own EF initializer/reset endpoint
+curl -fsS -L -o /dev/null --max-time 180 "http://localhost:${app_port}/Posts/Reset" || true
+echo "bootstrap complete"

@@ -1,0 +1,21 @@
+# Optional overlay: swap Prometheus/Grafana for a Datadog agent without touching the app services.
+#   DD_API_KEY=... docker compose -f docker-compose.yml -f observability/datadog/docker-compose.datadog.yml up -d
+# App/LB/DB containers already carry DD_SERVICE / DD_ENV / DD_VERSION env vars and com.datadoghq.* labels
+# (Unified Service Tagging), so the agent autodiscovers them. nginx access log is JSON for log pipelines.
+services:
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:7
+    environment:
+      DD_API_KEY: ${DD_API_KEY:?set DD_API_KEY}
+      DD_SITE: ${DD_SITE:-datadoghq.com}
+      DD_ENV: demo
+      DD_TAGS: "team:app-modernization program:netfx-to-net8"
+      DD_LOGS_ENABLED: "true"
+      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "true"
+      DD_PROCESS_AGENT_ENABLED: "true"
+      DD_PROMETHEUS_SCRAPE_ENABLED: "true"   # scrapes any container labelled with prometheus.io/scrape
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    networks: [svc]

@@ -1,0 +1,40 @@
+# Linux stand-in for the production Windows image (../../Dockerfile).
+# Same runtime contract: .NET Framework 4.x, ASP.NET MVC 5, listens on :80, health at /Home/Health.
+# Build context is the repository root.
+ARG RUNTIME_FAMILY=netframework-4.x
+FROM mono:6.12 AS build
+ARG RUNTIME_FAMILY
+WORKDIR /src
+COPY . .
+# Runtime contract guard: this image can only host .NET Framework (System.Web) projects.
+RUN set -e; \
+    tfm=$(grep -o '<TargetFramework[^>]*>[^<]*' SampleWebApp/SampleWebApp.csproj | head -1 | sed 's/.*>//'); \
+    case "$tfm" in \
+      v4.*) echo "runtime contract OK: SampleWebApp targets $tfm on $RUNTIME_FAMILY" ;; \
+      *) echo "ERROR: SampleWebApp targets '$tfm' but the pinned runtime image is $RUNTIME_FAMILY (see Dockerfile, infra/terraform/variables.tf)."; \
+         echo "       Update the runtime base image pin before deploying."; exit 1 ;; \
+    esac
+RUN nuget restore SampleWebApp.sln
+RUN msbuild SampleWebApp/SampleWebApp.csproj /p:Configuration=Release /v:m /nologo
+
+FROM mono:6.12 AS runtime
+LABEL org.opencontainers.image.title="SampleWebApp (legacy, mono stand-in)" \
+      runtime.family="netframework-4.x" runtime.port="80" runtime.health="/Home/Health"
+RUN set -e; printf 'deb http://archive.debian.org/debian buster main\n' > /etc/apt/sources.list; \
+    apt-get -o Acquire::Check-Valid-Until=false update >/dev/null; \
+    cd /tmp && apt-get download mono-xsp4 mono-xsp4-base gettext-base >/dev/null && dpkg -i --force-depends /tmp/*.deb >/dev/null; \
+    rm -rf /tmp/*.deb /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /src/SampleWebApp/bin ./bin
+COPY --from=build /src/SampleWebApp/Views ./Views
+COPY --from=build /src/SampleWebApp/Content ./Content
+COPY --from=build /src/SampleWebApp/Scripts ./Scripts
+COPY --from=build /src/SampleWebApp/fonts ./fonts
+COPY --from=build /src/SampleWebApp/Global.asax /src/SampleWebApp/Web.config /src/SampleWebApp/Log4Net.xml /src/SampleWebApp/favicon.ico ./
+COPY infra/legacy/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENV MONO_THREADS_PER_CPU=50 \
+    DD_SERVICE=samplewebapp DD_ENV=demo DD_VERSION=legacy-netfx451
+EXPOSE 80
+HEALTHCHECK --interval=15s --timeout=5s --retries=5 CMD curl -fsS http://localhost:80/Home/Health || exit 1
+ENTRYPOINT ["/entrypoint.sh"]

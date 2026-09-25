@@ -1,0 +1,375 @@
+{
+  "schema": "app-dependency-graph/v1",
+  "project": "modernization-demo",
+  "track": "dotnet",
+  "region": "us-east-1",
+  "generated_at": "2026-09-25T08:18:53+00:00",
+  "nodes": [
+    {
+      "id": "arn:aws:elasticloadbalancing:us-east-1:374199896615:loadbalancer/app/samplewebapp-dotnet/4f3984f2eb63292e",
+      "type": "alb",
+      "name": "samplewebapp-dotnet",
+      "arn": "arn:aws:elasticloadbalancing:us-east-1:374199896615:loadbalancer/app/samplewebapp-dotnet/4f3984f2eb63292e",
+      "attrs": {
+        "dns_name": "samplewebapp-dotnet-92958294.us-east-1.elb.amazonaws.com",
+        "scheme": "internet-facing",
+        "vpc": "vpc-01b727fdeb79d1125",
+        "subnets": [
+          "subnet-0468c569d72b0da4f",
+          "subnet-05d6c59f523002d27"
+        ],
+        "security_groups": [
+          "sg-01a932af3af741904"
+        ]
+      }
+    },
+    {
+      "id": "arn:aws:elasticloadbalancing:us-east-1:374199896615:listener/app/samplewebapp-dotnet/4f3984f2eb63292e/d3bed624116b8b49",
+      "type": "listener",
+      "name": "HTTP:80",
+      "arn": "arn:aws:elasticloadbalancing:us-east-1:374199896615:listener/app/samplewebapp-dotnet/4f3984f2eb63292e/d3bed624116b8b49",
+      "attrs": {
+        "port": 80,
+        "protocol": "HTTP"
+      }
+    },
+    {
+      "id": "arn:aws:elasticloadbalancing:us-east-1:374199896615:targetgroup/samplewebapp-dotnet/5d5451fe162d0741",
+      "type": "target_group",
+      "name": "samplewebapp-dotnet",
+      "arn": "arn:aws:elasticloadbalancing:us-east-1:374199896615:targetgroup/samplewebapp-dotnet/5d5451fe162d0741",
+      "attrs": {
+        "port": 80,
+        "protocol": "HTTP",
+        "target_type": "instance",
+        "health_check_path": "/Home/Health",
+        "health_check_port": "traffic-port",
+        "health_check_matcher": "200",
+        "runtime_family": "netframework-4.x",
+        "runtime_image": "mcr.microsoft.com/dotnet/framework/aspnet:4.8-windowsservercore-ltsc2022"
+      }
+    },
+    {
+      "id": "i-0c63ab7472ee0af27",
+      "type": "ec2_instance",
+      "name": "samplewebapp-dotnet-app",
+      "arn": "arn:aws:ec2:us-east-1::instance/i-0c63ab7472ee0af27",
+      "attrs": {
+        "instance_type": "t3.medium",
+        "state": "running",
+        "private_ip": "172.31.68.196",
+        "subnet": "subnet-0468c569d72b0da4f",
+        "security_groups": [
+          "sg-0505fb3a88401f59f"
+        ],
+        "iam_instance_profile": "arn:aws:iam::374199896615:instance-profile/samplewebapp-dotnet-app",
+        "runtime_family": "netframework-4.x",
+        "runtime_image": "mcr.microsoft.com/dotnet/framework/aspnet:4.8-windowsservercore-ltsc2022",
+        "app_port": "80",
+        "app_health": "/Home/Health",
+        "app_secret_key": "SAMPLEWEBAPP_DB_CONNECTION"
+      }
+    },
+    {
+      "id": "374199896615.dkr.ecr.us-east-1.amazonaws.com/modernization-demo/samplewebapp-legacy:6cd2ea8",
+      "type": "container_image",
+      "name": "samplewebapp-legacy:6cd2ea8",
+      "arn": "374199896615.dkr.ecr.us-east-1.amazonaws.com/modernization-demo/samplewebapp-legacy:6cd2ea8",
+      "attrs": {
+        "registry": "ecr"
+      }
+    },
+    {
+      "id": "sg-0505fb3a88401f59f",
+      "type": "security_group",
+      "name": "samplewebapp-dotnet-app",
+      "arn": "arn:aws:ec2:us-east-1:374199896615:security-group/sg-0505fb3a88401f59f",
+      "attrs": {
+        "group_name": "samplewebapp-dotnet-app",
+        "vpc": "vpc-01b727fdeb79d1125",
+        "ingress": [
+          {
+            "from": "sg-01a932af3af741904",
+            "port": "80",
+            "proto": "tcp",
+            "desc": "legacy app port (IIS) from ALB"
+          },
+          {
+            "from": "sg-0505fb3a88401f59f",
+            "port": "1433",
+            "proto": "tcp",
+            "desc": "sqlserver from app tier (host-local db container)"
+          }
+        ],
+        "ingress_ports": [
+          "1433",
+          "80"
+        ]
+      }
+    },
+    {
+      "id": "sg-01a932af3af741904",
+      "type": "security_group",
+      "name": "samplewebapp-dotnet-alb",
+      "arn": "arn:aws:ec2:us-east-1:374199896615:security-group/sg-01a932af3af741904",
+      "attrs": {
+        "group_name": "samplewebapp-dotnet-alb",
+        "vpc": "vpc-01b727fdeb79d1125",
+        "ingress": [
+          {
+            "from": "0.0.0.0/0",
+            "port": "80",
+            "proto": "tcp",
+            "desc": "public http"
+          }
+        ],
+        "ingress_ports": [
+          "80"
+        ]
+      }
+    },
+    {
+      "id": "internet",
+      "type": "internet",
+      "name": "0.0.0.0/0",
+      "arn": null,
+      "attrs": {}
+    },
+    {
+      "id": "arn:aws:route53:::hostedzone/Z074447422O94XISYQ78C",
+      "type": "route53_zone",
+      "name": "demo.internal",
+      "arn": "arn:aws:route53:::hostedzone/Z074447422O94XISYQ78C",
+      "attrs": {
+        "private": true,
+        "vpcs": [
+          "vpc-01b727fdeb79d1125"
+        ]
+      }
+    },
+    {
+      "id": "dns:db.demo.internal",
+      "type": "dns_record",
+      "name": "db.demo.internal",
+      "arn": null,
+      "attrs": {
+        "type": "A",
+        "zone": "demo.internal",
+        "values": [
+          "172.31.68.196"
+        ]
+      }
+    },
+    {
+      "id": "dns:samplewebapp.demo.internal",
+      "type": "dns_record",
+      "name": "samplewebapp.demo.internal",
+      "arn": null,
+      "attrs": {
+        "type": "A",
+        "zone": "demo.internal",
+        "alias_target": "samplewebapp-dotnet-92958294.us-east-1.elb.amazonaws.com"
+      }
+    },
+    {
+      "id": "arn:aws:secretsmanager:us-east-1:374199896615:secret:modernization-demo/dotnet/SAMPLEWEBAPP_DB_CONNECTION-rzOZbR",
+      "type": "secret",
+      "name": "modernization-demo/dotnet/SAMPLEWEBAPP_DB_CONNECTION",
+      "arn": "arn:aws:secretsmanager:us-east-1:374199896615:secret:modernization-demo/dotnet/SAMPLEWEBAPP_DB_CONNECTION-rzOZbR",
+      "attrs": {
+        "key_name": "SAMPLEWEBAPP_DB_CONNECTION",
+        "consumer_env": "SAMPLEWEBAPP_DB_CONNECTION",
+        "db_host": "db.demo.internal",
+        "db_engine": "sqlserver-2022",
+        "last_changed": "2026-09-25 08:14:45.152000+00:00"
+      }
+    },
+    {
+      "id": "db:db.demo.internal:1433",
+      "type": "database",
+      "name": "db.demo.internal:1433",
+      "arn": null,
+      "attrs": {
+        "engine": "sqlserver-2022",
+        "host": "db.demo.internal",
+        "port": 1433,
+        "database": "SampleWebAppDb",
+        "hosting": "host-local container"
+      }
+    },
+    {
+      "id": "arn:aws:ecr:us-east-1:374199896615:repository/modernization-demo/samplewebapp-legacy",
+      "type": "ecr_repository",
+      "name": "modernization-demo/samplewebapp-legacy",
+      "arn": "arn:aws:ecr:us-east-1:374199896615:repository/modernization-demo/samplewebapp-legacy",
+      "attrs": {
+        "uri": "374199896615.dkr.ecr.us-east-1.amazonaws.com/modernization-demo/samplewebapp-legacy",
+        "tags": [
+          "6cd2ea8"
+        ],
+        "image_count": 3
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "sg-01a932af3af741904",
+      "target": "arn:aws:elasticloadbalancing:us-east-1:374199896615:loadbalancer/app/samplewebapp-dotnet/4f3984f2eb63292e",
+      "type": "allows_ingress",
+      "attrs": {
+        "scope": "attached"
+      }
+    },
+    {
+      "source": "arn:aws:elasticloadbalancing:us-east-1:374199896615:loadbalancer/app/samplewebapp-dotnet/4f3984f2eb63292e",
+      "target": "arn:aws:elasticloadbalancing:us-east-1:374199896615:listener/app/samplewebapp-dotnet/4f3984f2eb63292e/d3bed624116b8b49",
+      "type": "routes_to",
+      "attrs": {
+        "port": 80
+      }
+    },
+    {
+      "source": "arn:aws:elasticloadbalancing:us-east-1:374199896615:listener/app/samplewebapp-dotnet/4f3984f2eb63292e/d3bed624116b8b49",
+      "target": "arn:aws:elasticloadbalancing:us-east-1:374199896615:targetgroup/samplewebapp-dotnet/5d5451fe162d0741",
+      "type": "routes_to"
+    },
+    {
+      "source": "arn:aws:elasticloadbalancing:us-east-1:374199896615:targetgroup/samplewebapp-dotnet/5d5451fe162d0741",
+      "target": "i-0c63ab7472ee0af27",
+      "type": "routes_to",
+      "attrs": {
+        "port": 80
+      }
+    },
+    {
+      "source": "arn:aws:elasticloadbalancing:us-east-1:374199896615:targetgroup/samplewebapp-dotnet/5d5451fe162d0741",
+      "target": "i-0c63ab7472ee0af27",
+      "type": "health_checks",
+      "attrs": {
+        "path": "/Home/Health",
+        "port": 80,
+        "state": "healthy",
+        "reason": null
+      }
+    },
+    {
+      "source": "sg-0505fb3a88401f59f",
+      "target": "i-0c63ab7472ee0af27",
+      "type": "allows_ingress",
+      "attrs": {
+        "scope": "attached"
+      }
+    },
+    {
+      "source": "i-0c63ab7472ee0af27",
+      "target": "374199896615.dkr.ecr.us-east-1.amazonaws.com/modernization-demo/samplewebapp-legacy:6cd2ea8",
+      "type": "runs_image"
+    },
+    {
+      "source": "374199896615.dkr.ecr.us-east-1.amazonaws.com/modernization-demo/samplewebapp-legacy:6cd2ea8",
+      "target": "arn:aws:ecr:us-east-1:374199896615:repository/modernization-demo/samplewebapp-legacy",
+      "type": "runs_image",
+      "attrs": {
+        "relation": "stored_in"
+      }
+    },
+    {
+      "source": "i-0c63ab7472ee0af27",
+      "target": "arn:aws:secretsmanager:us-east-1:374199896615:secret:modernization-demo/dotnet/SAMPLEWEBAPP_DB_CONNECTION-rzOZbR",
+      "type": "reads_secret",
+      "attrs": {
+        "via": "samplewebapp-dotnet-app/samplewebapp-dotnet-app"
+      }
+    },
+    {
+      "source": "sg-01a932af3af741904",
+      "target": "sg-0505fb3a88401f59f",
+      "type": "allows_ingress",
+      "attrs": {
+        "port": "80",
+        "protocol": "tcp",
+        "description": "legacy app port (IIS) from ALB"
+      }
+    },
+    {
+      "source": "sg-0505fb3a88401f59f",
+      "target": "sg-0505fb3a88401f59f",
+      "type": "allows_ingress",
+      "attrs": {
+        "port": "1433",
+        "protocol": "tcp",
+        "description": "sqlserver from app tier (host-local db container)"
+      }
+    },
+    {
+      "source": "internet",
+      "target": "sg-01a932af3af741904",
+      "type": "allows_ingress",
+      "attrs": {
+        "port": "80",
+        "protocol": "tcp"
+      }
+    },
+    {
+      "source": "arn:aws:route53:::hostedzone/Z074447422O94XISYQ78C",
+      "target": "dns:db.demo.internal",
+      "type": "resolves_to",
+      "attrs": {
+        "relation": "contains"
+      }
+    },
+    {
+      "source": "dns:db.demo.internal",
+      "target": "i-0c63ab7472ee0af27",
+      "type": "resolves_to"
+    },
+    {
+      "source": "arn:aws:route53:::hostedzone/Z074447422O94XISYQ78C",
+      "target": "dns:samplewebapp.demo.internal",
+      "type": "resolves_to",
+      "attrs": {
+        "relation": "contains"
+      }
+    },
+    {
+      "source": "dns:samplewebapp.demo.internal",
+      "target": "arn:aws:elasticloadbalancing:us-east-1:374199896615:loadbalancer/app/samplewebapp-dotnet/4f3984f2eb63292e",
+      "type": "resolves_to"
+    },
+    {
+      "source": "arn:aws:secretsmanager:us-east-1:374199896615:secret:modernization-demo/dotnet/SAMPLEWEBAPP_DB_CONNECTION-rzOZbR",
+      "target": "db:db.demo.internal:1433",
+      "type": "connects_to_db",
+      "attrs": {
+        "via": "connection string"
+      }
+    },
+    {
+      "source": "db:db.demo.internal:1433",
+      "target": "dns:db.demo.internal",
+      "type": "resolves_to"
+    },
+    {
+      "source": "i-0c63ab7472ee0af27",
+      "target": "db:db.demo.internal:1433",
+      "type": "connects_to_db",
+      "attrs": {
+        "port": 1433,
+        "via": "SAMPLEWEBAPP_DB_CONNECTION"
+      }
+    }
+  ],
+  "summary": {
+    "nodes": 14,
+    "edges": 19,
+    "edge_types": {
+      "routes_to": 3,
+      "health_checks": 1,
+      "allows_ingress": 5,
+      "resolves_to": 5,
+      "reads_secret": 1,
+      "connects_to_db": 2,
+      "runs_image": 2
+    }
+  }
+}

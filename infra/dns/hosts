@@ -1,0 +1,8 @@
+# svc.internal zone — static IPs match docker-compose.yml (network 172.28.0.0/24).
+# Format: <ip> <name>. Anything the app or LB depends on must be listed here.
+172.28.0.10   app.svc.internal          samplewebapp.svc.internal
+172.28.0.20   db.svc.internal           sql.svc.internal
+172.28.0.30   reporting.svc.internal
+172.28.0.5    lb.svc.internal
+172.28.0.40   prometheus.svc.internal
+172.28.0.41   grafana.svc.internal

@@ -57,5 +57,13 @@ namespace SampleWebApp.Controllers
         {
             return View();
         }
+
+        /// <summary>
+        /// Health probe used by the load balancer (nginx) and the infra verify step.
+        /// </summary>
+        public ActionResult Health()
+        {
+            return Content("Healthy", "text/plain");
+        }
     }
 }

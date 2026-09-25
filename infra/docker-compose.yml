@@ -1,0 +1,224 @@
+# Local stand-in for the SampleWebApp production estate. See infra/README.md.
+# Static IPs are referenced by dns/hosts, nginx resolver and firewall/allowlist.rules — keep them in sync.
+name: samplewebapp-infra
+
+x-dd-labels: &dd_labels
+  com.datadoghq.tags.env: demo
+  com.datadoghq.tags.service: samplewebapp
+
+networks:
+  svc:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+
+volumes:
+  mssql-data:
+  nginx-logs:
+  report-out:
+  grafana-data:
+
+services:
+  # ---- service discovery ------------------------------------------------------------------------
+  coredns:
+    image: coredns/coredns:1.11.1
+    command: ["-conf", "/etc/coredns/Corefile"]
+    volumes:
+      - ./dns/Corefile:/etc/coredns/Corefile:ro
+      - ./dns/hosts:/etc/coredns/hosts:ro
+    networks:
+      svc: { ipv4_address: 172.28.0.53 }
+
+  # ---- data -------------------------------------------------------------------------------------
+  db:
+    cgroup_parent: moddemo-db.slice
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?see secrets/.env.example}
+      DD_SERVICE: samplewebapp-db
+      DD_ENV: demo
+    labels:
+      <<: *dd_labels
+      com.datadoghq.tags.service: samplewebapp-db
+    ports: ["1433:1433"]
+    volumes: [mssql-data:/var/opt/mssql]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    networks:
+      svc: { ipv4_address: 172.28.0.20 }
+
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    user: root
+    entrypoint: ["/bin/bash", "/init.sh"]
+    environment:
+      DB_HOST: db
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      REPORTING_DB_PASSWORD: ${REPORTING_DB_PASSWORD:?see secrets/.env.example}
+    volumes:
+      - ./db:/sql:ro
+      - ./db/init.sh:/init.sh:ro
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [svc]
+    restart: "no"
+
+  # ---- application ------------------------------------------------------------------------------
+  app:
+    cgroup_parent: moddemo-app.slice
+    # Production image is ../Dockerfile (Windows, .NET Framework 4.8/IIS). Linux hosts build the mono
+    # stand-in with the same runtime contract (port 80, /Home/Health, SAMPLEWEBAPP_DB_CONNECTION).
+    build:
+      context: ..
+      dockerfile: ${APP_DOCKERFILE:-infra/legacy/Dockerfile.mono}
+    image: samplewebapp-app:${APP_VERSION:-legacy}
+    environment:
+      SAMPLEWEBAPP_DB_CONNECTION: ${SAMPLEWEBAPP_DB_CONNECTION:?see secrets/.env.example}
+      APP_PORT: "80"
+      DD_SERVICE: samplewebapp
+      DD_ENV: demo
+      DD_VERSION: ${APP_VERSION:-legacy}
+    labels:
+      <<: *dd_labels
+      com.datadoghq.tags.version: ${APP_VERSION:-legacy}
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "80"
+    dns: [172.28.0.53]
+    depends_on:
+      db-init: { condition: service_completed_successfully }
+      coredns: { condition: service_started }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:80/Home/Health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      svc: { ipv4_address: 172.28.0.10 }
+
+  # ---- second DB consumer -----------------------------------------------------------------------
+  reporting:
+    cgroup_parent: moddemo-reporting.slice
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    user: root
+    entrypoint: ["/bin/bash", "/report.sh", "loop"]
+    environment:
+      DB_HOST: db.svc.internal
+      REPORTING_DB_PASSWORD: ${REPORTING_DB_PASSWORD}
+      REPORT_INTERVAL_SECONDS: "30"
+      DD_SERVICE: samplewebapp-reporting
+      DD_ENV: demo
+    labels:
+      <<: *dd_labels
+      com.datadoghq.tags.service: samplewebapp-reporting
+    volumes:
+      - ../reporting/report.sh:/report.sh:ro
+      - report-out:/out
+    dns: [172.28.0.53]
+    depends_on:
+      db-init: { condition: service_completed_successfully }
+      app: { condition: service_healthy }   # the app creates/seeds the tables the procedure reads
+    networks:
+      svc: { ipv4_address: 172.28.0.30 }
+
+  # ---- load balancer ----------------------------------------------------------------------------
+  lb:
+    cgroup_parent: moddemo-lb.slice
+    image: nginx:1.27-alpine
+    ports: ["${LB_PORT:-8000}:80"]
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./firewall/generated:/etc/nginx/firewall:ro
+      - nginx-logs:/var/log/nginx
+    environment:
+      DD_SERVICE: samplewebapp-lb
+      DD_ENV: demo
+    labels:
+      <<: *dd_labels
+      com.datadoghq.tags.service: samplewebapp-lb
+    dns: [172.28.0.53]
+    depends_on:
+      coredns: { condition: service_started }
+      app: { condition: service_started }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      svc: { ipv4_address: 172.28.0.5 }
+
+  # ---- observability ----------------------------------------------------------------------------
+  nginxlog-exporter:
+    image: quay.io/martinhelmich/prometheus-nginxlog-exporter:v1.11.0
+    command: ["-config-file", "/etc/nginxlog-exporter/config.yml"]
+    volumes:
+      - ./observability/nginxlog-exporter/config.yml:/etc/nginxlog-exporter/config.yml:ro
+      - nginx-logs:/var/log/nginx:ro
+    depends_on: [lb]
+    networks: [svc]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    # Raw-cgroup mode (no docker socket): works on cgroup v2 hosts regardless of the docker storage driver.
+    # Services carry cgroup_parent: moddemo-<svc>.slice so Prometheus can relabel the cgroup id -> service.
+    command: ["--port=8090", "--housekeeping_interval=5s", "--raw_cgroup_prefix_whitelist=/moddemo.slice"]
+    privileged: true
+    healthcheck:
+      disable: true
+    volumes:
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+      - /dev/disk/:/dev/disk:ro
+    networks: [svc]
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=2d"]
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: ["${PROM_PORT:-9091}:9090"]
+    dns: [172.28.0.53]
+    depends_on: [nginxlog-exporter, cadvisor]
+    networks:
+      svc: { ipv4_address: 172.28.0.40 }
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_DEFAULT_THEME: light
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/samplewebapp-nfr.json
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [prometheus]
+    networks:
+      svc: { ipv4_address: 172.28.0.41 }
+
+  # ---- load generator (run on demand: make baseline / make loadtest) ----------------------------
+  k6:
+    image: grafana/k6:0.52.0
+    profiles: [tools]
+    user: "${K6_UID:-1000}"
+    volumes:
+      - ../load:/scripts:ro
+      - ../load/out:/out
+    environment:
+      BASE_URL: http://lb
+    dns: [172.28.0.53]
+    networks: [svc]
