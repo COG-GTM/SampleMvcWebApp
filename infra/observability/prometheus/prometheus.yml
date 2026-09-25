@@ -1,0 +1,37 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+  external_labels:
+    env: demo
+    service: samplewebapp
+
+scrape_configs:
+  # Request latency / status per route, derived from the LB access log (framework-agnostic: works for
+  # IIS/.NET Framework and Kestrel/.NET 8 alike, so before/after NFR comparisons use one source).
+  - job_name: lb-requests
+    static_configs:
+      - targets: ["nginxlog-exporter:4040"]
+        labels: { tier: lb }
+
+  # Container CPU / memory / network per service (memory before/after is an NFR)
+  - job_name: containers
+    static_configs:
+      - targets: ["cadvisor:8090"]
+        labels: { tier: platform }
+    metric_relabel_configs:
+      - source_labels: [id]
+        regex: '/moddemo\.slice/moddemo-([a-z]+)\.slice/docker-.*'
+        target_label: service
+        replacement: '$1'
+
+  # App-native metrics endpoint. The legacy IIS app exposes none (target stays DOWN — this is expected and
+  # is itself an observability finding); a modernised app is expected to expose /metrics on its listen port.
+  - job_name: app
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["app.svc.internal:80"]
+        labels: { tier: app }
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

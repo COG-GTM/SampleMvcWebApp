@@ -1,0 +1,16 @@
+# Perimeter / east-west allowlist for the SampleWebApp environment. iptables-style, one rule per line:
+#   ALLOW <source-cidr|any> -> <destination-service> tcp/<port>   # purpose
+# Anything not listed is DENIED. Enforced by:
+#   * firewall/render-nginx-acl.sh  -> nginx allow/deny for the load balancer (source CIDRs)
+#   * scripts/verify.sh             -> every listening port of every service must be allowlisted
+#   * (real world) the network team's change ticket; this file is the source of truth they read.
+
+ALLOW any             -> lb         tcp/80     # public entry point (nginx)
+ALLOW 172.28.0.0/24   -> app        tcp/80     # IIS / ASP.NET app, only from the LB network
+ALLOW 172.28.0.0/24   -> db         tcp/1433   # SQL Server, app + reporting only
+ALLOW 172.28.0.0/24   -> reporting  tcp/9102   # reporting job metrics
+ALLOW 172.28.0.0/24   -> coredns    udp/53     # service discovery
+ALLOW 172.28.0.0/24   -> prometheus tcp/9090
+ALLOW any             -> grafana    tcp/3000   # dashboards
+ALLOW 172.28.0.0/24   -> cadvisor   tcp/8090   # container metrics (observability only)
+ALLOW 172.28.0.0/24   -> nginxlog-exporter tcp/4040

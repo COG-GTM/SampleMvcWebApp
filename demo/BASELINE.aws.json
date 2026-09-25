@@ -1,0 +1,71 @@
+{
+  "schema": "samplewebapp.nfr-baseline/v1",
+  "captured_at": "2026-09-25T08:21:47.247Z",
+  "app": {
+    "git_commit": "6cd2ea8",
+    "git_branch": "devin/1790322511-modernization-demo-fixture",
+    "target_framework": "v4.5.1",
+    "runtime_family": "netframework-4.x",
+    "runtime_image_pin": "mcr.microsoft.com/dotnet/framework/aspnet:4.8-windowsservercore-ltsc2022",
+    "host": "linux/mono-xsp4 stand-in (infra/legacy/Dockerfile.mono)"
+  },
+  "load": {
+    "vus": 20,
+    "duration": "60s",
+    "requests": 10500,
+    "rps": 173.3,
+    "base_url": "http://samplewebapp-dotnet-92958294.us-east-1.elb.amazonaws.com"
+  },
+  "nfr": {
+    "p50_ms": 73.8,
+    "p95_ms": 124.2,
+    "p99_ms": 206,
+    "avg_ms": 81.2,
+    "max_ms": 564.8,
+    "error_rate": 0
+  },
+  "per_route": {
+    "home": {
+      "p50_ms": 66.7,
+      "p95_ms": 85.6,
+      "p99_ms": 112.9,
+      "avg_ms": 69.5
+    },
+    "posts": {
+      "p50_ms": 90.5,
+      "p95_ms": 189.6,
+      "p99_ms": 284.9,
+      "avg_ms": 104
+    },
+    "blogs": {
+      "p50_ms": 77.2,
+      "p95_ms": 127.5,
+      "p99_ms": 189.6,
+      "avg_ms": 84.1
+    },
+    "tags": {
+      "p50_ms": 80.7,
+      "p95_ms": 134.1,
+      "p99_ms": 203.7,
+      "avg_ms": 88.6
+    },
+    "numposts": {
+      "p50_ms": 70.8,
+      "p95_ms": 99.6,
+      "p99_ms": 136.3,
+      "avg_ms": 74.6
+    },
+    "health": {
+      "p50_ms": 64.8,
+      "p95_ms": 79.5,
+      "p99_ms": 96.9,
+      "avg_ms": 66.3
+    }
+  },
+  "gates_for_migration": {
+    "p95_ms_max": 186,
+    "p99_ms_max": 309,
+    "error_rate_max": 0.01,
+    "rule": "post-migration p95/p99 must stay within 1.5x of baseline; error rate < 1%"
+  }
+}

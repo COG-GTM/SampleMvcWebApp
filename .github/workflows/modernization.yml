@@ -1,0 +1,91 @@
+name: modernization
+
+on:
+  push:
+    branches: [master, 'devin/**', 'plugin/**']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  LB_PORT: "8000"
+  PROM_PORT: "9091"
+
+jobs:
+  build-test:
+    name: build + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: tfm
+        name: detect target framework
+        run: |
+          tfm=$(grep -o '<TargetFramework[^>]*>[^<]*' SampleWebApp/SampleWebApp.csproj | head -1 | sed 's/.*>//')
+          echo "tfm=$tfm" >> "$GITHUB_OUTPUT"
+          echo "target framework: $tfm"
+
+      # legacy (.NET Framework 4.x): build + NUnit on mono, matching infra/legacy/Dockerfile.mono
+      - name: build + test (mono, .NET Framework)
+        if: startsWith(steps.tfm.outputs.tfm, 'v4')
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src mono:6.12 bash -ec '
+            nuget restore SampleWebApp.sln
+            msbuild SampleWebApp.sln /p:Configuration=Release /v:m /nologo
+            mono packages/NUnit.Runners.*/tools/nunit-console.exe Tests/bin/Release/Tests.dll -noshadow -nologo 2>/dev/null \
+              || mono packages/NUnit.ConsoleRunner.*/tools/nunit3-console.exe Tests/bin/Release/Tests.dll --noresult'
+
+      # modern (.NET 8): dotnet build / test
+      - name: setup dotnet
+        if: ${{ !startsWith(steps.tfm.outputs.tfm, 'v4') }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: dotnet build + test
+        if: ${{ !startsWith(steps.tfm.outputs.tfm, 'v4') }}
+        run: |
+          dotnet build SampleWebApp.sln -c Release
+          dotnet test SampleWebApp.sln -c Release --no-build
+
+  infra-verify:
+    name: container + infra/ + make verify
+    runs-on: ubuntu-latest
+    needs: build-test
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build app container (runtime pin from Dockerfile / infra/terraform)
+        run: docker compose -f infra/docker-compose.yml build app
+
+      - name: make up
+        run: make up
+
+      - name: make verify (health via nginx + smoke + DB dependency + load gate vs demo/BASELINE.json)
+        run: make verify
+
+      - name: collect logs
+        if: always()
+        run: |
+          mkdir -p artifacts
+          docker compose -f infra/docker-compose.yml ps > artifacts/ps.txt || true
+          docker compose -f infra/docker-compose.yml logs --no-color > artifacts/compose.log || true
+          cp -r load/out artifacts/load-out 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: infra-verify
+          path: artifacts/
+
+      - name: make down
+        if: always()
+        run: make down
+
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color

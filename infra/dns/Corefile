@@ -1,0 +1,10 @@
+# Internal service discovery for the SampleWebApp environment (stand-in for corporate DNS / Route53 private zone).
+# nginx resolves its upstreams through this server, NOT Docker's embedded DNS — a service missing here is unreachable.
+.:53 {
+    hosts /etc/coredns/hosts {
+        fallthrough
+    }
+    forward . 127.0.0.11
+    log
+    errors
+}
