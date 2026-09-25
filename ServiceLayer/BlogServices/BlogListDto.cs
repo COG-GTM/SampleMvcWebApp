@@ -26,15 +26,15 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
-using System.Runtime.CompilerServices;
 using DataLayer.DataClasses.Concrete;
-using GenericServices.Core;
-
-[assembly: InternalsVisibleTo("Tests")]
+using GenericServices;
 
 namespace ServiceLayer.BlogServices
 {
-    public class BlogListDto : EfGenericDto<Blog, BlogListDto>
+    /// <summary>
+    /// Read-only list DTO for a Blog. Consume via <c>ICrudServices.ReadManyNoTracked&lt;BlogListDto&gt;()</c>.
+    /// </summary>
+    public class BlogListDto : ILinkToEntity<Blog>
     {
 
         [UIHint("HiddenInput")]
@@ -46,14 +46,6 @@ namespace ServiceLayer.BlogServices
         [EmailAddress]
         public string EmailAddress { get; set; }
 
-        public int PostsCount { get; set; }         //Uses AutoMapper Aggregate
-
-        //----------------------------------------------
-        //overridden properties or methods
-
-        protected override CrudFunctions SupportedFunctions
-        {
-            get { return CrudFunctions.List; }
-        }
+        public int PostsCount { get; set; }         //Uses AutoMapper flattening of Blog.Posts.Count
     }
 }

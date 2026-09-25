@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: SampleWebAppDb.cs
@@ -25,22 +25,18 @@
 // SOFTWARE.
 #endregion
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using System.Data.Entity.Validation;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.DataClasses.Concrete.Helpers;
-using GenericServices;
-
-[assembly: InternalsVisibleTo("Tests")]
+using Microsoft.EntityFrameworkCore;
 
 namespace DataLayer.DataClasses
 {
 
-    public class SampleWebAppDb : DbContext, IGenericServicesDbContext
+    public class SampleWebAppDb : DbContext
     {
         internal const string NameOfConnectionString = "SampleWebAppDb";
 
@@ -48,59 +44,50 @@ namespace DataLayer.DataClasses
         public DbSet<Post> Posts { get; set; }
         public DbSet<Tag> Tags { get; set; }
 
-        public SampleWebAppDb() : base("name=" + NameOfConnectionString) {}
-
-        internal SampleWebAppDb(string connectionString) : base(connectionString) { }
-
+        public SampleWebAppDb(DbContextOptions<SampleWebAppDb> options) : base(options) { }
 
         /// <summary>
         /// This has been overridden to handle:
         /// a) Updating of modified items (see p194 in DbContext book)
+        /// b) The database-level Tag.Slug uniqueness check that EF6 did via ValidateEntity
         /// </summary>
-        /// <returns></returns>
-        public override int SaveChanges()
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
             HandleChangeTracking();
-            return base.SaveChanges();
+            CheckForUniqueSlugs();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
         }
 
         /// <summary>
         /// Same for async
         /// </summary>
-        /// <returns></returns>
-        public override Task<int> SaveChangesAsync()
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
         {
             HandleChangeTracking();
-            return base.SaveChangesAsync();
+            CheckForUniqueSlugs();
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         }
 
-        /// <summary>
-        /// This does validations that can only be done at the database level
-        /// </summary>
-        /// <param name="entityEntry"></param>
-        /// <param name="items"></param>
-        /// <returns></returns>
-        protected override DbEntityValidationResult ValidateEntity(DbEntityEntry entityEntry,
-            IDictionary<object, object> items)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            //Enforce the Tag.Slug uniqueness at the database level (EF6 did this via ValidateEntity)
+            modelBuilder.Entity<Tag>()
+                .HasIndex(t => t.Slug)
+                .IsUnique();
 
-            if (entityEntry.Entity is Tag && (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified))
-            {
-                var tagToCheck = ((Tag)entityEntry.Entity);
+            //Post -> Blog (one Blogger has many Posts)
+            modelBuilder.Entity<Post>()
+                .HasOne(p => p.Blogger)
+                .WithMany(b => b.Posts)
+                .HasForeignKey(p => p.BlogId);
 
-                //check for uniqueness of Tag's Slug property (note: because we may alter a Tag we need to exclude check against itself)
-                if (Tags.Any(x => x.TagId != tagToCheck.TagId && x.Slug == tagToCheck.Slug))
-                    return new DbEntityValidationResult(entityEntry,
-                                                        new List<DbValidationError>
-                                                            {
-                                                                new DbValidationError( "Slug",
-                                                                    string.Format( "The Slug on tag '{0}' must be unique and is already being used.", tagToCheck.Name))
-                                                            });
-            }
+            //Post <-> Tag many-to-many (EF Core creates the join table automatically)
+            modelBuilder.Entity<Post>()
+                .HasMany(p => p.Tags)
+                .WithMany(t => t.Posts);
 
-            return base.ValidateEntity(entityEntry, items);
+            base.OnModelCreating(modelBuilder);
         }
-
 
         //--------------------------------------------------
         //private helpers
@@ -110,25 +97,52 @@ namespace DataLayer.DataClasses
         /// </summary>
         private void HandleChangeTracking()
         {
-            //Debug.WriteLine("----------------------------------------------");
-            //foreach (var entity in ChangeTracker.Entries()
-            //.Where(
-            //    e =>
-            //    e.State == EntityState.Added || e.State == EntityState.Modified))
-            //{
-            //    Debug.WriteLine("Entry {0}, state {1}", entity.Entity, entity.State);
-            //}       
-
             foreach (var entity in ChangeTracker.Entries()
                                                 .Where(
                                                     e =>
                                                     e.State == EntityState.Added || e.State == EntityState.Modified))
             {
                 var trackUpdateClass = entity.Entity as TrackUpdate;
-                if (trackUpdateClass == null) return;
+                if (trackUpdateClass == null) continue;
                 trackUpdateClass.UpdateTrackingInfo();
             }
         }
 
+        /// <summary>
+        /// This reimplements the EF6 ValidateEntity Slug-uniqueness check: for any added/modified Tag,
+        /// ensure no other Tag already uses the same Slug (excluding the Tag itself). It throws on a
+        /// direct <see cref="SaveChanges()"/> so callers that bypass GenericServices still get protection.
+        /// GenericServices callers surface the same problem gracefully via <see cref="GetSlugUniquenessErrors"/>
+        /// wired into its BeforeSaveChanges hook, so the throw is not reached on that path.
+        /// </summary>
+        private void CheckForUniqueSlugs()
+        {
+            var firstError = GetSlugUniquenessErrors().FirstOrDefault();
+            if (firstError != null)
+                throw new ValidationException(firstError);
+        }
+
+        /// <summary>
+        /// Returns a user-friendly error message for every added/modified Tag whose Slug collides with
+        /// another Tag's Slug. Empty when all Slugs are unique. Used both by the throwing
+        /// <see cref="CheckForUniqueSlugs"/> and by GenericServices' BeforeSaveChanges hook so a duplicate
+        /// Slug is reported as a validation error rather than an unhandled exception.
+        /// </summary>
+        public IReadOnlyList<string> GetSlugUniquenessErrors()
+        {
+            var errors = new List<string>();
+            var changedTags = ChangeTracker.Entries<Tag>()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+                .Select(e => e.Entity)
+                .ToList();
+
+            foreach (var tagToCheck in changedTags)
+            {
+                if (Tags.Any(x => x.TagId != tagToCheck.TagId && x.Slug == tagToCheck.Slug))
+                    errors.Add(string.Format("The Slug on tag '{0}' must be unique and is already being used.", tagToCheck.Name));
+            }
+
+            return errors;
+        }
     }
 }

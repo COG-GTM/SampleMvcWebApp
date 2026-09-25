@@ -24,46 +24,43 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using SampleWebApp.Models;
 
 namespace SampleWebApp.Controllers
 {
     public class HomeController : Controller
     {
-        public ActionResult Index()
+        public IActionResult Index()
         {
             return View();
         }
 
-        public ActionResult About()
+        public IActionResult About()
         {
             ViewBag.Message = "Your application description page.";
 
             return View();
         }
 
-        public ActionResult Contact()
+        public IActionResult Contact()
         {
             return View();
         }
 
-        public ActionResult Internals()
+        public IActionResult Internals()
         {
             return View(new InternalsInfo());
         }
 
-        public ActionResult CodeView()
+        public IActionResult CodeView()
         {
             return View();
         }
 
-        /// <summary>
-        /// Health probe used by the load balancer (nginx) and the infra verify step.
-        /// </summary>
-        public ActionResult Health()
+        public IActionResult Error()
         {
-            return Content("Healthy", "text/plain");
+            return View();
         }
     }
 }

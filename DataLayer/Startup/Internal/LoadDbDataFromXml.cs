@@ -29,11 +29,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using DataLayer.DataClasses.Concrete;
-
-[assembly: InternalsVisibleTo("Tests")]
 
 namespace DataLayer.Startup.Internal
 {
