@@ -25,7 +25,12 @@ build: secrets ## build the app image (APP_DOCKERFILE / APP_VERSION override)
 	$(COMPOSE) build app
 
 up: secrets render-acl ## build + start the whole stack, wait for LB health, seed the DB
-	$(COMPOSE) up -d --build --force-recreate --wait --wait-timeout 300 || { $(COMPOSE) ps; $(COMPOSE) logs --tail=40 app lb db-init; exit 1; }
+	$(COMPOSE) up -d --build --force-recreate
+	@for i in $$(seq 1 150); do \
+	  curl -fsS -o /dev/null $(LB_URL)/healthz && exit 0; \
+	  [ "$$(docker inspect -f '{{.State.Status}}' samplewebapp-infra-app-1 2>/dev/null)" = exited ] && break; \
+	  sleep 2; \
+	done; echo "[up] LB/app did not become healthy" >&2; $(COMPOSE) ps; $(COMPOSE) logs --tail=40 app lb db-init; exit 1
 	@$(MAKE) --no-print-directory seed
 	@echo "LB: $(LB_URL)   Grafana: http://localhost:3000 (admin/admin)   Prometheus: http://localhost:$(PROM_PORT)"
 
