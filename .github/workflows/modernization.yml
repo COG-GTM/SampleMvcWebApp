@@ -27,12 +27,23 @@ jobs:
       # legacy (.NET Framework 4.x): build + NUnit on mono, matching infra/legacy/Dockerfile.mono
       - name: build + test (mono, .NET Framework)
         if: startsWith(steps.tfm.outputs.tfm, 'v4')
+        env:
+          SA_PASSWORD: CiOnly_Str0ngP@ss
         run: |
-          docker run --rm -v "$PWD:/src" -w /src mono:6.12 bash -ec '
+          # the EF6 tests target (localdb) which is Windows-only; point Tests.dll.config at a throwaway SQL Server
+          docker run -d --name ci-mssql -p 1433:1433 -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD="$SA_PASSWORD" \
+            mcr.microsoft.com/mssql/server:2022-latest
+          for i in $(seq 1 30); do
+            docker exec ci-mssql /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$SA_PASSWORD" -Q 'SELECT 1' >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker run --rm --network host -e SA_PASSWORD -v "$PWD:/src" -w /src mono:6.12 bash -ec '
             nuget restore SampleWebApp.sln
             msbuild SampleWebApp.sln /p:Configuration=Release /v:m /nologo
-            mono packages/NUnit.Runners.*/tools/nunit-console.exe Tests/bin/Release/Tests.dll -noshadow -nologo 2>/dev/null \
-              || mono packages/NUnit.ConsoleRunner.*/tools/nunit3-console.exe Tests/bin/Release/Tests.dll --noresult'
+            nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory packages
+            sed -i "s|Data Source=(localdb)\\\\mssqllocaldb;Initial Catalog=TestSampleWebAppDb;MultipleActiveResultSets=True;Integrated Security=SSPI;Trusted_Connection=True|Server=localhost,1433;Database=TestSampleWebAppDb;User Id=sa;Password=$SA_PASSWORD;MultipleActiveResultSets=True|" Tests/bin/Release/Tests.dll.config
+            mono packages/NUnit.Runners.2.6.4/tools/nunit-console.exe Tests/bin/Release/Tests.dll -noshadow -nologo'
+          docker rm -f ci-mssql
 
       # modern (.NET 8): dotnet build / test
       - name: setup dotnet

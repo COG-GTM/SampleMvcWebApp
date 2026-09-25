@@ -56,7 +56,7 @@ Devin maps the *application dependency graph* to plan change — same agentless 
 
 **Devin does:** `tools/discover/diff.py --graph demo/dependency-graph.json --repo .` on the migration branch.
 
-**Money moment:** the matrix — **7 DRIFT / 8 checks** (full output in `demo/PLANTED-GAPS.md`):
+**Money moment:** the matrix — **8 DRIFT / 8 checks** (full output in `demo/PLANTED-GAPS.md`):
 
 | attribute | live infra | migrated code | |
 |---|---|---|---|
@@ -67,6 +67,7 @@ Devin maps the *application dependency graph* to plan change — same agentless 
 | DB secret key | `SAMPLEWEBAPP_DB_CONNECTION` | `ConnectionStrings__SampleWebAppDb` | DRIFT |
 | DB driver vs stored proc | EF6 join table `TagPosts(TagId,PostId)` | EF Core `PostTag(PostsPostId,TagsTagId)` → `usp_PostSummaryByBlog` + `reporting/` break | DRIFT |
 | DNS for renamed service | `samplewebapp.demo.internal` | `samplewebapp-core.demo.internal` | DRIFT |
+| under-load NFR | `BASELINE.json` p95 13 ms / p99 20 ms | no `AddDbContextPool`, no output cache, SQL logged per command | DRIFT |
 
 Then: "Note row 6 — nothing in the app's own tests touches that stored procedure. Only the *other* consumer does." (gap 2/3)
 
