@@ -279,7 +279,7 @@ All five projects are classic MSBuild (`ToolsVersion="12.0"`, `TargetFrameworkVe
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">        <!-- Web: Microsoft.NET.Sdk.Web -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>disable</Nullable>          <!-- keep disabled to minimize churn -->
     <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
@@ -337,13 +337,13 @@ Specifics:
   `EfCore.GenericServices`; preserve `InternalsVisibleTo` via `DataLayer.csproj`.
 
 After merge: `dotnet ef migrations add InitialCreate` for `SampleWebAppDb`, update `ResetBlogs` seeding, fix
-`SampleWebApp.sln` (SDK-style project refs), ensure `dotnet build` + `dotnet test` pass on .NET 10, update `README.md`.
+`SampleWebApp.sln` (SDK-style project refs), ensure `dotnet build` + `dotnet test` pass on .NET 8, update `README.md`.
 
 ---
 
 ## 12. Verification (Phase 2)
 
-- Install/verify **.NET 10 SDK** and a **SQL Server** instance (LocalDB is Windows-only; on this Linux VM use
+- Install/verify **.NET 8 SDK** and a **SQL Server** instance (LocalDB is Windows-only; on this Linux VM use
   SQL Server for Linux / a container — `mssql-tools18` is already present under `/opt`). Apply the EF Core
   migration to create+seed `SampleWebAppDb`, `dotnet run` the web app, and exercise **Blogs/Posts/Tags CRUD**
   (list, details, create, edit, delete) end-to-end through the `EfCore.GenericServices` path; confirm persistence.
@@ -392,9 +392,9 @@ EF Core / EFCore.SqlServer / EFCore.Design / EFCore.Sqlite `10.0.0`; `EfCore.Gen
 
 ---
 
-## Phase 2 — Runtime verification (VM, .NET 10 + EF Core + SQL Server)
+## Phase 2 — Runtime verification (VM, .NET 8 + EF Core + SQL Server)
 
-The migrated solution was run in the VM: `dotnet run` on `SampleWebApp` (.NET 10 SDK `10.0.302`),
+The migrated solution was run in the VM: `dotnet run` on `SampleWebApp` (.NET 8 SDK `8.0.425`),
 EF Core `InitialCreate` migration applied to SQL Server 2022 (Docker), XML seed data loaded, app served at
 `http://localhost:5080`. Blogs/Posts/Tags CRUD were exercised through the browser (recorded).
 
