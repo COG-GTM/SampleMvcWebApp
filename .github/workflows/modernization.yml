@@ -33,7 +33,7 @@ jobs:
           # the EF6 tests target (localdb) which is Windows-only; point Tests.dll.config at a throwaway SQL Server
           docker run -d --name ci-mssql -p 1433:1433 -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD="$SA_PASSWORD" \
             mcr.microsoft.com/mssql/server:2022-latest
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             docker exec ci-mssql /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$SA_PASSWORD" -Q 'SELECT 1' >/dev/null 2>&1 && break
             sleep 2
           done
@@ -65,8 +65,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: secrets stub (infra/secrets/.env from .env.example)
+        run: make -C infra secrets
+
       - name: build app container (runtime pin from Dockerfile / infra/terraform)
-        run: docker compose -f infra/docker-compose.yml build app
+        run: docker compose --env-file infra/secrets/.env -f infra/docker-compose.yml build app
 
       - name: make up
         run: make up
@@ -78,8 +81,8 @@ jobs:
         if: always()
         run: |
           mkdir -p artifacts
-          docker compose -f infra/docker-compose.yml ps > artifacts/ps.txt || true
-          docker compose -f infra/docker-compose.yml logs --no-color > artifacts/compose.log || true
+          docker compose --env-file infra/secrets/.env -f infra/docker-compose.yml ps > artifacts/ps.txt || true
+          docker compose --env-file infra/secrets/.env -f infra/docker-compose.yml logs --no-color > artifacts/compose.log || true
           cp -r load/out artifacts/load-out 2>/dev/null || true
 
       - uses: actions/upload-artifact@v4
