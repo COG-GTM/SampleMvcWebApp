@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: PostsAsyncController.cs
@@ -24,15 +24,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Collections.Generic;
-using System.Data.Entity;
-using System.Linq;
 using System.Threading.Tasks;
-using System.Web.Mvc;
 using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
 using GenericServices;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SampleWebApp.Infrastructure;
 using ServiceLayer.PostServices;
 
@@ -44,77 +42,91 @@ namespace SampleWebApp.Controllers
         /// This is an example of a Controller using GenericServices database commands with a DTO.
         /// In this case we are using async commands
         /// </summary>
-        public async Task<ActionResult> Index(IListService service)
+        public async Task<IActionResult> Index([FromServices] ICrudServicesAsync service)
         {
-            return View(await service.GetAll<SimplePostDtoAsync>().ToListAsync());
+            return View(await service.ReadManyNoTracked<SimplePostDtoAsync>().ToListAsync());
         }
 
-        public async Task<ActionResult> Details(int id, IDetailServiceAsync service)
+        public async Task<IActionResult> Details(int id, [FromServices] ICrudServicesAsync service)
         {
-            return View((await service.GetDetailAsync<DetailPostDtoAsync>(id)).Result);
+            return View(await service.ReadSingleAsync<DetailPostDtoAsync>(id));
         }
 
 
-        public async Task<ActionResult> Edit(int id, IUpdateSetupServiceAsync service)
+        public async Task<IActionResult> Edit(int id, [FromServices] ICrudServicesAsync service, [FromServices] IPostCrudHelper crudHelper)
         {
-            return View((await service.GetOriginalAsync<DetailPostDtoAsync>(id)).Result);
-        }
+            var dto = await service.ReadSingleAsync<DetailPostDtoAsync>(id);
+            if (dto == null)
+                return NotFound();
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Edit(DetailPostDtoAsync dto, IUpdateServiceAsync service)
-        {
-            if (!ModelState.IsValid)
-                //model errors so return immediately
-                return View(await service.ResetDtoAsync(dto));
-
-            var response = await service.UpdateAsync(dto);
-            if (response.IsValid)
-            {
-                TempData["message"] = response.SuccessMessage;
-                return RedirectToAction("Index");
-            }
-
-            //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, dto);
-            return View(dto);
-        }
-
-        public async Task<ActionResult> Create(ICreateSetupServiceAsync setupService)
-        {
-            var dto = await setupService.GetDtoAsync<DetailPostDtoAsync>();
+            await crudHelper.SetupSecondaryDataAsync(dto);
             return View(dto);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Create(DetailPostDtoAsync dto, ICreateServiceAsync service)
+        public async Task<IActionResult> Edit(DetailPostDtoAsync dto, [FromServices] IPostCrudHelper crudHelper)
         {
             if (!ModelState.IsValid)
-                //model errors so return immediately
-                return View(await service.ResetDtoAsync(dto));
-
-            var response = await service.CreateAsync(dto);
-            if (response.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
+                //model errors so refill the secondary data and return immediately
+                await crudHelper.SetupSecondaryDataAsync(dto);
+                return View(dto);
+            }
+
+            var status = await crudHelper.UpdatePostAsync(dto);
+            if (status.IsValid)
+            {
+                TempData["message"] = status.Message;
                 return RedirectToAction("Index");
             }
 
             //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, dto);
+            ModelState.CopyErrorsToModelState(status);
+            await crudHelper.SetupSecondaryDataAsync(dto);
             return View(dto);
         }
 
-        public async Task<ActionResult> Delete(int id, IDeleteServiceAsync service)
+        public async Task<IActionResult> Create([FromServices] IPostCrudHelper crudHelper)
+        {
+            var dto = new DetailPostDtoAsync();
+            await crudHelper.SetupSecondaryDataAsync(dto);
+            return View(dto);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(DetailPostDtoAsync dto, [FromServices] IPostCrudHelper crudHelper)
+        {
+            if (!ModelState.IsValid)
+            {
+                //model errors so refill the secondary data and return immediately
+                await crudHelper.SetupSecondaryDataAsync(dto);
+                return View(dto);
+            }
+
+            var status = await crudHelper.CreatePostAsync(dto);
+            if (status.IsValid)
+            {
+                TempData["message"] = status.Message;
+                return RedirectToAction("Index");
+            }
+
+            //else errors, so copy the errors over to the ModelState and return to view
+            ModelState.CopyErrorsToModelState(status);
+            await crudHelper.SetupSecondaryDataAsync(dto);
+            return View(dto);
+        }
+
+        public async Task<IActionResult> Delete(int id, [FromServices] ICrudServicesAsync service)
         {
 
-            var response = await service.DeleteAsync<Post>(id);
-            if (response.IsValid)
-                TempData["message"] = response.SuccessMessage;
+            await service.DeleteAndSaveAsync<Post>(id);
+            if (service.IsValid)
+                TempData["message"] = service.Message;
             else
                 //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
+                TempData["errorMessage"] = service.GetAllErrors();
            
             return RedirectToAction("Index");
         }
@@ -122,7 +134,7 @@ namespace SampleWebApp.Controllers
         //-----------------------------------------------------
         //Code used in https://www.simple-talk.com/dotnet/.net-framework/the-.net-4.5-asyncawait-commands-in-promise-and-practice/
 
-        public async Task<ActionResult> NumPosts(SampleWebAppDb db)
+        public async Task<IActionResult> NumPosts([FromServices] SampleWebAppDb db)
         {
             return View((object)await GetNumPostsAsync(db));
         }
@@ -135,18 +147,18 @@ namespace SampleWebApp.Controllers
 
         //--------------------------------------------
 
-        public ActionResult CodeView()
+        public IActionResult CodeView()
         {
             return View();
         }
 
-        public async Task<ActionResult> Delay()
+        public async Task<IActionResult> Delay()
         {
             await Task.Delay(500);
             return View(500);
         }
 
-        public ActionResult Reset(SampleWebAppDb db)
+        public IActionResult Reset([FromServices] SampleWebAppDb db)
         {
             DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
             TempData["message"] = "Successfully reset the blogs data";
