@@ -130,7 +130,12 @@ else
 fi
 
 section "10. observability: LB request metrics reach Prometheus"
-val=$(curl -s --max-time 10 "http://localhost:${PROM_PORT:-9091}/api/v1/query?query=sum(lb_http_response_count_total)" | grep -oE '"value":\[[^,]+,"[0-9.]+"' | grep -oE '[0-9.]+"$' | tr -d '"')
+val=""
+for _ in $(seq 1 12); do  # prometheus scrape interval + exporter tail lag right after `make up`
+  val=$(curl -s --max-time 10 "http://localhost:${PROM_PORT:-9091}/api/v1/query?query=sum(lb_http_response_count_total)" | grep -oE '"value":\[[^,]+,"[0-9.]+"' | grep -oE '[0-9.]+"$' | tr -d '"')
+  [ -n "$val" ] && [ "${val%.*}" -gt 0 ] 2>/dev/null && break
+  curl -s -o /dev/null "$LB_URL/healthz" || true; sleep 5
+done
 if [ -n "$val" ] && [ "${val%.*}" -gt 0 ] 2>/dev/null; then pass prometheus-lb-metrics "lb_http_response_count_total=$val"; else fail prometheus-lb-metrics "no LB request metrics in Prometheus (value='${val:-}')"; fi
 
 section "11. load test gated against demo/BASELINE.json"

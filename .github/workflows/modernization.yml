@@ -74,8 +74,11 @@ jobs:
       - name: make up
         run: make up
 
+      - name: make baseline (re-capture on this runner so load gates are host-relative, not laptop-absolute)
+        run: make baseline DURATION=30s
+
       - name: make verify (health via nginx + smoke + DB dependency + load gate vs demo/BASELINE.json)
-        run: make verify
+        run: make verify DURATION=30s
 
       - name: collect logs
         if: always()
