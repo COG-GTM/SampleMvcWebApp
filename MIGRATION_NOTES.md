@@ -196,8 +196,12 @@ namespace DataLayer.Startup {
     public static IServiceCollection AddDataLayer(this IServiceCollection s, string connectionString, bool isAzure = false);
   }
 }
+namespace DataLayer.DataClasses {
+  // dotnet-ef design-time factory: ConnectionStrings__SampleWebAppDb env var, else local docker SQL Server (DB SampleWebAppDb)
+  public class SampleWebAppDbDesignTimeFactory : IDesignTimeDbContextFactory<SampleWebAppDb> { }
+}
 // BizLayer
-namespace BizLayer.Startup { public static class BizLayerServiceCollectionExtensions { public static IServiceCollection AddBizLayer(this IServiceCollection s); } }
+namespace BizLayer.Startup { public static class BizLayerServiceCollectionExtensions { public static IServiceCollection AddBizLayer(this IServiceCollection s); } }   // legacy BizLayerInitialise (empty) removed
 // ServiceLayer
 namespace ServiceLayer.Startup {
   public static class ServiceLayerServiceCollectionExtensions {
@@ -209,20 +213,37 @@ namespace ServiceLayer.Startup {
   }
 }
 namespace ServiceLayer.PostServices {
-  public class SimplePostDto : ILinkToEntity<Post> { /* PostId, BloggerName, Title, TagNames, LastUpdated, LastUpdatedUtc */ }
+  public class SimplePostDto : ILinkToEntity<Post> { /* PostId, BlogId, BloggerName, Title, Tags, TagNames, LastUpdated, LastUpdatedUtc */ }
   public class SimplePostDtoAsync : ILinkToEntity<Post> { /* same */ }
-  public class DetailPostDto : ILinkToEntity<Post> {
-    /* PostId, Title, Content, BlogId, BloggerName, Tags, LastUpdated, Bloggers (DropDownListType), UserChosenTags (MultiSelectListType) */ }
-  public class DetailPostDtoAsync : ILinkToEntity<Post> { /* same shape */ }
-  public interface IDetailPostService {
-    DetailPostDto GetDetail(int postId);           // null + invalid status if missing
-    DetailPostDto GetNew();                        // dropdowns populated (replaces ICreateSetupService)
-    DetailPostDto GetForEdit(int postId);          // replaces IUpdateSetupService
-    DetailPostDto ResetDto(DetailPostDto dto);     // repopulates dropdowns keeping user selections
-    IStatusGeneric Create(DetailPostDto dto);      // resolves Blogger + Tags, validates, saves
-    IStatusGeneric Update(DetailPostDto dto);
+  public static class SimplePostQueryExtensions {          // Posts Index(int? id): blogId null/0 => no filter
+    public static IQueryable<SimplePostDto> FilterByBlogId(this IQueryable<SimplePostDto> posts, int? blogId);
+    public static IQueryable<SimplePostDtoAsync> FilterByBlogId(this IQueryable<SimplePostDtoAsync> posts, int? blogId);
   }
-  public interface IDetailPostServiceAsync { /* Task<> versions over DetailPostDtoAsync */ }
+  public interface IDetailPostDto { /* PostId, Title, Content, BlogId, Tags, Bloggers, UserChosenTags */ }
+  public class DetailPostDto : ILinkToEntity<Post>, IDetailPostDto {
+    /* PostId, Title, Content, BlogId, BloggerName, Tags, LastUpdated, LastUpdatedUtc, TagNames,
+       Bloggers (DropDownListType), UserChosenTags (MultiSelectListType) — both non-null after ctor */ }
+  public class DetailPostDtoAsync : ILinkToEntity<Post>, IDetailPostDto { /* same shape */ }
+  public class DetailPostDtoConfig : PerDtoConfig<DetailPostDto, Post> { }            // ignores UI lists / Tags / Blogger / LastUpdated
+  public class DetailPostDtoAsyncConfig : PerDtoConfig<DetailPostDtoAsync, Post> { }
+  public interface IDetailPostService {               // impl DetailPostService (scoped)
+    DetailPostDto GetDetail(int postId);           // null + invalid Status if missing
+    DetailPostDto GetNew();                        // dropdowns populated (replaces ICreateSetupService)
+    DetailPostDto GetForEdit(int postId);          // null + invalid Status if missing (replaces IUpdateSetupService)
+    DetailPostDto ResetDto(DetailPostDto dto);     // repopulates dropdowns keeping user selections (Bloggers.SelectedValue, UserChosenTags.FinalSelection)
+    IStatusGeneric Create(DetailPostDto dto);      // resolves Blogger + Tags, validates, saves; sets dto.PostId on success
+    IStatusGeneric Update(DetailPostDto dto);      // replaces the Post's tags with the user's selection
+    IStatusGeneric Status { get; }                 // status of the last GetDetail/GetForEdit
+  }
+  public interface IDetailPostServiceAsync {          // impl DetailPostServiceAsync (scoped)
+    Task<DetailPostDtoAsync> GetDetailAsync(int postId);
+    Task<DetailPostDtoAsync> GetNewAsync();
+    Task<DetailPostDtoAsync> GetForEditAsync(int postId);
+    Task<DetailPostDtoAsync> ResetDtoAsync(DetailPostDtoAsync dto);
+    Task<IStatusGeneric> CreateAsync(DetailPostDtoAsync dto);
+    Task<IStatusGeneric> UpdateAsync(DetailPostDtoAsync dto);
+    IStatusGeneric Status { get; }
+  }
 }
 namespace ServiceLayer.TagServices  { public class TagListDto  : ILinkToEntity<Tag>  { /* TagId, Slug, Name, PostsCount */ } }
 namespace ServiceLayer.BlogServices { public class BlogListDto : ILinkToEntity<Blog> { /* BlogId, Name, EmailAddress, PostsCount */ } }
@@ -234,6 +255,9 @@ Controller patterns (B):
 - Posts details/create/edit via `[FromServices] IDetailPostService`, delete via `ICrudServices.DeleteAndSave<Post>(id)`.
 - `*Async` controllers use `ICrudServicesAsync` / `IDetailPostServiceAsync`.
 - `NumPosts` / `Reset` take `[FromServices] SampleWebAppDb db`.
+- Detail post error member names (for ModelState): `Bloggers`, `UserChosenTags`, `Title` (Post.Validate), `""` for top-level content errors. Messages are the legacy ones (e.g. `The blogger was not selected. You must do that before the post can be saved.`, `You must select at least one tag for the post.`).
+- `ICrudServices`/`ICrudServicesAsync` are scoped and their status (`IsValid`/`Errors`) accumulates across calls on the same instance, so use one CRUD call per request/scope (tests: create a new scope per operation after an expected failure).
+- Medium seed data: 4 blogs, 17 posts, 8 tags. Small: see `BlogsContentSimple.xml`.
 
 ## 11. Runtime environment (VM)
 

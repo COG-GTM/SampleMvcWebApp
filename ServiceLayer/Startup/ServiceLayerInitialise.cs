@@ -24,12 +24,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using DataLayer.DataClasses;
 using DataLayer.Startup;
-
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ServiceLayer.Startup
 {
@@ -39,17 +36,18 @@ namespace ServiceLayer.Startup
     public static class ServiceLayerInitialise
     {
         /// <summary>
-        /// This should be called at Startup
+        /// This should be called at Startup, after the service provider has been built
         /// </summary>
-        /// <param name="isAzure">true if working with azure database</param>
-        /// <param name="canCreateDatabase">true if the database provider allows the app to drop/create a database</param>
-        public static void InitialiseThis(bool isAzure, bool canCreateDatabase)
+        /// <param name="rootProvider">the application's root service provider</param>
+        /// <param name="canCreateDatabase">true if the database provider allows the app to create/migrate the database</param>
+        public static void InitialiseThis(IServiceProvider rootProvider, bool canCreateDatabase)
         {
-
-            //Place any tasks that need initialising here
-
-            DataLayerInitialise.InitialiseThis(isAzure, canCreateDatabase);
-
+            using (var scope = rootProvider.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<SampleWebAppDb>();
+                DataLayerInitialise.InitialiseThis(db, canCreateDatabase);
+                DataLayerInitialise.SeedIfEmpty(db, TestDataSelection.Medium);
+            }
         }
     }
 }

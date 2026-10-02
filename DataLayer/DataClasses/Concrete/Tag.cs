@@ -24,12 +24,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace DataLayer.DataClasses.Concrete
 {
-    public class Tag
+    public class Tag : IValidatableObject
     {
         [UIHint("HiddenInput")]
         public int TagId { get; set; }
@@ -48,6 +48,24 @@ namespace DataLayer.DataClasses.Concrete
         public override string ToString()
         {
             return string.Format("TagId: {0}, Name: {1}, Slug: {2}", TagId, Name, Slug);
+        }
+
+        /// <summary>
+        /// Checks the Slug is unique. Needs the DbContext, which is provided by the ValidationContext's
+        /// service provider (both SampleWebAppDb.SaveChangesWithChecking and EfCore.GenericServices supply it).
+        /// The unique index on Slug is the database backstop.
+        /// </summary>
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            var db = validationContext.GetService(typeof(DbContext)) as SampleWebAppDb;
+            if (db == null)
+                yield break;
+
+            //because we may alter a Tag we need to exclude check against itself
+            if (db.Tags.Any(x => x.TagId != TagId && x.Slug == Slug))
+                yield return new ValidationResult(
+                    string.Format("The Slug on tag '{0}' must be unique and is already being used.", Name),
+                    new[] { "Slug" });
         }
     }
 }
