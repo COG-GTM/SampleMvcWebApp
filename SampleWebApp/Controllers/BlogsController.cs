@@ -24,10 +24,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Linq;
-using System.Web.Mvc;
-using DataLayer.DataClasses.Concrete;
 using GenericServices;
+using Microsoft.AspNetCore.Mvc;
+using DataLayer.DataClasses.Concrete;
 using SampleWebApp.Infrastructure;
 using ServiceLayer.BlogServices;
 
@@ -41,33 +40,36 @@ namespace SampleWebApp.Controllers
     public class BlogsController : Controller
     {
        
-        public ActionResult Index(IListService service)
+        public ActionResult Index([FromServices] ICrudServices service)
         {
-            return View(service.GetAll<BlogListDto>().ToList());
+            return View(service.ReadManyNoTracked<BlogListDto>().ToList());
         }
 
-        public ActionResult Edit(int id, IUpdateSetupService service)
+        public ActionResult Edit(int id, [FromServices] ICrudServices service)
         {
-            return View(service.GetOriginal<Blog>(id).Result);
+            var blog = service.ReadSingle<Blog>(id);
+            if (blog == null)
+                return NotFound();
+            return View(blog);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(Blog blog, IUpdateService service)
+        public ActionResult Edit(Blog blog, [FromServices] ICrudServices service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
                 return View(blog);
 
-            var response = service.Update(blog);
-            if (response.IsValid)
+            service.UpdateAndSave(blog);
+            if (service.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
+                TempData["message"] = service.Message;
                 return RedirectToAction("Index");
             }
 
             //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, blog);
+            service.CopyErrorsToModelState(ModelState, blog);
             return View(blog);
         }
 
@@ -78,31 +80,31 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Blog blog, ICreateService service)
+        public ActionResult Create(Blog blog, [FromServices] ICrudServices service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
                 return View(blog);
 
-            var response = service.Create(blog);
-            if (response.IsValid)
+            service.CreateAndSave(blog);
+            if (service.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
+                TempData["message"] = service.Message;
                 return RedirectToAction("Index");
             }
 
             //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, blog);
+            service.CopyErrorsToModelState(ModelState, blog);
             return View(blog);
         }
 
-        public ActionResult Delete(int id, IDeleteService service)
+        public ActionResult Delete(int id, [FromServices] ICrudServices service)
         {
-
-            var response = service.Delete<Blog>(id);
-            if (response.IsValid)
-                TempData["message"] = response.SuccessMessage;
-            //else it throws a concurrecy error, which shows the default error page.
+            service.DeleteAndSave<Blog>(id);
+            if (service.IsValid)
+                TempData["message"] = service.Message;
+            else
+                TempData["errorMessage"] = service.ErrorsAsHtml();
 
             return RedirectToAction("Index");
         }

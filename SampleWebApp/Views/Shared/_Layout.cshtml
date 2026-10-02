@@ -1,11 +1,18 @@
 ﻿@using SampleWebApp.Infrastructure
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewBag.Title - SampleMvcWebApp</title>
-    @Styles.Render("~/Content/css")
+    <environment include="Development">
+        <link rel="stylesheet" href="~/Content/bootstrap.css" asp-append-version="true" />
+    </environment>
+    <environment exclude="Development">
+        <link rel="stylesheet" href="~/Content/bootstrap.min.css" asp-append-version="true" />
+    </environment>
+    <link rel="stylesheet" href="~/Content/Site.css" asp-append-version="true" />
 
 </head>
 <body>
@@ -41,7 +48,7 @@
                     <li>@Html.ActionLink("About", "About", "Home")</li>
                     <li>@Html.ActionLink("Contact", "Contact", "Home")</li>
                 </ul>
-                @*@Html.Partial("_LoginPartial")*@
+                @*<partial name="_LoginPartial" />*@
             </div>
         </div>
     </div>
@@ -50,11 +57,18 @@
         <hr />
         <footer class="small  text-muted">
             <span>An open source project under the <a href="http://opensource.org/licenses/MIT" target="_blank">MIT licence</a>, created by <a href="http://www.thereformedprogrammer.net/about-me/" target="_blank">Jon Smith</a>.</span>
-            <span class="pull-right">Hosted on @WebUiInitialise.HostType</span>
+            <span class="pull-right">Hosted on @Configuration.GetHostType()</span>
         </footer>
     </div>
 
-    @Scripts.Render("~/bundles/javascript")
+    <environment include="Development">
+        <script src="~/Scripts/jquery-1.10.2.js" asp-append-version="true"></script>
+        <script src="~/Scripts/bootstrap.js" asp-append-version="true"></script>
+    </environment>
+    <environment exclude="Development">
+        <script src="~/Scripts/jquery-1.10.2.min.js" asp-append-version="true"></script>
+        <script src="~/Scripts/bootstrap.min.js" asp-append-version="true"></script>
+    </environment>
     @RenderSection("scripts", required: false)
 </body>
 </html>
