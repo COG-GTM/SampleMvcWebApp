@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: DbSnapShot.cs
@@ -26,6 +26,7 @@
 #endregion
 using System.Linq;
 using DataLayer.DataClasses;
+using Microsoft.EntityFrameworkCore;
 
 namespace Tests.Helpers
 {
@@ -43,7 +44,8 @@ namespace Tests.Helpers
         public DbSnapShot(SampleWebAppDb db)
         {
             NumBlogs = db.Blogs.Count();
-            NumPostTagLinks = db.Database.SqlQuery<int>("SELECT COUNT(*) FROM dbo.TagPosts").First();
+            //TagPosts is the many-to-many join table (name/columns kept from EF6, see SampleWebAppDb.OnModelCreating)
+            NumPostTagLinks = db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM dbo.TagPosts").AsEnumerable().First();
             NumPosts = db.Posts.Count();
             NumTags = db.Tags.Count();
         }

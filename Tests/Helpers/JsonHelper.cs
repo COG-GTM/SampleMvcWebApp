@@ -28,8 +28,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Web.Helpers;
-using Newtonsoft.Json;
+using System.Text.Json;
 using NUnit.Framework;
 
 namespace Tests.Helpers
@@ -37,20 +36,10 @@ namespace Tests.Helpers
     static class JsonHelper
     {
 
-        //public static string SerialiseToJsonUsingJsonNet(this object data)
-        //{
-        //    JsonConvert.SerializeObject(data);
-        //    
-        //}
-
-        //public static string SerialiseToJsonIndentedUsingJsonNet(this object data)
-        //{
-        //    return JsonConvert.SerializeObject(data, Formatting.Indented);
-        //}
-
         public static string SerialiseToJson(this object data)
         {
-            return Json.Encode(data);
+            //System.Text.Json's default encoder escapes ' as \u0027, like System.Web.Helpers.Json.Encode did
+            return JsonSerializer.Serialize(data);
         }
 
         public static string AssertJsonPropertyPresentAndReturnValue<TSource, TProperty>
@@ -80,12 +69,12 @@ namespace Tests.Helpers
             if (doesNotContain)
             {
                 if (startIndex == -1) return null;      //all good
-                Assert.Fail("The property '{0}' should NOT be in the in json string", stringToFind);
+                Assert.Fail($"The property '{stringToFind}' should NOT be in the in json string");
             }
 
             //otherwise we expect it to be in
             if (startIndex == -1)
-                Assert.Fail("Looked for '{0}' in json and could not find it", stringToFind);
+                Assert.Fail($"Looked for '{stringToFind}' in json and could not find it");
 
             //now return value after it
 

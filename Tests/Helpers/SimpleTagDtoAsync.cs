@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: SimpleTagDtoAsync.cs
@@ -26,13 +26,12 @@
 #endregion
 using System.ComponentModel.DataAnnotations;
 using DataLayer.DataClasses.Concrete;
-using GenericServices.Core;
+using GenericServices;
 
 namespace Tests.Helpers
 {
-    class SimpleTagDtoAsync : InstrumentedEfGenericDtoAsync<Tag, SimpleTagDtoAsync>
+    class SimpleTagDtoAsync : ILinkToEntity<Tag>
     {
-
 
         [Key]
         public int TagId { get; set; }
@@ -45,15 +44,6 @@ namespace Tests.Helpers
         [MaxLength(128)]
         [Required]
         public string Name { get; set; }
-
-
-        //--------------------------------------
-
-
-        protected internal override CrudFunctions SupportedFunctions
-        {
-            get { return CrudFunctions.AllCrud; }
-        }
 
     }
 }
