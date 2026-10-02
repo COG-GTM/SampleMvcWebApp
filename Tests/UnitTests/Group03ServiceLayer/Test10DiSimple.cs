@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: Test10DiSimple.cs
@@ -26,111 +26,112 @@
 #endregion
 using System;
 using System.Linq;
-using System.Reflection;
-using Autofac;
-using Autofac.Core;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using Tests.DependencyItems;
 using Tests.Helpers;
 
 namespace Tests.UnitTests.Group03ServiceLayer
 {
-    class Test10DiSimple
+    //These were Autofac tests. They are now the equivalent tests on the built-in Microsoft.Extensions.DependencyInjection
+    //container (Autofac InstancePerDependency/SingleInstance/InstancePerLifetimeScope = Transient/Singleton/Scoped)
+    public class Test10DiSimple
     {
 
         [Test]
-        public void Test01AutoFacSimple()
+        public void Test01ServiceCollectionSimple()
         {
             //SETUP
-            var builder = new ContainerBuilder();
-            builder.RegisterType<SimpleClass>().As<ISimpleClass>();
-            var container = builder.Build();
+            var services = new ServiceCollection();
+            services.AddTransient<ISimpleClass, SimpleClass>();
+            using var container = services.BuildServiceProvider();
 
             //ATTEMPT & VERIFY
-            using (var lifetimeScope = container.BeginLifetimeScope())
+            using (var lifetimeScope = container.CreateScope())
             {
-                var instance = lifetimeScope.Resolve<ISimpleClass>();
-                Assert.NotNull(instance);
+                var instance = lifetimeScope.ServiceProvider.GetService<ISimpleClass>();
+                ClassicAssert.NotNull(instance);
                 (instance is SimpleClass).ShouldEqual(true);
             }
 
         }
 
         [Test]
-        public void Test02AutoFacTransient()
+        public void Test02ServiceCollectionTransient()
         {
             //Setup
-            var builder = new ContainerBuilder();
-            builder.RegisterType<SimpleClass>().As<ISimpleClass>();
-            var container = builder.Build();
+            var services = new ServiceCollection();
+            services.AddTransient<ISimpleClass, SimpleClass>();
+            using var container = services.BuildServiceProvider();
 
             //Attempt
             ISimpleClass instance1;
-            using (var lifetimeScope = container.BeginLifetimeScope())
-                instance1 = lifetimeScope.Resolve<ISimpleClass>();
+            using (var lifetimeScope = container.CreateScope())
+                instance1 = lifetimeScope.ServiceProvider.GetService<ISimpleClass>();
             ISimpleClass instance2;
-            using (var lifetimeScope = container.BeginLifetimeScope())
-                instance2 = lifetimeScope.Resolve<ISimpleClass>();
+            using (var lifetimeScope = container.CreateScope())
+                instance2 = lifetimeScope.ServiceProvider.GetService<ISimpleClass>();
 
             //Verify
-            Assert.NotNull(instance1);
-            Assert.NotNull(instance2);
-            Assert.AreNotSame(instance1, instance2);
+            ClassicAssert.NotNull(instance1);
+            ClassicAssert.NotNull(instance2);
+            ClassicAssert.AreNotSame(instance1, instance2);
 
         }
 
 
         [Test]
-        public void Test03AutoFacSingle()
+        public void Test03ServiceCollectionSingle()
         {
             //Setup
-            var builder = new ContainerBuilder();
-            builder.RegisterType<SimpleClass>().As<ISimpleClass>().SingleInstance();
-            var container = builder.Build();
+            var services = new ServiceCollection();
+            services.AddSingleton<ISimpleClass, SimpleClass>();
+            using var container = services.BuildServiceProvider();
 
             //Attempt
             ISimpleClass instance1;
-            using (var lifetimeScope = container.BeginLifetimeScope())
-                instance1 = lifetimeScope.Resolve<ISimpleClass>();
+            using (var lifetimeScope = container.CreateScope())
+                instance1 = lifetimeScope.ServiceProvider.GetService<ISimpleClass>();
             ISimpleClass instance2;
-            using (var lifetimeScope = container.BeginLifetimeScope())
-                instance2 = lifetimeScope.Resolve<ISimpleClass>();
+            using (var lifetimeScope = container.CreateScope())
+                instance2 = lifetimeScope.ServiceProvider.GetService<ISimpleClass>();
 
             //Verify
-            Assert.NotNull(instance1);
-            Assert.NotNull(instance2);
-            Assert.AreSame(instance1, instance2);
+            ClassicAssert.NotNull(instance1);
+            ClassicAssert.NotNull(instance2);
+            ClassicAssert.AreSame(instance1, instance2);
 
         }
 
         [Test]
-        public void Test04AutoFacLifeTimeScope()
+        public void Test04ServiceCollectionScoped()
         {
             //Setup
-            var builder = new ContainerBuilder();
-            builder.RegisterType<SimpleClass>().As<ISimpleClass>().InstancePerLifetimeScope();
-            var container = builder.Build();
+            var services = new ServiceCollection();
+            services.AddScoped<ISimpleClass, SimpleClass>();
+            using var container = services.BuildServiceProvider();
 
             //Attempt and VERIFY
             ISimpleClass scope1Instance1;
             ISimpleClass scope1Instance2;
-            using (var lifetimeScope = container.BeginLifetimeScope())
+            using (var lifetimeScope = container.CreateScope())
             {
-                scope1Instance1 = lifetimeScope.Resolve<ISimpleClass>();
-                scope1Instance2 = lifetimeScope.Resolve<ISimpleClass>();
-                Assert.NotNull(scope1Instance1);
-                Assert.NotNull(scope1Instance2);
-                Assert.AreSame(scope1Instance1, scope1Instance2);
+                scope1Instance1 = lifetimeScope.ServiceProvider.GetService<ISimpleClass>();
+                scope1Instance2 = lifetimeScope.ServiceProvider.GetService<ISimpleClass>();
+                ClassicAssert.NotNull(scope1Instance1);
+                ClassicAssert.NotNull(scope1Instance2);
+                ClassicAssert.AreSame(scope1Instance1, scope1Instance2);
             }
 
-            using (var lifetimeScope = container.BeginLifetimeScope())
+            using (var lifetimeScope = container.CreateScope())
             {
-                ISimpleClass scope2Instance1 = lifetimeScope.Resolve<ISimpleClass>();
-                Assert.NotNull(scope2Instance1);
-                Assert.NotNull(scope1Instance1);
-                Assert.NotNull(scope1Instance2);
-                Assert.AreNotSame(scope1Instance1, scope2Instance1);
-                Assert.AreNotSame(scope1Instance1, scope2Instance1);
+                ISimpleClass scope2Instance1 = lifetimeScope.ServiceProvider.GetService<ISimpleClass>();
+                ClassicAssert.NotNull(scope2Instance1);
+                ClassicAssert.NotNull(scope1Instance1);
+                ClassicAssert.NotNull(scope1Instance2);
+                ClassicAssert.AreNotSame(scope1Instance1, scope2Instance1);
+                ClassicAssert.AreNotSame(scope1Instance1, scope2Instance1);
             }
 
         }
@@ -139,19 +140,19 @@ namespace Tests.UnitTests.Group03ServiceLayer
         //item with constructor param
 
         [Test]
-        public void Test05AutoFacConstructor()
+        public void Test05ServiceCollectionConstructor()
         {
             //SETUP
-            var builder = new ContainerBuilder();
-            builder.RegisterType<ConstructorParamClass>().As<IConstructorParamClass>()
-                .WithParameter("myInt", 42);
-            var container = builder.Build();
+            var services = new ServiceCollection();
+            services.AddTransient<IConstructorParamClass>(sp =>
+                ActivatorUtilities.CreateInstance<ConstructorParamClass>(sp, 42));     //equivalent of Autofac's WithParameter("myInt", 42)
+            using var container = services.BuildServiceProvider();
 
             //ATTEMPT & VERIFY
-            using (var lifetimeScope = container.BeginLifetimeScope())
+            using (var lifetimeScope = container.CreateScope())
             {
-                var instance = lifetimeScope.Resolve<IConstructorParamClass>();
-                Assert.NotNull(instance);
+                var instance = lifetimeScope.ServiceProvider.GetService<IConstructorParamClass>();
+                ClassicAssert.NotNull(instance);
                 instance.MyInt.ShouldEqual(42);
             }
 
@@ -164,39 +165,39 @@ namespace Tests.UnitTests.Group03ServiceLayer
         private int _numTimeDisposeCalled;
 
         [Test]
-        public void Test15AutoFacDisposeCreate()
+        public void Test15ServiceCollectionDisposeCreate()
         {
             //Setup
-            var builder = new ContainerBuilder();
+            var services = new ServiceCollection();
             Action checker = (() => _numTimeDisposeCalled++);
-            builder.RegisterType<MyDisposableClass>().As<IMyDisposableClass>().WithParameter("disposeWasCalled", checker);
-            var container = builder.Build();
+            services.AddTransient<IMyDisposableClass>(sp => ActivatorUtilities.CreateInstance<MyDisposableClass>(sp, checker));
+            var container = services.BuildServiceProvider();
 
             //Attempt
             _numTimeDisposeCalled = 0;
-            var mydisp = container.Resolve<IMyDisposableClass>();
+            var mydisp = container.GetService<IMyDisposableClass>();
 
             //Verify
-            Assert.NotNull(mydisp);
+            ClassicAssert.NotNull(mydisp);
             _numTimeDisposeCalled.ShouldEqual(0);
 
         }
 
         [Test]
-        public void Test16AutoFacDisposeCalled()
+        public void Test16ServiceCollectionDisposeCalled()
         {
             //Setup
-            var builder = new ContainerBuilder();
+            var services = new ServiceCollection();
             Action checker = (() => _numTimeDisposeCalled++);
-            builder.RegisterType<MyDisposableClass>().As<IMyDisposableClass>().WithParameter("disposeWasCalled", checker);
-            var container = builder.Build();
+            services.AddTransient<IMyDisposableClass>(sp => ActivatorUtilities.CreateInstance<MyDisposableClass>(sp, checker));
+            using var container = services.BuildServiceProvider();
 
             //Attempt
             _numTimeDisposeCalled = 0;
-            using (var lifetimeScope = container.BeginLifetimeScope())
+            using (var lifetimeScope = container.CreateScope())
             {
-                var mydisp = lifetimeScope.Resolve<IMyDisposableClass>();
-                Assert.NotNull(mydisp);
+                var mydisp = lifetimeScope.ServiceProvider.GetService<IMyDisposableClass>();
+                ClassicAssert.NotNull(mydisp);
             }
 
             //Verify
@@ -208,18 +209,18 @@ namespace Tests.UnitTests.Group03ServiceLayer
         //register generic 
 
         [Test]
-        public void Test20AutoFacRegisterGeneric()
+        public void Test20ServiceCollectionRegisterGeneric()
         {
             //SETUP
-            var builder = new ContainerBuilder();
-            builder.RegisterGeneric(typeof(GenericInterface<>)).As(typeof(IGenericInterface<>));
-            var container = builder.Build();
+            var services = new ServiceCollection();
+            services.AddTransient(typeof(IGenericInterface<>), typeof(GenericInterface<>));
+            using var container = services.BuildServiceProvider();
 
             //ATTEMPT & VERIFY
-            using (var lifetimeScope = container.BeginLifetimeScope())
+            using (var lifetimeScope = container.CreateScope())
             {
-                var instance = lifetimeScope.Resolve<IGenericInterface<SimpleClass>>();
-                Assert.NotNull(instance);
+                var instance = lifetimeScope.ServiceProvider.GetService<IGenericInterface<SimpleClass>>();
+                ClassicAssert.NotNull(instance);
                 (instance is GenericInterface<SimpleClass>).ShouldEqual(true);
                 instance.GetTypeName().ShouldEqual(typeof(SimpleClass).Name);
             }
@@ -227,19 +228,25 @@ namespace Tests.UnitTests.Group03ServiceLayer
         }
 
         [Test]
-        public void Test21AutoFacRegisterGenericAfterRegisterAssembly()
+        public void Test21ServiceCollectionRegisterGenericAfterRegisterAssembly()
         {
             //SETUP
-            var builder = new ContainerBuilder();
-            builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
-            builder.RegisterGeneric(typeof(GenericInterface<>)).As(typeof(IGenericInterface<>));
-            var container = builder.Build();
+            var services = new ServiceCollection();
+            //The built-in container has no assembly scanning, so this is the equivalent of Autofac's
+            //RegisterAssemblyTypes(assembly).AsImplementedInterfaces()
+            foreach (var classType in GetType().Assembly.GetTypes()
+                .Where(x => x.IsClass && !x.IsAbstract && !x.IsGenericTypeDefinition))
+                foreach (var interfaceType in classType.GetInterfaces()
+                    .Where(x => x != typeof(IDisposable) && !x.ContainsGenericParameters))
+                    services.AddTransient(interfaceType, classType);
+            services.AddTransient(typeof(IGenericInterface<>), typeof(GenericInterface<>));
+            using var container = services.BuildServiceProvider();
 
             //ATTEMPT & VERIFY
-            using (var lifetimeScope = container.BeginLifetimeScope())
+            using (var lifetimeScope = container.CreateScope())
             {
-                var instance = lifetimeScope.Resolve<IGenericInterface<SimpleClass>>();
-                Assert.NotNull(instance);
+                var instance = lifetimeScope.ServiceProvider.GetService<IGenericInterface<SimpleClass>>();
+                ClassicAssert.NotNull(instance);
                 (instance is GenericInterface<SimpleClass>).ShouldEqual(true);
                 instance.GetTypeName().ShouldEqual(typeof(SimpleClass).Name);
             }
@@ -250,47 +257,50 @@ namespace Tests.UnitTests.Group03ServiceLayer
         //tests on what happens if ctor is private
 
         [Test]
-        public void Test30AutoFacRegisterClassWithPrivateCtorBad()
+        public void Test30ServiceCollectionRegisterClassWithPrivateCtorBad()
         {
             //SETUP
-            var builder = new ContainerBuilder();
-            builder.RegisterType<ClassWithPrivateCtor>().As<IClassWithPrivateCtor>();
-            var container = builder.Build();
+            var services = new ServiceCollection();
+            services.AddTransient<IClassWithPrivateCtor, ClassWithPrivateCtor>();
+            using var container = services.BuildServiceProvider();
 
             //ATTEMPT & VERIFY
-            using (var lifetimeScope = container.BeginLifetimeScope())
+            using (var lifetimeScope = container.CreateScope())
             {
-                var ex = Assert.Throws<Autofac.Core.DependencyResolutionException>(() => lifetimeScope.Resolve<IClassWithPrivateCtor>());
-                ex.Message.ShouldStartWith("No constructors on type");
+                var ex = Assert.Throws<InvalidOperationException>(() => lifetimeScope.ServiceProvider.GetService<IClassWithPrivateCtor>());
+                ex.Message.ShouldStartWith("A suitable constructor for type 'Tests.DependencyItems.ClassWithPrivateCtor' could not be located.");
             }
 
         }
 
         [Test]
-        public void Test31AutoFacTryCtorWithPrivateCtorAsOptionOk()
+        public void Test31ServiceCollectionTryCtorWithPrivateCtorAsOptionOk()
         {
             //SETUP
-            var builder = new ContainerBuilder();
-            builder.RegisterType<ClassWithPrivateCtor>().As<IClassWithPrivateCtor>();
-            builder.RegisterGeneric(typeof (ClassToTestClassWithPrivateCtor<>))
-                .As(typeof (IClassToTestClassWithPrivateCtor<>))
-                .OnActivating(e =>
-                {
-                    var interfaceToLookup = e.Instance.GetType().GetGenericArguments()[0];
-                    var resolvedInterface =
-                        e.Context.ComponentRegistry.RegistrationsFor(new TypedService(interfaceToLookup)).SingleOrDefault();
-                    ((ISetType)e.Instance).SetType(resolvedInterface.Activator.LimitType);
-                });
-            var container = builder.Build();
+            var services = new ServiceCollection();
+            services.AddTransient<IClassWithPrivateCtor, ClassWithPrivateCtor>();
+            //The built-in container has no OnActivating or open-generic factories, so the closed generic is registered
+            //with a factory that looks up the registered implementation type (Autofac's ComponentRegistry lookup)
+            services.AddTransient<IClassToTestClassWithPrivateCtor<IClassWithPrivateCtor>>(sp =>
+                CreateWithResolvedType<IClassWithPrivateCtor>(services));
+            using var container = services.BuildServiceProvider();
 
             //ATTEMPT & VERIFY
-            using (var lifetimeScope = container.BeginLifetimeScope())
+            using (var lifetimeScope = container.CreateScope())
             {
-                var instance = lifetimeScope.Resolve<IClassToTestClassWithPrivateCtor<IClassWithPrivateCtor>>();
-                Assert.NotNull(instance);
+                var instance = lifetimeScope.ServiceProvider.GetService<IClassToTestClassWithPrivateCtor<IClassWithPrivateCtor>>();
+                ClassicAssert.NotNull(instance);
                 (instance is ClassToTestClassWithPrivateCtor<IClassWithPrivateCtor>).ShouldEqual(true);
             }
 
+        }
+
+        private static IClassToTestClassWithPrivateCtor<TInterface> CreateWithResolvedType<TInterface>(IServiceCollection services)
+        {
+            var instance = new ClassToTestClassWithPrivateCtor<TInterface>();
+            var resolvedInterface = services.SingleOrDefault(x => x.ServiceType == typeof(TInterface));
+            ((ISetType)instance).SetType(resolvedInterface.ImplementationType);
+            return instance;
         }
     }
 }

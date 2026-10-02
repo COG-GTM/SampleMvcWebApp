@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: ModelStateTester.cs
@@ -25,10 +25,13 @@
 // SOFTWARE.
 #endregion
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Tests.Helpers
 {
@@ -70,28 +73,40 @@ namespace Tests.Helpers
 
         private class TestController : Controller
         {
-            public ActionResult ValidDateTestModel(TestModel model)
+            public IActionResult ValidDateTestModel(TestModel model)
             {
                 // ReSharper disable once Mvc.ViewNotResolved
                 return View(model);
             }
         }
 
+        //ASP.NET Core's MVC services, so model validation uses the same validators/metadata as the web app
+        private static readonly Lazy<IServiceProvider> MvcServices = new Lazy<IServiceProvider>(() =>
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddControllersWithViews();
+            return services.BuildServiceProvider();
+        });
+
+        /// <summary>
+        /// Runs ASP.NET Core MVC model validation on the model (what happens after model binding of an action parameter)
+        /// and returns the ModelState the action would see
+        /// </summary>
         public static ModelStateDictionary ReturnModelState(this TestModel model)
         {
-            var testController = new TestController();
-
-            var modelBinder = new ModelBindingContext()
+            var serviceProvider = MvcServices.Value;
+            var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
+            var testController = new TestController
             {
-                ModelMetadata = ModelMetadataProviders.Current.GetMetadataForType(
-                                  () => model, model.GetType()),
-                ValueProvider = new NameValueCollectionValueProvider(
-                                    new NameValueCollection(), CultureInfo.InvariantCulture)
+                ControllerContext = new ControllerContext(
+                    new ActionContext(httpContext, new RouteData(), new Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor())),
+                ObjectValidator = serviceProvider.GetRequiredService<IObjectModelValidator>(),
+                MetadataProvider = serviceProvider.GetRequiredService<IModelMetadataProvider>()
             };
-            var binder = new DefaultModelBinder().BindModel(
-                             new ControllerContext(), modelBinder);
+
             testController.ModelState.Clear();
-            testController.ModelState.Merge(modelBinder.ModelState);
+            testController.TryValidateModel(model, string.Empty);
 
             var viewResult = (ViewResult) testController.ValidDateTestModel(model);
             return viewResult.ViewData.ModelState;

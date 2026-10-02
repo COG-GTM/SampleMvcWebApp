@@ -147,8 +147,8 @@ GenericServices startup: `services.GenericServicesSimpleSetup<SampleWebAppDb>(ne
 - Legacy: `Autofac 3.5` + `Autofac.Mvc5` (`AutofacDependencyResolver`), modules `DataLayerModule`, `BizLayerModule`, `ServiceLayerModule` doing `RegisterAssemblyTypes(...).AsImplementedInterfaces()`, plus the **`DiModelBinder`** hack: MVC5's `DefaultModelBinder.CreateModel` was overridden so **any interface-typed action parameter** (e.g. `Index(int? id, IListService service)`) and `SampleWebAppDb` were resolved from the container.
 - Core equivalent: `[FromServices]` on the parameter: `public IActionResult Index(int? id, [FromServices] ICrudServices service)`. (Core also infers `[FromServices]` for parameters whose type is registered in DI on `[ApiController]`s only — these are MVC controllers, so be explicit.)
 - Decision: **built-in `Microsoft.Extensions.DependencyInjection`** (no Autofac). Modules become `IServiceCollection` extension methods: `AddDataLayer(cs, isAzure)`, `AddBizLayer()`, `AddServiceLayer(cs, isAzure)` (calls the other two + GenericServices setup). `*Initialise` classes keep their static startup role (`ServiceLayerInitialise.InitialiseThis(IServiceProvider, bool canCreateDatabase)` → migrate + seed).
-- Lifetimes: `SampleWebAppDb` scoped (AddDbContext), `ICrudServices` scoped (GenericServices), AutoMapper config singleton.
-- Tests `Group03ServiceLayer/Test10DiSimple.cs` and `Test11AutoFacModules.cs` exercised Autofac itself → port to the built-in container (`ServiceCollection` + `BuildServiceProvider(validateScopes: true)`), asserting the same resolutions.
+- Lifetimes: `SampleWebAppDb` scoped (AddDbContext), `ICrudServices`/`ICrudServicesAsync` **transient** (EfCore.GenericServices 10 registers them transient; asserted by `Tests/UnitTests/Group03ServiceLayer/Test11ServiceCollectionSetup.cs`), AutoMapper config singleton.
+- Tests `Group03ServiceLayer/Test10DiSimple.cs` and `Test11AutoFacModules.cs` exercised Autofac itself → ported to the built-in container (`ServiceCollection` + `BuildServiceProvider(validateScopes: true)`), asserting the same resolutions. `Test11AutoFacModules.cs` is now `Test11ServiceCollectionSetup.cs` (AddDataLayer/AddServiceLayer); its `Test20ViaMvcSetup` moved to `Test12WebAppServiceSetup.cs` (excluded until SampleWebApp is referenced, see §11).
 
 ## 8. AutoMapper 3.2/4.2 → 14.0.0
 
@@ -256,7 +256,7 @@ Controller patterns (B):
 - `*Async` controllers use `ICrudServicesAsync` / `IDetailPostServiceAsync`.
 - `NumPosts` / `Reset` take `[FromServices] SampleWebAppDb db`.
 - Detail post error member names (for ModelState): `Bloggers`, `UserChosenTags`, `Title` (Post.Validate), `""` for top-level content errors. Messages are the legacy ones (e.g. `The blogger was not selected. You must do that before the post can be saved.`, `You must select at least one tag for the post.`).
-- `ICrudServices`/`ICrudServicesAsync` are scoped and their status (`IsValid`/`Errors`) accumulates across calls on the same instance, so use one CRUD call per request/scope (tests: create a new scope per operation after an expected failure).
+- `ICrudServices`/`ICrudServicesAsync` are transient (one instance per resolution), but share the scoped `SampleWebAppDb`; their status (`IsValid`/`Errors`) accumulates across calls on the same instance, so use one CRUD call per request/scope (tests: create a new scope per operation after an expected failure).
 - Medium seed data: 4 blogs, 17 posts, 8 tags. Small: see `BlogsContentSimple.xml`.
 
 ## 11. Runtime environment (VM)
@@ -268,7 +268,10 @@ Controller patterns (B):
   (container started with `docker start mssql || docker run -d --name mssql -e ACCEPT_EULA=Y -e 'MSSQL_SA_PASSWORD=Str0ng!Passw0rd' -e MSSQL_PID=Developer -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest`)
   (`TrustServerCertificate=True` is required: `Microsoft.Data.SqlClient` 5+ defaults to `Encrypt=True`.)
 - Run: `ASPNETCORE_ENVIRONMENT=Development dotnet run --project SampleWebApp --urls http://localhost:5000`.
-- Tests: `dotnet test` (needs the same SQL Server; test DB name `SampleWebAppDb-Test`).
+- Tests: `dotnet test Tests/Tests.csproj` (needs the same SQL Server; test DB name `SampleWebAppDb-Test`, migrated + reset by the fixtures).
+  - Connection string: env var `ConnectionStrings__SampleWebAppDb`, else `Tests/appsettings.json` (copied to output), else the local docker default (`Tests/Helpers/TestDbHelper.cs`).
+  - Tests share and reset one database, so the assembly is `[NonParallelizable]` / `LevelOfParallelism(1)` (`Tests/TestAssemblySetup.cs`).
+  - Tests does **not** reference SampleWebApp yet. Excluded from compilation in `Tests.csproj` (already ported): `UnitTests/Group06Mvc/Test03ValidationHelperJson.cs` (`ValidationHelper.ReturnModelErrorsAsJson`/`ReturnErrorsAsJson`, expects `JsonResult.Value` = `{ errorsDict = {...} }` and an `IStatusGeneric` overload) and `UnitTests/Group03ServiceLayer/Test12WebAppServiceSetup.cs` (`WebApplicationFactory<Program>`). Re-enable after B merges: add the SampleWebApp ProjectReference + `Microsoft.AspNetCore.Mvc.Testing` 10.0.x and delete that ItemGroup.
 
 ## 12. Verification artifact
 

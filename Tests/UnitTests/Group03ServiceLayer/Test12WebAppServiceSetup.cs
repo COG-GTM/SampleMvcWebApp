@@ -1,8 +1,8 @@
 #region licence
 // The MIT License (MIT)
 // 
-// Filename: SimpleTagDto.cs
-// Date Created: 2014/06/26
+// Filename: Test12WebAppServiceSetup.cs
+// Date Created: 2014/05/22
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -24,26 +24,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.ComponentModel.DataAnnotations;
-using DataLayer.DataClasses.Concrete;
-using GenericServices;
+using Microsoft.AspNetCore.Mvc.Testing;
+using NUnit.Framework;
 
-namespace Tests.Helpers
+namespace Tests.UnitTests.Group03ServiceLayer
 {
-    class SimpleTagDto : ILinkToEntity<Tag>
+    //Needs the SampleWebApp project (excluded from compilation in Tests.csproj until Subsession B is merged)
+    //This was Test20ViaMvcSetup in Test11AutoFacModules, which used SampleWebApp's AutofacDi.SetupDependency().
+    //It now checks the web app's real DI container (built by Program.cs) resolves the same services
+    [TestFixture]
+    public class Test12WebAppServiceSetup
     {
+        [Test]
+        public void Test20ViaMvcSetup()
+        {
+            //SETUP
+            using var factory = new WebApplicationFactory<Program>();
 
-        [Key]
-        public int TagId { get; set; }
-
-        [MaxLength(64)]
-        [Required]
-        [RegularExpression(@"\w*", ErrorMessage = "The slug must not contain spaces or non-alphanumeric characters.")]
-        public string Slug { get; set; }
-
-        [MaxLength(128)]
-        [Required]
-        public string Name { get; set; }
-
+            //ATTEMPT & VERIFY
+            Test11ServiceCollectionSetup.CheckExampleServicesResolve(factory.Services);
+        }
     }
 }
