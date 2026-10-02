@@ -44,4 +44,8 @@
     @Html.ActionLink("Back to List", "Index")
 </div>
 <hr />
-@Html.Partial("TagValidation")
+<partial name="TagValidation" />
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
