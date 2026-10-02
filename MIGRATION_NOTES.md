@@ -273,7 +273,8 @@ Controller patterns (B):
 - Tests: `dotnet test Tests/Tests.csproj` (needs the same SQL Server; test DB name `SampleWebAppDb-Test`, migrated + reset by the fixtures).
   - Connection string: env var `ConnectionStrings__SampleWebAppDb`, else `Tests/appsettings.json` (copied to output), else the local docker default (`Tests/Helpers/TestDbHelper.cs`).
   - Tests share and reset one database, so the assembly is `[NonParallelizable]` / `LevelOfParallelism(1)` (`Tests/TestAssemblySetup.cs`).
-  - Tests does **not** reference SampleWebApp yet. Excluded from compilation in `Tests.csproj` (already ported): `UnitTests/Group06Mvc/Test03ValidationHelperJson.cs` (`ValidationHelper.ReturnModelErrorsAsJson`/`ReturnErrorsAsJson`, expects `JsonResult.Value` = `{ errorsDict = {...} }` and an `IStatusGeneric` overload) and `UnitTests/Group03ServiceLayer/Test12WebAppServiceSetup.cs` (`WebApplicationFactory<Program>`). Re-enable after B merges: add the SampleWebApp ProjectReference + `Microsoft.AspNetCore.Mvc.Testing` 10.0.x and delete that ItemGroup.
+  - Tests references SampleWebApp (+ `Microsoft.AspNetCore.Mvc.Testing` 10.0.12) for `Test03ValidationHelperJson` and `Test12WebAppServiceSetup` (`WebApplicationFactory<Program>`). Full suite: 54/54 passing.
+  - Gotcha: ASP.NET Core's `ModelStateDictionary` enumerates keys in ordinal order (MVC5: insertion order), so `ReturnModelErrorsAsJson` emits `MyInt` before `MyString`; `Check18TestModelStateMixedErrorsOnly` accepts both key orders (same content asserted).
 
 ## 12. Verification artifact
 
