@@ -121,7 +121,12 @@ namespace Tests.UnitTests.Group06Mvc
             const string order2Json =
                 "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The MyString field is required.\",\"The field MyString must be a string or array type with a minimum length of \\u00272\\u0027.\"]},";
             const string part2 = "\"MyInt\":{\"errors\":[\"The field MyInt must be between 0 and 100.\"]}}}";
-            (json == order1Json + part2 || json == order2Json + part2).ShouldEqual(true);
+            //ASP.NET Core's ModelStateDictionary enumerates keys in ordinal order (MVC5 used insertion order), so MyInt can come first
+            const string myIntFirst = "{\"errorsDict\":{\"MyInt\":{\"errors\":[\"The field MyInt must be between 0 and 100.\"]},";
+            var myStringLast1 = order1Json.Substring("{\"errorsDict\":{".Length).TrimEnd(',') + "}}";
+            var myStringLast2 = order2Json.Substring("{\"errorsDict\":{".Length).TrimEnd(',') + "}}";
+            (json == order1Json + part2 || json == order2Json + part2
+                || json == myIntFirst + myStringLast1 || json == myIntFirst + myStringLast2).ShouldEqual(true);
         }
 
         //-------------------------------------------------------------------

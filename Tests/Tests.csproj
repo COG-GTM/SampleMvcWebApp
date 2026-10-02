@@ -19,6 +19,7 @@
     <PackageReference Include="NUnit" Version="4.4.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />
     <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
   </ItemGroup>
 
@@ -26,25 +27,11 @@
     <ProjectReference Include="..\DataLayer\DataLayer.csproj" />
     <ProjectReference Include="..\BizLayer\BizLayer.csproj" />
     <ProjectReference Include="..\ServiceLayer\ServiceLayer.csproj" />
+    <ProjectReference Include="..\SampleWebApp\SampleWebApp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!--
-    TODO (re-enable after Subsession B is merged): these tests need SampleWebApp types and are excluded from compilation:
-      - UnitTests\Group06Mvc\Test03ValidationHelperJson.cs (SampleWebApp.Infrastructure.ValidationHelper: ReturnModelErrorsAsJson / ReturnErrorsAsJson)
-      - UnitTests\Group03ServiceLayer\Test12WebAppServiceSetup.cs (the web app's Program DI container, via WebApplicationFactory<Program>)
-    They are already ported to the ASP.NET Core API. To re-enable: add
-      <ProjectReference Include="..\SampleWebApp\SampleWebApp.csproj" />
-      <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.x" />
-    and delete this ItemGroup.
-  -->
-  <ItemGroup>
-    <Compile Remove="UnitTests\Group06Mvc\Test03ValidationHelperJson.cs" />
-    <Compile Remove="UnitTests\Group03ServiceLayer\Test12WebAppServiceSetup.cs" />
-    <None Include="UnitTests\Group06Mvc\Test03ValidationHelperJson.cs" />
-    <None Include="UnitTests\Group03ServiceLayer\Test12WebAppServiceSetup.cs" />
-  </ItemGroup>
 </Project>
