@@ -80,7 +80,7 @@ Other Razor gotchas checked: no `@helper`/`@functions`, no `Html.Action`/`Render
 
 ## 2. Entity Framework 6 → EF Core 10
 
-Packages: `Microsoft.EntityFrameworkCore` / `.SqlServer` / `.Design` **10.0.x** (+ `dotnet-ef` local tool, `.config/dotnet-tools.json`).
+Packages: `Microsoft.EntityFrameworkCore` / `.SqlServer` / `.Design` **10.0.x** (+ `dotnet-ef` 10.0.12 local tool, `dotnet-tools.json` at repo root — `dotnet tool restore`).
 
 | Gotcha | Affected file(s) | Replacement |
 |---|---|---|
@@ -95,7 +95,7 @@ Packages: `Microsoft.EntityFrameworkCore` / `.SqlServer` / `.Design` **10.0.x** 
 | `EfConfiguration : DbConfiguration` + `SqlAzureExecutionStrategy` | `DataLayer/DataClasses/EfConfiguration.cs` | Delete; `UseSqlServer(cs, o => o.EnableRetryOnFailure())` when `HostType` is Azure. **Gotcha:** a retrying strategy forbids user-initiated transactions without `CreateExecutionStrategy().Execute(...)`; only enable for Azure. |
 | Many-to-many `Post.Tags` ↔ `Tag.Posts`: EF6 created join table `TagPosts(Tag_TagId, Post_PostId)`; EF Core default is `PostTag(PostsPostId, TagsTagId)` | model config, `Tests/Helpers/DbSnapShot.cs` (raw SQL counts on join table) | Configure explicitly with `UsingEntity(j => j.ToTable("TagPosts"))` + FK column names `Tag_TagId`/`Post_PostId` to keep the legacy schema name; tests must use the same name. |
 | EF6 FK cascade defaults vs EF Core | `Blog.Posts` (required FK `BlogId`) | EF Core cascades required relationships by default — same as EF6 for `Blog→Post`. Keep. |
-| EF6 `__MigrationHistory` vs EF Core `__EFMigrationsHistory`; EF6 migrations not portable | — | Fresh **initial EF Core migration** generated with `dotnet ef migrations add InitialCreate` (DataLayer project, startup = SampleWebApp) after DataLayer lands. Existing EF6 databases are not upgraded in place. |
+| EF6 `__MigrationHistory` vs EF Core `__EFMigrationsHistory`; EF6 migrations not portable | — | Fresh **initial EF Core migration** generated with `dotnet tool run dotnet-ef migrations add InitialCreate --project DataLayer --startup-project DataLayer` (design-time factory) → `DataLayer/Migrations/*_InitialCreate.cs`. Existing EF6 databases are not upgraded in place. |
 | `db.Entry(post).Collection(p => p.Tags).Load()` | `DetailPostDto*.cs` | Same API exists in EF Core (`Entry().Collection().Load()/LoadAsync()`). |
 | `DbSet.Local`, `Database.SqlQuery<T>`, `ExecuteSqlCommand` | `Tests/Helpers/DbSnapShot.cs` | `Database.SqlQueryRaw<int>(...)` / `ExecuteSqlRaw`. |
 | Lazy loading: EF6 `virtual` navigation props lazy-load by default; EF Core does **not** | `Blog.Posts`, `Post.Tags`, `Post.Blogger`, `Tag.Posts` | Do not add lazy-loading proxies. All reads that need navigation must project (GenericServices DTOs do) or `Include`. Audit `ResetBlogs`/tests for implicit lazy loads. |
