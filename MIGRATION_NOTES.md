@@ -278,4 +278,7 @@ Controller patterns (B):
 
 ## 12. Verification artifact
 
-Recorded CRUD video and screenshots: linked from the PR (filled in after Phase 2).
+Phase 2 (VM, .NET 10 + SQL Server 2022 in Docker, database dropped and recreated via the `InitialCreate` migration) — Blogs / Posts / PostsAsync / Tags / TagsAsync CRUD, validation (incl. duplicate Tag slug), persistence across an app restart, and Posts → Reset all passed. No SignalR UI exists.
+
+- Recording: https://app.devin.ai/attachments/898bd6e0-f9af-4915-850f-35c0ed8d9145/samplemvc-phase2-edited.mp4
+- Screenshots: PR comment on https://github.com/COG-GTM/SampleMvcWebApp/pull/38
