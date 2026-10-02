@@ -12,13 +12,13 @@
 }
 @if (TempData["errorMessage"] != null)
 {
-    <div class="text-danger"><strong>@TempData["errorMessage"]</strong></div>
+    <div class="text-danger"><strong>@Html.Raw(TempData["errorMessage"])</strong></div>
 }
 
 <p>
     This is a demonstration of <a href="https://github.com/JonPSmith/GenericServices" target="_blank">GenericServices'</a>
     database CRUD (Create, Read, Update/Edit and Delete) services done asynchronously, i.e. using 
-    <a href="http://www.asp.net/mvc/tutorials/getting-started-with-ef-using-mvc">Entity Framework 6's</a> Async commands. 
+    <a href="https://learn.microsoft.com/ef/core/miscellaneous/async">Entity Framework Core's</a> Async commands. 
     Async commands are designed to free up the current thread while something outside the web server is running, in this case a database access. 
     This should make the site able to handle more users, but the individual action takes a little bit longer.
     (See @Html.ActionLink("Posts", "Index", "Posts") for normal versions of the same commands).

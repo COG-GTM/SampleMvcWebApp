@@ -24,111 +24,130 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using System.Data.Entity.Validation;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.DataClasses.Concrete.Helpers;
-using GenericServices;
-
-[assembly: InternalsVisibleTo("Tests")]
+using Microsoft.EntityFrameworkCore;
+using StatusGeneric;
 
 namespace DataLayer.DataClasses
 {
 
-    public class SampleWebAppDb : DbContext, IGenericServicesDbContext
+    public class SampleWebAppDb : DbContext
     {
-        internal const string NameOfConnectionString = "SampleWebAppDb";
+        public const string NameOfConnectionString = "SampleWebAppDb";
 
         public DbSet<Blog> Blogs { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Tag> Tags { get; set; }
 
-        public SampleWebAppDb() : base("name=" + NameOfConnectionString) {}
-
-        internal SampleWebAppDb(string connectionString) : base(connectionString) { }
-
+        public SampleWebAppDb(DbContextOptions<SampleWebAppDb> options) : base(options) { }
 
         /// <summary>
         /// This has been overridden to handle:
         /// a) Updating of modified items (see p194 in DbContext book)
+        /// The parameterless SaveChanges/SaveChangesAsync overloads funnel into these.
         /// </summary>
-        /// <returns></returns>
-        public override int SaveChanges()
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
             HandleChangeTracking();
-            return base.SaveChanges();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess,
+            CancellationToken cancellationToken = default)
+        {
+            HandleChangeTracking();
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         }
 
         /// <summary>
-        /// Same for async
+        /// Validates all Added/Modified entities (DataAnnotations + IValidatableObject, which includes
+        /// the Tag slug uniqueness check) and only saves if there are no errors.
+        /// Validation errors are returned in the status, never thrown.
         /// </summary>
-        /// <returns></returns>
-        public override Task<int> SaveChangesAsync()
+        public IStatusGeneric SaveChangesWithChecking()
         {
-            HandleChangeTracking();
-            return base.SaveChangesAsync();
+            var status = ValidateTrackedEntities();
+            if (status.IsValid)
+                SaveChanges();
+            return status;
         }
 
-        /// <summary>
-        /// This does validations that can only be done at the database level
-        /// </summary>
-        /// <param name="entityEntry"></param>
-        /// <param name="items"></param>
-        /// <returns></returns>
-        protected override DbEntityValidationResult ValidateEntity(DbEntityEntry entityEntry,
-            IDictionary<object, object> items)
+        public async Task<IStatusGeneric> SaveChangesWithCheckingAsync()
         {
-
-            if (entityEntry.Entity is Tag && (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified))
-            {
-                var tagToCheck = ((Tag)entityEntry.Entity);
-
-                //check for uniqueness of Tag's Slug property (note: because we may alter a Tag we need to exclude check against itself)
-                if (Tags.Any(x => x.TagId != tagToCheck.TagId && x.Slug == tagToCheck.Slug))
-                    return new DbEntityValidationResult(entityEntry,
-                                                        new List<DbValidationError>
-                                                            {
-                                                                new DbValidationError( "Slug",
-                                                                    string.Format( "The Slug on tag '{0}' must be unique and is already being used.", tagToCheck.Name))
-                                                            });
-            }
-
-            return base.ValidateEntity(entityEntry, items);
+            var status = ValidateTrackedEntities();
+            if (status.IsValid)
+                await SaveChangesAsync();
+            return status;
         }
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Tag>()
+                .HasIndex(t => t.Slug)
+                .IsUnique();
+
+            modelBuilder.Entity<Post>()
+                .HasOne(p => p.Blogger)
+                .WithMany(b => b.Posts)
+                .HasForeignKey(p => p.BlogId)
+                .IsRequired();
+
+            //Keeps the join table name/columns that EF6 created for the Post <-> Tag many-to-many
+            modelBuilder.Entity<Post>()
+                .HasMany(p => p.Tags)
+                .WithMany(t => t.Posts)
+                .UsingEntity<Dictionary<string, object>>(
+                    "TagPosts",
+                    r => r.HasOne<Tag>().WithMany().HasForeignKey("Tag_TagId"),
+                    l => l.HasOne<Post>().WithMany().HasForeignKey("Post_PostId"),
+                    j => j.HasKey("Tag_TagId", "Post_PostId"));
+        }
 
         //--------------------------------------------------
         //private helpers
 
-        /// <summary>
-        /// This handles going through all the entities that have changed and seeing if they need any special handling.
-        /// </summary>
+        private IStatusGeneric ValidateTrackedEntities()
+        {
+            var status = new StatusGenericHandler();
+            var serviceProvider = new DbContextServiceProvider(this);
+            var entriesToCheck = ChangeTracker.Entries()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+                .Select(e => e.Entity)
+                .Where(e => !(e is Dictionary<string, object>))        //skip many-to-many join rows
+                .ToList();
+            foreach (var entity in entriesToCheck)
+            {
+                var results = new List<ValidationResult>();
+                if (!Validator.TryValidateObject(entity, new ValidationContext(entity, serviceProvider, null), results, true))
+                    status.AddValidationResults(results);
+            }
+            return status;
+        }
+
         private void HandleChangeTracking()
         {
-            //Debug.WriteLine("----------------------------------------------");
-            //foreach (var entity in ChangeTracker.Entries()
-            //.Where(
-            //    e =>
-            //    e.State == EntityState.Added || e.State == EntityState.Modified))
-            //{
-            //    Debug.WriteLine("Entry {0}, state {1}", entity.Entity, entity.State);
-            //}       
-
-            foreach (var entity in ChangeTracker.Entries()
-                                                .Where(
-                                                    e =>
-                                                    e.State == EntityState.Added || e.State == EntityState.Modified))
+            foreach (var entry in ChangeTracker.Entries<TrackUpdate>()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified))
             {
-                var trackUpdateClass = entity.Entity as TrackUpdate;
-                if (trackUpdateClass == null) return;
-                trackUpdateClass.UpdateTrackingInfo();
+                entry.Entity.UpdateTrackingInfo();
             }
         }
 
+        private class DbContextServiceProvider : IServiceProvider
+        {
+            private readonly SampleWebAppDb _db;
+
+            public DbContextServiceProvider(SampleWebAppDb db)
+            {
+                _db = db;
+            }
+
+            public object GetService(Type serviceType)
+            {
+                return serviceType == typeof(DbContext) || serviceType == typeof(SampleWebAppDb) ? _db : null;
+            }
+        }
     }
 }

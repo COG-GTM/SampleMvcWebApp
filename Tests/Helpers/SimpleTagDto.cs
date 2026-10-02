@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: SimpleTagDto.cs
@@ -26,11 +26,11 @@
 #endregion
 using System.ComponentModel.DataAnnotations;
 using DataLayer.DataClasses.Concrete;
-using GenericServices.Core;
+using GenericServices;
 
 namespace Tests.Helpers
 {
-    class SimpleTagDto : InstrumentedEfGenericDto<Tag, SimpleTagDto>
+    class SimpleTagDto : ILinkToEntity<Tag>
     {
 
         [Key]
@@ -44,13 +44,6 @@ namespace Tests.Helpers
         [MaxLength(128)]
         [Required]
         public string Name { get; set; }
-
-        //--------------------------------------
-
-        protected internal override CrudFunctions SupportedFunctions
-        {
-            get { return CrudFunctions.AllCrud; }
-        }
 
     }
 }

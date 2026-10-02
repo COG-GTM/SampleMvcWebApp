@@ -24,14 +24,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System;
-using System.Collections.Generic;
-using System.Data.Entity;
-using System.Linq;
 using DataLayer.DataClasses;
 using DataLayer.Startup.Internal;
-using GenericLibsBase;
-using GenericServices;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DataLayer.Startup
 {
@@ -39,9 +38,6 @@ namespace DataLayer.Startup
 
     public static class DataLayerInitialise
     {
-
-        private static IGenericLogger _logger;
-
         private static readonly Dictionary<TestDataSelection, string> XmlBlogsDataFileManifestPath = new Dictionary<TestDataSelection, string>
             {
                 {TestDataSelection.Small, "DataLayer.Startup.Internal.BlogsContentSimple.xml"},
@@ -51,48 +47,56 @@ namespace DataLayer.Startup
         /// <summary>
         /// This should be called at Startup
         /// </summary>
-        /// <param name="isAzure">true if running on azure (used for configuring retry policy and BuildSqlConnectionString UserId)</param>
-        /// <param name="canCreateDatabase">true if the database provider allows the app to drop/create a database</param>
-        public static void InitialiseThis(bool isAzure, bool canCreateDatabase)
+        /// <param name="db"></param>
+        /// <param name="canCreateDatabase">true if the database provider allows the app to create/migrate the database</param>
+        public static void InitialiseThis(SampleWebAppDb db, bool canCreateDatabase)
         {
-            EfConfiguration.IsAzure = isAzure;
-            _logger = GenericLibsBaseConfig.GetLogger("DataLayerInitialise");
-
-            //Initialiser for the database. Only used when first access is made
             if (canCreateDatabase)
-                Database.SetInitializer(new CreateDatabaseIfNotExists<SampleWebAppDb>());
-            else
-                //This initializer will not try to change the database
-                Database.SetInitializer(new NullDatabaseInitializer<SampleWebAppDb>());
+                db.Database.Migrate();
         }
 
-        public static void ResetBlogs(SampleWebAppDb context, TestDataSelection selection)
+        public static void ResetBlogs(SampleWebAppDb db, TestDataSelection selection)
         {
+            var logger = GetLogger(db);
             try
             {
-                context.Posts.ToList().ForEach(x => context.Posts.Remove(x));
-                context.Tags.ToList().ForEach(x => context.Tags.Remove(x));
-                context.Blogs.ToList().ForEach(x => context.Blogs.Remove(x));
-                context.SaveChanges();
+                db.Posts.ToList().ForEach(x => db.Posts.Remove(x));
+                db.Tags.ToList().ForEach(x => db.Tags.Remove(x));
+                db.Blogs.ToList().ForEach(x => db.Blogs.Remove(x));
+                db.SaveChanges();
             }
             catch (Exception ex)
             {
-                _logger.Critical("Exception when resetting the blogs", ex);
+                logger.LogCritical(ex, "Exception when resetting the blogs");
                 throw;
             }
 
             var bloggers = LoadDbDataFromXml.FormBlogsWithPosts(XmlBlogsDataFileManifestPath[selection]);
 
-            context.Blogs.AddRange(bloggers);
-            var status = context.SaveChangesWithChecking();
+            db.Blogs.AddRange(bloggers);
+            var status = db.SaveChangesWithChecking();
             if (!status.IsValid)
             {
-                _logger.CriticalFormat("Error when resetting courses data. Error:\n{0}",
+                logger.LogCritical("Error when resetting courses data. Error:\n{Errors}",
                     string.Join(",", status.Errors));
                 throw new FormatException("problem writing to database. See log.");
             }
         }
 
+        /// <summary>
+        /// Loads the selected test data only if there are no blogs in the database
+        /// </summary>
+        public static void SeedIfEmpty(SampleWebAppDb db, TestDataSelection selection)
+        {
+            if (!db.Blogs.Any())
+                ResetBlogs(db, selection);
+        }
+
+        private static ILogger GetLogger(SampleWebAppDb db)
+        {
+            var loggerFactory = db.GetInfrastructure().GetService<ILoggerFactory>();
+            return loggerFactory?.CreateLogger(typeof(DataLayerInitialise).FullName) ?? NullLogger.Instance;
+        }
     }
 
 }

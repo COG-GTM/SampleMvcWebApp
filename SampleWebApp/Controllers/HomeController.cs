@@ -24,7 +24,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Web.Mvc;
+using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using SampleWebApp.Models;
 
 namespace SampleWebApp.Controllers
@@ -56,6 +57,12 @@ namespace SampleWebApp.Controllers
         public ActionResult CodeView()
         {
             return View();
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public ActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 }
