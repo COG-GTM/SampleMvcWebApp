@@ -285,5 +285,13 @@ Posts use `[FromServices] IDetailPostService` (+ `DeleteAndSave<Post>`); `*Async
 - Tests: `dotnet test` against database `SampleWebAppDb-Test` on the same server (override with `ConnectionStrings__SampleWebAppDb`).
 
 ## 13. Baseline & verification artifacts
-- Subsession 0 (.NET Framework baseline on Windows): _filled in after it reports_.
+- **Subsession 0 — legacy .NET Framework 4.5.1 baseline on Windows** ([session](https://app.devin.ai/sessions/0a46be762464420a95068bffc57afb4c), `master` unmodified, IIS Express + LocalDB, Chrome):
+  - Video: [legacy-baseline-edited.mp4](https://app.devin.ai/attachments/2fce1050-b7a0-4aea-91cc-2471316fd3ad/legacy-baseline-edited.mp4); screenshots: [posts-index](https://app.devin.ai/attachments/03932834-b8e9-4ef9-afe4-0edf6ff0cafc/posts-index.png), [post-create](https://app.devin.ai/attachments/232fed79-2096-4097-810b-39e9ec9ba891/post-create.png), [tags-index](https://app.devin.ai/attachments/3fa0a284-7e1b-4361-ae4c-e3aeab6f06ec/tags-index.png), [tag-duplicate-slug](https://app.devin.ai/attachments/a5b1ab37-b56b-427b-8859-21bce67f219d/tag-duplicate-slug.png).
+  - Build needed the `Microsoft.NETFramework.ReferenceAssemblies.net451` package (the VM's 4.5.1 targeting pack had only XML docs → MSB3644). MSBuild: 0 errors, 5 warnings. NUnit 2.6.3: 54/54 passed. `BizLayer` was **not in the legacy `.sln`** (fixed in the .NET 10 `.sln`).
+  - Legacy DB is **empty on first load**; data appears only after Posts › Reset → 4 blogs, 17 posts, 8 tags (2 of the 10 XML tags are unused, so never saved).
+  - Messages: `Successfully reset the blogs data`; `The total number of Posts is 17`; `Successfully created/updated/deleted Post.` / `... Tag.`; `The Title field is required.`; `The Slug on tag '<name>' must be unique and is already being used.`
+- **Intentional behaviour differences in the .NET 10 port vs. the baseline**
+  - The database is migrated **and seeded on startup when empty** (`ServiceLayerInitialise` → `SeedIfEmpty`), so the first page load already shows 4 / 17 / 8. Reset still works as before.
+  - Create/update Post keep the legacy wording (`DetailPostService`). Tag/Blog create/update/delete and Post delete use EfCore.GenericServices' default success text (e.g. `Successfully deleted a Post`) instead of GenericServices 1.0.9's `Successfully deleted Post.`.
+  - Post title validation and duplicate tag slug messages are identical.
 - Phase 2 (.NET 10 run in VM): _filled in after recording_.
