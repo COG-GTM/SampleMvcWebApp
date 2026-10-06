@@ -71,6 +71,8 @@ DTO/entity types are mapped. Remove the pin when EfCore.GenericServices ships an
 | `SampleWebApp/Views/Web.config` | Razor namespaces (`System.Web.Mvc*`, `System.Web.Optimization`) | `Views/_ViewImports.cshtml` with `@using SampleWebApp` etc. + `@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers`. Delete Web.config. |
 | `Tests/Helpers/{JsonHelper,ModelStateTester}.cs` | `System.Web.Mvc.JsonResult/ModelStateDictionary` | Core types (`JsonResult.Value`). |
 
+**(C)** Core `ModelStateDictionary` enumerates keys in its internal prefix-tree order, not insertion order (MVC 5 kept insertion order), so `ReturnModelErrorsAsJson` can emit `errorsDict` properties in a different order. Tests compare the deserialized dictionary instead of the raw JSON string.
+
 ## 2. Entity Framework 6.1.3 → EF Core 10 (`DataLayer`)
 - `DataLayer/DataClasses/SampleWebAppDb.cs`:
   - `ValidateEntity(DbEntityEntry, IDictionary)`, `DbEntityValidationResult`, `DbValidationError` **do not exist** in EF Core (EF Core does no validation on save). The Tag-Slug uniqueness check is re-implemented in three places:
@@ -103,6 +105,7 @@ DTO/entity types are mapped. Remove the pin when EfCore.GenericServices ships an
 - `DetailPostDto(Async)`: `SetupSecondaryData`, `CreateDataFromDto`, `UpdateDataFromDto`, `SetupRestOfDto`, `ChangeTagsBasedOnMultiSelectList` → `DetailPostService` / `DetailPostServiceAsync` in ServiceLayer (§11).
 - `[assembly: InternalsVisibleTo("Tests")]` repeated in DTO files → remove from code (duplicate attributes), put in csproj.
 - `DelegateDecompiler(.EntityFramework)`, `Mono.Reflection`, `MarkdownSharp`, `GenericLibsBase`: no runtime usage besides logger/status → drop.
+- **(C)** `GenericServicesSimpleSetup` only registers DTOs from the assemblies passed to it, and every `ILinkToEntity<T>` class found must be `public` (otherwise setup throws `SETUP FAILED ... must be public`). DTOs in another assembly (e.g. `Tests/Helpers/SimpleTagDto`) used with `ICrudServices` fail with `... is not registered as a valid CrudServices DTO/ViewModel`, so `AddServiceLayer` is not enough. The tests build their own setup that scans both assemblies and reuses the same `GenericServicesConfig`, including `BeforeSaveChanges = db.CheckTagSlugsUnique()`.
 
 - **(A, verified)** `DetailPostDto(Async)` uses `PerDtoConfig` (`DetailPostDtoConfig`/`DetailPostDtoAsyncConfig`, public, discovered from the ServiceLayer assembly): read mapping ignores `Bloggers`/`UserChosenTags`; save mapping ignores `Tags`, `Blogger`, `LastUpdated`. The post services map scalar fields onto a loaded `Post` and set `BlogId`/`Tags` from the selections themselves.
 - **(A, verified)** Status messages: post services return `"Successfully created Post."` / `"Successfully updated Post."`; GenericServices itself returns e.g. `"Successfully created a Tag"`, `"Successfully deleted a Post"`, and `"Failed with 1 error"` when invalid (assert on `IsValid`/`Errors`, not on exact failure text).
@@ -156,6 +159,8 @@ No `Hub` subclass and no `MapSignalR()` anywhere. Only dead client JS: `Scripts/
 | `.sln` web project type GUID `{349c5851-65df-11da-9384-00065b846f21}` | plain C# project; keep all 5 projects in `SampleWebApp.sln`; drop `.nuget` solution folder if any |
 | NUnit 2.6.3 (`[TestFixtureSetUp]`, `Assert.AreEqual`, `ExpectedException`), Moq 4.2 | NUnit 4.x (`[OneTimeSetUp]`, `Assert.That` or `NUnit.Framework.Legacy.ClassicAssert`, `Assert.Throws`), `NUnit3TestAdapter`, `Microsoft.NET.Test.Sdk`, Moq 4.20.x |
 | `Tests/Properties/Settings.settings` | `Tests/appsettings.json` or env var `ConnectionStrings__SampleWebAppDb` |
+
+**(C)** `WebApplicationFactory<Program>` runs `Program.cs` in full, including `WebUiInitialise.InitialiseThis` (migrate + seed), against the `Development` connection string (`SampleWebAppDb`). Tests override it with `WithWebHostBuilder(b => b.UseSetting("ConnectionStrings:SampleWebAppDb", <test cs>))` so they only touch `SampleWebAppDb-Test`.
 
 **(A)** `dotnet new tool-manifest` on SDK 10.0.301 writes `dotnet-tools.json` in the **current directory**, not `.config/`; it was moved to `.config/dotnet-tools.json` (`dotnet-ef 10.0.0`). Use `dotnet tool restore` then `dotnet ef ... --project DataLayer` (design-time factory reads `ConnectionStrings__SampleWebAppDb`).
 
