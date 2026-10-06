@@ -24,8 +24,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
+using DataLayer.DataClasses;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NUnit.Framework;
+using Tests.Helpers;
 
 namespace Tests.UnitTests.Group03ServiceLayer
 {
@@ -36,7 +38,9 @@ namespace Tests.UnitTests.Group03ServiceLayer
         public void Test20ViaMvcSetup()
         {
             //SETUP
-            using var factory = new WebApplicationFactory<Program>();
+            using var baseFactory = new WebApplicationFactory<Program>();
+            using var factory = baseFactory.WithWebHostBuilder(builder => builder.UseSetting(
+                    $"ConnectionStrings:{SampleWebAppDb.NameOfConnectionString}", TestDbHelper.ConnectionString));
 
             //ATTEMPT & VERIFY
             Test11ServiceCollectionSetup.CheckExampleServicesResolve(factory.Services);
