@@ -124,6 +124,7 @@ No `Hub` subclass and no `MapSignalR()` anywhere. Only dead client JS: `Scripts/
 - `[UIHint("HiddenInput")]` still honoured by `EditorFor`; `[ScaffoldColumn(false)]` still honoured by `DisplayForModel`/`EditorForModel`.
 - Model binding of `DropDownListType`/`MultiSelectListType` (nested complex types with `private set` lists) — Core binds `SelectedValue` / `FinalSelection` only; lists must be re-populated (`ResetDto`) on postback (same as legacy).
 - `[ValidateAntiForgeryToken]` → same attribute name in `Microsoft.AspNetCore.Mvc`; `@Html.AntiForgeryToken()` still works (forms with tag helpers add it automatically).
+- **Gotcha (found in B):** `@Html.Label("Tags", htmlAttributes: new {...})` does not compile in Core — `IHtmlHelper.Label(expression, labelText, htmlAttributes)` has no optional `labelText`; pass it explicitly (`@Html.Label("Tags", "Tags", new {...})`). Razor views are compiled at build time in Core, so view errors surface in `dotnet build`.
 
 ## 7. Dependency injection: Autofac 3.5 + Autofac.Mvc5 → built-in container
 - Modules `DataLayerModule`, `BizLayerModule`, `ServiceLayerModule` (`RegisterAssemblyTypes(...).AsImplementedInterfaces()` + GenericServices assembly) and `AutofacDi` → `IServiceCollection` extension methods `AddDataLayer`, `AddBizLayer`, `AddServiceLayer` (§11). `BizLayerInitialise`/`ServiceLayerInitialise` remain static startup hooks (migrate + seed).
