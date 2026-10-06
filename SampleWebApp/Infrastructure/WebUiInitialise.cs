@@ -24,12 +24,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System;
-using System.Web;
-using System.Web.Mvc;
-using Autofac.Integration.Mvc;
-using GenericLibsBase;
-using SampleWebApp.Properties;
 using ServiceLayer.Startup;
 
 namespace SampleWebApp.Infrastructure
@@ -38,73 +32,24 @@ namespace SampleWebApp.Infrastructure
 
     public static class WebUiInitialise
     {
-        private const bool ResetIndentityDatabase = false;          //set this to true to reset content of Identity database
+        public const string HostTypeConfigName = "HostType";
 
-        //Note: This is also used when running locally
-        private const string WebWizLog4NetRelPath = "~/Log4Net.xml";
-
-        public const string DatabaseConnectionStringName = "SampleWebAppDb";
-
-        /// <summary>
-        /// This provides the host we 
-        /// </summary>
         public static HostTypes HostType { get; private set; }
 
-        /// <summary>
-        /// This should be called at Startup
-        /// </summary>
-        public static void InitialiseThis(HttpApplication application)
+        public static HostTypes DecodeHostType(string hostTypeString)
         {
-            HostType = DecodeHostType(Settings.Default.HostTypeString);
-            //WebWiz does not allow drop/create database
-            var canDropCreateDatabase = HostType != HostTypes.WebWiz;
-
-            SetupLogging(application, HostType);
-
-            //This runs the ServiceLayer initialise, whoes job it is to initialise any of the lower layers
-            //NOTE: This MUST to come before the setup of the DI because it relies on the configInfo being set up
-            ServiceLayerInitialise.InitialiseThis(HostType == HostTypes.Azure, canDropCreateDatabase); 
-
-            //This sets up the Autofac container for all levels in the program
-            var container = AutofacDi.SetupDependency();
-
-            //// Set the dependency resolver for MVC.
-            var mvcResolver = new AutofacDependencyResolver(container);
-            DependencyResolver.SetResolver(mvcResolver);
-        }
-
-        private static HostTypes DecodeHostType(string hostTypeString)
-        {
-            HostTypes hostType ;
-            Enum.TryParse(hostTypeString, true, out hostType);
+            Enum.TryParse(hostTypeString, true, out HostTypes hostType);
             return hostType;
         }
 
-        private static void SetupLogging(HttpApplication application, HostTypes hostType)
+        /// <summary>
+        /// This should be called at Startup, after the DI container has been built
+        /// </summary>
+        public static void InitialiseThis(IServiceProvider rootProvider, HostTypes hostType)
         {
-
-            switch (hostType)
-            {
-                case HostTypes.NotSet:
-                    //we do not set up the logging
-                    break;
-                case HostTypes.LocalHost:
-                    //LocalHost uses WebWiz setup for log4Net
-                case HostTypes.WebWiz:
-                    //We set up the log4net settings from a local file and then assign the logger to GenericServices.GenericLoggerFactory
-                    var log4NetPath = application.Server.MapPath(WebWizLog4NetRelPath);
-                    log4net.Config.XmlConfigurator.ConfigureAndWatch(new System.IO.FileInfo(log4NetPath));
-                    GenericLibsBaseConfig.SetLoggerMethod = name => new Log4NetGenericLogger(name);
-                    break;
-                case HostTypes.Azure:
-                    //we use the TraceGenericLogger when in Azure
-                    GenericLibsBaseConfig.SetLoggerMethod = name => new TraceGenericLogger(name);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException("hostType");
-            }
-
-            GenericLibsBaseConfig.GetLogger("LoggerSetup").Info("We have just assegned a logger.");
+            HostType = hostType;
+            //WebWiz does not allow drop/create database
+            ServiceLayerInitialise.InitialiseThis(rootProvider, hostType != HostTypes.WebWiz);
         }
     }
 }
