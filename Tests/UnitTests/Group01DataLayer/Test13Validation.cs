@@ -30,29 +30,24 @@ using System.Linq;
 using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
-using GenericServices;
 using NUnit.Framework;
 using Tests.Helpers;
 
 namespace Tests.UnitTests.Group01DataLayer
 {
-    class Test13Validation
+    public class Test13Validation
     {
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void SetUpFixture()
         {
-            using (var db = new SampleWebAppDb())
-            {
-                DataLayerInitialise.InitialiseThis(false, true);
-                DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
-            }
+            TestDbHelper.MigrateAndResetBlogs(TestDataSelection.Small);
         }
 
         [Test]
         public void Check01ValidateTagOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
@@ -71,7 +66,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check02ValidateTagError()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var existingTag = db.Tags.First();
@@ -79,19 +74,19 @@ namespace Tests.UnitTests.Group01DataLayer
                 //ATTEMPT
                 var dupTag = new Tag {Name = "duplicate slug", Slug = existingTag.Slug};
                 db.Tags.Add(dupTag);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithChecking();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(false);
                 status.Errors.Count.ShouldEqual(1);
-                status.Errors[0].ErrorMessage.ShouldEqual("The Slug on tag 'duplicate slug' must be unique and is already being used.");
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("The Slug on tag 'duplicate slug' must be unique and is already being used.");
             }
         }
 
         [Test]
         public void Check10ValidatePostOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
@@ -107,7 +102,7 @@ namespace Tests.UnitTests.Group01DataLayer
                     Tags = new[] { existingTag }
                 };
                 db.Posts.Add(newPost);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithChecking();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(true, status.Errors);
@@ -119,7 +114,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check15ValidatePostTitleError()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var existingTag = db.Tags.First();
@@ -134,19 +129,19 @@ namespace Tests.UnitTests.Group01DataLayer
                     Tags = new[] { existingTag }
                 };
                 db.Posts.Add(newPost);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithChecking();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(false);
                 status.Errors.Count.ShouldEqual(1);
-                status.Errors[0].ErrorMessage.ShouldEqual("Sorry, but you can't get too excited and include a ! in the title.");
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("Sorry, but you can't get too excited and include a ! in the title.");
             }
         }
 
         [Test]
         public void Check16ValidatePostTitleError()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var existingTag = db.Tags.First();
@@ -161,19 +156,19 @@ namespace Tests.UnitTests.Group01DataLayer
                     Tags = new[] { existingTag }
                 };
                 db.Posts.Add(newPost);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithChecking();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(false);
                 status.Errors.Count.ShouldEqual(1);
-                status.Errors[0].ErrorMessage.ShouldEqual("Sorry, but you can't ask a question, i.e. the title can't end with '?'.");
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("Sorry, but you can't ask a question, i.e. the title can't end with '?'.");
             }
         }
 
         [Test]
         public void Check20ValidatePostContentOneError()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var existingTag = db.Tags.First();
@@ -188,12 +183,12 @@ namespace Tests.UnitTests.Group01DataLayer
                     Tags = new[] { existingTag }
                 };
                 db.Posts.Add(newPost);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithChecking();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(false);
                 status.Errors.Count.ShouldEqual(1);
-                status.Errors[0].ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'sheep'.");
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'sheep'.");
             }
         }
 
@@ -201,7 +196,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check21ValidatePostContentTwoErrors()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var existingTag = db.Tags.First();
@@ -216,13 +211,13 @@ namespace Tests.UnitTests.Group01DataLayer
                     Tags = new[] { existingTag }
                 };
                 db.Posts.Add(newPost);
-                var status = db.SaveChangesWithChecking();;
+                var status = db.SaveChangesWithChecking();
 
                 //VERIFY
                 status.IsValid.ShouldEqual(false);
                 status.Errors.Count.ShouldEqual(2);
-                status.Errors[0].ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'sheep'.");
-                status.Errors[1].ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'lamb'.");
+                status.Errors[0].ErrorResult.ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'sheep'.");
+                status.Errors[1].ErrorResult.ErrorMessage.ShouldEqual("Sorry. Not allowed to end a sentance with 'lamb'.");
             }
         }
     }

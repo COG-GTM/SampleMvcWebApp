@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: Test14ReadWriteBlogs.cs
@@ -25,35 +25,31 @@
 // SOFTWARE.
 #endregion
 using System;
-using System.Data.Entity;
 using System.Linq;
 using System.Threading;
 using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
-using GenericServices;
+using Microsoft.EntityFrameworkCore;
+using NUnit.Framework.Legacy;
 using NUnit.Framework;
 using Tests.Helpers;
 
 namespace Tests.UnitTests.Group01DataLayer
 {
-    class Test14ReadWriteBlogs
+    public class Test14ReadWriteBlogs
     {
 
         [SetUp]
         public void SetUp()
         {
-            using (var db = new SampleWebAppDb())
-            {
-                DataLayerInitialise.InitialiseThis(false, true);
-                DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
-            }
+            TestDbHelper.MigrateAndResetBlogs(TestDataSelection.Small);
         }
 
         [Test]
         public void Check01ReadBlogsNoPostsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
 
@@ -69,7 +65,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check02ReadBlogsWithPostsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
 
@@ -86,12 +82,12 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check03ReadBlogsWithPostTagsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
 
                 //ATTEMPT
-                var blogs = db.Blogs.Include(x => x.Posts.Select(y => y.Tags)).ToList();
+                var blogs = db.Blogs.Include(x => x.Posts).ThenInclude(y => y.Tags).ToList();
 
                 //VERIFY
                 blogs.Count.ShouldEqual(2);
@@ -104,12 +100,12 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check05ReadPostsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
 
                 //ATTEMPT
-                var posts = db.Posts.ToList();
+                var posts = db.Posts.Include(x => x.Blogger).ToList();
 
                 //VERIFY
                 posts.Count.ShouldEqual(3);
@@ -122,12 +118,12 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check06ReadPostsWithTagsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
 
                 //ATTEMPT
-                var posts = db.Posts.Include(x => x.Tags).ToList();
+                var posts = db.Posts.Include(x => x.Blogger).Include(x => x.Tags).ToList();
 
                 //VERIFY
                 posts.Count.ShouldEqual(3);
@@ -139,7 +135,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check10ReadTAllocatedTagsWithUglySlugOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
 
@@ -159,7 +155,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check20AddPostOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
@@ -189,7 +185,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check21CheckUpdateSimpleOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
@@ -211,7 +207,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check22CheckUpdateLastUpdatedOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
@@ -226,14 +222,14 @@ namespace Tests.UnitTests.Group01DataLayer
                 //VERIFY
                 status.IsValid.ShouldEqual(true, status.Errors);
                 snap.CheckSnapShot(db);
-                Assert.GreaterOrEqual(db.Posts.First().LastUpdated.Subtract(originalDateTime).Milliseconds, 400);
+                ClassicAssert.GreaterOrEqual(db.Posts.First().LastUpdated.Subtract(originalDateTime).Milliseconds, 400);
             }
         }
 
         [Test]
         public void Check25UpdatePostToAddTagOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
@@ -248,7 +244,7 @@ namespace Tests.UnitTests.Group01DataLayer
                 //VERIFY
                 status.IsValid.ShouldEqual(true, status.Errors);
                 snap.CheckSnapShot(db, 0, 1);
-                firstPost = db.Blogs.Include(x => x.Posts.Select(y => y.Tags)).First().Posts.First();
+                firstPost = db.Blogs.Include(x => x.Posts).ThenInclude(y => y.Tags).First().Posts.First();
                 firstPost.Tags.Count.ShouldEqual(3);
             }
         }
@@ -256,7 +252,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check26ReplaceTagsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
@@ -272,7 +268,7 @@ namespace Tests.UnitTests.Group01DataLayer
                 //VERIFY
                 status.IsValid.ShouldEqual(true, status.Errors);
                 snap.CheckSnapShot(db, 0, -1);
-                firstPost = db.Blogs.Include(x => x.Posts.Select(y => y.Tags)).First().Posts.First();
+                firstPost = db.Blogs.Include(x => x.Posts).ThenInclude(y => y.Tags).First().Posts.First();
                 firstPost.Tags.Count.ShouldEqual(1);
             }
         }
@@ -280,7 +276,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check30CheckCreateLastUpdatedOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
@@ -289,6 +285,7 @@ namespace Tests.UnitTests.Group01DataLayer
                 Thread.Sleep(400);
 
                 //ATTEMPT
+                firstPostUntracked.PostId = 0;
                 firstPostUntracked.Title = Guid.NewGuid().ToString();
                 firstPostUntracked.Blogger = db.Blogs.First();
                 firstPostUntracked.Tags = db.Tags.Take(2).ToList();
@@ -299,23 +296,24 @@ namespace Tests.UnitTests.Group01DataLayer
                 status.IsValid.ShouldEqual(true, status.Errors);
                 snap.CheckSnapShot(db,1,2);
                 var loadedPost = db.Posts.Single(x => x.PostId == firstPostUntracked.PostId);
-                Assert.GreaterOrEqual(loadedPost.LastUpdated.Subtract(originalDateTime).Milliseconds, 400);
+                ClassicAssert.GreaterOrEqual(loadedPost.LastUpdated.Subtract(originalDateTime).Milliseconds, 400);
             }
         }
 
         [Test]
         public void Check31CheckCreateDataOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
                 var firstPostUntracked = db.Posts.AsNoTracking().First();
 
                 //ATTEMPT
+                firstPostUntracked.PostId = 0;
                 firstPostUntracked.Title = Guid.NewGuid().ToString();
                 firstPostUntracked.Blogger = db.Blogs.First();
-                firstPostUntracked.Tags = db.Tags.Take(2).ToList();
+                firstPostUntracked.Tags = db.Tags.OrderBy(x => x.TagId).Take(2).ToList();
                 db.Posts.Add(firstPostUntracked);
                 var status = db.SaveChangesWithChecking();
 
@@ -324,7 +322,7 @@ namespace Tests.UnitTests.Group01DataLayer
                 snap.CheckSnapShot(db,1,2);
                 var loadedPost = db.Posts.Include( x => x.Blogger).Include( x => x.Tags).Single(x => x.PostId == firstPostUntracked.PostId);
                 loadedPost.Blogger.BlogId.ShouldEqual(db.Blogs.First().BlogId);
-                CollectionAssert.AreEquivalent(db.Tags.Take(2).Select(x => x.TagId), loadedPost.Tags.Select(x => x.TagId));
+                CollectionAssert.AreEquivalent(db.Tags.OrderBy(x => x.TagId).Take(2).Select(x => x.TagId), loadedPost.Tags.Select(x => x.TagId));
             }
         }
     }
