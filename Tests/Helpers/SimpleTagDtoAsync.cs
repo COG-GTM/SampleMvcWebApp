@@ -30,7 +30,7 @@ using GenericServices;
 
 namespace Tests.Helpers
 {
-    class SimpleTagDtoAsync : ILinkToEntity<Tag>
+    public class SimpleTagDtoAsync : ILinkToEntity<Tag>
     {
 
         [Key]

@@ -1,9 +1,12 @@
 using DataLayer.DataClasses;
 using DataLayer.Startup;
+using GenericServices.Configuration;
+using GenericServices.Setup;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServiceLayer.Startup;
+using ServiceLayer.TagServices;
 
 namespace Tests.Helpers
 {
@@ -48,6 +51,24 @@ namespace Tests.Helpers
         {
             var services = new ServiceCollection();
             services.AddServiceLayer(ConnectionString);
+            return services.BuildServiceProvider(validateScopes: true);
+        }
+
+        /// <summary>
+        /// Registers GenericServices for the ServiceLayer and Tests DTOs against the test database
+        /// </summary>
+        internal static ServiceProvider CreateProviderWithTestDtos()
+        {
+            var services = new ServiceCollection();
+            services.AddDataLayer(ConnectionString);
+            var config = new GenericServicesConfig
+            {
+                DtoAccessValidateOnSave = true,
+                DirectAccessValidateOnSave = true,
+                BeforeSaveChanges = context => ((SampleWebAppDb)context).CheckTagSlugsUnique()
+            };
+            services.GenericServicesSimpleSetup<SampleWebAppDb>(config,
+                typeof(TagListDto).Assembly, typeof(TestDbHelper).Assembly);
             return services.BuildServiceProvider(validateScopes: true);
         }
 

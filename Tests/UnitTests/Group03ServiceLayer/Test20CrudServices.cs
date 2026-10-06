@@ -17,18 +17,21 @@ namespace Tests.UnitTests.Group03ServiceLayer
     public class Test20CrudServices
     {
         private ServiceProvider _provider;
+        private ServiceProvider _testDtoProvider;
 
         [OneTimeSetUp]
         public void FixtureSetUp()
         {
             TestDbHelper.MigrateAndResetBlogs(TestDataSelection.Small);
             _provider = TestDbHelper.CreateServiceLayerProvider();
+            _testDtoProvider = TestDbHelper.CreateProviderWithTestDtos();
         }
 
         [OneTimeTearDown]
         public void FixtureTearDown()
         {
             _provider.Dispose();
+            _testDtoProvider.Dispose();
         }
 
         [SetUp]
@@ -130,7 +133,7 @@ namespace Tests.UnitTests.Group03ServiceLayer
         [Test]
         public void Check12CreateTagViaDtoDuplicateSlugBad()
         {
-            using var scope = _provider.CreateScope();
+            using var scope = _testDtoProvider.CreateScope();
             var service = scope.ServiceProvider.GetRequiredService<ICrudServices>();
 
             service.CreateAndSave(new SimpleTagDto { Name = "Duplicate", Slug = "good" });
@@ -144,7 +147,7 @@ namespace Tests.UnitTests.Group03ServiceLayer
             int goodTagId;
             using (var db = TestDbHelper.CreateDb())
                 goodTagId = db.Tags.Single(x => x.Slug == "good").TagId;
-            using var scope = _provider.CreateScope();
+            using var scope = _testDtoProvider.CreateScope();
             var service = scope.ServiceProvider.GetRequiredService<ICrudServices>();
 
             service.UpdateAndSave(new SimpleTagDto { TagId = goodTagId, Name = "Good post", Slug = "bad" });
@@ -157,7 +160,7 @@ namespace Tests.UnitTests.Group03ServiceLayer
         [Test]
         public async Task Check14CreateTagAsyncDuplicateSlugBad()
         {
-            using var scope = _provider.CreateScope();
+            using var scope = _testDtoProvider.CreateScope();
             var service = scope.ServiceProvider.GetRequiredService<ICrudServicesAsync>();
 
             await service.CreateAndSaveAsync(new SimpleTagDtoAsync { Name = "Duplicate", Slug = "bad" });
