@@ -92,12 +92,20 @@ DTO/entity types are mapped. Remove the pin when EfCore.GenericServices ships an
 - `MultipleActiveResultSets=True` is kept (harmless); Microsoft.Data.SqlClient 5+ defaults `Encrypt=True` → local dev string needs `TrustServerCertificate=True`.
 - Migrations model differs: EF6 `__MigrationHistory` + `Configuration : DbMigrationsConfiguration` (none existed here) vs EF Core `__EFMigrationsHistory` + `ModelSnapshot`. No EF6 migrations to port.
 
+- **(A, verified)** Medium seed loads Blogs=4, Posts=17, Tags=8, PostTag rows=29; Small loads 2/3/3. The Medium XML lists 10 tags but `mystery`/`murder` are not referenced by any post and are only reachable through posts → 8 saved (same as legacy, `Test10SetupBlogs` expects 8).
+- **(A)** `ResetBlogs` uses `ExecuteDelete()`, which bypasses the change tracker → it calls `ChangeTracker.Clear()` before re-adding. Callers holding tracked entities from before a reset must re-query.
+- **(A, verified)** A failed `CreateAndSave`/`UpdateAndSave` (validation or `BeforeSaveChanges` error) leaves the invalid entity **tracked** in the scoped `SampleWebAppDb`; any later `*AndSave` / `SaveChanges` in the same scope fails again with the same error. One request = one write is fine for MVC; tests that do several writes in one scope must use a new scope (or `db.ChangeTracker.Clear()`) after an expected failure.
+- **(A)** `Microsoft.EntityFrameworkCore.Design 10.0.0` brings `System.Security.Cryptography.Xml 9.0.0` transitively (via MSBuild/Roslyn workspaces) → NU1903 warnings on DataLayer builds. It is `PrivateAssets=all` (design-time only, does not flow to ServiceLayer/SampleWebApp/Tests runtime) — accepted.
+
 ## 3. GenericServices DTOs (`ServiceLayer`) — see §0 and the contract in §11
 - `TagListDto`, `BlogListDto`: `PostsCount` relied on AutoMapper aggregate flattening (`Posts.Count`) → still works with `ProjectTo` in AutoMapper 14 (verify in tests).
 - `SimplePostDto(Async)`: `BloggerName` flattening works; `TagNames` / `LastUpdatedUtc` are computed getters → AutoMapper must **ignore** them (no setter, fine) and `Tags` must be projected (`ICollection<Tag>` projected from entity – AutoMapper maps to new `Tag` objects; OK).
 - `DetailPostDto(Async)`: `SetupSecondaryData`, `CreateDataFromDto`, `UpdateDataFromDto`, `SetupRestOfDto`, `ChangeTagsBasedOnMultiSelectList` → `DetailPostService` / `DetailPostServiceAsync` in ServiceLayer (§11).
 - `[assembly: InternalsVisibleTo("Tests")]` repeated in DTO files → remove from code (duplicate attributes), put in csproj.
 - `DelegateDecompiler(.EntityFramework)`, `Mono.Reflection`, `MarkdownSharp`, `GenericLibsBase`: no runtime usage besides logger/status → drop.
+
+- **(A, verified)** `DetailPostDto(Async)` uses `PerDtoConfig` (`DetailPostDtoConfig`/`DetailPostDtoAsyncConfig`, public, discovered from the ServiceLayer assembly): read mapping ignores `Bloggers`/`UserChosenTags`; save mapping ignores `Tags`, `Blogger`, `LastUpdated`. The post services map scalar fields onto a loaded `Post` and set `BlogId`/`Tags` from the selections themselves.
+- **(A, verified)** Status messages: post services return `"Successfully created Post."` / `"Successfully updated Post."`; GenericServices itself returns e.g. `"Successfully created a Tag"`, `"Successfully deleted a Post"`, and `"Failed with 1 error"` when invalid (assert on `IsValid`/`Errors`, not on exact failure text).
 
 ## 4. OWIN + ASP.NET Identity — referenced, **not wired up**
 `packages.config` references `Microsoft.AspNet.Identity.*`, `Microsoft.Owin.*`, `Owin`, but: no `Startup`/`[assembly: OwinStartup]` class,
@@ -148,6 +156,8 @@ No `Hub` subclass and no `MapSignalR()` anywhere. Only dead client JS: `Scripts/
 | `.sln` web project type GUID `{349c5851-65df-11da-9384-00065b846f21}` | plain C# project; keep all 5 projects in `SampleWebApp.sln`; drop `.nuget` solution folder if any |
 | NUnit 2.6.3 (`[TestFixtureSetUp]`, `Assert.AreEqual`, `ExpectedException`), Moq 4.2 | NUnit 4.x (`[OneTimeSetUp]`, `Assert.That` or `NUnit.Framework.Legacy.ClassicAssert`, `Assert.Throws`), `NUnit3TestAdapter`, `Microsoft.NET.Test.Sdk`, Moq 4.20.x |
 | `Tests/Properties/Settings.settings` | `Tests/appsettings.json` or env var `ConnectionStrings__SampleWebAppDb` |
+
+**(A)** `dotnet new tool-manifest` on SDK 10.0.301 writes `dotnet-tools.json` in the **current directory**, not `.config/`; it was moved to `.config/dotnet-tools.json` (`dotnet-ef 10.0.0`). Use `dotnet tool restore` then `dotnet ef ... --project DataLayer` (design-time factory reads `ConnectionStrings__SampleWebAppDb`).
 
 ## 10. Replacement summary
 | Legacy package | Replacement |
