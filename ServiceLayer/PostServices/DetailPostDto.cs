@@ -24,24 +24,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using DataLayer.DataClasses;
+using AutoMapper;
 using DataLayer.DataClasses.Concrete;
-using GenericLibsBase;
-using GenericLibsBase.Core;
 using GenericServices;
-using GenericServices.Core;
+using GenericServices.Configuration;
 using ServiceLayer.UiClasses;
-
-[assembly: InternalsVisibleTo("Tests")]
 
 namespace ServiceLayer.PostServices
 {
-    public class DetailPostDto : EfGenericDto<Post, DetailPostDto>
+    public class DetailPostDto : ILinkToEntity<Post>
     {
 
         [UIHint("HiddenInput")]
@@ -62,11 +54,10 @@ namespace ServiceLayer.PostServices
         //properties that cannot be set directly (The data layer looks after them)
 
         [ScaffoldColumn(false)]
-        [DoNotCopyBackToDatabase]
         public DateTime LastUpdated { get; set; }
 
         //------------------------------------------
-        //these two items are altered by the SetupRestOfDto method based on the user's selection
+        //these two items are altered by the post service based on the user's selection
 
         [UIHint("HiddenInput")]
         public int BlogId { get; set; }
@@ -86,8 +77,6 @@ namespace ServiceLayer.PostServices
 
         //-------------------------------------------
         //calculated properties to help display 
-        //(Note: SampleMvcWebApp was written before calculated properties using [Computed] was added to GenericServices.
-        //see https://github.com/JonPSmith/GenericServices/wiki/Calculated-properties for a better way of doing this
 
         /// <summary>
         /// When it was last updated in DateTime format
@@ -102,118 +91,29 @@ namespace ServiceLayer.PostServices
             Bloggers = new DropDownListType();
             UserChosenTags = new MultiSelectListType();
         }
+    }
 
-        //----------------------------------------------
-        //overridden methods
-
-        protected override CrudFunctions SupportedFunctions
+    public class DetailPostDtoConfig : PerDtoConfig<DetailPostDto, Post>
+    {
+        public override Action<IMappingExpression<Post, DetailPostDto>> AlterReadMapping
         {
-            get { return CrudFunctions.AllCrud; }
+            get
+            {
+                return cfg => cfg
+                    .ForMember(x => x.Bloggers, opt => opt.Ignore())
+                    .ForMember(x => x.UserChosenTags, opt => opt.Ignore());
+            }
         }
 
-        /// <summary>
-        /// This sets up the dropdownlist for the possible bloggers and the MultiSelectList of tags
-        /// </summary>
-        /// <param name="context"></param>
-        /// <param name="dto"></param>
-        protected override void SetupSecondaryData(IGenericServicesDbContext context, DetailPostDto dto)
+        public override Action<IMappingExpression<DetailPostDto, Post>> AlterSaveMapping
         {
-
-            dto.Bloggers.SetupDropDownListContent(
-                context.Set<Blog>()
-                    .ToList()
-                    .Select(x => new KeyValuePair<string, string>(x.Name, x.BlogId.ToString("D"))),
-                "--- choose blogger ---");
-            if (dto.PostId != 0)
-                //there is an entry, so set the selected value to that
-                dto.Bloggers.SetSelectedValue(dto.BlogId.ToString("D"));
-
-            var preselectedTags = dto.PostId == 0
-                ? new List<KeyValuePair<string, int>>()     //Create, so no tags selected yet
-                : Tags
-                    .Select(x => new { Key = x.Name, Value = x.TagId })
-                    .ToList()
-                    .Select(x => new KeyValuePair<string, int>(x.Key, x.Value))
-                    .ToList();
-            dto.UserChosenTags.SetupMultiSelectList(
-                context.Set<Tag>().ToList().Select(x => new KeyValuePair<string, int>(x.Name, x.TagId)), preselectedTags);
-        }
-        
-        protected override ISuccessOrErrors<Post> CreateDataFromDto(IGenericServicesDbContext context, DetailPostDto source)
-        {
-            var status = SetupRestOfDto(context);
-
-            return status.IsValid
-                ? base.CreateDataFromDto(context, this)
-                : SuccessOrErrors<Post>.ConvertNonResultStatus(status);
-        }
-
-        protected override ISuccessOrErrors UpdateDataFromDto(IGenericServicesDbContext context, DetailPostDto source, Post destination)
-        {
-            var status = SetupRestOfDto(context, destination);
-
-            return status.IsValid
-                ? base.UpdateDataFromDto(context, this, destination)
-                : status;
-        }
-
-        //---------------------------------------------------
-        //private helpers
-
-        private ISuccessOrErrors SetupRestOfDto(IGenericServicesDbContext context, Post post = null)
-        {
-
-            var db = context as SampleWebAppDb;
-            if (db == null)
-                throw new NullReferenceException("The IDbContextWithValidation must be linked to TemplateWebAppDb.");
-
-            var status = SuccessOrErrors.Success("OK if no errors set");
-
-            //now we sort out the blogger
-            var errMsg = SetBloggerIdFromDropDownList(db);
-            if (errMsg != null)
-                status.AddNamedParameterError("Bloggers", errMsg);
-
-            //now we sort out the tags
-            errMsg = ChangeTagsBasedOnMultiSelectList(db, post);
-            if (errMsg != null)
-                status.AddNamedParameterError("UserChosenTags", errMsg);
-
-            return status;
-        }
-
-        private string SetBloggerIdFromDropDownList(SampleWebAppDb db)
-        {
-
-            var blogId = Bloggers.SelectedValueAsInt;
-            if (blogId == null)
-                return "The blogger was not selected. You must do that before the post can be saved.";
-
-            var blogger = db.Blogs.Find((int)blogId);
-            if (blogger == null)
-                return "Could not find the blogger you selected. Did another user delete it?";
-
-            BlogId = (int)blogId;   //will be copied over to database entity by AutoMapper
-            return null;
-        }
-
-        private string ChangeTagsBasedOnMultiSelectList(SampleWebAppDb db, Post post = null)
-        {
-            var requiredTagIds = UserChosenTags.GetFinalSelectionAsInts();
-            if (!requiredTagIds.Any())
-                return "You must select at least one tag for the post.";
-
-            if (requiredTagIds.Any(x => db.Tags.Find(x) == null))
-                return "Could not find one of the tags. Did another user delete it?";
-
-            if (post != null)
-                //This is an update so we need to load the tags
-                db.Entry(post).Collection(p => p.Tags).Load();
-
-            var newTagsForPost = db.Tags.Where(x => requiredTagIds.Contains(x.TagId)).ToList();
-            Tags = newTagsForPost;      //will be copied over to database entity by AutoMapper
-
-            return null;
+            get
+            {
+                return cfg => cfg
+                    .ForMember(x => x.Tags, opt => opt.Ignore())
+                    .ForMember(x => x.Blogger, opt => opt.Ignore())
+                    .ForMember(x => x.LastUpdated, opt => opt.Ignore());
+            }
         }
     }
 }
