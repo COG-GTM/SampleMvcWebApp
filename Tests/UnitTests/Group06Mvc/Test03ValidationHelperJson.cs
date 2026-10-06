@@ -24,6 +24,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
+using System.Text.Json;
 using NUnit.Framework;
 using SampleWebApp.Infrastructure;
 using StatusGeneric;
@@ -97,7 +98,7 @@ namespace Tests.UnitTests.Group06Mvc
             const string order2 = "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The MyString field is required.\",\"The field MyString must be a string or array type with a minimum length of '2'.\"]}}}";
             const string order2Json =
                 "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The MyString field is required.\",\"The field MyString must be a string or array type with a minimum length of \\u00272\\u0027.\"]}}}";
-            (json == order1Json || json == order2Json).ShouldEqual(true);
+            Assert.That(json, Is.AnyOf(order1Json, order2Json));
 
         }
 
@@ -111,14 +112,15 @@ namespace Tests.UnitTests.Group06Mvc
             var jsonResult = model.ReturnModelState().ReturnModelErrorsAsJson();
 
             //VERIFY
-            var json = jsonResult.Value.SerialiseToJson();
-            const string order1 = "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The field MyString must be a string or array type with a minimum length of '2'.\",\"The MyString field is required.\"]},";
-            const string order1Json = "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The field MyString must be a string or array type with a minimum length of \\u00272\\u0027.\",\"The MyString field is required.\"]},";
-            const string order2 = "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The MyString field is required.\",\"The field MyString must be a string or array type with a minimum length of '2'.\"]},";
-            const string order2Json =
-                "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The MyString field is required.\",\"The field MyString must be a string or array type with a minimum length of \\u00272\\u0027.\"]},";
-            const string part2 = "\"MyInt\":{\"errors\":[\"The field MyInt must be between 0 and 100.\"]}}}";
-            (json == order1Json + part2 || json == order2Json + part2).ShouldEqual(true);
+            var errorsDict = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, Dictionary<string, string[]>>>>(
+                jsonResult.Value.SerialiseToJson())["errorsDict"];
+            Assert.That(errorsDict.Keys, Is.EquivalentTo(new[] { "MyString", "MyInt" }));
+            Assert.That(errorsDict["MyString"]["errors"], Is.EquivalentTo(new[]
+            {
+                "The field MyString must be a string or array type with a minimum length of '2'.",
+                "The MyString field is required."
+            }));
+            Assert.That(errorsDict["MyInt"]["errors"], Is.EqualTo(new[] { "The field MyInt must be between 0 and 100." }));
         }
 
         //-------------------------------------------------------------------
