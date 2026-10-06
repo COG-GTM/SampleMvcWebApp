@@ -294,4 +294,14 @@ Posts use `[FromServices] IDetailPostService` (+ `DeleteAndSave<Post>`); `*Async
   - The database is migrated **and seeded on startup when empty** (`ServiceLayerInitialise` → `SeedIfEmpty`), so the first page load already shows 4 / 17 / 8. Reset still works as before.
   - Create/update Post keep the legacy wording (`DetailPostService`). Tag/Blog create/update/delete and Post delete use EfCore.GenericServices' default success text (e.g. `Successfully deleted a Post`) instead of GenericServices 1.0.9's `Successfully deleted Post.`.
   - Post title validation and duplicate tag slug messages are identical.
-- Phase 2 (.NET 10 run in VM): _filled in after recording_.
+- **Phase 2: .NET 10 run in the Linux VM** (commit `3734475`, .NET SDK 10.0.301, SQL Server 2022 in Docker, Chrome; the DB was dropped first so startup ran the EF Core migration and seed):
+  - Video: [phase2-net10-crud-share.mp4](https://app.devin.ai/attachments/c82df3ee-5fba-4b6f-b81c-26716fb2af40/phase2-net10-crud-share.mp4) (3 min).
+  - Passed: fresh migrate + seed gives 4 blogs / 17 posts / 8 tags.
+  - Passed: Blogs create/edit/delete and filtering posts by blog. The legacy app also has no Blog Details page.
+  - Passed: Posts list/details/create/edit/delete, including changing the blogger and tags. Empty-title and `!`-title validation work.
+  - Passed: Tags list/details/create/edit/delete. A duplicate slug shows the validation error, not a 500.
+  - Passed: PostsAsync/TagsAsync CRUD.
+  - Passed: data survives a page reload and a real restart of the `dotnet run` process.
+  - Passed: Reset and NumPosts give 17 posts.
+  - Passed: no JavaScript errors, no static-asset 404s, no SignalR traffic.
+  - Minor, pre-existing (same markup in legacy `master`): on Post Create/Edit the `Bloggers`/`Tags` labels point at ids that don't exist (Chrome Issues warning only).
