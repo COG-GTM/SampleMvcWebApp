@@ -1,8 +1,8 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
-// Filename: WebUiInitialise.cs
-// Date Created: 2014/05/20
+// Filename: Test12WebAppServiceSetup.cs
+// Date Created: 2014/05/22
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -24,32 +24,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using ServiceLayer.Startup;
+using DataLayer.DataClasses;
+using Microsoft.AspNetCore.Mvc.Testing;
+using NUnit.Framework;
+using Tests.Helpers;
 
-namespace SampleWebApp.Infrastructure
+namespace Tests.UnitTests.Group03ServiceLayer
 {
-    public enum HostTypes { NotSet, LocalHost, WebWiz, Azure };
-
-    public static class WebUiInitialise
+    [TestFixture]
+    public class Test12WebAppServiceSetup
     {
-        public const string HostTypeConfigName = "HostType";
-
-        public static HostTypes HostType { get; private set; }
-
-        public static HostTypes DecodeHostType(string hostTypeString)
+        [Test]
+        public void Test20ViaMvcSetup()
         {
-            Enum.TryParse(hostTypeString, true, out HostTypes hostType);
-            return hostType;
-        }
+            //SETUP
+            using var baseFactory = new WebApplicationFactory<Program>();
+            using var factory = baseFactory.WithWebHostBuilder(builder => builder.UseSetting(
+                    $"ConnectionStrings:{SampleWebAppDb.NameOfConnectionString}", TestDbHelper.ConnectionString));
 
-        /// <summary>
-        /// This should be called at Startup, after the DI container has been built
-        /// </summary>
-        public static void InitialiseThis(IServiceProvider rootProvider, HostTypes hostType)
-        {
-            HostType = hostType;
-            //WebWiz does not allow drop/create database
-            ServiceLayerInitialise.InitialiseThis(rootProvider, hostType != HostTypes.WebWiz);
+            //ATTEMPT & VERIFY
+            Test11ServiceCollectionSetup.CheckExampleServicesResolve(factory.Services);
         }
     }
 }
