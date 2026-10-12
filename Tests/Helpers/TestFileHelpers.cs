@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: TestFileHelpers.cs
@@ -31,7 +31,7 @@ namespace Tests.Helpers
 {
     internal static class TestFileHelpers
     {
-        private const string TestFileDirectoryName = @"\TestData";
+        private const string TestFileDirectoryName = "TestData";
 
         //-------------------------------------------------------------------
 
@@ -55,11 +55,12 @@ namespace Tests.Helpers
         internal static string[] GetTestFileFilesOfGivenName(string searchPattern = "")
         {
             var directory = GetTestDataFileDirectory();
-            if (searchPattern.Contains(@"\"))
+            searchPattern = searchPattern.Replace('\\', '/');
+            if (searchPattern.Contains('/'))
             {
                 //Has subdirectory in search pattern, so change directory
-                directory = Path.Combine(directory, searchPattern.Substring(0, searchPattern.LastIndexOf('\\')));
-                searchPattern = searchPattern.Substring(searchPattern.LastIndexOf('\\')+1);
+                directory = Path.Combine(directory, searchPattern.Substring(0, searchPattern.LastIndexOf('/')));
+                searchPattern = searchPattern.Substring(searchPattern.LastIndexOf('/')+1);
             }
 
             string[] fileList = Directory.GetFiles(directory, searchPattern);
@@ -72,36 +73,27 @@ namespace Tests.Helpers
 
         public static string GetTestDataFileDirectory(string alternateTestDir = TestFileDirectoryName)
         {
-            string pathToManipulate = Environment.CurrentDirectory;
-            const string debugEnding = @"\bin\debug";
-            const string releaseEnding = @"\bin\release";
-
-            if (pathToManipulate.EndsWith(debugEnding, StringComparison.InvariantCultureIgnoreCase))
-                return pathToManipulate.Substring(0, pathToManipulate.Length - debugEnding.Length) + alternateTestDir;
-            if (pathToManipulate.EndsWith(releaseEnding, StringComparison.InvariantCultureIgnoreCase))
-                return pathToManipulate.Substring(0, pathToManipulate.Length - releaseEnding.Length) + alternateTestDir;   
-                
-            throw new Exception("bad news guys. Not the expected path");
-
+            return Path.Combine(GetProjectDirectory(), alternateTestDir);
         }
 
         public static string GetSolutionDirectory()
         {
-            string pathToManipulate = Environment.CurrentDirectory;
-            const string debugEnding = @"\bin\debug";
-            const string releaseEnding = @"\bin\release";
+            return Directory.GetParent(GetProjectDirectory()).FullName;
+        }
 
-            string projectDir = null;
-            if (pathToManipulate.EndsWith(debugEnding, StringComparison.InvariantCultureIgnoreCase))
-                projectDir = pathToManipulate.Substring(0, pathToManipulate.Length - debugEnding.Length);
-            if (pathToManipulate.EndsWith(releaseEnding, StringComparison.InvariantCultureIgnoreCase))
-                projectDir = pathToManipulate.Substring(0, pathToManipulate.Length - releaseEnding.Length);
+        /// <summary>
+        /// Walks up from the test output directory (e.g. Tests/bin/Debug/net10.0) to the directory holding Tests.csproj
+        /// </summary>
+        private static string GetProjectDirectory()
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory != null && !File.Exists(Path.Combine(directory.FullName, "Tests.csproj")))
+                directory = directory.Parent;
 
-            if (projectDir == null)
+            if (directory == null)
                 throw new Exception("bad news guys. Not the expected path");
 
-            return projectDir.Substring(0, projectDir.LastIndexOf("\\", StringComparison.Ordinal));
-
+            return directory.FullName;
         }
 
     }

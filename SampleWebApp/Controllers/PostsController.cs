@@ -24,13 +24,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Linq;
-using System.Threading;
-using System.Web.Mvc;
 using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
 using GenericServices;
+using Microsoft.AspNetCore.Mvc;
 using SampleWebApp.Infrastructure;
 using ServiceLayer.PostServices;
 
@@ -49,29 +47,27 @@ namespace SampleWebApp.Controllers
         /// <param name="id"></param>
         /// <param name="service"></param>
         /// <returns></returns>
-        public ActionResult Index(int? id, IListService service)
+        public IActionResult Index(int? id, [FromServices] ICrudServices service)
         {
-            var filtered = id != null && id != 0;
-            var query = filtered ? service.GetAll<SimplePostDto>().Where(x => x.BlogId == id) : service.GetAll<SimplePostDto>();
-            if (filtered)
+            if (id != null && id != 0)
                 TempData["message"] = "Filtered list";
 
-            return View(query.ToList());
+            return View(service.ReadManyNoTracked<SimplePostDto>().FilterByBlogId(id).ToList());
         }
 
-        public ActionResult Details(int id, IDetailService service)
+        public IActionResult Details(int id, [FromServices] IDetailPostService service)
         {
-            return View(service.GetDetail<DetailPostDto>(id).Result);
+            return View(service.GetDetail(id));
         }
 
-        public ActionResult Edit(int id, IUpdateSetupService service)
+        public IActionResult Edit(int id, [FromServices] IDetailPostService service)
         {
-            return View(service.GetOriginal<DetailPostDto>(id).Result);
+            return View(service.GetForEdit(id));
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(DetailPostDto dto, IUpdateService service)
+        public IActionResult Edit(DetailPostDto dto, [FromServices] IDetailPostService service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -80,24 +76,23 @@ namespace SampleWebApp.Controllers
             var response = service.Update(dto);
             if (response.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
+                TempData["message"] = response.Message;
                 return RedirectToAction("Index");
             }
 
             //else errors, so copy the errors over to the ModelState and return to view
             response.CopyErrorsToModelState(ModelState, dto);
-            return View(dto);
+            return View(service.ResetDto(dto));
         }
 
-        public ActionResult Create(ICreateSetupService setupService)
+        public IActionResult Create([FromServices] IDetailPostService service)
         {
-            var dto = setupService.GetDto<DetailPostDto>();
-            return View(dto);
+            return View(service.GetNew());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(DetailPostDto dto, ICreateService service)
+        public IActionResult Create(DetailPostDto dto, [FromServices] IDetailPostService service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -106,24 +101,24 @@ namespace SampleWebApp.Controllers
             var response = service.Create(dto);
             if (response.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
+                TempData["message"] = response.Message;
                 return RedirectToAction("Index");
             }
 
             //else errors, so copy the errors over to the ModelState and return to view
             response.CopyErrorsToModelState(ModelState, dto);
-            return View(dto);
+            return View(service.ResetDto(dto));
         }
 
-        public ActionResult Delete(int id, IDeleteService service)
+        public IActionResult Delete(int id, [FromServices] ICrudServices service)
         {
 
-            var response = service.Delete<Post>(id);
-            if (response.IsValid)
-                TempData["message"] = response.SuccessMessage;
+            service.DeleteAndSave<Post>(id);
+            if (service.IsValid)
+                TempData["message"] = service.Message;
             else
                 //else errors, so send back an error message
-                TempData["errorMessage"] = new MvcHtmlString(response.ErrorsAsHtml());
+                TempData["errorMessage"] = service.ErrorsAsHtml();
             
             return RedirectToAction("Index");
         }
@@ -131,7 +126,7 @@ namespace SampleWebApp.Controllers
         //-----------------------------------------------------
         //Code used in https://www.simple-talk.com/dotnet/.net-framework/the-.net-4.5-asyncawait-commands-in-promise-and-practice/
 
-        public ActionResult NumPosts(SampleWebAppDb db)
+        public IActionResult NumPosts([FromServices] SampleWebAppDb db)
         {
             //The cast to object is to stop the View using the string as a view name
             return View((object)GetNumPosts(db));
@@ -145,18 +140,18 @@ namespace SampleWebApp.Controllers
 
         //--------------------------------------------
 
-        public ActionResult CodeView()
+        public IActionResult CodeView()
         {
             return View();
         }
 
-        public ActionResult Delay()
+        public IActionResult Delay()
         {
             Thread.Sleep(500);
             return View(500);
         }
 
-        public ActionResult Reset(SampleWebAppDb db)
+        public IActionResult Reset([FromServices] SampleWebAppDb db)
         {
             DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
             TempData["message"] = "Successfully reset the blogs data";
