@@ -54,18 +54,26 @@ namespace DataLayer.Startup
 
         public static void ResetBlogs(SampleWebAppDb context, TestDataSelection selection)
         {
-            context.Posts.ExecuteDelete();
-            context.Tags.ExecuteDelete();
-            context.Blogs.ExecuteDelete();
-            context.ChangeTracker.Clear();
+            var strategy = context.Database.CreateExecutionStrategy();
+            strategy.Execute(() =>
+            {
+                context.ChangeTracker.Clear();
+                using var transaction = context.Database.BeginTransaction();
 
-            var bloggers = LoadDbDataFromXml.FormBlogsWithPosts(XmlBlogsDataFileManifestPath[selection]);
+                context.Posts.ExecuteDelete();
+                context.Tags.ExecuteDelete();
+                context.Blogs.ExecuteDelete();
 
-            context.Blogs.AddRange(bloggers);
-            var status = context.SaveChangesWithChecking();
-            if (!status.IsValid)
-                throw new FormatException(string.Format("Error when resetting the blogs data. Error:\n{0}",
-                    string.Join(",", status.Errors)));
+                var bloggers = LoadDbDataFromXml.FormBlogsWithPosts(XmlBlogsDataFileManifestPath[selection]);
+
+                context.Blogs.AddRange(bloggers);
+                var status = context.SaveChangesWithChecking();
+                if (!status.IsValid)
+                    throw new FormatException(string.Format("Error when resetting the blogs data. Error:\n{0}",
+                        string.Join(",", status.Errors)));
+
+                transaction.Commit();
+            });
         }
 
         public static void SeedIfEmpty(SampleWebAppDb context, TestDataSelection selection)
