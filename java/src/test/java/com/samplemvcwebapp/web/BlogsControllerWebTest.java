@@ -39,7 +39,7 @@ class BlogsControllerWebTest {
                 .andExpect(content().string(containsString("<title> - SampleMvcWebApp</title>")))
                 .andExpect(content().string(containsString("<h2>Blogs</h2>")))
                 .andExpect(content().string(containsString("Num Posts this Author")))
-                .andExpect(content().string(containsString("<td>sherlock@nospam.com</td>")))
+                .andExpect(content().string(containsString("<a href=\"mailto:sherlock@nospam.com\">sherlock@nospam.com</a>")))
                 .andExpect(content().string(containsString("Create New Blogger")))
                 .andExpect(content().string(containsString("href=\"/Posts/Index/2\"")));
         mvc.perform(get("/Blogs/Index")).andExpect(view().name("blogs/index"));

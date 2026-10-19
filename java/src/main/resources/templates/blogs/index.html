@@ -38,7 +38,7 @@
             <input id="item_BlogId" name="item.BlogId" type="hidden" th:value="${item.blogId}" />
         </td>
         <td th:text="${item.name}">name</td>
-        <td th:text="${item.emailAddress}">email</td>
+        <td><a th:href="${'mailto:' + item.emailAddress}" th:text="${item.emailAddress}">email</a></td>
         <td th:text="${item.postsCount}">0</td>
         <td>
             <a th:href="@{/Blogs/Edit/{id}(id=${item.blogId})}">Edit</a> |

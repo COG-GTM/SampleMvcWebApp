@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(null, ~{::#content}, true)}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(null, ~{::#content}, false)}">
 <body>
 <div id="content" th:remove="tag">
 <form method="post" th:action="@{/Blogs/Create}" th:object="${blog}">
