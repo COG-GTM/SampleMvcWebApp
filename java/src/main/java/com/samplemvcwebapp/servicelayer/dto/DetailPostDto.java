@@ -1,7 +1,11 @@
 package com.samplemvcwebapp.servicelayer.dto;
 
+import com.samplemvcwebapp.datalayer.validation.MinLength;
+import com.samplemvcwebapp.datalayer.validation.ValidationMessages;
 import com.samplemvcwebapp.servicelayer.ui.DropDownListType;
 import com.samplemvcwebapp.servicelayer.ui.MultiSelectListType;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 /**
@@ -12,8 +16,15 @@ import java.time.LocalDateTime;
 public class DetailPostDto {
 
     private int postId;
+
+    @NotBlank(message = ValidationMessages.TITLE_REQUIRED)
+    @MinLength(value = 2, message = ValidationMessages.TITLE_MIN)
+    @Size(max = 128, message = ValidationMessages.TITLE_MAX)
     private String title;
+
+    @NotBlank(message = ValidationMessages.CONTENT_REQUIRED)
     private String content;
+
     private String bloggerName;
     private String tagNames;
     private LocalDateTime lastUpdated;
