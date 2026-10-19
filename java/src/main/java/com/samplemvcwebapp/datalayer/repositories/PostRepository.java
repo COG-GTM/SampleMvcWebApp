@@ -12,6 +12,10 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     @EntityGraph(attributePaths = {"blogger", "tags"})
     List<Post> findAllByOrderByPostIdAsc();
 
+    /** Legacy list has no ORDER BY; SQL Server returns posts grouped by blog, then insertion order. */
+    @EntityGraph(attributePaths = {"blogger", "tags"})
+    List<Post> findAllByOrderByBlogger_BlogIdAscPostIdAsc();
+
     /** One blogger's posts in PostId order with blogger and tags fetched. */
     @EntityGraph(attributePaths = {"blogger", "tags"})
     List<Post> findByBlogger_BlogIdOrderByPostIdAsc(Integer blogId);

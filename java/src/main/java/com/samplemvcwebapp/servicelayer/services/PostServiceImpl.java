@@ -14,8 +14,6 @@ import com.samplemvcwebapp.servicelayer.dto.DetailPostDto;
 import com.samplemvcwebapp.servicelayer.dto.SimplePostDto;
 import com.samplemvcwebapp.servicelayer.ui.KeyValue;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -52,7 +50,7 @@ public class PostServiceImpl implements PostService {
     @Transactional(readOnly = true)
     public List<SimplePostDto> listPosts(Integer blogId) {
         List<Post> posts = (blogId == null || blogId == 0)
-                ? postRepository.findAllByOrderByPostIdAsc()
+                ? postRepository.findAllByOrderByBlogger_BlogIdAscPostIdAsc()
                 : postRepository.findByBlogger_BlogIdOrderByPostIdAsc(blogId);
         return posts.stream()
                 .map(p -> new SimplePostDto(p.getPostId(), p.getBlogger().getBlogId(), p.getBlogger().getName(),
@@ -183,9 +181,8 @@ public class PostServiceImpl implements PostService {
         return dto;
     }
 
-    /** LastUpdated is stored in UTC; DTOs expose local time like the legacy display. */
+    /** LastUpdated is stored in UTC and, like legacy {@code LastUpdatedUtc.ToShortDateString()}, displayed as UTC. */
     static LocalDateTime toLocal(LocalDateTime utc) {
-        return utc == null ? null
-                : utc.atOffset(ZoneOffset.UTC).atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+        return utc;
     }
 }
