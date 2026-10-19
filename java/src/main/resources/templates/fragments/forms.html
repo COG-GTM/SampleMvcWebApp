@@ -11,13 +11,13 @@
 <span th:fragment="validationMessage(field)" th:remove="tag"><span class="field-validation-error text-danger" th:if="${#fields.hasErrors(field)}" th:attr="data-valmsg-for=${field},data-valmsg-replace='true'"><span th:each="err : ${#fields.errors(field)}" th:text="${err}">error</span></span><span class="field-validation-valid text-danger" th:unless="${#fields.hasErrors(field)}" th:attr="data-valmsg-for=${field},data-valmsg-replace='true'"></span></span>
 
 <!--/* Shared/EditorTemplates/DropDownListType.cshtml */-->
-<select th:fragment="dropDownListType(field, list)" class="form-control" th:field="*{__${field}__.selectedValue}">
+<select th:fragment="dropDownListType(field, list)" th:field="*{__${field}__.selectedValue}">
     <option th:if="${ui.prompt(list) != null}" value="" th:text="${ui.prompt(list)}">--- choose ---</option>
     <option th:each="kv : ${list.keyValueList}" th:value="${kv.value != null ? kv.value : ''}" th:text="${kv.text}">option</option>
 </select>
 
 <!--/* Shared/EditorTemplates/MultiSelectListType.cshtml */-->
-<select th:fragment="multiSelectListType(field, list)" class="form-control" multiple="multiple" th:field="*{__${field}__.finalSelection}">
+<select th:fragment="multiSelectListType(field, list)" multiple="multiple" th:field="*{__${field}__.finalSelection}">
     <option th:each="kv : ${list.keyValueList}" th:value="${kv.value}" th:text="${kv.text}">option</option>
 </select>
 
