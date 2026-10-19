@@ -58,6 +58,23 @@ class HomeControllerWebTest {
     }
 
     @Test
+    void errorPageIsDirectlyRoutable() throws Exception {
+        mvc.perform(get("/Error"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("error"))
+                .andExpect(content().string(containsString("<title>Error - SampleMvcWebApp</title>")))
+                .andExpect(content().string(containsString("An error occurred while processing your request.")));
+    }
+
+    @Test
+    void internalLinksHonourContextPath() throws Exception {
+        mvc.perform(get("/sample/Home/About").contextPath("/sample"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/sample/Home/CodeView\"")))
+                .andExpect(content().string(containsString("href=\"/sample/Posts/Index/0\"")));
+    }
+
+    @Test
     void staticAssetsAreServed() throws Exception {
         mvc.perform(get("/Content/Site.css")).andExpect(status().isOk());
         mvc.perform(get("/Scripts/jquery-1.10.2.js")).andExpect(status().isOk());

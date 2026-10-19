@@ -30,6 +30,12 @@ public class HomeController {
         return "home/internals";
     }
 
+    /** Views/Shared/Error as a named page (notes section 5: GET /Error). */
+    @GetMapping("/Error")
+    public String error() {
+        return "error";
+    }
+
     @GetMapping("/Home/CodeView")
     public String codeView() {
         return "home/codeView";

@@ -37,8 +37,8 @@
 
 <h3 class="text-info">Where should I start?</h3>
 <ul>
-    <li>You dive right in by clicking one of the menu links at the top of this page. Try Sync database -> <a href="/Posts">Posts</a> as a start.</li>
-    <li>Go to <a href="/Home/CodeView">this page</a> for more detail on what code features are shown on this site.</li>
+    <li>You dive right in by clicking one of the menu links at the top of this page. Try Sync database -> <a href="/Posts" th:href="@{/Posts}">Posts</a> as a start.</li>
+    <li>Go to <a href="/Home/CodeView" th:href="@{/Home/CodeView}">this page</a> for more detail on what code features are shown on this site.</li>
     <li>
         You can look at the the GenericServices's <a href="https://github.com/JonPSmith/GenericServices/blob/master/README.md" target="_blank">read.me</a> file
         or SampleMvcWebApp's <a href="https://github.com/JonPSmith/SampleMvcWebApp/blob/master/README.md" target="_blank">read.me</a> file on GitHub.
@@ -73,7 +73,7 @@
     As well as showing the framework in action it includes links to explanations of the code.
 </h4>
 <p>
-    On most pages you will see a <a href="/Home/CodeView">Explanation of the code</a> link. It is normally on the right hand side above the data.<br />
+    On most pages you will see a <a href="/Home/CodeView" th:href="@{/Home/CodeView}">Explanation of the code</a> link. It is normally on the right hand side above the data.<br />
     This takes you to a page that a) has links to the actual source on GitHub and b) tries to explain how it all hangs together.
 </p>
 <small>Remember, the links to the code on GitHub are always the best documentation.</small>

@@ -13,7 +13,7 @@
 </p>
 <p>
     In most cases we detail how TagsAsync commands are different to the normal Tag access. You should therefore read the
-    <a href="/Tags/CodeView">Tags Explanation</a> to give you that background first.
+    <a href="/Tags/CodeView" th:href="@{/Tags/CodeView}">Tags Explanation</a> to give you that background first.
     The headers contain links to the code on GitHub for you to look at.
     For most of you the links to the code will be sufficient, but more information is available by clicking on the panel titles.
 </p>
@@ -39,7 +39,7 @@
         <div id="TagsController" class="panel-collapse collapse">
             <div class="panel-body">
                 <p>
-                    The <a href="/Tags/CodeView">explanation of the Tags controller</a> describes certain standard parts.
+                    The <a href="/Tags/CodeView" th:href="@{/Tags/CodeView}">explanation of the Tags controller</a> describes certain standard parts.
                     In this section we point out what is the same between the TagsController and the TagsAsyncController.
                 </p>
                 <dl>
@@ -48,7 +48,7 @@
                         <ul>
                             <li>
                                 The service is injected by DI into the action as a parameter.
-                                See the Dependency Injection section in the <a href="/Tags/CodeView">Posts Explanation</a> page.
+                                See the Dependency Injection section in the <a href="/Tags/CodeView" th:href="@{/Tags/CodeView}">Posts Explanation</a> page.
                             </li>
                             <li>
                                 The basic form of the services is the same, i.e.
@@ -58,7 +58,7 @@
                                 </ol>
                             </li>
                             <li>
-                                Error handling is the same as described on <a href="/Posts/CodeView">Posts Explanation</a> page
+                                Error handling is the same as described on <a href="/Posts/CodeView" th:href="@{/Posts/CodeView}">Posts Explanation</a> page
                             </li>
                         </ul>
                     </dd>
@@ -115,7 +115,7 @@
             <div class="panel-body">
                 <dl>
                     <p>
-                        The <a href="/Tags/CodeView">explanation of the Tags controller</a> describes certain standard parts.
+                        The <a href="/Tags/CodeView" th:href="@{/Tags/CodeView}">explanation of the Tags controller</a> describes certain standard parts.
                         In this section we point out what is the same between the PostsController and the PostAsyncController.
                     </p>
                     <dt>Items that different from the TagsController</dt>
@@ -166,7 +166,7 @@
     (see <a href="https://github.com/JonPSmith/SampleMvcWebApp/blob/master/ServiceLayer/Startup/ServiceLayerModule.cs" target="_blank">in SampleMvcWebApp</a>)
 </p>
 <p>
-    See the DI section in <a href="/Posts/CodeView">Posts Explanation</a> page as the rules are the same for both normal and async services.
+    See the DI section in <a href="/Posts/CodeView" th:href="@{/Posts/CodeView}">Posts Explanation</a> page as the rules are the same for both normal and async services.
 </p>
 </div>
 </body>

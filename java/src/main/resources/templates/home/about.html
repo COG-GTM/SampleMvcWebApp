@@ -6,13 +6,13 @@
 
 <h3>About this site</h3>
 <p>
-    You should have seen on the <a href="/">Home Page</a> a brief introduction to the site.
+    You should have seen on the <a href="/" th:href="@{/}">Home Page</a> a brief introduction to the site.
     The site is here as a testing bed/demonstration of the <a href="https://github.com/JonPSmith/GenericServices" target="_blank">GenericServices library</a>
     and a number of software patterns specific to ASP.NET MVC. All the work here is open source under the
     <a href="http://opensource.org/licenses/MIT" target="_blank">MIT licence</a>.
 </p>
 <p>
-    The <a href="/Home/CodeView">Introduction to GenericServices</a> page goes into more detail about GenericServices library and some of the
+    The <a href="/Home/CodeView" th:href="@{/Home/CodeView}">Introduction to GenericServices</a> page goes into more detail about GenericServices library and some of the
     items demonstrated on this web site. I also suggest you look at GenericServices's
     <a href="https://github.com/JonPSmith/GenericServices/blob/master/README.md" target="_blank">read.me</a> file which gives more information.
 </p>
@@ -62,7 +62,7 @@
 </p>
 <br />
 <p>
-    <a href="/">Back to Home</a>
+    <a href="/" th:href="@{/}">Back to Home</a>
 </p>
 </div>
 </body>
