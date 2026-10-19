@@ -156,10 +156,7 @@ public class PostServiceImpl implements PostService {
             dto.setPostId(candidate.getPostId());
             return SuccessOrErrors.success(ServiceMessages.created(ITEM));
         }
-        if (!blogger.equals(existing.getBlogger())) {
-            existing.getBlogger().getPosts().remove(existing);
-            blogger.getPosts().add(existing);
-        }
+        // Post.blogger owns the FK; Blog.posts has orphanRemoval, so the post must not be removed from it
         existing.setBlogger(blogger);
         existing.setTitle(dto.getTitle());
         existing.setContent(dto.getContent());

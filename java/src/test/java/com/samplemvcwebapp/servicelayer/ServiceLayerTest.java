@@ -102,6 +102,8 @@ class ServiceLayerTest {
         dto.getBloggers().setSelectedValue(dto.getBloggers().getKeyValueList().get(1).value());
         assertThat(postService.update(dto).getSuccessMessage()).isEqualTo("Successfully updated Post.");
         assertThat(postService.getDetail(postId).orElseThrow().getBloggerName()).isEqualTo("Fred Bloggs");
+        assertThat(blogService.listBlogs()).extracting(BlogListDto::postsCount).containsExactly(1, 2);
+        assertThat(postService.getNumPostsMessage()).isEqualTo("The total number of Posts is 3");
 
         assertThat(postService.delete(postId).getSuccessMessage()).isEqualTo("Successfully deleted Post.");
         assertThat(postService.getNumPostsMessage()).isEqualTo("The total number of Posts is 2");
@@ -118,7 +120,13 @@ class ServiceLayerTest {
         assertThat(tagService.create(dto).getErrors()).containsExactly(
                 new ValidationError("Slug", "The slug must not contain spaces or non-alphanumeric characters."));
 
+        dto.setSlug("caf\u00e9_2");
+        assertThat(tagService.create(dto).isValid()).isTrue();
+        dto.setName(" ");
         dto.setSlug("dup");
+        assertThat(tagService.create(dto).getErrors()).extracting(ValidationError::message)
+                .containsExactly("The Name field is required.");
+        dto.setName("Duplicate");
         assertThat(tagAsyncService.createAsync(dto).get().getSuccessMessage()).isEqualTo("Successfully created Tag.");
         TagDto existing = tagService.getDetail(dto.getTagId()).orElseThrow();
         existing.setName("Renamed");

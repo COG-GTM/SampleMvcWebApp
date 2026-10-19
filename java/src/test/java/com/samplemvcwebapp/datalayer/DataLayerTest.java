@@ -90,6 +90,8 @@ class DataLayerTest {
                 .containsExactly("The slug must not contain spaces or non-alphanumeric characters.");
         assertThat(messages(validator.validate(new Blog("", "x@y.com"))))
                 .containsExactly("The Name field is required.");
+        assertThat(messages(validator.validate(new Blog(" ", "x@y.com"))))
+                .containsExactly("The Name field is required.");
     }
 
     private static List<String> messages(Set<? extends jakarta.validation.ConstraintViolation<?>> violations) {

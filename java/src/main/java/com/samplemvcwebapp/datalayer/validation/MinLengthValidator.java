@@ -14,6 +14,6 @@ public class MinLengthValidator implements ConstraintValidator<MinLength, CharSe
 
     @Override
     public boolean isValid(CharSequence value, ConstraintValidatorContext context) {
-        return value == null || value.isEmpty() || value.length() >= min;
+        return value == null || value.toString().isBlank() || value.length() >= min;
     }
 }
