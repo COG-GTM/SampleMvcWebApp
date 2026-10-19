@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Details', ~{::#content}, false)}">
+<body>
+<div id="content" th:remove="tag">
+<h2>Details</h2>
+
+<div>
+    <h4>DetailPostDto</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            Title
+        </dt>
+
+        <dd th:text="${dto.title}">title</dd>
+
+        <dt>
+            Content
+        </dt>
+
+        <dd th:text="${dto.content}">content</dd>
+
+        <dt>
+            BloggerName
+        </dt>
+
+        <dd th:text="${dto.bloggerName}">blogger</dd>
+
+        <dt>
+            Last updated
+        </dt>
+
+        <dd th:text="${dto.lastUpdated != null ? #temporals.format(dto.lastUpdated, 'M/d/yyyy') : ''}">date</dd>
+
+        <dt>
+            TagNames
+        </dt>
+
+        <dd th:text="${dto.tagNames}">tags</dd>
+
+    </dl>
+</div>
+<p>
+    <a th:href="@{/Posts/Edit/{id}(id=${dto.postId})}">Edit</a> |
+    <a th:href="@{/Posts}">Back to List</a>
+</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Posts', ~{::#content}, false)}">
+<body>
+<div id="content" th:remove="tag">
+<h2>Posts</h2>
+
+<div th:replace="~{fragments/forms :: flash}"></div>
+
+<p>
+    This is a demonstration of <a href="https://github.com/JonPSmith/GenericServices" target="_blank">GenericServices'</a>
+    database CRUD (Create, Read, Update/Edit and Delete) services done synchronously, i.e no wait states to improve web site capacity.
+    (See <a th:href="@{/PostsAsync}">Posts Async</a> for async versions of the same commands).
+</p>
+<p>
+    Below you will see a table of posts which can be manipulated. We have chosen a POST as an example as it has the following attributes: 
+</p>
+<ul>
+    <li>When we list them we want 'shape' what the user sees, i.e. we leave out the post content but include the blogger Name and Tags.</li>
+    <li>The create and edit commands are non-trivial because Posts links to other tables, like author and the tags.</li>
+</ul> 
+<hr/>
+
+<div>
+    <span><a th:href="@{/Posts/Create}">Create New Post</a> | <a th:href="@{/Tags}">Tags Page</a> | <a th:href="@{/Blogs}">Blogs Page</a> | <a th:href="@{/Posts/Reset}">Reset Blogs data</a></span>
+    <span class="pull-right"><strong><a th:href="@{/Posts/CodeView}">Explanation of the code</a></strong></span>
+</div>
+<table class="table">
+    <tr>
+        <th>
+            BloggerName
+        </th>
+        <th>
+            Title
+        </th>
+        <th>
+            Last updated
+        </th>
+        <th>
+            TagNames
+        </th>
+        <th></th>
+    </tr>
+
+    <tr th:each="item : ${posts}">
+        <td th:text="${item.bloggerName}">blogger</td>
+        <td th:text="${item.title}">title</td>
+        <td th:text="${item.lastUpdated != null ? #temporals.format(item.lastUpdated, 'M/d/yyyy') : ''}">date</td>
+        <td th:text="${item.tagNames}">tags</td>
+        <td>
+            <a th:href="@{/Posts/Edit/{id}(id=${item.postId})}">Edit</a> |
+            <a th:href="@{/Posts/Details/{id}(id=${item.postId})}">Details</a> |
+            <a th:href="@{/Posts/Delete/{id}(id=${item.postId})}">Delete</a>
+        </td>
+    </tr>
+
+</table>
+
+<span>
+    <a th:href="@{/Posts/Delay}">Delay for 500ms (Sync)</a>
+     Useful for checking capacity of web server
+</span>
+</div>
+</body>
+</html>
