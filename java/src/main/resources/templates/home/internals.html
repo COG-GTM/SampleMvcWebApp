@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(null, ~{::#content}, false)}">
+<body>
+<div id="content" th:remove="tag">
+<div>
+    <h4>InternalsInfo</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            WorkerThreads
+        </dt>
+
+        <dd th:text="${info.workerThreads}">0</dd>
+
+        <dt>
+            AvailableThreads
+        </dt>
+
+        <dd th:text="${info.availableThreads}">0</dd>
+
+        <dt>
+            AvailableMbytes
+        </dt>
+
+        <dd th:text="${info.availableMbytes}">0</dd>
+
+        <dt>
+            HeapMemoryUsedKbytes
+        </dt>
+
+        <dd th:text="${info.heapMemoryUsedKbytes}">0</dd>
+    </dl>
+</div>
+<p>
+    <a th:href="@{/}">Back to List</a>
+</p>
+</div>
+</body>
+</html>

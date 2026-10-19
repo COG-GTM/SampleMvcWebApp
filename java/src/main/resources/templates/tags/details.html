@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Details', ~{::#content}, false)}">
+<body>
+<div id="content" th:remove="tag">
+<h2>Details</h2>
+
+<div>
+    <h4>Tag</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            Name
+        </dt>
+
+        <dd th:text="${tag.name}">name</dd>
+        <dt>
+            Slug
+        </dt>
+
+        <dd th:text="${tag.slug}">slug</dd>
+    </dl>
+</div>
+<p>
+    <a th:href="@{/Tags/Edit/{id}(id=${tag.tagId})}">Edit</a> |
+    <a th:href="@{/Tags}">Back to List</a>
+</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Create', ~{::#content}, true)}">
+<body>
+<div id="content" th:remove="tag">
+<h2>Create</h2>
+
+
+<form method="post" th:action="@{/Posts/Create}" th:object="${dto}">
+    <div class="form-horizontal">
+        <h4>Post</h4>
+        <hr />
+        <div th:replace="~{fragments/forms :: validationSummary}"></div>
+        <div class="form-group">
+            <label class="control-label col-md-2" for="title">Title</label>
+            <div class="col-md-10">
+                <input class="form-control text-box single-line" type="text" th:field="*{title}"
+                       data-val="true" data-val-required="The Title field is required."
+                       data-val-minlength="The field Title must be a string or array type with a minimum length of '2'." data-val-minlength-min="2"
+                       data-val-maxlength="The field Title must be a string or array type with a maximum length of '128'." data-val-maxlength-max="128" />
+                <span th:replace="~{fragments/forms :: validationMessage('title')}"></span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="control-label col-md-2" for="content">Content</label>
+            <div class="col-md-10">
+                <textarea class="form-control text-box multi-line" th:field="*{content}"
+                          data-val="true" data-val-required="The Content field is required."></textarea>
+                <span th:replace="~{fragments/forms :: validationMessage('content')}"></span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="control-label col-md-2" for="bloggers.selectedValue">Bloggers</label>
+            <div class="col-md-10">
+                <select th:replace="~{fragments/forms :: dropDownListType('bloggers', ${dto.bloggers})}"></select>
+                <span th:replace="~{fragments/forms :: validationMessage('bloggers')}"></span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="control-label col-md-2" for="userChosenTags.finalSelection">Tags</label>
+            <div class="col-md-10">
+                <select th:replace="~{fragments/forms :: multiSelectListType('userChosenTags', ${dto.userChosenTags})}"></select>
+                <span th:replace="~{fragments/forms :: validationMessage('userChosenTags')}"></span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Create" class="btn btn-default" />
+            </div>
+        </div>
+    </div>
+</form>
+
+<div>
+    <a th:href="@{/Posts}">Back to List</a>
+</div>
+<hr />
+<div th:replace="~{fragments/postValidation :: postValidation}"></div>
+</div>
+</body>
+</html>

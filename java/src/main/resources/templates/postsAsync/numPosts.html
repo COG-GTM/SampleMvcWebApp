@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(null, ~{::#content}, false)}">
+<body>
+<div id="content" th:remove="tag">
+<div>
+    <h4>Test </h4>
+    <hr />
+    <p th:text="${message}">The total number of Posts is 0</p>
+</div>
+<p>
+    <a th:href="@{/PostsAsync}">Back to List</a>
+</p>
+</div>
+</body>
+</html>

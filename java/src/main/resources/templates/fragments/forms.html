@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/* Html.ValidationSummary(true): model-level (global) errors only */-->
+<div th:fragment="validationSummary" th:remove="tag">
+    <div class="validation-summary-errors text-danger" th:if="${#fields.hasGlobalErrors()}"><ul><li th:each="err : ${#fields.globalErrors()}" th:text="${err}">error</li></ul></div>
+    <div class="validation-summary-valid text-danger" th:unless="${#fields.hasGlobalErrors()}"><ul><li style="display:none"></li></ul></div>
+</div>
+
+<!--/* Html.ValidationMessageFor(field) */-->
+<span th:fragment="validationMessage(field)" th:remove="tag"><span class="field-validation-error text-danger" th:if="${#fields.hasErrors(field)}" th:attr="data-valmsg-for=${field},data-valmsg-replace='true'"><span th:each="err : ${#fields.errors(field)}" th:text="${err}">error</span></span><span class="field-validation-valid text-danger" th:unless="${#fields.hasErrors(field)}" th:attr="data-valmsg-for=${field},data-valmsg-replace='true'"></span></span>
+
+<!--/* Shared/EditorTemplates/DropDownListType.cshtml */-->
+<select th:fragment="dropDownListType(field, list)" th:field="*{__${field}__.selectedValue}">
+    <option th:if="${ui.prompt(list) != null}" value="" th:text="${ui.prompt(list)}">--- choose ---</option>
+    <option th:each="kv : ${list.keyValueList}" th:value="${kv.value != null ? kv.value : ''}" th:text="${kv.text}">option</option>
+</select>
+
+<!--/* Shared/EditorTemplates/MultiSelectListType.cshtml */-->
+<select th:fragment="multiSelectListType(field, list)" multiple="multiple" th:field="*{__${field}__.finalSelection}">
+    <option th:each="kv : ${list.keyValueList}" th:value="${kv.value}" th:text="${kv.text}">option</option>
+</select>
+
+<!--/* Index pages: TempData["message"] / TempData["errorMessage"] */-->
+<div th:fragment="flash" th:remove="tag">
+    <th:block th:if="${message != null}"><div class="text-success" th:text="${message}">message</div><br /></th:block>
+    <div class="text-danger" th:if="${errorMessage != null}"><strong><th:block th:each="e : ${errorMessage}"><span th:text="${e}">error</span><br /></th:block></strong></div>
+</div>
+</body>
+</html>

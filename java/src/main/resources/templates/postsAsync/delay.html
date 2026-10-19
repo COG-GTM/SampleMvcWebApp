@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('PostsAsync Delay', ~{::#content}, false)}">
+<body>
+<div id="content" th:remove="tag">
+<br />
+<p th:text="'I delayed by ' + ${delayMs} + ' ms.'">I delayed by 500 ms.</p>
+
+<div>
+    <a th:href="@{/PostsAsync}">Back to List</a>
+</div>
+</div>
+</body>
+</html>
