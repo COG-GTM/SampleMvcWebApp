@@ -12,6 +12,7 @@
 
 <!--/* Shared/EditorTemplates/DropDownListType.cshtml */-->
 <select th:fragment="dropDownListType(field, list)" class="form-control" th:field="*{__${field}__.selectedValue}">
+    <option th:if="${ui.prompt(list) != null}" value="" th:text="${ui.prompt(list)}">--- choose ---</option>
     <option th:each="kv : ${list.keyValueList}" th:value="${kv.value != null ? kv.value : ''}" th:text="${kv.text}">option</option>
 </select>
 

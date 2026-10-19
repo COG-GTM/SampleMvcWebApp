@@ -5,6 +5,7 @@ import com.samplemvcwebapp.servicelayer.dto.DetailPostDto;
 import com.samplemvcwebapp.servicelayer.dto.SimplePostDto;
 import com.samplemvcwebapp.servicelayer.dto.TagDto;
 import com.samplemvcwebapp.servicelayer.dto.TagListDto;
+import com.samplemvcwebapp.servicelayer.ui.DropDownListType;
 import com.samplemvcwebapp.servicelayer.ui.KeyValue;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -18,6 +19,19 @@ final class WebTestData {
     private WebTestData() {
     }
 
+    /** Child A exposes the legacy prompt as DropDownListType.promptString; mimic that shape here. */
+    static class PromptedDropDown extends DropDownListType {
+        private final String promptString;
+
+        PromptedDropDown(String promptString) {
+            this.promptString = promptString;
+        }
+
+        public String getPromptString() {
+            return promptString;
+        }
+    }
+
     static List<SimplePostDto> posts() {
         return List.of(
                 new SimplePostDto(1, 1, "Ada Lovelace", "About Ada Lovelace", "About Me", UPDATED),
@@ -27,8 +41,8 @@ final class WebTestData {
 
     static DetailPostDto setupDto() {
         DetailPostDto dto = new DetailPostDto();
+        dto.setBloggers(new PromptedDropDown("--- choose blogger ---"));
         dto.getBloggers().setKeyValueList(new ArrayList<>(List.of(
-                new KeyValue("--- choose blogger ---", null),
                 new KeyValue("Ada Lovelace", "1"),
                 new KeyValue("Sherlock Holmes", "2"))));
         dto.getUserChosenTags().setKeyValueList(new ArrayList<>(List.of(
