@@ -28,13 +28,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
@@ -45,15 +38,15 @@ import org.springframework.web.util.HtmlUtils;
 /**
  * Full-stack route coverage for JAVA_MIGRATION_NOTES.md section 5: real controllers + real services + H2 seeded with
  * MEDIUM data (child B's *ControllerWebTest classes cover the same routes as web slices with mocked services).
- * Every GET route is rendered against real data and every write route is round-tripped through the database.
+ * Only behaviour B's slices cannot see is asserted here: pages rendered from real rows, real not-found handling, and
+ * every write route round-tripped through the database. Static pages / layout / {@code /Error} stay in B's tests.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class Test10RoutesEndToEndTest {
 
     @Autowired MockMvc mvc;
-    @Autowired TestRestTemplate http;
     @Autowired DataLayerInitialiser initialiser;
     @Autowired EntityManagerFactory emf;
 
@@ -62,47 +55,39 @@ class Test10RoutesEndToEndTest {
         initialiser.resetBlogs(TestDataSelection.MEDIUM);
     }
 
-    // ---- GET routes with no id ---------------------------------------------------------------------------------
+    // ---- GET routes rendered against real data ----------------------------------------------------------------
 
-    @ParameterizedTest(name = "{0}")
-    @CsvSource(delimiter = '|', value = {
-            "/Posts|posts/index|Posts - SampleMvcWebApp|Posts",
-            "/Posts/Index|posts/index|Posts - SampleMvcWebApp|Posts",
-            "/Posts/Index/0|posts/index|Posts - SampleMvcWebApp|Posts",
-            "/Posts/Create|posts/create|Create - SampleMvcWebApp|Create",
-            "/Posts/CodeView|posts/codeView|CodeView - SampleMvcWebApp|Posts: An explanation of Post code",
-            "/Posts/NumPosts|posts/numPosts|' - SampleMvcWebApp'|The total number of Posts is 17",
-            "/Posts/Delay|posts/delay|Posts Delay - SampleMvcWebApp|I delayed by 500 ms.",
-            "/PostsAsync|postsAsync/index|PostsAsync - SampleMvcWebApp|Posts (async)",
-            "/PostsAsync/Index|postsAsync/index|PostsAsync - SampleMvcWebApp|Posts (async)",
-            "/PostsAsync/Index/0|postsAsync/index|PostsAsync - SampleMvcWebApp|Posts (async)",
-            "/PostsAsync/Create|postsAsync/create|Create - SampleMvcWebApp|Create (Async)",
-            "/PostsAsync/CodeView|postsAsync/codeView|CodeView - SampleMvcWebApp|PostsAsync: A explanation of the PostAsync code",
-            "/PostsAsync/NumPosts|postsAsync/numPosts|' - SampleMvcWebApp'|The total number of Posts is 17",
-            "/PostsAsync/Delay|postsAsync/delay|PostsAsync Delay - SampleMvcWebApp|I delayed by 500 ms.",
-            "/Tags|tags/index|Tags - SampleMvcWebApp|Tags",
-            "/Tags/Index|tags/index|Tags - SampleMvcWebApp|Tags",
-            "/Tags/Create|tags/create|Create - SampleMvcWebApp|Create",
-            "/Tags/CodeView|tags/codeView|CodeView - SampleMvcWebApp|Tags: A explanation of Tags code",
-            "/TagsAsync|tagsAsync/index|TagsAsync - SampleMvcWebApp|Tags (Async)",
-            "/TagsAsync/Index|tagsAsync/index|TagsAsync - SampleMvcWebApp|Tags (Async)",
-            "/TagsAsync/Create|tagsAsync/create|Create - SampleMvcWebApp|Create (Async)",
-            "/TagsAsync/CodeView|tagsAsync/codeView|CodeView - SampleMvcWebApp|Tags",
-            "/Blogs|blogs/index|' - SampleMvcWebApp'|Blogs",
-            "/Blogs/Index|blogs/index|' - SampleMvcWebApp'|Blogs",
-            "/Blogs/Create|blogs/create|' - SampleMvcWebApp'|Blog"})
-    void getRouteRendersAgainstRealData(String url, String viewName, String title, String text) throws Exception {
-        perform(get(url))
-                .andExpect(status().isOk())
-                .andExpect(view().name(viewName))
-                .andExpect(content().string(containsString("<title>" + title + "</title>")))
-                .andExpect(content().string(containsString(text)));
+    @Test
+    void numPostsReportsTheRealCount() throws Exception {
+        for (String prefix : List.of("/Posts", "/PostsAsync")) {
+            perform(get(prefix + "/NumPosts")).andExpect(status().isOk())
+                    .andExpect(content().string(containsString("The total number of Posts is 17")));
+            perform(get(prefix + "/Delete/" + allPosts().get(0).getPostId())).andExpect(redirectedUrl(prefix));
+            perform(get(prefix + "/NumPosts"))
+                    .andExpect(content().string(containsString("The total number of Posts is 16")));
+            initialiser.resetBlogs(TestDataSelection.MEDIUM);
+        }
+    }
+
+    @Test
+    void postCreateFormsOfferEverySeededBloggerAndTag() throws Exception {
+        for (String prefix : List.of("/Posts", "/PostsAsync")) {
+            ResultActions page = perform(get(prefix + "/Create")).andExpect(status().isOk());
+            for (Blog b : query("select b from Blog b", Blog.class)) {
+                page.andExpect(content().string(containsString(escape(b.getName()))));
+            }
+            for (Tag t : query("select t from Tag t", Tag.class)) {
+                page.andExpect(content().string(containsString(escape(t.getName()))));
+            }
+        }
     }
 
     @Test
     void postsIndexListsEverySeededPost() throws Exception {
-        for (String prefix : List.of("/Posts", "/PostsAsync")) {
-            ResultActions page = perform(get(prefix)).andExpect(status().isOk());
+        for (String url : List.of("/Posts", "/Posts/Index", "/Posts/Index/0",
+                "/PostsAsync", "/PostsAsync/Index", "/PostsAsync/Index/0")) {
+            ResultActions page = perform(get(url)).andExpect(status().isOk())
+                    .andExpect(content().string(not(containsString("Filtered list"))));
             for (Post p : allPosts()) {
                 page.andExpect(content().string(containsString(escape(p.getTitle()))));
             }
@@ -111,15 +96,17 @@ class Test10RoutesEndToEndTest {
 
     @Test
     void tagsAndBlogsIndexListEverySeededRow() throws Exception {
-        for (String prefix : List.of("/Tags", "/TagsAsync")) {
-            ResultActions page = perform(get(prefix)).andExpect(status().isOk());
+        for (String url : List.of("/Tags", "/Tags/Index", "/TagsAsync", "/TagsAsync/Index")) {
+            ResultActions page = perform(get(url)).andExpect(status().isOk());
             for (Tag t : query("select t from Tag t", Tag.class)) {
                 page.andExpect(content().string(containsString(escape(t.getName()))));
             }
         }
-        ResultActions blogs = perform(get("/Blogs")).andExpect(status().isOk());
-        for (Blog b : query("select b from Blog b", Blog.class)) {
-            blogs.andExpect(content().string(containsString(escape(b.getName()))));
+        for (String url : List.of("/Blogs", "/Blogs/Index")) {
+            ResultActions blogs = perform(get(url)).andExpect(status().isOk());
+            for (Blog b : query("select b from Blog b", Blog.class)) {
+                blogs.andExpect(content().string(containsString(escape(b.getName()))));
+            }
         }
     }
 
@@ -186,29 +173,6 @@ class Test10RoutesEndToEndTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(view().name("error"))
                 .andExpect(content().string(containsString("An error occurred while processing your request.")));
-    }
-
-    @Test
-    void errorRouteOverRealHttpRendersSharedErrorView() {
-        HttpHeaders browser = new HttpHeaders();
-        browser.setAccept(List.of(MediaType.TEXT_HTML));
-        ResponseEntity<String> response = http.exchange("/Error", HttpMethod.GET, new HttpEntity<>(browser), String.class);
-        assertThat(response.getStatusCode().isError()).isTrue();
-        assertThat(response.getBody())
-                .contains("<title>Error - SampleMvcWebApp</title>")
-                .contains("An error occurred while processing your request.");
-    }
-
-    @Test
-    void homePagesOverRealHttpUseTheLegacyLayout() {
-        for (String url : List.of("/", "/Home", "/Home/Index", "/Home/About", "/Home/Contact", "/Home/CodeView",
-                "/Home/Internals")) {
-            ResponseEntity<String> response = http.getForEntity(url, String.class);
-            assertThat(response.getStatusCode()).as(url).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).as(url)
-                    .contains("An open source project under the <a href=\"http://opensource.org/licenses/MIT\" target=\"_blank\">MIT licence</a>")
-                    .contains("Hosted on LocalHost");
-        }
     }
 
     // ---- write routes round-tripped through the database -------------------------------------------------------
