@@ -7,19 +7,23 @@ import com.samplemvcwebapp.datalayer.repositories.BlogRepository;
 import com.samplemvcwebapp.datalayer.repositories.PostRepository;
 import com.samplemvcwebapp.datalayer.repositories.TagRepository;
 import com.samplemvcwebapp.datalayer.startup.DataLayerInitialiser;
+import com.samplemvcwebapp.datalayer.startup.SeedFiles;
 import com.samplemvcwebapp.datalayer.startup.TestDataSelection;
 import com.samplemvcwebapp.testsupport.DataLayerSliceConfig;
-import com.samplemvcwebapp.testsupport.SeedXml;
-import com.samplemvcwebapp.testsupport.SeedXml.SeedBlog;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
-/** Port of Tests/UnitTests/Group01DataLayer/Test10SetupBlogs.cs (5 tests). */
+/**
+ * Port of Tests/UnitTests/Group01DataLayer/Test10SetupBlogs.cs (5 tests). Not wrapped in a test transaction: like the
+ * legacy fixture (one DbContext per reset) and the /Posts/Reset action, each resetBlogs call runs in its own transaction.
+ */
 @DataJpaTest
 @Import(DataLayerSliceConfig.class)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class Test10SetupBlogsTest {
 
     @Autowired DataLayerInitialiser initialiser;
@@ -29,18 +33,18 @@ class Test10SetupBlogsTest {
 
     @Test
     void check01XmlFileLoadOk() {
-        List<SeedBlog> bloggers = SeedXml.formBlogsWithPosts(TestDataSelection.SMALL.getClasspathResource());
+        SeedFiles.Counts loaded = SeedFiles.load(TestDataSelection.SMALL.getClasspathResource());
 
-        assertThat(bloggers).hasSize(2);
-        assertThat(bloggers.stream().mapToLong(b -> b.posts().size()).sum()).isEqualTo(3);
-        assertThat(bloggers.stream().flatMap(b -> b.posts().stream()).flatMap(p -> p.tagSlugs().stream()).distinct().count())
-                .isEqualTo(3);
+        assertThat(loaded.blogs()).isEqualTo(2);
+        assertThat(loaded.posts()).isEqualTo(3);
+        assertThat(loaded.distinctTagSlugs()).isEqualTo(3);
     }
 
     @Test
     void check02XmlFileLoadBad() {
-        assertThatThrownBy(() -> SeedXml.formBlogsWithPosts("badname.xml"))
-                .hasMessageStartingWith("Could not find the xml file you asked for.");
+        assertThatThrownBy(() -> SeedFiles.load("badname.xml"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Could not load seed data from badname.xml");
     }
 
     @Test

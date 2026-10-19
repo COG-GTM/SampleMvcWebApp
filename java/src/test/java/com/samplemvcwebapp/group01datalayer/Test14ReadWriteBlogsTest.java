@@ -68,9 +68,11 @@ class Test14ReadWriteBlogsTest {
 
     @Test
     void check03ReadBlogsWithPostTagsOk() {
+        // Include(b => b.Posts.Select(p => p.Tags)): fetching a bag and its children in one join duplicates the bag rows,
+        // so the second level is fetched into the same persistence context by a second query.
         List<Blog> allBlogs = em.createQuery(
-                "select distinct b from Blog b left join fetch b.posts p left join fetch p.tags order by b.blogId",
-                Blog.class).getResultList();
+                "select distinct b from Blog b left join fetch b.posts order by b.blogId", Blog.class).getResultList();
+        em.createQuery("select distinct p from Post p left join fetch p.tags", Post.class).getResultList();
 
         assertThat(allBlogs).hasSize(2);
         assertThat(allBlogs.get(0).getPosts()).hasSize(2);

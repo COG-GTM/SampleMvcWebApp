@@ -11,14 +11,16 @@ import com.samplemvcwebapp.servicelayer.services.PostService;
 import com.samplemvcwebapp.servicelayer.services.TagAsyncService;
 import com.samplemvcwebapp.servicelayer.services.TagService;
 import jakarta.persistence.EntityManager;
-import org.hibernate.Session;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.ResolvableType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.orm.jpa.EntityManagerHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
@@ -35,17 +37,17 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 class Test11AutoFacModulesTest {
 
     @Autowired ApplicationContext context;
-    @Autowired EntityManager em;
+    @Autowired EntityManagerFactory emf;
     @Autowired TransactionTemplate tx;
 
     @Test
     void checkSetupDbContextLifetimeScopeItems() {
-        Session[] firstScope = new Session[2];
+        EntityManager[] firstScope = new EntityManager[2];
         tx.executeWithoutResult(s -> {
-            firstScope[0] = em.unwrap(Session.class);
-            firstScope[1] = em.unwrap(Session.class);
+            firstScope[0] = transactionalEntityManager();
+            firstScope[1] = transactionalEntityManager();
         });
-        Session secondScope = tx.execute(s -> em.unwrap(Session.class));
+        EntityManager secondScope = tx.execute(s -> transactionalEntityManager());
 
         assertThat(firstScope[0]).isNotNull();
         assertThat(firstScope[0]).isSameAs(firstScope[1]);
@@ -79,6 +81,13 @@ class Test11AutoFacModulesTest {
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /** The EntityManager actually bound to the current transaction (what the shared proxy delegates to). */
+    private EntityManager transactionalEntityManager() {
+        EntityManagerHolder holder = (EntityManagerHolder) TransactionSynchronizationManager.getResource(emf);
+        assertThat(holder).as("transaction-bound EntityManager").isNotNull();
+        return holder.getEntityManager();
+    }
 
     private void checkExampleServicesResolve() {
         for (Class<?> service : new Class<?>[] {PostService.class, PostAsyncService.class, TagService.class,
