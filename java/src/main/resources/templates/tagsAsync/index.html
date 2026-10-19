@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('TagsAsync', ~{::#content}, false)}">
+<body>
+<div id="content" th:remove="tag">
+<h2>Tags (Async)</h2>
+
+<div th:replace="~{fragments/forms :: flash}"></div>
+
+<div class="validation-summary-valid text-danger"><ul><li style="display:none"></li></ul></div>
+
+<p>
+    This is a demonstration of <a href="https://github.com/JonPSmith/GenericServices" target="_blank">GenericServices'</a>
+    database CRUD (Create, Read, Update/Edit and Delete) services done asynchronously, i.e. using
+    <a href="http://www.asp.net/mvc/tutorials/getting-started-with-ef-using-mvc">Entity Framework 6's</a> Async commands.
+    Async commands are designed to free up the current thread while something outside the web server is running, in this case a database access.
+    This should make the site able to handle more users, but the individual action takes a little bit longer.
+    (See <a th:href="@{/Tags}">Tags</a> for normal versions of the same commands).
+</p>
+<p>
+    Below you will see a table of Tags which can be manipulated. Tags are really simple so we use the direct GenericServices rather than 
+    the DTO GenericServices used for Posts. 
+</p>
+<p>
+    However we do use a simple dto in the list to show how many posts use the tag. Also note that a validation check is done 
+    inside the EF SaveChanges methed to ensure that the slug is unique.
+</p>
+<hr />
+<div>
+    <span><a th:href="@{/TagsAsync/Create}">Create New Tag</a> | <a th:href="@{/PostsAsync}">Return To PostsAsync</a></span>
+    <span class="pull-right"><strong><a th:href="@{/TagsAsync/CodeView}">Explanation of the code</a></strong></span>
+</div>
+<table class="table">
+    <tr>
+        <th>
+            Name
+        </th>
+        <th>
+            Slug
+        </th>
+        <th>
+            Num Posts Used In
+        </th>
+        <th></th>
+    </tr>
+
+    <tr th:each="item : ${tags}">
+        <td th:text="${item.name}">name</td>
+        <td th:text="${item.slug}">slug</td>
+        <td th:text="${item.postsCount}">0</td>
+        <td>
+            <a th:href="@{/TagsAsync/Edit/{id}(id=${item.tagId})}">Edit</a> |
+            <a th:href="@{/TagsAsync/Details/{id}(id=${item.tagId})}">Details</a> |
+            <a th:href="@{/TagsAsync/Delete/{id}(id=${item.tagId})}">Delete</a>
+        </td>
+    </tr>
+
+</table>
+</div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(null, ~{::#content}, false)}">
+<body>
+<div id="content" th:remove="tag">
+<h2>Blogs</h2>
+
+<div th:replace="~{fragments/forms :: flash}"></div>
+
+<p>
+    Below you will see a table of Blogs which can be manipulated, and analysed. 
+</p>
+<p>
+    The point of this page is to provide a simple demonstration of calling a business method - click the Analyse link to trigger this.
+</p>
+<hr />
+<div>
+    <span><a th:href="@{/Blogs/Create}">Create New Blogger</a> | <a th:href="@{/Posts}">Posts</a></span>
+</div>
+
+<table class="table">
+    <tr>
+        <th>
+        </th>
+        <th>
+            Name
+        </th>
+        <th>
+            EmailAddress
+        </th>
+        <th>
+            Num Posts this Author
+        </th>
+        <th></th>
+    </tr>
+
+    <tr th:each="item : ${blogs}">
+        <td>
+            <input id="item_BlogId" name="item.BlogId" type="hidden" th:value="${item.blogId}" />
+        </td>
+        <td th:text="${item.name}">name</td>
+        <td><a th:href="${'mailto:' + item.emailAddress}" th:text="${item.emailAddress}">email</a></td>
+        <td th:text="${item.postsCount}">0</td>
+        <td>
+            <a th:href="@{/Blogs/Edit/{id}(id=${item.blogId})}">Edit</a> |
+            <a th:href="@{/Blogs/Delete/{id}(id=${item.blogId})}">Delete</a> |
+            <a th:href="@{/Posts/Index/{id}(id=${item.blogId})}">List Posts</a>
+        </td>
+    </tr>
+
+</table>
+</div>
+</body>
+</html>

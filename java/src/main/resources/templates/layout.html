@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content, jqueryval)">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title != null ? title + ' - SampleMvcWebApp' : ' - SampleMvcWebApp'}">- SampleMvcWebApp</title>
+    <link href="/Content/bootstrap.css" rel="stylesheet" th:href="@{/Content/bootstrap.css}" />
+    <link href="/Content/Site.css" rel="stylesheet" th:href="@{/Content/Site.css}" />
+</head>
+<body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+            </div>
+            <div class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                    <li><a href="/" th:href="@{/}">Home</a></li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Sync database<span class="caret"></span></a>
+                        <ul class="dropdown-menu" role="menu">
+                            <li><a th:href="@{/Posts/Index/0}">Posts</a></li>
+                            <li><a th:href="@{/Tags}">Tags</a></li>
+                            <li class="divider"></li>
+                            <li><a th:href="@{/Blogs}">Blogs</a></li>
+                        </ul>
+                    </li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Async database<span class="caret"></span></a>
+                        <ul class="dropdown-menu" role="menu">
+                            <li><a th:href="@{/PostsAsync/Index/0}">Posts</a></li>
+                            <li><a th:href="@{/TagsAsync}">Tags</a></li>
+                        </ul>
+                    </li>
+                    <li><a th:href="@{/Home/About}">About</a></li>
+                    <li><a th:href="@{/Home/Contact}">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="container body-content">
+        <th:block th:replace="${content}"></th:block>
+        <hr />
+        <footer class="small  text-muted">
+            <span>An open source project under the <a href="http://opensource.org/licenses/MIT" target="_blank">MIT licence</a>, created by <a href="http://www.thereformedprogrammer.net/about-me/" target="_blank">Jon Smith</a>.</span>
+            <span class="pull-right" th:text="'Hosted on ' + ${@environment.getProperty('app.host-type', 'LocalHost')}">Hosted on LocalHost</span>
+        </footer>
+    </div>
+
+    <script th:src="@{/Scripts/jquery-1.10.2.js}"></script>
+    <script th:src="@{/Scripts/bootstrap.js}"></script>
+    <script th:src="@{/Scripts/respond.js}"></script>
+    <th:block th:if="${jqueryval}">
+        <script th:src="@{/Scripts/jquery.validate.js}"></script>
+        <script th:src="@{/Scripts/jquery.validate.unobtrusive.js}"></script>
+    </th:block>
+</body>
+</html>

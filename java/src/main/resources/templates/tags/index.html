@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Tags', ~{::#content}, false)}">
+<body>
+<div id="content" th:remove="tag">
+<h2>Tags</h2>
+
+<div th:replace="~{fragments/forms :: flash}"></div>
+
+<p>
+    This is a demonstration of <a href="https://github.com/JonPSmith/GenericServices" target="_blank">GenericServices'</a>
+    database CRUD (Create, Read, Update/Edit and Delete) services done synchronously, i.e no wait states to improve web site capacity.
+    (See <a th:href="@{/TagsAsync}">Tags Async</a> for async versions of the same commands).
+</p>
+<p>
+    Below you will see a table of Tags which can be manipulated. Tags are really simple so we use the direct GenericServices rather than 
+    the DTO GenericServices used for Posts. 
+</p>
+<p>
+    However we do use a simple dto in the list to show how many posts use the tag. Also note that a validation check is done 
+    inside the EF SaveChanges methed to ensure that the slug is unique.
+</p>
+<hr />
+<div>
+    <span><a th:href="@{/Tags/Create}">Create New Tag</a> | <a th:href="@{/Posts}">Posts Page</a> | <a th:href="@{/Blogs}">Blogs Page</a></span>
+    <span class="pull-right"><strong><a th:href="@{/Tags/CodeView}">Explanation of the code</a></strong></span>
+</div>
+<table class="table">
+    <tr>
+        <th>
+            Name
+        </th>
+        <th>
+            Slug
+        </th>
+        <th>
+            Num Posts Used In
+        </th>
+        <th></th>
+    </tr>
+
+    <tr th:each="item : ${tags}">
+        <td th:text="${item.name}">name</td>
+        <td th:text="${item.slug}">slug</td>
+        <td th:text="${item.postsCount}">0</td>
+        <td>
+            <a th:href="@{/Tags/Edit/{id}(id=${item.tagId})}">Edit</a> |
+            <a th:href="@{/Tags/Details/{id}(id=${item.tagId})}">Details</a> |
+            <a th:href="@{/Tags/Delete/{id}(id=${item.tagId})}">Delete</a>
+        </td>
+    </tr>
+
+</table>
+</div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(null, ~{::#content}, false)}">
+<body>
+<div id="content" th:remove="tag">
+<form method="post" th:action="@{/Blogs/Edit/{id}(id=${blog.blogId})}" th:object="${blog}">
+    <div class="form-horizontal">
+        <h4>Blog</h4>
+        <hr />
+        <div th:replace="~{fragments/forms :: validationSummary}"></div>
+        <input type="hidden" th:field="*{blogId}" />
+        <div class="form-group">
+            <label class="control-label col-md-2" for="name">Name</label>
+            <div class="col-md-10">
+                <input class="form-control text-box single-line" type="text" th:field="*{name}"
+                       data-val="true" data-val-required="The Name field is required."
+                       data-val-minlength="The field Name must be a string or array type with a minimum length of '2'." data-val-minlength-min="2"
+                       data-val-maxlength="The field Name must be a string or array type with a maximum length of '64'." data-val-maxlength-max="64" />
+                <span th:replace="~{fragments/forms :: validationMessage('name')}"></span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="control-label col-md-2" for="emailAddress">EmailAddress</label>
+            <div class="col-md-10">
+                <input class="form-control text-box single-line" type="email" th:field="*{emailAddress}"
+                       data-val="true" data-val-required="The EmailAddress field is required."
+                       data-val-email="The EmailAddress field is not a valid e-mail address."
+                       data-val-maxlength="The field EmailAddress must be a string or array type with a maximum length of '256'." data-val-maxlength-max="256" />
+                <span th:replace="~{fragments/forms :: validationMessage('emailAddress')}"></span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Save" class="btn btn-default" />
+            </div>
+        </div>
+    </div>
+</form>
+
+<div>
+    <a th:href="@{/Blogs}">Back to List</a>
+</div>
+</div>
+</body>
+</html>
