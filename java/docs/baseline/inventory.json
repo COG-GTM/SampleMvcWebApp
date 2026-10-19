@@ -1,0 +1,720 @@
+[
+ {
+  "n": 1,
+  "step": "home",
+  "action": "GET",
+  "path": "/",
+  "title": "Index - SampleMvcWebApp",
+  "h2": "Welcome to the Sample MVC Web Application - basic version",
+  "rows": null,
+  "messages": [],
+  "shot": "01-home.png"
+ },
+ {
+  "n": 2,
+  "step": "about",
+  "action": "GET",
+  "path": "/Home/About",
+  "title": "About - SampleMvcWebApp",
+  "h2": "About this site",
+  "rows": null,
+  "messages": [],
+  "shot": "02-about.png"
+ },
+ {
+  "n": 3,
+  "step": "contact",
+  "action": "GET",
+  "path": "/Home/Contact",
+  "title": "Contact - SampleMvcWebApp",
+  "h2": "Contact",
+  "rows": null,
+  "messages": [],
+  "shot": "03-contact.png"
+ },
+ {
+  "n": 4,
+  "step": "home-codeview",
+  "action": "GET",
+  "path": "/Home/CodeView",
+  "title": "CodeView - SampleMvcWebApp",
+  "h2": "Introduction to GenericServices",
+  "rows": null,
+  "messages": [],
+  "shot": "04-home-codeview.png"
+ },
+ {
+  "n": 5,
+  "step": "internals",
+  "action": "GET",
+  "path": "/Home/Internals",
+  "title": "- SampleMvcWebApp",
+  "h2": "",
+  "rows": null,
+  "messages": [],
+  "shot": "05-internals.png"
+ },
+ {
+  "n": 6,
+  "step": "posts-reset",
+  "action": "GET Reset -> Index (4 blogs/17 posts/8 tags)",
+  "path": "/Posts",
+  "title": "Posts - SampleMvcWebApp",
+  "h2": "Posts",
+  "rows": 17,
+  "messages": [
+   "Successfully reset the blogs data"
+  ],
+  "shot": "06-posts-reset.png"
+ },
+ {
+  "n": 7,
+  "step": "posts-details",
+  "action": "Details of seeded post",
+  "path": "/Posts/Details/19",
+  "title": "Details - SampleMvcWebApp",
+  "h2": "Details",
+  "rows": null,
+  "messages": [],
+  "shot": "07-posts-details.png"
+ },
+ {
+  "n": 8,
+  "step": "posts-numposts",
+  "action": "GET NumPosts",
+  "path": "/Posts/NumPosts",
+  "title": "- SampleMvcWebApp",
+  "h2": "",
+  "rows": null,
+  "messages": [],
+  "shot": "08-posts-numposts.png"
+ },
+ {
+  "n": 9,
+  "step": "posts-delay",
+  "action": "GET Delay (500ms)",
+  "path": "/Posts/Delay",
+  "title": "Posts Delay - SampleMvcWebApp",
+  "h2": "",
+  "rows": null,
+  "messages": [],
+  "shot": "09-posts-delay.png"
+ },
+ {
+  "n": 10,
+  "step": "posts-codeview",
+  "action": "GET CodeView",
+  "path": "/Posts/CodeView",
+  "title": "CodeView - SampleMvcWebApp",
+  "h2": "Posts: An explanation of Post code",
+  "rows": null,
+  "messages": [],
+  "shot": "10-posts-codeview.png"
+ },
+ {
+  "n": 11,
+  "step": "posts-create-get",
+  "action": "GET Create",
+  "path": "/Posts/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create",
+  "rows": 10,
+  "messages": [],
+  "shot": "11-posts-create-get.png"
+ },
+ {
+  "n": 12,
+  "step": "posts-create-empty-title",
+  "action": "POST Create, empty title",
+  "path": "/Posts/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create",
+  "rows": 10,
+  "messages": [
+   "The Title field is required."
+  ],
+  "shot": "12-posts-create-empty-title.png"
+ },
+ {
+  "n": 13,
+  "step": "posts-create-bang-title",
+  "action": "POST Create, title with !",
+  "path": "/Posts/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create",
+  "rows": 10,
+  "messages": [
+   "Sorry, but you can't get too excited and include a ! in the title."
+  ],
+  "shot": "13-posts-create-bang-title.png"
+ },
+ {
+  "n": 14,
+  "step": "posts-create-no-tags",
+  "action": "POST Create, no tag/blogger",
+  "path": "/Posts/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create",
+  "rows": 10,
+  "messages": [
+   "You must select at least one tag for the post."
+  ],
+  "shot": "14-posts-create-no-tags.png"
+ },
+ {
+  "n": 15,
+  "step": "posts-create-ok",
+  "action": "POST Create valid -> Index",
+  "path": "/Posts",
+  "title": "Posts - SampleMvcWebApp",
+  "h2": "Posts",
+  "rows": 18,
+  "messages": [
+   "Successfully created Post."
+  ],
+  "shot": "15-posts-create-ok.png"
+ },
+ {
+  "n": 16,
+  "step": "posts-edit-get",
+  "action": "GET Edit",
+  "path": "/Posts/Edit/36",
+  "title": "Edit - SampleMvcWebApp",
+  "h2": "Edit",
+  "rows": 10,
+  "messages": [],
+  "shot": "16-posts-edit-get.png"
+ },
+ {
+  "n": 17,
+  "step": "posts-edit-ok",
+  "action": "POST Edit valid -> Index",
+  "path": "/Posts",
+  "title": "Posts - SampleMvcWebApp",
+  "h2": "Posts",
+  "rows": 18,
+  "messages": [
+   "Successfully updated Post."
+  ],
+  "shot": "17-posts-edit-ok.png"
+ },
+ {
+  "n": 18,
+  "step": "posts-delete",
+  "action": "GET Delete -> Index",
+  "path": "/Posts",
+  "title": "Posts - SampleMvcWebApp",
+  "h2": "Posts",
+  "rows": 17,
+  "messages": [
+   "Successfully deleted Post."
+  ],
+  "shot": "18-posts-delete.png"
+ },
+ {
+  "n": 19,
+  "step": "posts-filtered",
+  "action": "Index/{blogId} filter",
+  "path": "/Posts/Index/6",
+  "title": "Posts - SampleMvcWebApp",
+  "h2": "Posts",
+  "rows": 5,
+  "messages": [
+   "Filtered list"
+  ],
+  "shot": "19-posts-filtered.png"
+ },
+ {
+  "n": 20,
+  "step": "postsasync-reset",
+  "action": "GET Reset -> Index (4 blogs/17 posts/8 tags)",
+  "path": "/PostsAsync",
+  "title": "PostsAsync - SampleMvcWebApp",
+  "h2": "Posts (async)",
+  "rows": 17,
+  "messages": [
+   "Successfully reset the blogs data"
+  ],
+  "shot": "20-postsasync-reset.png"
+ },
+ {
+  "n": 21,
+  "step": "postsasync-details",
+  "action": "Details of seeded post",
+  "path": "/PostsAsync/Details/37",
+  "title": "Details - SampleMvcWebApp",
+  "h2": "Details (Async)",
+  "rows": null,
+  "messages": [],
+  "shot": "21-postsasync-details.png"
+ },
+ {
+  "n": 22,
+  "step": "postsasync-numposts",
+  "action": "GET NumPosts",
+  "path": "/PostsAsync/NumPosts",
+  "title": "- SampleMvcWebApp",
+  "h2": "",
+  "rows": null,
+  "messages": [],
+  "shot": "22-postsasync-numposts.png"
+ },
+ {
+  "n": 23,
+  "step": "postsasync-delay",
+  "action": "GET Delay (500ms)",
+  "path": "/PostsAsync/Delay",
+  "title": "PostsAsync Delay - SampleMvcWebApp",
+  "h2": "",
+  "rows": null,
+  "messages": [],
+  "shot": "23-postsasync-delay.png"
+ },
+ {
+  "n": 24,
+  "step": "postsasync-codeview",
+  "action": "GET CodeView",
+  "path": "/PostsAsync/CodeView",
+  "title": "CodeView - SampleMvcWebApp",
+  "h2": "PostsAsync: A explanation of the PostAsync code",
+  "rows": null,
+  "messages": [],
+  "shot": "24-postsasync-codeview.png"
+ },
+ {
+  "n": 25,
+  "step": "postsasync-create-get",
+  "action": "GET Create",
+  "path": "/PostsAsync/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create (Async)",
+  "rows": 10,
+  "messages": [],
+  "shot": "25-postsasync-create-get.png"
+ },
+ {
+  "n": 26,
+  "step": "postsasync-create-empty-title",
+  "action": "POST Create, empty title",
+  "path": "/PostsAsync/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create (Async)",
+  "rows": 10,
+  "messages": [
+   "The Title field is required."
+  ],
+  "shot": "26-postsasync-create-empty-title.png"
+ },
+ {
+  "n": 27,
+  "step": "postsasync-create-bang-title",
+  "action": "POST Create, title with !",
+  "path": "/PostsAsync/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create (Async)",
+  "rows": 10,
+  "messages": [
+   "Sorry, but you can't get too excited and include a ! in the title."
+  ],
+  "shot": "27-postsasync-create-bang-title.png"
+ },
+ {
+  "n": 28,
+  "step": "postsasync-create-no-tags",
+  "action": "POST Create, no tag/blogger",
+  "path": "/PostsAsync/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create (Async)",
+  "rows": 10,
+  "messages": [
+   "You must select at least one tag for the post."
+  ],
+  "shot": "28-postsasync-create-no-tags.png"
+ },
+ {
+  "n": 29,
+  "step": "postsasync-create-ok",
+  "action": "POST Create valid -> Index",
+  "path": "/PostsAsync",
+  "title": "PostsAsync - SampleMvcWebApp",
+  "h2": "Posts (async)",
+  "rows": 18,
+  "messages": [
+   "Successfully created Post."
+  ],
+  "shot": "29-postsasync-create-ok.png"
+ },
+ {
+  "n": 30,
+  "step": "postsasync-edit-get",
+  "action": "GET Edit",
+  "path": "/PostsAsync/Edit/54",
+  "title": "Edit - SampleMvcWebApp",
+  "h2": "Edit (Async)",
+  "rows": 10,
+  "messages": [],
+  "shot": "30-postsasync-edit-get.png"
+ },
+ {
+  "n": 31,
+  "step": "postsasync-edit-ok",
+  "action": "POST Edit valid -> Index",
+  "path": "/PostsAsync",
+  "title": "PostsAsync - SampleMvcWebApp",
+  "h2": "Posts (async)",
+  "rows": 18,
+  "messages": [
+   "Successfully updated Post."
+  ],
+  "shot": "31-postsasync-edit-ok.png"
+ },
+ {
+  "n": 32,
+  "step": "postsasync-delete",
+  "action": "GET Delete -> Index",
+  "path": "/PostsAsync",
+  "title": "PostsAsync - SampleMvcWebApp",
+  "h2": "Posts (async)",
+  "rows": 17,
+  "messages": [
+   "Successfully deleted Post."
+  ],
+  "shot": "32-postsasync-delete.png"
+ },
+ {
+  "n": 33,
+  "step": "tags-index",
+  "action": "GET Index",
+  "path": "/Tags",
+  "title": "Tags - SampleMvcWebApp",
+  "h2": "Tags",
+  "rows": 8,
+  "messages": [],
+  "shot": "33-tags-index.png"
+ },
+ {
+  "n": 34,
+  "step": "tags-details",
+  "action": "GET Details",
+  "path": "/Tags/Details/18",
+  "title": "Details - SampleMvcWebApp",
+  "h2": "Details",
+  "rows": null,
+  "messages": [],
+  "shot": "34-tags-details.png"
+ },
+ {
+  "n": 35,
+  "step": "tags-codeview",
+  "action": "GET CodeView",
+  "path": "/Tags/CodeView",
+  "title": "CodeView - SampleMvcWebApp",
+  "h2": "Tags: A explanation of Tags code",
+  "rows": null,
+  "messages": [],
+  "shot": "35-tags-codeview.png"
+ },
+ {
+  "n": 36,
+  "step": "tags-create-get",
+  "action": "GET Create",
+  "path": "/Tags/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create",
+  "rows": 8,
+  "messages": [],
+  "shot": "36-tags-create-get.png"
+ },
+ {
+  "n": 37,
+  "step": "tags-create-dup-slug",
+  "action": "POST Create duplicate slug",
+  "path": "/Tags/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create",
+  "rows": 8,
+  "messages": [
+   "The Slug on tag 'Duplicate' must be unique and is already being used."
+  ],
+  "shot": "37-tags-create-dup-slug.png"
+ },
+ {
+  "n": 38,
+  "step": "tags-create-bad-slug",
+  "action": "POST Create slug with space",
+  "path": "/Tags/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create",
+  "rows": 8,
+  "messages": [
+   "The slug must not contain spaces or non-alphanumeric characters."
+  ],
+  "shot": "38-tags-create-bad-slug.png"
+ },
+ {
+  "n": 39,
+  "step": "tags-create-ok",
+  "action": "POST Create valid -> Index",
+  "path": "/Tags",
+  "title": "Tags - SampleMvcWebApp",
+  "h2": "Tags",
+  "rows": 9,
+  "messages": [
+   "Successfully created Tag."
+  ],
+  "shot": "39-tags-create-ok.png"
+ },
+ {
+  "n": 40,
+  "step": "tags-edit-get",
+  "action": "GET Edit",
+  "path": "/Tags/Edit/25",
+  "title": "Edit - SampleMvcWebApp",
+  "h2": "Edit",
+  "rows": 8,
+  "messages": [],
+  "shot": "40-tags-edit-get.png"
+ },
+ {
+  "n": 41,
+  "step": "tags-edit-ok",
+  "action": "POST Edit valid -> Index",
+  "path": "/Tags",
+  "title": "Tags - SampleMvcWebApp",
+  "h2": "Tags",
+  "rows": 9,
+  "messages": [
+   "Successfully updated Tag."
+  ],
+  "shot": "41-tags-edit-ok.png"
+ },
+ {
+  "n": 42,
+  "step": "tags-delete",
+  "action": "GET Delete -> Index",
+  "path": "/Tags",
+  "title": "Tags - SampleMvcWebApp",
+  "h2": "Tags",
+  "rows": 8,
+  "messages": [
+   "Successfully deleted Tag."
+  ],
+  "shot": "42-tags-delete.png"
+ },
+ {
+  "n": 43,
+  "step": "tagsasync-index",
+  "action": "GET Index",
+  "path": "/TagsAsync",
+  "title": "TagsAsync - SampleMvcWebApp",
+  "h2": "Tags (Async)",
+  "rows": 8,
+  "messages": [],
+  "shot": "43-tagsasync-index.png"
+ },
+ {
+  "n": 44,
+  "step": "tagsasync-details",
+  "action": "GET Details",
+  "path": "/TagsAsync/Details/18",
+  "title": "Details - SampleMvcWebApp",
+  "h2": "Details (Async)",
+  "rows": null,
+  "messages": [],
+  "shot": "44-tagsasync-details.png"
+ },
+ {
+  "n": 45,
+  "step": "tagsasync-codeview",
+  "action": "GET CodeView",
+  "path": "/TagsAsync/CodeView",
+  "title": "CodeView - SampleMvcWebApp",
+  "h2": "Tags: A explanation of Tags code",
+  "rows": null,
+  "messages": [],
+  "shot": "45-tagsasync-codeview.png"
+ },
+ {
+  "n": 46,
+  "step": "tagsasync-create-get",
+  "action": "GET Create",
+  "path": "/TagsAsync/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create (Async)",
+  "rows": 8,
+  "messages": [],
+  "shot": "46-tagsasync-create-get.png"
+ },
+ {
+  "n": 47,
+  "step": "tagsasync-create-dup-slug",
+  "action": "POST Create duplicate slug",
+  "path": "/TagsAsync/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create (Async)",
+  "rows": 8,
+  "messages": [
+   "The Slug on tag 'Duplicate' must be unique and is already being used."
+  ],
+  "shot": "47-tagsasync-create-dup-slug.png"
+ },
+ {
+  "n": 48,
+  "step": "tagsasync-create-bad-slug",
+  "action": "POST Create slug with space",
+  "path": "/TagsAsync/Create",
+  "title": "Create - SampleMvcWebApp",
+  "h2": "Create (Async)",
+  "rows": 8,
+  "messages": [
+   "The slug must not contain spaces or non-alphanumeric characters."
+  ],
+  "shot": "48-tagsasync-create-bad-slug.png"
+ },
+ {
+  "n": 49,
+  "step": "tagsasync-create-ok",
+  "action": "POST Create valid -> Index",
+  "path": "/TagsAsync",
+  "title": "TagsAsync - SampleMvcWebApp",
+  "h2": "Tags (Async)",
+  "rows": 9,
+  "messages": [
+   "Successfully created Tag."
+  ],
+  "shot": "49-tagsasync-create-ok.png"
+ },
+ {
+  "n": 50,
+  "step": "tagsasync-edit-get",
+  "action": "GET Edit",
+  "path": "/TagsAsync/Edit/26",
+  "title": "Edit - SampleMvcWebApp",
+  "h2": "Edit (Async)",
+  "rows": 8,
+  "messages": [],
+  "shot": "50-tagsasync-edit-get.png"
+ },
+ {
+  "n": 51,
+  "step": "tagsasync-edit-ok",
+  "action": "POST Edit valid -> Index",
+  "path": "/TagsAsync",
+  "title": "TagsAsync - SampleMvcWebApp",
+  "h2": "Tags (Async)",
+  "rows": 9,
+  "messages": [
+   "Successfully updated Tag."
+  ],
+  "shot": "51-tagsasync-edit-ok.png"
+ },
+ {
+  "n": 52,
+  "step": "tagsasync-delete",
+  "action": "GET Delete -> Index",
+  "path": "/TagsAsync",
+  "title": "TagsAsync - SampleMvcWebApp",
+  "h2": "Tags (Async)",
+  "rows": 8,
+  "messages": [
+   "Successfully deleted Tag."
+  ],
+  "shot": "52-tagsasync-delete.png"
+ },
+ {
+  "n": 53,
+  "step": "blogs-index",
+  "action": "GET Index",
+  "path": "/Blogs",
+  "title": "- SampleMvcWebApp",
+  "h2": "Blogs",
+  "rows": 4,
+  "messages": [],
+  "shot": "53-blogs-index.png"
+ },
+ {
+  "n": 54,
+  "step": "blogs-create-get",
+  "action": "GET Create",
+  "path": "/Blogs/Create",
+  "title": "- SampleMvcWebApp",
+  "h2": "",
+  "rows": null,
+  "messages": [],
+  "shot": "54-blogs-create-get.png"
+ },
+ {
+  "n": 55,
+  "step": "blogs-create-invalid",
+  "action": "POST Create invalid name/email",
+  "path": "/Blogs/Create",
+  "title": "- SampleMvcWebApp",
+  "h2": "",
+  "rows": null,
+  "messages": [],
+  "shot": "55-blogs-create-invalid.png"
+ },
+ {
+  "n": 56,
+  "step": "blogs-create-ok",
+  "action": "POST Create valid -> Index",
+  "path": "/Blogs",
+  "title": "- SampleMvcWebApp",
+  "h2": "Blogs",
+  "rows": 5,
+  "messages": [
+   "Successfully created Blog."
+  ],
+  "shot": "56-blogs-create-ok.png"
+ },
+ {
+  "n": 57,
+  "step": "blogs-edit-get",
+  "action": "GET Edit",
+  "path": "/Blogs/Edit/13",
+  "title": "- SampleMvcWebApp",
+  "h2": "",
+  "rows": null,
+  "messages": [],
+  "shot": "57-blogs-edit-get.png"
+ },
+ {
+  "n": 58,
+  "step": "blogs-edit-ok",
+  "action": "POST Edit valid -> Index",
+  "path": "/Blogs",
+  "title": "- SampleMvcWebApp",
+  "h2": "Blogs",
+  "rows": 5,
+  "messages": [
+   "Successfully updated Blog."
+  ],
+  "shot": "58-blogs-edit-ok.png"
+ },
+ {
+  "n": 59,
+  "step": "blogs-delete",
+  "action": "GET Delete -> Index",
+  "path": "/Blogs",
+  "title": "- SampleMvcWebApp",
+  "h2": "Blogs",
+  "rows": 4,
+  "messages": [
+   "Successfully deleted Blog."
+  ],
+  "shot": "59-blogs-delete.png"
+ },
+ {
+  "n": 60,
+  "step": "final-reset",
+  "action": "GET Reset (restore seed)",
+  "path": "/Posts",
+  "title": "Posts - SampleMvcWebApp",
+  "h2": "Posts",
+  "rows": 17,
+  "messages": [
+   "Successfully reset the blogs data"
+  ],
+  "shot": "60-final-reset.png"
+ }
+]
