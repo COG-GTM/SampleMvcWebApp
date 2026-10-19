@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.transaction.support.TransactionTemplate;
+import com.samplemvcwebapp.datalayer.repositories.BlogRepository;
 
 @SpringBootTest
 @TestPropertySource(properties = "spring.datasource.url=jdbc:h2:mem:serviceLayerTest;MODE=MSSQLServer;DATABASE_TO_UPPER=FALSE")
@@ -34,6 +36,8 @@ class ServiceLayerTest {
     @Autowired TagService tagService;
     @Autowired TagAsyncService tagAsyncService;
     @Autowired BlogService blogService;
+    @Autowired BlogRepository blogRepository;
+    @Autowired TransactionTemplate tx;
 
     @BeforeEach
     void seed() {
@@ -122,6 +126,9 @@ class ServiceLayerTest {
 
         dto.setSlug("caf\u00e9_2");
         assertThat(tagService.create(dto).isValid()).isTrue();
+        dto.setSlug("ab\u200Dcd");
+        assertThat(tagService.create(dto).getErrors()).extracting(ValidationError::message)
+                .containsExactly("The slug must not contain spaces or non-alphanumeric characters.");
         dto.setName(" ");
         dto.setSlug("dup");
         assertThat(tagService.create(dto).getErrors()).extracting(ValidationError::message)
@@ -153,5 +160,20 @@ class ServiceLayerTest {
         assertThat(blogService.delete(jon).getSuccessMessage()).isEqualTo("Successfully deleted Blog.");
         assertThat(postAsyncService.listPostsAsync().get()).hasSize(1);
         assertThat(postAsyncService.getNumPostsMessageAsync().get()).isEqualTo("The total number of Posts is 1");
+    }
+
+    @Test
+    void movedPostSurvivesDeletingOldBlogInSameTransaction() {
+        tx.executeWithoutResult(status -> {
+            var blogs = blogRepository.findAllByOrderByBlogIdAsc();
+            assertThat(blogs.get(0).getPosts()).hasSize(2);
+            assertThat(blogs.get(1).getPosts()).hasSize(1);
+            DetailPostDto dto = postService.getUpdateSetup(postService.listPosts(null).get(0).postId()).orElseThrow();
+            dto.getBloggers().setSelectedValue(String.valueOf(blogs.get(1).getBlogId()));
+            assertThat(postService.update(dto).isValid()).isTrue();
+            assertThat(blogService.delete(blogs.get(0).getBlogId()).isValid()).isTrue();
+        });
+        assertThat(postService.listPosts(null)).extracting(SimplePostDto::bloggerName)
+                .containsExactly("Fred Bloggs", "Fred Bloggs");
     }
 }

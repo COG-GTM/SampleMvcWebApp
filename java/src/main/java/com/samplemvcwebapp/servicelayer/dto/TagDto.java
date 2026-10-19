@@ -19,7 +19,7 @@ public class TagDto {
 
     @NotBlank(message = ValidationMessages.TAG_SLUG_REQUIRED)
     @Size(max = 64, message = ValidationMessages.TAG_SLUG_MAX)
-    @Pattern(regexp = "(?U)\\w*", message = ValidationMessages.TAG_SLUG_PATTERN)
+    @Pattern(regexp = "[\\p{L}\\p{Mn}\\p{Nd}\\p{Pc}]*", message = ValidationMessages.TAG_SLUG_PATTERN)
     private String slug;
 
     public int getTagId() { return tagId; }

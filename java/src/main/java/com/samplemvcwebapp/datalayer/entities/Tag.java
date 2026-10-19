@@ -24,7 +24,7 @@ public class Tag {
 
     @NotBlank(message = ValidationMessages.TAG_SLUG_REQUIRED)
     @Size(max = 64, message = ValidationMessages.TAG_SLUG_MAX)
-    @Pattern(regexp = "(?U)\\w*", message = ValidationMessages.TAG_SLUG_PATTERN)
+    @Pattern(regexp = "[\\p{L}\\p{Mn}\\p{Nd}\\p{Pc}]*", message = ValidationMessages.TAG_SLUG_PATTERN)
     @Column(name = "Slug", length = 64, nullable = false)
     private String slug;
 

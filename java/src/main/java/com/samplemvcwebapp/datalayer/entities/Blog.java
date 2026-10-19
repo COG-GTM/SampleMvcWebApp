@@ -31,7 +31,7 @@ public class Blog {
     @Column(name = "EmailAddress", length = 256, nullable = false)
     private String emailAddress;
 
-    @OneToMany(mappedBy = "blogger", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "blogger", cascade = CascadeType.ALL)
     @OrderBy("postId ASC")
     private List<Post> posts = new ArrayList<>();
 
