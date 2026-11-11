@@ -50,7 +50,7 @@ Load mix: `{"portalBook": 104, "partnerBook": 109, "cancel": 88, "attend": 13, "
 
 </details>
 
-### Migrated stack (head `cfc995a262`, as-of 2026-11-11T00:00:00)
+### Migrated stack (head `40f8a9f028`, as-of 2026-11-11T00:00:00)
 
 Health: portal 200, booking-api 200, results-service 200, scheduling-service 200. HB-01: removed (single writer).
 
@@ -64,9 +64,9 @@ Health: portal 200, booking-api 200, results-service 200, scheduling-service 200
 | drift | 5 | 0 | 0 |
 | **total** | **163** | **0** | 0 |
 
-Drift under load: 640 ops, 8 workers, 26 samples over 15.5s; **max raw seat drift 0, max unexplained 0**, max duplicate waitlist positions 0.
+Drift under load: 640 ops, 8 workers, 27 samples over 16.5s; **max raw seat drift 0, max unexplained 0**, max duplicate waitlist positions 0.
 
-Load mix: `{"portalBook": 96, "partnerBook": 88, "cancel": 78, "attend": 25, "reschedule": 17, "rejected": {"NOT_CANCELLABLE": 14, "DUPLICATE_BOOKING": 148, "NOT_ELIGIBLE": 146, "BOOKING_NOT_ACTIVE": 15, "DUPLICATE_RESULT": 8, "NO_ACCOMMODATION_SEAT": 5}, "transport": 0, "sqlDeadlocks": 5, "samplerDeadlockVictims": 0}`
+Load mix: `{"portalBook": 101, "partnerBook": 100, "cancel": 84, "attend": 25, "reschedule": 20, "rejected": {"NOT_CANCELLABLE": 12, "DUPLICATE_BOOKING": 145, "NOT_ELIGIBLE": 125, "BOOKING_NOT_ACTIVE": 18, "NO_ACCOMMODATION_SEAT": 4, "DUPLICATE_RESULT": 6}, "transport": 0, "sqlDeadlocks": 6, "samplerDeadlockVictims": 0}`
 
 <details><summary>Portal vs partner parity trace (same scenario on each channel)</summary>
 
@@ -88,7 +88,7 @@ Load mix: `{"portalBook": 96, "partnerBook": 88, "cancel": 78, "attend": 25, "re
 
 ## Cutover rehearsal
 
-Legacy worktree `e2975c1401`, migrated `cfc995a262`, as-of 2026-11-11T00:00:00. Inputs chosen identically on both sides: True. **Zero drift: True.**
+Legacy worktree `e2975c1401`, migrated `40f8a9f028`, as-of 2026-11-11T00:00:00. Inputs chosen identically on both sides: True. **Zero drift: True.**
 
 Baseline (production copy vs scheduling-service import, before the workload): Booking 3587/3587 identical, ExamSession 462/462 identical, Waitlist 34/34 identical, AuditLog 12/12 identical
 
