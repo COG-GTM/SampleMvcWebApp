@@ -8,7 +8,8 @@
 # Environment overrides:
 #   MSSQL_CONTAINER (mssql)  MSSQL_SA_PASSWORD (Str0ng!Passw0rd)  MSSQL_IMAGE
 #   JAVA_HOME     must point at a JDK 8 (auto-detected under /usr/lib/jvm if unset)
-#   SKIP_DB=1     do not (re)apply the database scripts
+#   SKIP_DB=1     keep the existing database. By default every start re-creates it from db/
+#                 (the schema script drops and recreates all tables - DEV ONLY)
 #   SKIP_BUILD=1  reuse the jars already in services/*/target
 #
 # The .NET portal (:8080) is Windows-only - see scripts/run-portal.ps1.
@@ -87,10 +88,10 @@ apply_db() {
         return
     fi
     if [ -x "$ROOT/db/apply.sh" ] || [ -f "$ROOT/db/apply.sh" ]; then
-        log "applying database via db/apply.sh"
+        log "re-creating database via db/apply.sh (existing data is dropped; SKIP_DB=1 to keep it)"
         bash "$ROOT/db/apply.sh"
     else
-        log "db/apply.sh not found, applying db/schema + db/procs"
+        log "db/apply.sh not found, re-creating database from db/schema + db/procs (existing data is dropped; SKIP_DB=1 to keep it)"
         local f
         for f in "$ROOT"/db/schema/*.sql "$ROOT"/db/procs/*.sql; do
             log "  $(basename "$f")"

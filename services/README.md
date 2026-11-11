@@ -32,7 +32,8 @@ scripts/run-legacy.sh status
 scripts/run-legacy.sh stop
 ```
 
-Logs and PIDs go to `.run/`. The portal is Windows-only and is not started by this script.
+Logs and PIDs go to `.run/`. Every `start` re-creates the database from `db/` (all data is dropped);
+use `SKIP_DB=1 scripts/run-legacy.sh` to restart the services and keep the data. The portal is Windows-only and is not started by this script.
 
 By hand, against a database that is already there:
 
