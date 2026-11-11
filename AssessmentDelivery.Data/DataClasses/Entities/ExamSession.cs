@@ -22,8 +22,8 @@ namespace AssessmentDelivery.Data.DataClasses.Entities
         public int AccommodationCapacity { get; set; }
 
         /// <summary>
-        /// Denormalised counter kept up to date by usp_BookSeat / usp_CancelBooking.
-        /// Do not update this from the portal directly.
+        /// Denormalised counter, read-only here. Scheduling-service owns seat changes and the
+        /// relay projects them into AssessmentDelivery (see db/README.md).
         /// </summary>
         public int SeatsAvailable { get; set; }
 

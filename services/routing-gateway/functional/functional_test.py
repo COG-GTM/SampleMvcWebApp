@@ -231,9 +231,16 @@ def main():
           st == 302 and h.get("location", "").startswith(f"/app?centerCode={C1}") and route == "modern", f"{st} {h}")
     st, h, b, route = raw("GET", GW + h.get("location", "/app"))
     check("modern UI served through :8000 (X-Route: modern)", st == 200 and b"Scheduling" in b and route == "modern", f"{st}")
-    st, h, b, route = raw("GET", GW + f"/Booking?CenterCode={C2}&CandidateNumber=NW00000903")
-    check(f"portal /Booking?CenterCode={C2} -> MVC page as before (X-Route: legacy)",
-          st == 200 and b"Find exam sessions" in b and route == "legacy", f"{st} {route}")
+    # MBA-3824: the .NET booking pages are retired, so C2 (never allow-listed) and center-less URLs go modern too
+    for p, loc in [(f"/Booking?CenterCode={C2}&CandidateNumber=NW00000903", f"/app?centerCode={C2}"),
+                   ("/Booking", "/app"),
+                   ("/Booking/MyBookings?candidateNumber=NW00000042", "/app/my-bookings?candidateNumber=NW00000042"),
+                   (f"/Booking/Book?sessionId={s_nyc}", f"/app/book?sessionId={s_nyc}"),
+                   (f"/Admin/Sessions/Capacity/{s_nyc}", f"/app/admin/sessions/{s_nyc}")]:
+        st, h, b, route = raw("GET", GW + p)
+        st2 = raw("GET", GW + h.get("location", "/app"))[0]
+        check(f"retired portal {p} -> 302 {loc} then 200 (X-Route: modern)",
+              st == 302 and h.get("location", "").startswith(loc) and route == "modern" and st2 == 200, f"{st} {h} {st2}")
     for p in ["/Admin/Centers", "/Eligibility", "/Results"]:
         st, h, b, route = raw("GET", GW + p)
         check(f"portal {p} passes through unchanged", st == 200 and route == "legacy" and b == raw("GET", "http://localhost:8080" + p)[2])

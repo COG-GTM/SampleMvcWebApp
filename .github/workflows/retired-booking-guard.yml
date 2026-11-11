@@ -1,0 +1,11 @@
+name: retired-booking-guard
+on:
+  pull_request:
+  push:
+    branches: [assessment-delivery-demo]
+jobs:
+  grep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/check-retired-booking.sh

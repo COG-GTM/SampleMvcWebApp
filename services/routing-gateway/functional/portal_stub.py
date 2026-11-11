@@ -1,8 +1,8 @@
 """Stand-in for the ASP.NET MVC 5 portal (:8080; the real one only runs on Windows, PR #52).
 
-Mirrors the routes the gateway cares about (BookingController, AdminController, Eligibility, Results) with the
-same query/form field names as the MVC views. Legacy reads/writes go to the real booking-api (:8081), so a booking
-made here writes a legacy dbo.Booking row, like the portal's usp_BookSeat call.
+Mirrors the routes the gateway cares about (AdminController, Eligibility, Results) with the same query/form field
+names as the MVC views. The /Booking pages are kept as a pre-MBA-3824 reference only: the real portal no longer has
+them and the gateway redirects those URLs to the modern UI before they reach the portal.
 """
 import html
 import json

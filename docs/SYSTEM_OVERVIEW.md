@@ -20,8 +20,11 @@ reads and writes one shared SQL Server database, `AssessmentDelivery`.
 | results-service (score ingestion) | Java 8, Spring Boot 1.5, JdbcTemplate | 8082 | `services/results-service` |
 | capacity-sync (scheduled seat re-sync) | Java 8, Spring Boot 1.5, `@Scheduled` | 8083 | `services/capacity-sync` |
 
-Local development credentials: SQL login `ad_app` / `Northw1nd!Dev2011`, created by
-`db/schema/000_create_database.sql` (dev only). On Azure the connection strings come
+Local development credentials: one SQL login per component (`ad_portal`, `ad_booking_api`, `ad_results`,
+`ad_capacity_sync`, `ad_sched_import`, `ad_sched_relay`), created by `db/schema/000_create_database.sql`
+(dev only; passwords in the root README). Since MBA-3823 `db/security/040_single_writer.sql` denies booking
+and seat writes to all of them except `ad_sched_relay`: scheduling-service is the single writer and its outbox
+relay projects every change back into `Booking` / `Waitlist` / `ExamSession` / `AuditLog`. On Azure the connection strings come
 from App Service settings, and the committed transforms/profiles hold only placeholders.
 
 ## Database (`db/`)
@@ -53,7 +56,10 @@ no seat constraint.
 failed can book again only after `Exam.RetakeWaitDays` (30) days from the date of the
 last attempt (the `StartsAt` of the session the failed result belongs to).
 
-### Stored procedures
+### Stored procedures (retired)
+
+The four booking procs below were dropped in MBA-3824 (`db/procs/090_retire_booking_procs.sql`; source in git
+history). scheduling-service is the only booking writer; the table documents the legacy contract it ported.
 
 | Procedure | Signature | Notes |
 |---|---|---|
@@ -104,8 +110,8 @@ starts a run by hand and `GET /sync/last` shows the last run.
 
 | Area | Routes |
 |---|---|
-| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=`, `/Admin/Sessions/Capacity/{id}` (calls usp_ChangeCapacity) |
-| Candidate booking | `/Booking` (find sessions), `/Booking/Book`, `/Booking/MyBookings?candidateNumber=`, `/Booking/Cancel/{id}`, `/Booking/Reschedule/{id}` |
+| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=` (read-only); capacity changes moved to the modern UI `/app/admin/sessions/{id}` |
+| Candidate booking | retired in MBA-3824: `/Booking`, `/Booking/Book`, `/Booking/MyBookings`, `/Booking/Cancel/{id}`, `/Booking/Reschedule/{id}` redirect to `/app/...` through the routing gateway (:8000) |
 | Retake eligibility | `/Eligibility?candidateNumber=&examCode=&date=` |
 | Results | `/Results?candidateNumber=` |
 

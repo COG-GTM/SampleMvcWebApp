@@ -8,7 +8,7 @@ import java.util.Set;
  * <ol>
  *   <li>a booking created on the modern side (id in the modern range, or {@code bookingOrigin=MODERN}) always goes
  *       to modern, whatever the allow-list says, so in-flight modern bookings are never orphaned;</li>
- *   <li>otherwise a request for a center on the allow-list goes to modern;</li>
+ *   <li>otherwise a request for a center on the allow-list (or any center when it holds {@code *}) goes to modern;</li>
  *   <li>everything else (unknown center, center not on the list) goes to legacy.</li>
  * </ol>
  */
@@ -16,6 +16,7 @@ public final class RouteDecider {
 
     public static final long DEFAULT_MODERN_BOOKING_ID_FLOOR = 50_000_000L;
     public static final String ORIGIN_MODERN = "MODERN";
+    public static final String ALL_CENTERS = "*";
 
     private final long modernBookingIdFloor;
 
@@ -33,7 +34,7 @@ public final class RouteDecider {
 
     /**
      * @param centerCode    resolved {@code TestCenter.CenterCode}, or null when it could not be resolved
-     * @param allowList     {@code routing.modern-centers}, upper-case center codes
+     * @param allowList     {@code routing.modern-centers}, upper-case center codes or {@code *}
      * @param bookingId     booking id from the request, or null
      * @param bookingOrigin {@code bookingOrigin} from the resolve endpoint, or null
      */
@@ -50,6 +51,9 @@ public final class RouteDecider {
         }
         if (allowList != null && allowList.contains(center)) {
             return RouteDecision.modern(center, "allow-listed");
+        }
+        if (allowList != null && allowList.contains(ALL_CENTERS)) {
+            return RouteDecision.modern(center, "all-centers");
         }
         return RouteDecision.legacy(center, "not-allow-listed");
     }

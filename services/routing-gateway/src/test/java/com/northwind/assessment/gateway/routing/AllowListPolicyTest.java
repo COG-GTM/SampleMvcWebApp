@@ -35,6 +35,12 @@ class AllowListPolicyTest {
     }
 
     @Test
+    void wildcardRequiresRelay() {
+        assertThat(AllowListPolicy.violations(Set.of("*"), TEST, "none")).singleElement().asString().contains("[*]");
+        assertThat(AllowListPolicy.violations(Set.of("*"), TEST, "relay")).isEmpty();
+    }
+
+    @Test
     void relayModeLiftsTheRestriction() {
         assertThat(AllowListPolicy.violations(Set.of("NYC01"), TEST, " RELAY ")).isEmpty();
     }

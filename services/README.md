@@ -43,14 +43,14 @@ java -jar services/results-service/target/results-service.jar
 java -jar services/capacity-sync/target/capacity-sync.jar
 ```
 
-`scripts/mixed-traffic.sh` books a batch of seats through both channels (portal via `usp_BookSeat`,
-partner via booking-api) on a freshly seeded database and prints a short summary.
+`scripts/mixed-traffic.sh` books a batch of seats through booking-api (the portal channel was retired in
+MBA-3824) on a freshly seeded database and prints a short summary.
 
 ## Profiles / configuration
 
 | File | Used for |
 |---|---|
-| `src/main/resources/application.properties` | local dev: `localhost:1433`, DB `AssessmentDelivery`, login `ad_app`, password from `AD_DB_PASSWORD` (defaults to the dev password) |
+| `src/main/resources/application.properties` | local dev: `localhost:1433`, DB `AssessmentDelivery`, per-component login (`ad_booking_api` / `ad_results` / `ad_capacity_sync`), password from `AD_DB_PASSWORD` (defaults to the dev password); `ROUTING_URL` (default `http://localhost:8000`) for writes forwarded to scheduling-service |
 | `src/main/resources/application-azure.properties` | Azure SQL. Activate with `--spring.profiles.active=azure`; fill in the server/user placeholders and set `AZURE_SQL_PASSWORD` |
 
 Any property can be overridden on the command line, e.g. `--server.port=9081` or

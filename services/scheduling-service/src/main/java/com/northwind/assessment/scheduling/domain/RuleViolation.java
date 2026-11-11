@@ -13,6 +13,7 @@ public enum RuleViolation {
     DIFFERENT_EXAM(Kind.CONFLICT, 50006),
     SAME_SESSION(Kind.CONFLICT, null),
     NOT_ELIGIBLE(Kind.CONFLICT, null),
+    BOOKING_NOT_ACTIVE(Kind.CONFLICT, null),
     VALIDATION(Kind.INVALID, null);
 
     public enum Kind { INVALID, CONFLICT }

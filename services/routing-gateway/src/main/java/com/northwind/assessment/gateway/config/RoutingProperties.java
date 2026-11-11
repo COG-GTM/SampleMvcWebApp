@@ -22,6 +22,7 @@ public class RoutingProperties {
     private URI schedulingServiceUrl = URI.create("http://localhost:8090");
 
     private List<String> modernCenters = new ArrayList<>();
+    private List<String> modernWriteCenters = new ArrayList<>();
     private List<String> testCenters = new ArrayList<>(List.of("BOS01", "SEA01", "AKL01"));
     private String coexistenceMode = "none";
 
@@ -45,6 +46,8 @@ public class RoutingProperties {
     public void setSchedulingServiceUrl(URI v) { this.schedulingServiceUrl = v; }
     public List<String> getModernCenters() { return modernCenters; }
     public void setModernCenters(List<String> v) { this.modernCenters = v; }
+    public List<String> getModernWriteCenters() { return modernWriteCenters; }
+    public void setModernWriteCenters(List<String> v) { this.modernWriteCenters = v; }
     public List<String> getTestCenters() { return testCenters; }
     public void setTestCenters(List<String> v) { this.testCenters = v; }
     public String getCoexistenceMode() { return coexistenceMode; }
