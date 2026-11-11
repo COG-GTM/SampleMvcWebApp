@@ -206,19 +206,23 @@ class SessionCapacityTest {
     }
 
     @Test
-    void usp_ChangeCapacity_allocatedFloorKeepsAccommodationSeatsForExtraTime_50005() {
-        SessionCapacity s = open(12, 2,
-                slot(1, 1, BookingStatus.BOOKED, null, 0),
-                slot(2, 2, BookingStatus.BOOKED, null, 1),
-                slot(3, 3, BookingStatus.BOOKED, "SR", 2),
-                slot(4, 4, BookingStatus.ATTENDED, null, 3),
-                slot(5, 5, BookingStatus.BOOKED, "ET25", 4));
-        assertViolation(() -> s.changeCapacity(5, AccommodationFloorPolicy.ALLOCATED),
-                RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR, 50005);
-        assertThat(s.capacity()).isEqualTo(12);
-        CapacityChange c = s.changeCapacity(6, AccommodationFloorPolicy.ALLOCATED);
-        assertThat(c.newCapacity()).isEqualTo(6);
-        assertThat(c.bumped()).isEmpty();
+    void trg_ExamSession_Update_allocatedFloorStillBumpsStandardBookingsOnSessionWithAccommodationSeats() {
+        SessionCapacity s = session(SessionStatus.OPEN, 12, 2,
+                List.of(slot(1, 1, BookingStatus.BOOKED, null, 0),
+                        slot(2, 2, BookingStatus.BOOKED, null, 1),
+                        slot(3, 3, BookingStatus.BOOKED, "SR", 2),
+                        slot(4, 4, BookingStatus.ATTENDED, null, 3),
+                        slot(5, 5, BookingStatus.BOOKED, "ET25", 4),
+                        slot(6, 6, BookingStatus.BOOKED, null, 5),
+                        slot(7, 7, BookingStatus.WAITLISTED, null, 6)),
+                List.of(new WaitlistSlot(7, 1)));
+        // usp_ChangeCapacity only floors at AccommodationCapacity (2); trg_ExamSession_Update then bumps the newest BOOKED
+        CapacityChange c = s.changeCapacity(3, AccommodationFloorPolicy.ALLOCATED);
+        assertThat(c.newCapacity()).isEqualTo(3);
+        assertThat(c.bumped()).containsExactly(new WaitlistSlot(3, 2), new WaitlistSlot(5, 3), new WaitlistSlot(6, 4));
+        assertThat(s.seatsHeld()).isEqualTo(3);
+        assertThat(s.seatsAvailable()).isZero();
+        assertThat(s.waitlist()).extracting(WaitlistSlot::bookingId).containsExactly(7L, 3L, 5L, 6L);
     }
 
     @Test
