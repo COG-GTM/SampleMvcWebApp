@@ -18,11 +18,13 @@ services/scheduling-contract-tests/run-contract-tests.sh
 
 ### Targets
 
-The same tests prove legacy and migrated behaviour match. Select with `-Dcontract.target=legacy|scheduling` (or `CONTRACT_TARGET=...` for the script); default `legacy`.
+The same tests prove legacy and migrated behaviour match. Select with `-Dcontract.target=legacy|scheduling` (or `CONTRACT_TARGET=...` for the script). The script defaults to `scheduling` when `services/scheduling-service` exists and to `legacy` otherwise; plain `mvn test` defaults to `legacy`.
+
+**Legacy mode is only valid on the pre-Phase-2 baseline** (`migration/phase0` / `estate/legacy-baseline`). From Phase 2 on, booking-api and results-service call scheduling-service, which legacy mode does not start, so ResultsAttend, BookingApi and Retake fail there by construction (the script prints a warning).
 
 ```bash
-services/scheduling-contract-tests/run-contract-tests.sh                                 # legacy (run on migration/phase0 or estate code)
-CONTRACT_TARGET=scheduling services/scheduling-contract-tests/run-contract-tests.sh      # rewired callers + real scheduling-service
+services/scheduling-contract-tests/run-contract-tests.sh                                 # scheduling if services/scheduling-service exists, else legacy
+CONTRACT_TARGET=legacy services/scheduling-contract-tests/run-contract-tests.sh          # legacy: only on migration/phase0 (pre-Phase-2 code)
 ```
 
 - **legacy**: as described below; ExamSession/Booking/Waitlist fixtures and assertions use `AssessmentDelivery`.

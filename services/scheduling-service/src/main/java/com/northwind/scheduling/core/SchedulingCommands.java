@@ -80,7 +80,7 @@ public class SchedulingCommands {
     static final int DEADLOCK_ATTEMPTS = 5;
 
     /** Runs one command transaction, re-running the whole transaction if SQL Server picks it as a 1205 victim. */
-    private <T> T inTx(TransactionCallback<T> work) {
+    <T> T inTx(TransactionCallback<T> work) {
         for (int attempt = 1; ; attempt++) {
             try {
                 return tx.execute(work);
@@ -99,17 +99,49 @@ public class SchedulingCommands {
         }
     }
 
-    static boolean isDeadlock(Throwable e) {
-        for (Throwable t = e; t != null; t = t.getCause()) {
-            if (t instanceof java.sql.SQLException sql && sql.getErrorCode() == 1205) {
+    /**
+     * True if SQL Server chose this transaction as a 1205 deadlock victim. Walks causes, SQLException next-exceptions
+     * and suppressed exceptions, because mssql-jdbc can report the victim in a wrapped form ("An error occurred during
+     * the current command (Done status 0). Transaction ... was deadlocked ...") whose getErrorCode() is not 1205.
+     */
+    public static boolean isDeadlock(Throwable e) {
+        java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        java.util.Deque<Throwable> todo = new java.util.ArrayDeque<>();
+        todo.push(e);
+        while (!todo.isEmpty()) {
+            Throwable t = todo.pop();
+            if (!seen.add(t)) {
+                continue;
+            }
+            if (t instanceof com.microsoft.sqlserver.jdbc.SQLServerException se && se.getSQLServerError() != null
+                    && se.getSQLServerError().getErrorNumber() == 1205) {
                 return true;
             }
-            if ((t instanceof CannotAcquireLockException || t instanceof PessimisticLockingFailureException)
-                    && t.getMessage() != null && t.getMessage().toLowerCase(java.util.Locale.ROOT).contains("deadlock")) {
+            if (t instanceof java.sql.SQLException sql) {
+                if (sql.getErrorCode() == 1205 || mentionsDeadlockVictim(sql.getMessage())) {
+                    return true;
+                }
+                if (sql.getNextException() != null) {
+                    todo.push(sql.getNextException());
+                }
+            }
+            if ("DeadlockLoserDataAccessException".equals(t.getClass().getSimpleName())
+                    || ((t instanceof CannotAcquireLockException || t instanceof PessimisticLockingFailureException)
+                    && mentionsDeadlockVictim(t.getMessage()))) {
                 return true;
+            }
+            if (t.getCause() != null) {
+                todo.push(t.getCause());
+            }
+            for (Throwable s : t.getSuppressed()) {
+                todo.push(s);
             }
         }
         return false;
+    }
+
+    private static boolean mentionsDeadlockVictim(String message) {
+        return message != null && message.toLowerCase(java.util.Locale.ROOT).contains("deadlocked");
     }
 
     /** UPDLOCK/HOLDLOCK the given session rows in ascending SessionId order. */

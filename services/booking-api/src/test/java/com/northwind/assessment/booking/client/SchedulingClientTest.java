@@ -115,4 +115,30 @@ public class SchedulingClientTest {
             assertEquals("scheduling-service returned HTTP 500", e.getMessage());
         }
     }
+    @Test
+    public void systemErrorBodyOn5xxIsPassedThrough() {
+        server.expect(requestTo(BASE + "/bookings/1")).andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"error\":\"SYSTEM_ERROR\",\"message\":\"Transaction was deadlocked\",\"sqlError\":1205}"));
+        try {
+            client.getBooking(1);
+            fail();
+        } catch (SchedulingException e) {
+            assertEquals("SYSTEM_ERROR", e.getError());
+            assertEquals(500, e.getHttpStatus());
+            assertEquals("Transaction was deadlocked", e.getMessage());
+        }
+    }
+
+    @Test
+    public void bodiless503IsUnavailable() {
+        server.expect(requestTo(BASE + "/bookings/1")).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+        try {
+            client.getBooking(1);
+            fail();
+        } catch (SchedulingException e) {
+            assertEquals("SCHEDULING_UNAVAILABLE", e.getError());
+            assertEquals(503, e.getHttpStatus());
+        }
+    }
 }

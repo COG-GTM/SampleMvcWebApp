@@ -14,9 +14,21 @@ if [ "${REBUILD_LEGACY:-0}" = "1" ] || [ ! -f "$root/services/booking-api/target
     (cd "$root/services" && JAVA_HOME="$JAVA8_HOME" ./mvnw -q -B -DskipTests package)
 fi
 
-# -Dcontract.target=scheduling (or CONTRACT_TARGET=scheduling) also needs the scheduling-service jar (Java 21)
-target="${CONTRACT_TARGET:-legacy}"
-case " $* " in *" -Dcontract.target=scheduling "*) target=scheduling ;; esac
+# Target: CONTRACT_TARGET or -Dcontract.target=legacy|scheduling. Defaults to scheduling when this tree has
+# services/scheduling-service (Phase 1+), since its booking-api/results-service are rewired to call it.
+if [ -f "$root/services/scheduling-service/pom.xml" ]; then default_target=scheduling; else default_target=legacy; fi
+target="${CONTRACT_TARGET:-$default_target}"
+case " $* " in
+    *" -Dcontract.target=scheduling "*) target=scheduling ;;
+    *" -Dcontract.target=legacy "*) target=legacy ;;
+esac
+if [ "$target" = "legacy" ] && [ -f "$root/services/scheduling-service/pom.xml" ]; then
+    cat >&2 <<'WARN'
+== WARNING: legacy mode is only valid on the pre-Phase-2 baseline (migration/phase0 / estate/legacy-baseline).
+   This tree's booking-api and results-service call scheduling-service, which legacy mode does not start, so
+   ResultsAttend, BookingApi and Retake will fail here. Use CONTRACT_TARGET=scheduling (the default on this tree).
+WARN
+fi
 if [ "$target" = "scheduling" ] && { [ "${REBUILD_LEGACY:-0}" = "1" ] \
         || [ ! -f "$root/services/scheduling-service/target/scheduling-service.jar" ]; }; then
     echo "== building scheduling-service (Java 21)"
