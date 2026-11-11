@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.Entity;
 using System.Data.SqlClient;
 using System.Linq;
+using AssessmentDelivery.Business.Rosters;
 using AssessmentDelivery.Business.Rules;
 using AssessmentDelivery.Data.DataClasses;
 using AssessmentDelivery.Data.DataClasses.Entities;
@@ -87,6 +88,44 @@ namespace AssessmentDelivery.Services.Admin
                 if (pe != null) throw pe;
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Read-only roster for the proctor CSV: no procs, no SaveChanges. Null when the session does not exist.
+        /// </summary>
+        public SessionRoster GetSessionRoster(int sessionId)
+        {
+            var session = _db.ExamSessions.AsNoTracking()
+                .Where(s => s.SessionId == sessionId)
+                .Select(s => new { s.SessionId, s.TestCenter.CenterCode, s.Exam.ExamCode, s.StartsAt })
+                .SingleOrDefault();
+            if (session == null) return null;
+
+            var statuses = new[] { BookingStatus.Booked, BookingStatus.Attended, BookingStatus.Waitlisted };
+            var lines = _db.Bookings.AsNoTracking()
+                .Where(b => b.SessionId == sessionId && statuses.Contains(b.Status))
+                .Select(b => new RosterLine
+                {
+                    CandidateNumber = b.Candidate.CandidateNumber,
+                    LastName = b.Candidate.LastName,
+                    FirstName = b.Candidate.FirstName,
+                    Email = b.Candidate.Email,
+                    BookingStatus = b.Status,
+                    AccommodationCode = b.AccommodationCode,
+                    Channel = b.Channel,
+                    BookedAt = b.BookedAt,
+                    //left join onto Waitlist by booking; MIN keeps one row per booking
+                    WaitlistPosition = _db.Waitlist.Where(w => w.BookingId == b.BookingId).Min(w => (int?)w.Position)
+                }).ToList();
+
+            return new SessionRoster
+            {
+                SessionId = session.SessionId,
+                CenterCode = session.CenterCode,
+                ExamCode = session.ExamCode,
+                StartsAt = session.StartsAt,
+                Lines = lines
+            };
         }
 
         private IList<AdminSessionRow> Load(IQueryable<ExamSession> q)

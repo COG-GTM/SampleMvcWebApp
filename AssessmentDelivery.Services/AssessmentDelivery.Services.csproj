@@ -64,6 +64,7 @@
     <Compile Include="Admin\AdminSessionRow.cs" />
     <Compile Include="Admin\CenterListItem.cs" />
     <Compile Include="Admin\IAdminService.cs" />
+    <Compile Include="Admin\SessionRoster.cs" />
     <Compile Include="Booking\BookingListItem.cs" />
     <Compile Include="Booking\BookingOutcome.cs" />
     <Compile Include="Booking\BookingService.cs" />

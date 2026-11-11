@@ -11,5 +11,6 @@ namespace AssessmentDelivery.Services.Admin
         IList<AdminSessionRow> ListSessions(int centerId);
         AdminSessionRow GetSessionRow(int sessionId);
         void ChangeCapacity(int sessionId, int newCapacity, string actor);
+        SessionRoster GetSessionRoster(int sessionId);
     }
 }

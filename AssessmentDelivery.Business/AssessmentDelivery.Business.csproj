@@ -53,6 +53,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Rosters\RosterCsvBuilder.cs" />
+    <Compile Include="Rosters\RosterLine.cs" />
     <Compile Include="Rules\AccommodationCodes.cs" />
     <Compile Include="Rules\IRetakeRules.cs" />
     <Compile Include="Rules\PriorAttempt.cs" />
