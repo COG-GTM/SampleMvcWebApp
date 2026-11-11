@@ -167,3 +167,6 @@ git/.gitignore
 # portal runtime output
 logs/
 .tools/
+
+# run-legacy.ps1 / run-legacy.sh logs and pids
+.run/
