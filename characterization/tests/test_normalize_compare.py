@@ -52,3 +52,10 @@ def test_rendered_fields_extracts_alerts_and_cells():
     assert f["heading"] == "Retake eligibility"
     assert f["alerts"] == ["Booking 5 confirmed.", "Session full"]
     assert f["cells"] == {"Eligible": "No", "Reason": "RETAKE_WAIT"}
+
+
+def test_compare_checks_setup_responses_in_both_modes():
+    g = {"setup": [{"name": "book", "status": 200}], "steps": []}
+    a = {"setup": [{"name": "book", "status": 409}], "steps": []}
+    for include_db in (True, False):
+        assert compare_transcripts(g, a, include_db=include_db) == ["$.setup[0].status: 200 -> 409"]

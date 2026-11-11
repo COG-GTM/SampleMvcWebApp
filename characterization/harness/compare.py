@@ -1,6 +1,6 @@
 """Structural diff of a golden transcript against a fresh replay."""
 
-COMPARED_KEYS = ("before", "steps", "after")
+COMPARED_KEYS = ("setup", "before", "steps", "after")
 
 
 def diff(expected, actual, path="$", out=None, limit=50):
@@ -26,7 +26,7 @@ def diff(expected, actual, path="$", out=None, limit=50):
 
 
 def compare_transcripts(golden, replay, include_db=True):
-    keys = COMPARED_KEYS if include_db else ("steps",)
+    keys = COMPARED_KEYS if include_db else ("setup", "steps")
     differences = []
     for key in keys:
         g, r = golden.get(key), replay.get(key)
