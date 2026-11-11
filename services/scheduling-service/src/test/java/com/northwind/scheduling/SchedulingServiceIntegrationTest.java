@@ -57,6 +57,7 @@ class SchedulingServiceIntegrationTest {
         r.add("scheduling.import.on-startup", () -> "never");
         r.add("scheduling.reference.poll-ms", () -> "0");
         r.add("scheduling.reconciler.cron", () -> "-");
+        r.add("scheduling.legacy-seat-accounting", () -> "true");
     }
 
     @Autowired
@@ -203,7 +204,7 @@ class SchedulingServiceIntegrationTest {
         int b3 = book(s, candidate(), "PORTAL", null).getBody().get("bookingId").asInt();
         jdbc.update("UPDATE dbo.Booking SET BookedAt = DATEADD(MINUTE, -10, GETDATE()) WHERE BookingId = ?", b3);
         JsonNode r = post("/api/v1/sessions/" + s + "/capacity", Map.of("newCapacity", 1), null).getBody();
-        assertThat(r.get("demotedBookingIds")).extracting(JsonNode::asInt).containsExactly(b2, b1);
+        assertThat(r.get("demotedBookingIds")).extracting(JsonNode::asInt).containsExactly(b1, b2);
         assertThat(get("/api/v1/bookings/" + b3).get("status").asText()).isEqualTo("BOOKED");
         assertThat(seats(s)).isZero();
     }

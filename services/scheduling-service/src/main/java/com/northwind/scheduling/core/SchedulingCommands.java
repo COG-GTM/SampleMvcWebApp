@@ -50,6 +50,8 @@ public class SchedulingCommands {
         }
     }
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(SchedulingCommands.class);
+
     private final JdbcTemplate jdbc;
     private final TransactionTemplate tx;
     private final Demotion demotion;
@@ -59,7 +61,7 @@ public class SchedulingCommands {
 
     public SchedulingCommands(JdbcTemplate jdbc, TransactionTemplate tx, Demotion demotion, Audit audit,
                               ReferenceData reference,
-                              @Value("${scheduling.legacy-seat-accounting:true}") boolean legacySeatAccounting) {
+                              @Value("${scheduling.legacy-seat-accounting:false}") boolean legacySeatAccounting) {
         this.jdbc = jdbc;
         this.tx = tx;
         this.demotion = demotion;
@@ -76,7 +78,11 @@ public class SchedulingCommands {
             return tx.execute(s -> bookInTx(sessionId, candidateId, accommodationCode, channel, externalRef, actor));
         } catch (UnknownCandidate e) {
             // Replica miss: ask the relay for an immediate catch-up, then retry once (contract section 5).
-            reference.catchUp();
+            try {
+                reference.catchUp();
+            } catch (RuntimeException relayDown) {
+                LOG.warn("Reference catch-up failed on candidate {} miss: {}", candidateId, relayDown.getMessage());
+            }
             try {
                 return tx.execute(s -> bookInTx(sessionId, candidateId, accommodationCode, channel, externalRef, actor));
             } catch (UnknownCandidate again) {

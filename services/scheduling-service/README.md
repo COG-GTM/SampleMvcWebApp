@@ -51,6 +51,7 @@ enables SQL Server Change Tracking on `AssessmentDelivery` for `Exam`, `TestCent
 | `SCHEDULING_REF_POLL_MS` | `30000` | Change Tracking relay poll interval (`0` = off) |
 | `SCHEDULING_RECONCILER_CRON` | `0 0 2 * * *` | seat reconciler schedule (capacity-sync's nightly run; `-` = off) |
 | `SCHEDULING_STORAGE_API` | `false` | `/api/v1/admin/storage/*` direct-write compatibility API (tests and dual-run only) |
+| `SCHEDULING_LEGACY_SEAT_ACCOUNTING` | `false` | HB-01/HB-02 partner double decrement (parity only; the characterization target sets `true`) |
 
 ## Data and reference import
 
@@ -73,7 +74,7 @@ enables SQL Server Change Tracking on `AssessmentDelivery` for `Exam`, `TestCent
 | `usp_CancelBooking` | `cancel`: BOOKED releases a seat, WAITLISTED deletes its waitlist row, no promotion and gaps stay (HB-06) |
 | `usp_ChangeCapacity` + `trg_ExamSession_Update` | `changeCapacity` + `Demotion`: delta applied with a zero floor, then on a cut the newest BOOKED rows (`BookedAt DESC`) are demoted and seats recounted as `Capacity - BOOKED` (HB-05) |
 | `usp_RescheduleBooking` | `reschedulePortal`: same-exam guard before the transaction, then cancel + book in one transaction with the same lock order, so crossing reschedules can still deadlock and the victim rolls back |
-| `trg_Booking_SeatSync` | explicit: a PARTNER booking takes 2 seats (HB-01) while `scheduling.legacy-seat-accounting=true` |
+| `trg_Booking_SeatSync` | explicit: a PARTNER booking takes 2 seats (HB-01) only while `scheduling.legacy-seat-accounting=true` (env `SCHEDULING_LEGACY_SEAT_ACCOUNTING`). The runtime default is `false`; the characterization target turns it on |
 | `CapacitySyncService.runSync` | `SeatReconciler`: `max(0, Capacity - AccommodationCapacity - StandardBooked)` with a compare-and-set, `CAPACITY_SYNC` audit rows, run history (HB-03) |
 
 Proc rejections come back as `{error, message, legacyState}`. `legacyState` is the RAISERROR state, and `5000+state` is
