@@ -77,7 +77,7 @@ No authentication: the service keeps the legacy trust model (shared `ad_app`, in
 | `usp_BookSeat` | `SchedulingCommands.book`: `UPDLOCK, HOLDLOCK` on the session row; status → duplicate → ET25/ET50 cap checks; BOOKED decrements seats, otherwise WAITLISTED at `MAX(Position)+1` (no StartsAt check, HB-31) |
 | `usp_CancelBooking` | `cancel`: BOOKED releases a seat, WAITLISTED deletes its waitlist row, no promotion and gaps stay (HB-06) |
 | `usp_ChangeCapacity` + `trg_ExamSession_Update` | `changeCapacity` + `Demotion`: delta applied with a zero floor, then on a cut the newest BOOKED rows (`BookedAt DESC`) are demoted and seats recounted as `Capacity - BOOKED` (HB-05) |
-| `usp_RescheduleBooking` | `reschedulePortal`: same-exam guard before the transaction, then cancel + book in one transaction with the same lock order, so crossing reschedules can still deadlock and the victim rolls back |
+| `usp_RescheduleBooking` | `reschedulePortal`: same-exam guard before the transaction, then lock both sessions (ascending SessionId) and cancel + book in one transaction, so crossing reschedules serialise instead of deadlocking (HB-15). Any 1205 victim is retried up to 5 times |
 | `trg_Booking_SeatSync` | explicit: a PARTNER booking takes 2 seats (HB-01) only while `scheduling.legacy-seat-accounting=true` (env `SCHEDULING_LEGACY_SEAT_ACCOUNTING`). The runtime default is `false`; the characterization target turns it on |
 | `CapacitySyncService.runSync` | `SeatReconciler`: `max(0, Capacity - AccommodationCapacity - StandardBooked)` with a compare-and-set, `CAPACITY_SYNC` audit rows, run history (HB-03) |
 

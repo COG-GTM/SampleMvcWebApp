@@ -5,7 +5,10 @@ import com.northwind.scheduling.reference.ReferenceData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
@@ -19,6 +22,10 @@ import java.util.Map;
  * WITH (UPDLOCK, HOLDLOCK) inside a READ COMMITTED transaction, so the last seat, waitlist positions and
  * capacity cuts serialise exactly as they did in AssessmentDelivery. Rejections carry the proc's RAISERROR
  * state and message text (message 50000, HB-14).
+ *
+ * Lock order for every command: ExamSession rows first (ascending SessionId when two are involved), then the
+ * Booking row. That removes the crossing-reschedule deadlock (HB-15/MR-13) and cancel/attend-vs-book cycles that
+ * the procs' order allowed; {@link #inTx} retries a 1205 victim as a backstop.
  */
 @Service
 public class SchedulingCommands {
@@ -70,12 +77,53 @@ public class SchedulingCommands {
         this.legacySeatAccounting = legacySeatAccounting;
     }
 
+    static final int DEADLOCK_ATTEMPTS = 5;
+
+    /** Runs one command transaction, re-running the whole transaction if SQL Server picks it as a 1205 victim. */
+    private <T> T inTx(TransactionCallback<T> work) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return tx.execute(work);
+            } catch (RuntimeException e) {
+                if (attempt >= DEADLOCK_ATTEMPTS || !isDeadlock(e)) {
+                    throw e;
+                }
+                LOG.info("Deadlock victim, retrying transaction (attempt {} of {})", attempt + 1, DEADLOCK_ATTEMPTS);
+                try {
+                    Thread.sleep(10L * attempt + java.util.concurrent.ThreadLocalRandom.current().nextInt(20));
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+            }
+        }
+    }
+
+    static boolean isDeadlock(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof java.sql.SQLException sql && sql.getErrorCode() == 1205) {
+                return true;
+            }
+            if ((t instanceof CannotAcquireLockException || t instanceof PessimisticLockingFailureException)
+                    && t.getMessage() != null && t.getMessage().toLowerCase(java.util.Locale.ROOT).contains("deadlock")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** UPDLOCK/HOLDLOCK the given session rows in ascending SessionId order. */
+    private void lockSessions(int... sessionIds) {
+        java.util.Arrays.stream(sessionIds).distinct().sorted().forEach(id -> jdbc.queryForList(
+                "SELECT SessionId FROM dbo.ExamSession WITH (UPDLOCK, HOLDLOCK) WHERE SessionId = ?", Integer.class, id));
+    }
+
     // ---------------------------------------------------------------- book (020_usp_BookSeat.sql)
 
     public BookOutcome book(int sessionId, int candidateId, String accommodationCode, String channel,
                             String externalRef, String actor) {
         try {
-            return tx.execute(s -> bookInTx(sessionId, candidateId, accommodationCode, channel, externalRef, actor));
+            return inTx(s -> bookInTx(sessionId, candidateId, accommodationCode, channel, externalRef, actor));
         } catch (UnknownCandidate e) {
             // Replica miss: ask the relay for an immediate catch-up, then retry once (contract section 5).
             try {
@@ -84,7 +132,7 @@ public class SchedulingCommands {
                 LOG.warn("Reference catch-up failed on candidate {} miss: {}", candidateId, relayDown.getMessage());
             }
             try {
-                return tx.execute(s -> bookInTx(sessionId, candidateId, accommodationCode, channel, externalRef, actor));
+                return inTx(s -> bookInTx(sessionId, candidateId, accommodationCode, channel, externalRef, actor));
             } catch (UnknownCandidate again) {
                 // usp_BookSeat's CATCH re-raised the FK violation as Msg 50000 with its state (0) and message.
                 throw ApiException.legacy(HttpStatus.NOT_FOUND, "CANDIDATE_NOT_FOUND", 0,
@@ -162,18 +210,18 @@ public class SchedulingCommands {
     // ---------------------------------------------------------------- cancel (021_usp_CancelBooking.sql)
 
     public void cancel(int bookingId, String reason, String actor) {
-        tx.executeWithoutResult(s -> cancelInTx(bookingId, reason, actor));
+        inTx(s -> {
+            cancelInTx(bookingId, reason, actor);
+            return null;
+        });
     }
 
     private void cancelInTx(int bookingId, String reason, String actor) {
-        // The proc ran in one server round trip, so its booking-then-session lock window was tiny. Over JDBC that window
-        // widens enough for cancel-vs-book to deadlock (cancel holds the booking X, book holds the session U and reads
-        // the booking). Taking the session lock first makes them serialise, as they effectively did in the proc.
-        // Crossing reschedules still deadlock: each one locks its own source session first, then the other's target.
+        // Session before booking (class comment): the proc's booking-then-session order lets cancel-vs-book deadlock
+        // over JDBC. A reschedule has already locked both sessions in order, so this re-lock is a no-op there.
         List<Integer> owning = jdbc.queryForList("SELECT SessionId FROM dbo.Booking WHERE BookingId = ?", Integer.class, bookingId);
         if (!owning.isEmpty()) {
-            jdbc.queryForList("SELECT SessionId FROM dbo.ExamSession WITH (UPDLOCK, HOLDLOCK) WHERE SessionId = ?", Integer.class,
-                    owning.get(0));
+            lockSessions(owning.get(0));
         }
         List<Map<String, Object>> rows = jdbc.queryForList(
                 "SELECT Status, SessionId FROM dbo.Booking WITH (UPDLOCK, HOLDLOCK) WHERE BookingId = ?", bookingId);
@@ -203,7 +251,7 @@ public class SchedulingCommands {
     // ---------------------------------------------------------------- change capacity (022 + 033 demotion)
 
     public CapacityOutcome changeCapacity(int sessionId, int newCapacity, String actor, String ifMatch) {
-        return tx.execute(st -> {
+        return inTx(st -> {
             List<Map<String, Object>> rows = jdbc.queryForList("SELECT Capacity, AccommodationCapacity, RowVer "
                     + "FROM dbo.ExamSession WITH (UPDLOCK, HOLDLOCK) WHERE SessionId = ?", sessionId);
             if (rows.isEmpty()) {
@@ -238,8 +286,8 @@ public class SchedulingCommands {
 
     /**
      * PORTAL reschedule. The same-exam guard reads without locks before the transaction, exactly like the proc,
-     * then cancel + book run in one transaction. Two reschedules crossing between the same sessions can therefore
-     * deadlock (cancel holds one session row, book waits on the other), as they do in legacy; the victim rolls back.
+     * then cancel + book run in one transaction. Both session rows are locked up front in SessionId order, so two
+     * reschedules crossing between the same sessions serialise instead of deadlocking as the proc could (HB-15).
      */
     public BookOutcome reschedulePortal(int bookingId, int newSessionId, String actor) {
         List<Map<String, Object>> old = jdbc.queryForList("SELECT b.CandidateId, b.AccommodationCode, s.ExamId "
@@ -258,7 +306,9 @@ public class SchedulingCommands {
         }
         int candidateId = ((Number) old.get(0).get("CandidateId")).intValue();
         String acc = (String) old.get(0).get("AccommodationCode");
-        BookOutcome b = tx.execute(s -> {
+        int fromSession = sourceSession(bookingId);
+        BookOutcome b = inTx(s -> {
+            lockSessions(fromSession, newSessionId);
             cancelInTx(bookingId, "Rescheduled", actor);
             return bookInTx(newSessionId, candidateId, acc, Channels.PORTAL, null, actor);
         });
@@ -287,7 +337,9 @@ public class SchedulingCommands {
             throw ApiException.conflict("SAME_SESSION", "Booking " + bookingId + " is already on session " + newSessionId);
         }
         int candidateId = ((Number) o.get("CandidateId")).intValue();
-        BookOutcome b = tx.execute(s -> {
+        int fromSession = ((Number) o.get("SessionId")).intValue();
+        BookOutcome b = inTx(s -> {
+            lockSessions(fromSession, newSessionId);
             cancelInTx(bookingId, "Rescheduled", actor);
             return bookInTx(newSessionId, candidateId, (String) o.get("AccommodationCode"), Channels.PARTNER,
                     (String) o.get("ExternalRef"), actor);
@@ -295,11 +347,20 @@ public class SchedulingCommands {
         return new BookOutcome(b.bookingId(), b.status(), b.waitlistPosition(), bookingId);
     }
 
+    private int sourceSession(int bookingId) {
+        return jdbc.queryForObject("SELECT SessionId FROM dbo.Booking WHERE BookingId = ?", Integer.class, bookingId);
+    }
+
     // ---------------------------------------------------------------- attendance (results-service)
 
     /** BOOKED -> ATTENDED; ATTENDED is a no-op; anything else 409 (ResultIngestService.java:62-65,96-97, HB-18). */
     public AttendOutcome markAttended(int bookingId, AttemptResult result) {
-        return tx.execute(s -> {
+        return inTx(s -> {
+            List<Integer> owning = jdbc.queryForList("SELECT SessionId FROM dbo.Booking WHERE BookingId = ?", Integer.class,
+                    bookingId);
+            if (!owning.isEmpty()) {
+                lockSessions(owning.get(0));
+            }
             List<Map<String, Object>> rows = jdbc.queryForList("SELECT b.Status, b.CandidateId, b.SessionId, e.ExamId "
                     + "FROM dbo.Booking b WITH (UPDLOCK, HOLDLOCK) JOIN dbo.ExamSession e ON e.SessionId = b.SessionId "
                     + "WHERE b.BookingId = ?", bookingId);
@@ -340,7 +401,7 @@ public class SchedulingCommands {
             throw ApiException.badRequest("VALIDATION", "capacity must be >= 0");
         }
         String status = n.status() == null ? "OPEN" : n.status();
-        return tx.execute(s -> jdbc.queryForObject("INSERT INTO dbo.ExamSession (ExamId, TestCenterId, RoomId, StartsAt, "
+        return inTx(s -> jdbc.queryForObject("INSERT INTO dbo.ExamSession (ExamId, TestCenterId, RoomId, StartsAt, "
                 + "Capacity, AccommodationCapacity, SeatsAvailable, Status) OUTPUT INSERTED.SessionId "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)", Integer.class, n.examId(), n.testCenterId(), n.roomId(), n.startsAt(),
                 n.capacity(), n.accommodationCapacity() == null ? 0 : n.accommodationCapacity(),
