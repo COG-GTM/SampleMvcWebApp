@@ -171,8 +171,13 @@ URLS
 start_scheduling() {
     local java21="${JAVA21_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}"
     [ -x "$java21/bin/java" ] || die "scheduling-service needs a JDK 21 (set JAVA21_HOME)"
-    if [ "${SKIP_DB:-0}" != "1" ]; then
+    if [ -n "${SCHEDULING_DB_URL:-}" ]; then
+        log "SCHEDULING_DB_URL is set: that database is managed by the caller and is not re-created or bootstrapped"
+    elif [ "${SKIP_DB:-0}" != "1" ]; then
         # apply_db just re-created AssessmentDelivery: re-create Scheduling too so the service re-imports from it
+        if ! pid_alive "$RUN_DIR/scheduling-service.pid" && port_open "$SCHEDULING_PORT"; then
+            die "port $SCHEDULING_PORT is in use by a process run-legacy did not start; stop it before re-creating the Scheduling database"
+        fi
         if pid_alive "$RUN_DIR/scheduling-service.pid"; then
             log "stopping scheduling-service to re-import from the re-created AssessmentDelivery"
             kill "$(cat "$RUN_DIR/scheduling-service.pid")" 2>/dev/null || true
@@ -183,8 +188,10 @@ start_scheduling() {
         log "re-creating the Scheduling database (existing data is dropped; SKIP_DB=1 keeps it)"
         sa_sql -Q "IF DB_ID('Scheduling') IS NOT NULL BEGIN ALTER DATABASE Scheduling SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE Scheduling; END" >/dev/null
     fi
-    log "bootstrapping the Scheduling database (services/scheduling-service/db/bootstrap.sql)"
-    sa_sql < "$ROOT/services/scheduling-service/db/bootstrap.sql" >/dev/null
+    if [ -z "${SCHEDULING_DB_URL:-}" ]; then
+        log "bootstrapping the Scheduling database (services/scheduling-service/db/bootstrap.sql)"
+        sa_sql < "$ROOT/services/scheduling-service/db/bootstrap.sql" >/dev/null
+    fi
     local jar="$ROOT/services/scheduling-service/target/scheduling-service.jar"
     if [ "${SKIP_BUILD:-0}" != "1" ]; then
         log "building scheduling-service (JAVA_HOME=$java21)"
