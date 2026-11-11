@@ -1,6 +1,8 @@
 package com.northwind.assessment.gateway.filter;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,17 +66,18 @@ public class BookingApiStranglerFilter implements GatewayFilter {
 
         if (HttpMethod.GET.equals(method) && path.equals("/api/v1/sessions")) {
             String center = exchange.getRequest().getQueryParams().getFirst("centerCode");
-            if (center == null || center.isBlank()) {
+            // legacy compares CenterCode with SQL '=' (trailing blanks ignored, leading blanks never match)
+            if (center == null || center.isBlank() || Character.isWhitespace(center.charAt(0))) {
                 return chain.filter(exchange);
             }
             UriComponentsBuilder v2 = UriComponentsBuilder.fromPath("/api/v2/centers/{centerCode}/sessions");
             for (String param : new String[] {"examCode", "from", "to"}) {
                 String value = exchange.getRequest().getQueryParams().getFirst(param);
                 if (value != null) {
-                    v2.queryParam(param, value);
+                    v2.queryParam(param, param.equals("to") ? inclusiveTo(value) : value);
                 }
             }
-            String uri = v2.encode().buildAndExpand(center.trim()).toUriString();
+            String uri = v2.encode().buildAndExpand(center.stripTrailing()).toUriString();
             return route(exchange, chain, ResolveKey.centerCode(center), null, false,
                     () -> call(HttpMethod.GET, uri, null), Shape.SESSION_LIST, false);
         }
@@ -201,6 +204,15 @@ public class BookingApiStranglerFilter implements GatewayFilter {
             return V1Shapes.parse(body);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    /** v1 'to' includes the whole day; v2 'to' is an exclusive start-of-day bound */
+    static String inclusiveTo(String to) {
+        try {
+            return LocalDate.parse(to.trim()).plusDays(1).toString();
+        } catch (DateTimeParseException e) {
+            return to;
         }
     }
 }

@@ -29,7 +29,7 @@ Build/test only: `cd services && JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./
 
 | v1 request | resolved by | modern translation (v1 shape is restored on the way back) |
 |---|---|---|
-| `GET /api/v1/sessions?centerCode=` | centerCode | `GET /api/v2/centers/{centerCode}/sessions?examCode=&from=&to=` -> `[SessionInfo]` (`bookedSeats` null, as v1 lists) |
+| `GET /api/v1/sessions?centerCode=` | centerCode | `GET /api/v2/centers/{centerCode}/sessions?examCode=&from=&to=` -> `[SessionInfo]` (`bookedSeats` null, as v1 lists). v1 `to` includes the whole day, v2 `to` is exclusive, so the gateway sends `to + 1 day`; a code with leading blanks stays legacy (legacy SQL `=` never matches it), trailing blanks are stripped |
 | `GET /api/v1/sessions/{id}` | sessionId | `GET /api/v2/sessions/{id}` -> `SessionInfo` |
 | `GET /api/v1/bookings/{id}` | bookingId | `GET /api/v2/bookings/{id}` -> `BookingInfo` |
 | `POST /api/v1/bookings` | body `sessionId` | `POST /api/v2/bookings` with `channel=PARTNER` -> 201 `{bookingId,status}` |

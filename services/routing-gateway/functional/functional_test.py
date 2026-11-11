@@ -217,6 +217,14 @@ def main():
           route == "modern" and st == 200 and list(json.loads(b)[0]) == list(json.loads(raw("GET", LEGACY + f"/api/v1/sessions/{s_bos}")[2])),
           f"{st} {b[:200]!r}")
 
+    day = sql_rows(f"SELECT CONVERT(char(10), StartsAt, 23) FROM dbo.ExamSession WHERE SessionId = {s_bos}")[0][0]
+    q = f"/api/v1/sessions?centerCode={C1}&from={day}&to={day}"
+    st, h, b, route = raw("GET", GW + q)
+    ids = [x["sessionId"] for x in json.loads(b)] if st == 200 else None
+    want = [x["sessionId"] for x in json.loads(raw("GET", LEGACY + q)[2])]
+    check(f"C1 session search from={day}&to={day} -> modern, same sessions as legacy (v1 'to' includes the whole day)",
+          route == "modern" and ids == want and s_bos in want, f"{st} {route} {ids} vs {want}")
+
     # 3. Portal
     st, h, b, route = raw("GET", GW + f"/Booking?CenterCode={C1}&CandidateNumber=NW00000903")
     check(f"portal /Booking?CenterCode={C1} -> 302 to modern UI /app?centerCode={C1}",

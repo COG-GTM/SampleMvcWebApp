@@ -241,6 +241,11 @@ class GatewayIntegrationTest {
                 .expectHeader().valueEquals("X-Route", "modern");
         scheduling.verify(getRequestedFor(urlPathEqualTo("/api/v2/centers/BOS01/sessions"))
                 .withQueryParam("examCode", equalTo("CTA-NET1")).withoutQueryParam("centerCode"));
+        client.get().uri("/api/v1/sessions?centerCode=BOS01&from=2026-11-20&to=2026-11-25").exchange()
+                .expectHeader().valueEquals("X-Route", "modern");
+        scheduling.verify(getRequestedFor(urlPathEqualTo("/api/v2/centers/BOS01/sessions"))
+                .withQueryParam("from", equalTo("2026-11-20")).withQueryParam("to", equalTo("2026-11-26")));
+        client.get().uri("/api/v1/sessions?centerCode=%20BOS01").exchange().expectHeader().valueEquals("X-Route", "legacy");
         client.get().uri("/api/v1/sessions?centerCode=NYC01").exchange().expectHeader().valueEquals("X-Route", "legacy");
         client.get().uri("/api/v1/sessions").exchange().expectHeader().valueEquals("X-Route", "legacy");
     }
