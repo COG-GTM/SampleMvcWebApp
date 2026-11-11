@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import com.northwind.assessment.booking.client.SchedulingException;
+
 @ControllerAdvice
 public class ApiExceptionHandler {
 
@@ -34,6 +36,14 @@ public class ApiExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleDb(DataAccessException ex) {
         log.error("Database error", ex);
         return body(HttpStatus.INTERNAL_SERVER_ERROR, "DB_ERROR", ex.getMostSpecificCause().getMessage());
+    }
+
+    /** scheduling-service unreachable or answering with something BookingService did not translate */
+    @ExceptionHandler(SchedulingException.class)
+    public ResponseEntity<Map<String, Object>> handleScheduling(SchedulingException ex) {
+        log.error("scheduling-service error {} {}: {}", ex.getHttpStatus(), ex.getError(), ex.getMessage());
+        HttpStatus status = ex.getHttpStatus() >= 500 ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.valueOf(ex.getHttpStatus());
+        return body(status, ex.getError(), ex.getMessage());
     }
 
     static ResponseEntity<Map<String, Object>> body(HttpStatus status, String error, String message) {

@@ -1,29 +1,34 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.Entity;
-using System.Data.SqlClient;
 using System.Linq;
 using AssessmentDelivery.Business.Roster;
 using AssessmentDelivery.Business.Rules;
 using AssessmentDelivery.Data.DataClasses;
 using AssessmentDelivery.Data.DataClasses.Entities;
+using AssessmentDelivery.Services.Booking;
 using AssessmentDelivery.Services.Common;
+using AssessmentDelivery.Services.Scheduling;
 
 namespace AssessmentDelivery.Services.Admin
 {
+    /// <summary>
+    /// Admin screens. Session rows, capacity changes, capacity audit and rosters come from scheduling-service
+    /// (owner of ExamSession/Booking/Waitlist); centres, rooms and capacity-sync audit rows stay local.
+    /// </summary>
     public class AdminService : IAdminService
     {
         private readonly AssessmentDeliveryDb _db;
+        private readonly ISchedulingClient _scheduling;
 
-        public AdminService(AssessmentDeliveryDb db)
+        public AdminService(AssessmentDeliveryDb db, ISchedulingClient scheduling)
         {
             _db = db;
+            _scheduling = scheduling;
         }
 
         public IList<CenterListItem> ListCenters()
         {
-            return _db.TestCenters
+            var centers = _db.TestCenters
                 .OrderBy(c => c.CenterCode)
                 .Select(c => new CenterListItem
                 {
@@ -34,10 +39,18 @@ namespace AssessmentDelivery.Services.Admin
                     Region = c.Region,
                     TimeZone = c.TimeZone,
                     IsActive = c.IsActive,
-                    RoomCount = c.Rooms.Count(),
-                    SessionCount = c.Sessions.Count(),
-                    OpenSessionCount = c.Sessions.Count(s => s.Status == "OPEN")
+                    RoomCount = c.Rooms.Count()
                 }).ToList();
+
+            var counts = _scheduling.SessionSummaryByCenter().ToDictionary(s => s.TestCenterId);
+            foreach (var center in centers)
+            {
+                ApiSessionSummary summary;
+                if (!counts.TryGetValue(center.TestCenterId, out summary)) continue;
+                center.SessionCount = summary.SessionCount;
+                center.OpenSessionCount = summary.OpenSessionCount;
+            }
+            return centers;
         }
 
         public TestCenter GetCenter(int centerId)
@@ -62,67 +75,53 @@ namespace AssessmentDelivery.Services.Admin
 
         public IList<AdminSessionRow> ListSessions(int centerId)
         {
-            return Load(_db.ExamSessions.Where(s => s.TestCenterId == centerId));
+            return _scheduling.SearchSessions(new SessionQuery
+            {
+                TestCenterId = centerId,
+                IncludeCounts = true,
+                Sort = "startsAt,sessionId"
+            }).Select(ToAdminRow).ToList();
         }
 
         public AdminSessionRow GetSessionRow(int sessionId)
         {
-            return Load(_db.ExamSessions.Where(s => s.SessionId == sessionId)).SingleOrDefault();
+            var session = _scheduling.GetSession(sessionId);
+            return session == null ? null : ToAdminRow(session);
         }
 
         public void ChangeCapacity(int sessionId, int newCapacity, string actor)
         {
             if (newCapacity < 0)
                 throw new PortalException("Capacity cannot be negative.");
-            try
-            {
-                _db.Database.ExecuteSqlCommand(TransactionalBehavior.DoNotEnsureTransaction,
-                    "EXEC dbo.usp_ChangeCapacity @SessionId, @NewCapacity, @Actor",
-                    new SqlParameter("@SessionId", sessionId),
-                    new SqlParameter("@NewCapacity", newCapacity),
-                    new SqlParameter("@Actor", SqlDbType.VarChar, 60) { Value = string.IsNullOrEmpty(actor) ? "portal-admin" : actor });
-            }
-            catch (Exception ex)
-            {
-                var pe = SqlErrorHelper.TryTranslate(ex);
-                if (pe != null) throw pe;
-                throw;
-            }
+            BookingService.Call(() => _scheduling.ChangeCapacity(sessionId, newCapacity,
+                string.IsNullOrEmpty(actor) ? "portal-admin" : actor));
         }
 
         public CapacityAuditResult GetCapacityAudit(int centerId, DateTime from, DateTime toExclusive, int? sessionId, int pageNumber, int pageSize)
         {
-            var rows = QueryCapacityAudit(centerId, from, toExclusive, sessionId, pageNumber, pageSize);
-            foreach (var row in rows)
+            var page = _scheduling.GetCapacityAudit(centerId, from, toExclusive, sessionId, pageNumber, pageSize);
+            var rows = (page.Rows ?? new List<ApiCapacityAuditRow>()).Select(r =>
             {
-                var parsed = CapacityAuditDetail.TryParse(row.Detail);
-                row.OldCapacity = parsed == null ? (int?)null : parsed.OldCapacity;
-                row.NewCapacity = parsed == null ? (int?)null : parsed.NewCapacity;
-                row.Delta = parsed == null ? (long?)null : parsed.Delta;
-            }
-
-            int total;
-            if (rows.Count > 0) total = rows[0].TotalRows;
-            else if (pageNumber > 1)
-            {
-                // past the last page: still report how many rows match
-                var first = QueryCapacityAudit(centerId, from, toExclusive, sessionId, 1, 1);
-                total = first.Count == 0 ? 0 : first[0].TotalRows;
-            }
-            else total = 0;
-            return new CapacityAuditResult { Rows = rows, TotalRows = total };
-        }
-
-        private List<CapacityAuditRow> QueryCapacityAudit(int centerId, DateTime from, DateTime toExclusive, int? sessionId, int pageNumber, int pageSize)
-        {
-            return _db.Database.SqlQuery<CapacityAuditRow>(
-                "EXEC dbo.usp_GetCapacityAudit @TestCenterId, @From, @To, @SessionId, @PageNumber, @PageSize",
-                new SqlParameter("@TestCenterId", centerId),
-                new SqlParameter("@From", SqlDbType.DateTime) { Value = from },
-                new SqlParameter("@To", SqlDbType.DateTime) { Value = toExclusive },
-                new SqlParameter("@SessionId", SqlDbType.Int) { Value = sessionId.HasValue ? (object)sessionId.Value : DBNull.Value },
-                new SqlParameter("@PageNumber", pageNumber),
-                new SqlParameter("@PageSize", pageSize)).ToList();
+                var parsed = CapacityAuditDetail.TryParse(r.Detail);
+                return new CapacityAuditRow
+                {
+                    AuditId = r.AuditId,
+                    LoggedAt = r.LoggedAt,
+                    Actor = r.Actor,
+                    Detail = r.Detail,
+                    SessionId = r.SessionId,
+                    ExamCode = r.ExamCode,
+                    SessionStartsAt = r.SessionStartsAt,
+                    RoomName = r.RoomName,
+                    OldCapacity = parsed == null ? (int?)null : parsed.OldCapacity,
+                    NewCapacity = parsed == null ? (int?)null : parsed.NewCapacity,
+                    Delta = parsed == null ? (long?)null : parsed.Delta,
+                    CurrentCapacity = r.CurrentCapacity,
+                    CurrentSeatsAvailable = r.CurrentSeatsAvailable,
+                    TotalRows = page.TotalRows
+                };
+            }).ToList();
+            return new CapacityAuditResult { Rows = rows, TotalRows = page.TotalRows };
         }
 
         public IList<CapacitySyncRunRow> ListCapacitySyncRuns(DateTime from, DateTime toExclusive, int max)
@@ -152,85 +151,56 @@ namespace AssessmentDelivery.Services.Admin
         }
 
         /// <summary>
-        /// Read-only (no tracking, no procs, no SaveChanges). WAITLISTED rows take their position
-        /// from the Waitlist row with the same BookingId; the schema does not guarantee one exists
-        /// (docs/as-is/hidden-behaviours.md HB-28) or that positions are gap-free (HB-06).
+        /// Read-only. WAITLISTED rows carry MIN(Waitlist.Position) for the booking, or null when the booking has no
+        /// Waitlist row (docs/as-is/hidden-behaviours.md HB-28); positions are not gap-free (HB-06).
         /// </summary>
         public SessionRoster GetRoster(int sessionId)
         {
-            var session = _db.ExamSessions.AsNoTracking()
-                .Where(s => s.SessionId == sessionId)
-                .Select(s => new { s.SessionId, s.TestCenter.CenterCode, s.Exam.ExamCode, s.StartsAt })
-                .SingleOrDefault();
-            if (session == null) return null;
+            var roster = _scheduling.GetRoster(sessionId);
+            if (roster == null) return null;
 
-            var lines = _db.Bookings.AsNoTracking()
-                .Where(b => b.SessionId == sessionId
-                            && (b.Status == BookingStatus.Booked
-                                || b.Status == BookingStatus.Attended
-                                || b.Status == BookingStatus.Waitlisted))
-                .Select(b => new RosterLine
-                {
-                    CandidateNumber = b.Candidate.CandidateNumber,
-                    LastName = b.Candidate.LastName,
-                    FirstName = b.Candidate.FirstName,
-                    Email = b.Candidate.Email,
-                    BookingStatus = b.Status,
-                    AccommodationCode = b.AccommodationCode,
-                    Channel = b.Channel,
-                    BookedAt = b.BookedAt,
-                    WaitlistPosition = b.Status == BookingStatus.Waitlisted
-                        ? _db.Waitlist.Where(w => w.BookingId == b.BookingId).Min(w => (int?)w.Position)
-                        : null
-                }).ToList();
+            var lines = (roster.Lines ?? new List<ApiRosterLine>()).Select(l => new RosterLine
+            {
+                CandidateNumber = l.CandidateNumber,
+                LastName = l.LastName,
+                FirstName = l.FirstName,
+                Email = l.Email,
+                BookingStatus = l.BookingStatus,
+                AccommodationCode = l.AccommodationCode,
+                Channel = l.Channel,
+                BookedAt = l.BookedAt,
+                WaitlistPosition = l.WaitlistPosition
+            }).ToList();
 
             return new SessionRoster
             {
-                SessionId = session.SessionId,
-                CenterCode = session.CenterCode,
-                ExamCode = session.ExamCode,
-                StartsAt = session.StartsAt,
+                SessionId = roster.SessionId,
+                CenterCode = roster.CenterCode,
+                ExamCode = roster.ExamCode,
+                StartsAt = roster.StartsAt,
                 Lines = RosterCsv.Order(lines)
             };
         }
 
-        private IList<AdminSessionRow> Load(IQueryable<ExamSession> q)
+        internal static AdminSessionRow ToAdminRow(ApiSession s)
         {
-            var raw = q.OrderBy(s => s.StartsAt)
-                .Select(s => new
-                {
-                    s.SessionId,
-                    s.TestCenterId,
-                    CenterName = s.TestCenter.Name,
-                    s.Exam.ExamCode,
-                    s.Exam.Title,
-                    s.Room.RoomName,
-                    s.StartsAt,
-                    s.Capacity,
-                    s.AccommodationCapacity,
-                    s.SeatsAvailable,
-                    s.Status,
-                    Statuses = s.Bookings.Select(b => b.Status),
-                    WaitlistCount = s.Waitlist.Count()
-                }).ToList();
-
-            //Booked is counted from the booking rows here
-            return raw.Select(r => new AdminSessionRow
+            return new AdminSessionRow
             {
-                SessionId = r.SessionId,
-                TestCenterId = r.TestCenterId,
-                CenterName = r.CenterName,
-                ExamCode = r.ExamCode,
-                ExamTitle = r.Title,
-                RoomName = r.RoomName,
-                StartsAt = r.StartsAt,
-                Capacity = r.Capacity,
-                AccommodationCapacity = r.AccommodationCapacity,
-                SeatsAvailable = r.SeatsAvailable,
-                Booked = SeatCounter.CountBooked(r.Statuses),
-                WaitlistCount = r.WaitlistCount,
-                Status = r.Status
-            }).ToList();
+                SessionId = s.SessionId,
+                TestCenterId = s.TestCenterId,
+                CenterName = s.CenterName,
+                ExamCode = s.ExamCode,
+                ExamTitle = s.ExamTitle,
+                RoomName = s.RoomName,
+                StartsAt = s.StartsAt,
+                Capacity = s.Capacity,
+                AccommodationCapacity = s.AccommodationCapacity,
+                SeatsAvailable = s.SeatsAvailable,
+                //BOOKED + ATTENDED counted by the service from booking rows, not from SeatsAvailable
+                Booked = s.BookedSeats ?? 0,
+                WaitlistCount = s.WaitlistCount ?? 0,
+                Status = s.Status
+            };
         }
     }
 }

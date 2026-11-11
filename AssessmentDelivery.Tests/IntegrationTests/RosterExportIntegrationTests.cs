@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using AssessmentDelivery.Business.Roster;
 using AssessmentDelivery.Data.DataClasses;
 using AssessmentDelivery.Services.Admin;
+using AssessmentDelivery.Services.Scheduling;
 using AssessmentDelivery.Tests.Helpers;
 using NUnit.Framework;
 
@@ -38,7 +39,7 @@ namespace AssessmentDelivery.Tests.IntegrationTests
 
         internal static AdminService NewService(AssessmentDeliveryDb db)
         {
-            return new AdminService(db);
+            return new AdminService(db, new SchedulingClient());
         }
 
         internal static AssessmentDeliveryDb NewDb()
