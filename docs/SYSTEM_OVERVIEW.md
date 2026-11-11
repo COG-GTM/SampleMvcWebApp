@@ -41,6 +41,7 @@ for seed volumes and the check scripts.
 | Booking | SessionId, CandidateId, Status BOOKED/CANCELLED/WAITLISTED/ATTENDED, AccommodationCode, Channel PORTAL/PARTNER/IMPORT, ExternalRef, BookedAt, CancelledAt |
 | Waitlist | SessionId, CandidateId, BookingId, Position |
 | Result | BookingId (unique), CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile |
+| ResultUpload | FileName, Sha256 (indexed), RowsRead, Imported, Duplicates, Conflicts, Errors, UploadedAt. One row per score file upload |
 | AuditLog | EntityName, EntityId, Action, Detail, Actor, LoggedAt |
 
 **Seats.** `ExamSession.Capacity` counts every seat, including accommodation seats.
@@ -96,6 +97,31 @@ starts SQL Server in Docker plus all three services.
 
 Ingesting a result inserts a `Result` row (Passed = score >= Exam.PassingScore) and
 sets the booking to ATTENDED.
+
+Ingestion is idempotent. A booking has at most one result (`UQ_Result_Booking`), and a
+second result for the same booking is classified against the stored one:
+
+| Case | REST `POST /api/v1/results` | CSV upload row |
+|---|---|---|
+| no result yet | 201 `{"status":"CREATED","resultId",...}`, booking -> ATTENDED | counted in `imported` |
+| same score and same `scoredAt` (compared to the second, SQL `DATETIME` rounds to ~3 ms) | 200 `{"status":"DUPLICATE","resultId",...}`, nothing written | counted in `duplicates`, nothing written |
+| anything else | 409 `DUPLICATE_RESULT` with `storedScore`/`submittedScore` and `storedScoredAt`/`submittedScoredAt`; stored row unchanged | counted in `conflicts`, listed in `conflictRows` with its line number |
+
+- A REST post without `scoredAt` stores "now" for a new result, and a replay without
+  `scoredAt` is matched on the score only (a client retrying a timed-out post cannot
+  resend the server's timestamp).
+- Every conflict writes `AuditLog(EntityName='Result', EntityId=<stored ResultId>,
+  Action='DUPLICATE_REJECTED')` in its own committed transaction, so it survives the 409.
+- Concurrent posts for the same booking: the loser of the insert race hits
+  `UQ_Result_Booking`, re-reads the winner's row and gets DUPLICATE or CONFLICT as above,
+  never a 500.
+- Uploads: the SHA-256 of the file bytes is recorded in `ResultUpload` for every upload.
+  The report adds `sha256`, `uploadId`, `previouslyUploaded`/`previousUploadId` (an earlier
+  upload with the same hash), `duplicates`, `conflicts` and `conflictRows` next to the
+  existing `rowsRead`, `imported`, `skipped` and `errors` (malformed / unresolvable rows
+  only). A replayed file reports `imported=0, duplicates=N, conflicts=0`.
+- Rows commit one at a time: in a mixed file new rows are inserted, duplicates skipped,
+  conflicts and bad rows reported, and a bad row never rolls back the good ones.
 
 **capacity-sync :8083** re-syncs `SeatsAvailable` nightly (02:00). `POST /sync/run`
 starts a run by hand and `GET /sync/last` shows the last run.

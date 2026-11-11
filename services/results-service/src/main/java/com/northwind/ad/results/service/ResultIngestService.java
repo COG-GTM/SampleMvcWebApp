@@ -1,90 +1,119 @@
 package com.northwind.ad.results.service;
 
-import java.sql.Timestamp;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import com.northwind.ad.results.model.IngestOutcome;
+import com.northwind.ad.results.model.StoredResult;
 import com.northwind.ad.results.web.ApiException;
 
+/**
+ * Idempotent result ingestion. A booking has at most one result (UQ_Result_Booking):
+ * <ul>
+ * <li>no result yet: insert it, booking becomes ATTENDED -> CREATED</li>
+ * <li>same score and scoredAt already stored (see {@link ResultClassifier}) -> DUPLICATE, nothing written</li>
+ * <li>a different result already stored -> CONFLICT, stored row untouched, DUPLICATE_REJECTED audit row committed</li>
+ * </ul>
+ * Not transactional itself: the insert and the conflict audit each run in their own transaction
+ * ({@link ResultStore}), so losing an insert race leaves no failed transaction behind and the
+ * existing row can be re-read and classified the same way.
+ */
 @Service
 public class ResultIngestService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ResultIngestService.class);
+    private static final int MAX_INSERT_ATTEMPTS = 2;
 
     @Autowired
     private JdbcTemplate jdbc;
 
-    @Value("${results.audit-actor:results-service}")
-    private String actor;
+    @Autowired
+    private ResultStore store;
+
+    /** REST variant, see {@link #ingest(int, int, Date, String, Integer)}. */
+    public IngestOutcome ingest(int bookingId, int score, Date scoredAt, String sourceFile) {
+        return ingest(bookingId, score, scoredAt, sourceFile, null);
+    }
 
     /**
-     * Records one result and marks the booking ATTENDED.
+     * @param scoredAt   null when the caller sent none: a new result is stored with "now" and a
+     *                   replay is matched on score only
      * @param sourceFile score file name, null for REST posts
+     * @param lineNumber score file line, null for REST posts (audit detail only)
      */
-    @Transactional
-    public Map<String, Object> ingest(int bookingId, int score, Date scoredAt, String sourceFile) {
+    public IngestOutcome ingest(int bookingId, int score, Date scoredAt, String sourceFile, Integer lineNumber) {
         if (score < 0 || score > 1000) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "score must be between 0 and 1000");
         }
-        List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT b.BookingId, b.CandidateId, b.SessionId, b.Status, s.ExamId, e.PassingScore "
-              + "FROM dbo.Booking b JOIN dbo.ExamSession s ON s.SessionId = b.SessionId "
-              + "JOIN dbo.Exam e ON e.ExamId = s.ExamId WHERE b.BookingId = ?", bookingId);
-        if (rows.isEmpty()) {
+        Map<String, Object> b = store.findBooking(bookingId);
+        if (b == null) {
             throw new ApiException(HttpStatus.NOT_FOUND, "BOOKING_NOT_FOUND", "Booking " + bookingId + " not found");
         }
-        Map<String, Object> b = rows.get(0);
+        StoredResult existing = store.findByBooking(bookingId);
+        if (existing != null) {
+            return classify(existing, score, scoredAt, sourceFile, lineNumber);
+        }
         String status = (String) b.get("Status");
         if (!"BOOKED".equals(status) && !"ATTENDED".equals(status)) {
             throw new ApiException(HttpStatus.CONFLICT, "BOOKING_NOT_ACTIVE",
                     "Booking " + bookingId + " is " + status + ", cannot record a result");
         }
-        Integer existing = jdbc.queryForObject("SELECT COUNT(*) FROM dbo.Result WHERE BookingId = ?",
-                Integer.class, bookingId);
-        if (existing != null && existing.intValue() > 0) {
-            throw new ApiException(HttpStatus.CONFLICT, "DUPLICATE_RESULT",
-                    "A result already exists for booking " + bookingId);
-        }
 
         int passingScore = ((Number) b.get("PassingScore")).intValue();
         boolean passed = score >= passingScore;
-        int resultId;
-        try {
-            resultId = jdbc.queryForObject(
-                    "SET NOCOUNT ON; "
-                  + "INSERT INTO dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile) "
-                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?); SELECT CAST(SCOPE_IDENTITY() AS INT);",
-                    Integer.class, bookingId, b.get("CandidateId"), b.get("ExamId"), b.get("SessionId"), score,
-                    passed, new Timestamp(scoredAt.getTime()), sourceFile);
-        } catch (DuplicateKeyException e) {
-            throw new ApiException(HttpStatus.CONFLICT, "DUPLICATE_RESULT",
-                    "A result already exists for booking " + bookingId);
+        Date effectiveScoredAt = scoredAt != null ? scoredAt : new Date();
+        for (int attempt = 1; ; attempt++) {
+            try {
+                int resultId = store.insertResult(b, score, passed, effectiveScoredAt, sourceFile);
+                LOG.info("Result {} for booking {} score {} passed={}", resultId, bookingId, score, passed);
+                return IngestOutcome.created(resultId, bookingId, score, passed);
+            } catch (DataIntegrityViolationException e) {
+                // DuplicateKeyException on UQ_Result_Booking: a concurrent caller stored a result first
+                existing = afterFailedInsert(bookingId, e);
+            } catch (ConcurrencyFailureException e) {
+                // deadlock victim / lock timeout while racing for the same booking
+                existing = store.findByBooking(bookingId);
+                if (existing == null && attempt < MAX_INSERT_ATTEMPTS) {
+                    continue;
+                }
+                if (existing == null) {
+                    throw e;
+                }
+            }
+            LOG.info("Booking {} got a result from a concurrent caller (result {})", bookingId, existing.getResultId());
+            return classify(existing, score, scoredAt, sourceFile, lineNumber);
         }
-        jdbc.update("UPDATE dbo.Booking SET Status = 'ATTENDED', LastModified = GETDATE() "
-                + "WHERE BookingId = ? AND Status = 'BOOKED'", bookingId);
-        jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
-                "Result", resultId, "INGEST", "booking=" + bookingId + " score=" + score
-                        + (sourceFile != null ? " file=" + sourceFile : ""), actor);
-        LOG.info("Result {} for booking {} score {} passed={}", resultId, bookingId, score, passed);
+    }
 
-        Map<String, Object> out = new LinkedHashMap<String, Object>();
-        out.put("resultId", resultId);
-        out.put("bookingId", bookingId);
-        out.put("score", score);
-        out.put("passed", passed);
-        return out;
+    private StoredResult afterFailedInsert(int bookingId, DataAccessException e) {
+        StoredResult existing = store.findByBooking(bookingId);
+        if (existing == null) {
+            throw e; // some other integrity problem, not a duplicate
+        }
+        return existing;
+    }
+
+    private IngestOutcome classify(StoredResult existing, int score, Date scoredAt, String sourceFile, Integer lineNumber) {
+        if (ResultClassifier.isDuplicate(existing, score, scoredAt)) {
+            LOG.info("Duplicate result for booking {} ignored (result {})", existing.getBookingId(), existing.getResultId());
+            return IngestOutcome.duplicate(existing);
+        }
+        IngestOutcome conflict = IngestOutcome.conflict(existing, score, scoredAt);
+        store.auditDuplicateRejected(conflict, sourceFile, lineNumber);
+        LOG.warn("Conflicting result for booking {} rejected: stored {} submitted {}", existing.getBookingId(),
+                existing.getScore(), score);
+        return conflict;
     }
 
     /** Latest seat-holding booking of a candidate on a session, or null. Used by the score file import. */

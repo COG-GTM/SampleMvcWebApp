@@ -57,4 +57,4 @@ foreach ($folder in $folders) {
 }
 
 Write-Host "== done"
-(Invoke-SqlFile "AssessmentDelivery" @("-W", "-i", (Join-Path $dbDir "checks/row-counts.sql"))).Output | Select-Object -First 12 | ForEach-Object { Write-Host $_ }
+(Invoke-SqlFile "AssessmentDelivery" @("-W", "-i", (Join-Path $dbDir "checks/row-counts.sql"))).Output | Select-Object -First 13 | ForEach-Object { Write-Host $_ }

@@ -1,11 +1,12 @@
 /*
-    AssessmentDelivery core schema  (v1 2011, last structural change 2017)
+    AssessmentDelivery core schema  (v1 2011, last structural change 2026: ResultUpload)
     Shared by the portal (.NET) and the partner/results services (Java).
     Drops and recreates everything - DEV ONLY.
 */
 USE AssessmentDelivery;
 GO
 
+IF OBJECT_ID('dbo.ResultUpload') IS NOT NULL DROP TABLE dbo.ResultUpload;
 IF OBJECT_ID('dbo.AuditLog')    IS NOT NULL DROP TABLE dbo.AuditLog;
 IF OBJECT_ID('dbo.Result')      IS NOT NULL DROP TABLE dbo.Result;
 IF OBJECT_ID('dbo.Waitlist')    IS NOT NULL DROP TABLE dbo.Waitlist;
@@ -117,6 +118,20 @@ CREATE TABLE dbo.Result (
     CONSTRAINT UQ_Result_Booking UNIQUE (BookingId)
 );
 CREATE INDEX IX_Result_Candidate_Exam ON dbo.Result (CandidateId, ExamId);
+
+-- one row per score file upload (results-service); Sha256 of the file bytes recognises re-uploads
+CREATE TABLE dbo.ResultUpload (
+    UploadId   INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ResultUpload PRIMARY KEY,
+    FileName   NVARCHAR(200) NOT NULL,
+    Sha256     CHAR(64)      NOT NULL,               -- lower-case hex
+    RowsRead   INT           NOT NULL CONSTRAINT DF_ResultUpload_RowsRead DEFAULT (0),
+    Imported   INT           NOT NULL CONSTRAINT DF_ResultUpload_Imported DEFAULT (0),
+    Duplicates INT           NOT NULL CONSTRAINT DF_ResultUpload_Duplicates DEFAULT (0),   -- identical to a stored result, skipped
+    Conflicts  INT           NOT NULL CONSTRAINT DF_ResultUpload_Conflicts DEFAULT (0),    -- different from a stored result, rejected
+    Errors     INT           NOT NULL CONSTRAINT DF_ResultUpload_Errors DEFAULT (0),       -- bad rows
+    UploadedAt DATETIME      NOT NULL CONSTRAINT DF_ResultUpload_UploadedAt DEFAULT (GETDATE())
+);
+CREATE INDEX IX_ResultUpload_Sha256 ON dbo.ResultUpload (Sha256);
 
 CREATE TABLE dbo.AuditLog (
     AuditId    BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_AuditLog PRIMARY KEY,

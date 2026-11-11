@@ -55,4 +55,4 @@ for folder in $folders; do
 done
 
 echo "== done"
-run_sql -d AssessmentDelivery -W -i "$DB_DIR/checks/row-counts.sql" | sed -n "1,12p"
+run_sql -d AssessmentDelivery -W -i "$DB_DIR/checks/row-counts.sql" | sed -n "1,13p"
