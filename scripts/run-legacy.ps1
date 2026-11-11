@@ -315,7 +315,8 @@ function Get-RunningPid([string]$name) {
     $f = Get-PidFile $name
     if (-not (Test-Path $f)) { return $null }
     $id = [int](Get-Content $f -Raw).Trim()
-    if (Get-Process -Id $id -ErrorAction SilentlyContinue) { return $id }
+    # pids get reused, only trust the file if it is still our jar
+    if ((Find-ServiceJvm $name) -contains $id) { return $id }
     return $null
 }
 
