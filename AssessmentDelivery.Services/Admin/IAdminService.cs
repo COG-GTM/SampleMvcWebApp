@@ -10,8 +10,6 @@ namespace AssessmentDelivery.Services.Admin
         TestCenter GetCenter(int centerId);
         void UpdateCenter(int centerId, string name, bool isActive);
         IList<AdminSessionRow> ListSessions(int centerId);
-        AdminSessionRow GetSessionRow(int sessionId);
-        void ChangeCapacity(int sessionId, int newCapacity, string actor);
 
         /// <summary>Capacity changes for sessions at a centre via usp_GetCapacityAudit, newest first. Reads only.</summary>
         CapacityAuditResult GetCapacityAudit(int centerId, DateTime from, DateTime toExclusive, int? sessionId, int pageNumber, int pageSize);

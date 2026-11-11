@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.Entity;
 using System.Data.SqlClient;
 using System.Linq;
 using AssessmentDelivery.Business.Roster;
@@ -63,31 +62,6 @@ namespace AssessmentDelivery.Services.Admin
         public IList<AdminSessionRow> ListSessions(int centerId)
         {
             return Load(_db.ExamSessions.Where(s => s.TestCenterId == centerId));
-        }
-
-        public AdminSessionRow GetSessionRow(int sessionId)
-        {
-            return Load(_db.ExamSessions.Where(s => s.SessionId == sessionId)).SingleOrDefault();
-        }
-
-        public void ChangeCapacity(int sessionId, int newCapacity, string actor)
-        {
-            if (newCapacity < 0)
-                throw new PortalException("Capacity cannot be negative.");
-            try
-            {
-                _db.Database.ExecuteSqlCommand(TransactionalBehavior.DoNotEnsureTransaction,
-                    "EXEC dbo.usp_ChangeCapacity @SessionId, @NewCapacity, @Actor",
-                    new SqlParameter("@SessionId", sessionId),
-                    new SqlParameter("@NewCapacity", newCapacity),
-                    new SqlParameter("@Actor", SqlDbType.VarChar, 60) { Value = string.IsNullOrEmpty(actor) ? "portal-admin" : actor });
-            }
-            catch (Exception ex)
-            {
-                var pe = SqlErrorHelper.TryTranslate(ex);
-                if (pe != null) throw pe;
-                throw;
-            }
         }
 
         public CapacityAuditResult GetCapacityAudit(int centerId, DateTime from, DateTime toExclusive, int? sessionId, int pageNumber, int pageSize)
@@ -210,7 +184,7 @@ namespace AssessmentDelivery.Services.Admin
                     s.AccommodationCapacity,
                     s.SeatsAvailable,
                     s.Status,
-                    Statuses = s.Bookings.Select(b => b.Status),
+                    Booked = s.Bookings.Count(b => b.Status == BookingStatus.Booked || b.Status == BookingStatus.Attended),
                     WaitlistCount = s.Waitlist.Count()
                 }).ToList();
 
@@ -227,7 +201,7 @@ namespace AssessmentDelivery.Services.Admin
                 Capacity = r.Capacity,
                 AccommodationCapacity = r.AccommodationCapacity,
                 SeatsAvailable = r.SeatsAvailable,
-                Booked = SeatCounter.CountBooked(r.Statuses),
+                Booked = r.Booked,
                 WaitlistCount = r.WaitlistCount,
                 Status = r.Status
             }).ToList();

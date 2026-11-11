@@ -31,6 +31,7 @@ class LegacySingleWriterIT {
     static final String RELAY_PASSWORD = "Sch3dRelay!Dev2026";
     static final int PERMISSION_DENIED = 229;
     static final int COLUMN_PERMISSION_DENIED = 230;
+    static final int PROC_NOT_FOUND = 2812;
 
     @BeforeAll
     static void build() {
@@ -50,7 +51,7 @@ class LegacySingleWriterIT {
             assertDenied(st, "UPDATE dbo.ExamSession SET Capacity = Capacity + 1 WHERE SessionId = 154",
                     login.equals("ad_sched_import") ? PERMISSION_DENIED : COLUMN_PERMISSION_DENIED);
             for (String proc : new String[] {"usp_BookSeat", "usp_CancelBooking", "usp_ChangeCapacity", "usp_RescheduleBooking"}) {
-                assertDenied(st, "EXEC dbo." + proc, PERMISSION_DENIED);
+                assertDenied(st, "EXEC dbo." + proc, PROC_NOT_FOUND); // MBA-3824: dropped by db/procs/090
             }
             // reads keep working (legacy pages render from the legacy tables)
             try (var rs = st.executeQuery("SELECT COUNT(*) FROM dbo.Booking")) {

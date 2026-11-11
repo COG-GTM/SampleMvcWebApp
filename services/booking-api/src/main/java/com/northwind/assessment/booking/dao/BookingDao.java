@@ -13,11 +13,8 @@ import com.northwind.assessment.booking.model.BookingInfo;
 import com.northwind.assessment.booking.util.DateUtils;
 
 /**
- * Booking table access for the partner channel.
- *
- * NB partner bookings are inserted directly (not through usp_BookSeat) - the proc
- * did not take Channel/ExternalRef when the partner API was written (2014) and
- * nobody has gone back to it.
+ * Booking table reads for the partner channel. MBA-3824 deleted the write SQL
+ * (scheduling-service is the single writer, docs/adr/0003-single-writer-outbox-relay.md).
  */
 @Repository
 public class BookingDao {
@@ -49,53 +46,6 @@ public class BookingDao {
                 Integer.class, bookingId);
     }
 
-    public boolean hasActiveBooking(int sessionId, int candidateId) {
-        Integer n = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM dbo.Booking WHERE SessionId = ? AND CandidateId = ? "
-              + "AND Status IN ('BOOKED','WAITLISTED')", Integer.class, sessionId, candidateId);
-        return n != null && n.intValue() > 0;
-    }
-
-    /** Extra-time bookings currently holding an accommodation seat. Same rule as usp_BookSeat. */
-    public int countAccommodationSeatsUsed(int sessionId) {
-        return jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM dbo.Booking WHERE SessionId = ? AND Status IN ('BOOKED','ATTENDED') "
-              + "AND AccommodationCode IN ('ET25','ET50')", Integer.class, sessionId);
-    }
-
-    public int findAccommodationCapacity(int sessionId) {
-        return jdbcTemplate.queryForObject(
-                "SELECT AccommodationCapacity FROM dbo.ExamSession WHERE SessionId = ?", Integer.class, sessionId);
-    }
-
-    public int insertBooking(int sessionId, int candidateId, String status, String accommodationCode,
-                             String channel, String externalRef) {
-        // SCOPE_IDENTITY rather than getGeneratedKeys, kept from the sqljdbc4 days
-        return jdbcTemplate.queryForObject(
-                "SET NOCOUNT ON; "
-              + "INSERT INTO dbo.Booking (SessionId, CandidateId, Status, AccommodationCode, Channel, ExternalRef) "
-              + "VALUES (?, ?, ?, ?, ?, ?); "
-              + "SELECT CAST(SCOPE_IDENTITY() AS INT);",
-                Integer.class, sessionId, candidateId, status, accommodationCode, channel, externalRef);
-    }
-
-    public int insertWaitlist(int sessionId, int candidateId, int bookingId) {
-        int pos = jdbcTemplate.queryForObject(
-                "SELECT ISNULL(MAX(Position), 0) + 1 FROM dbo.Waitlist WHERE SessionId = ?", Integer.class, sessionId);
-        jdbcTemplate.update("INSERT INTO dbo.Waitlist (SessionId, CandidateId, BookingId, Position) VALUES (?, ?, ?, ?)",
-                sessionId, candidateId, bookingId, pos);
-        return pos;
-    }
-
-    public void cancel(int bookingId, String reason, String actor) {
-        jdbcTemplate.update("EXEC dbo.usp_CancelBooking @BookingId = ?, @Reason = ?, @Actor = ?",
-                bookingId, reason, actor);
-    }
-
-    public void audit(String entity, int entityId, String action, String detail, String actor) {
-        jdbcTemplate.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
-                entity, entityId, action, detail, actor);
-    }
 
     private static final RowMapper<BookingInfo> BOOKING_MAPPER = new RowMapper<BookingInfo>() {
         public BookingInfo mapRow(ResultSet rs, int rowNum) throws SQLException {

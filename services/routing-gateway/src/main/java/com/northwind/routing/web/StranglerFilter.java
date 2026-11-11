@@ -39,13 +39,15 @@ import reactor.core.publisher.Mono;
  * migration can move, decides legacy vs modern ({@link RouteDecider}), then either forwards to the legacy
  * upstream unchanged, redirects a portal page to the modern UI ({@link PortalRoutes}), or serves a v1 partner
  * call from scheduling-service in the v1 shape ({@link ModernV1Client}). With an empty allow-list no lookups are
- * made and no bodies are read, so the gateway is a transparent proxy. Every request is logged
+ * made and no bodies are read, so the gateway is a transparent proxy. The retired portal booking pages are the
+ * exception (MBA-3824): they always redirect to {@code /app}, for every centre. Every request is logged
  * {@code route=legacy|modern center=<code>} and answered with an {@code X-Route} header.
  */
 @Component
 public class StranglerFilter implements GlobalFilter, Ordered {
 
     static final String CENTER_IS_MODERN = "CENTER_IS_MODERN";
+    static final String RETIRED = "legacy page retired";
 
     public static final String X_ROUTE = "X-Route";
     private static final Logger log = LoggerFactory.getLogger(StranglerFilter.class);
@@ -94,19 +96,25 @@ public class StranglerFilter implements GlobalFilter, Ordered {
         }
         PortalRoutes.Match m = found.get();
         if (!m.needsForm()) {
-            return decide(m.lookup()).flatMap(d -> d.modern()
-                    ? redirect(ex, PortalRoutes.redirect(m, d.center(), req.getQueryParams()), d)
-                    : forward(ex, chain, d));
+            return retired(ex, m);
         }
-        if (allowList.isEmpty()) {
-            return forward(ex, chain, RouteDecision.legacy(null, "allow-list empty"));
-        }
-        return BodyCache.cache(ex).flatMap(cached -> {
-            PortalRoutes.Match withKey = m.withLookup(Lookup.of(Lookup.Kind.SESSION_ID,
-                    BodyCache.formField(BodyCache.bytes(cached), "SessionId")));
-            return decide(withKey.lookup()).flatMap(d -> d.modern()
-                    ? redirect(cached, PortalRoutes.redirect(withKey, d.center(), req.getQueryParams()), d)
-                    : forward(cached, chain, d));
+        return BodyCache.cache(ex).flatMap(cached -> retired(cached, m.withLookup(Lookup.of(Lookup.Kind.SESSION_ID,
+                BodyCache.formField(BodyCache.bytes(cached), "SessionId")))));
+    }
+
+    /**
+     * MBA-3824: the portal no longer has these pages, so they redirect to the modern UI for every centre, allow-listed
+     * or not. Only {@code /Admin/Sessions?centerId=} needs a lookup (centre id to code for the deep link).
+     */
+    private Mono<Void> retired(ServerWebExchange ex, PortalRoutes.Match m) {
+        Mono<Optional<String>> center = switch (m.page()) {
+            case FIND -> Mono.just(Optional.ofNullable(m.lookup().value()).map(c -> c.trim().toUpperCase(Locale.ROOT)));
+            case ADMIN_SESSIONS -> resolver.resolve(m.lookup()).onErrorReturn(Optional.empty());
+            default -> Mono.just(Optional.empty());
+        };
+        return center.flatMap(c -> {
+            RouteDecision d = RouteDecision.modern(c.orElse(null), RETIRED);
+            return redirect(ex, PortalRoutes.redirect(m, c.orElse(null), ex.getRequest().getQueryParams()), d);
         });
     }
 

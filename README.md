@@ -84,7 +84,7 @@ The portal is Windows-only (.NET Framework 4.8).
 
 | What | URL |
 |---|---|
-| Portal | http://localhost:8080/ - `/Admin/Centers`, `/Booking`, `/Booking/MyBookings?candidateNumber=`, `/Eligibility`, `/Results` |
+| Portal | http://localhost:8080/ - `/Admin/Centers`, `/Eligibility`, `/Results` (booking pages retired in M5: via :8000 `/Booking/**` redirects to `/app`, [ADR 0004](docs/adr/0004-retire-portal-booking-slice.md)) |
 | booking-api | http://localhost:8081/api/v1/sessions |
 | results-service | http://localhost:8082/api/v1/results/candidate/NW00000001 |
 | capacity-sync | http://localhost:8083/sync/last (`POST /sync/run` to run now) |

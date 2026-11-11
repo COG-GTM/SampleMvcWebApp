@@ -1,0 +1,20 @@
+# MBA-3824: the .NET booking/capacity slice and booking-api write SQL are retired (docs/adr/0004).
+name: retired booking writes guard
+
+on:
+  pull_request:
+    paths:
+      - 'AssessmentDelivery.*/**'
+      - 'services/booking-api/**'
+      - 'scripts/check-retired-booking-writes.sh'
+      - '.github/workflows/retired-booking-writes.yml'
+  push:
+    branches: [estate/legacy-baseline]
+
+jobs:
+  grep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: no booking writes, SeatsAvailable updates or retired procs
+        run: bash scripts/check-retired-booking-writes.sh

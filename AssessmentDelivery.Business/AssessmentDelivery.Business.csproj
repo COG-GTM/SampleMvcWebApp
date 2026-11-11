@@ -61,7 +61,7 @@
     <Compile Include="Rules\PriorAttempt.cs" />
     <Compile Include="Rules\RetakeDecision.cs" />
     <Compile Include="Rules\RetakeRules.cs" />
-    <Compile Include="Rules\SeatCounter.cs" />
+    <Compile Include="Rules\BookingStatus.cs" />
     <Compile Include="Startup\BizLayerInitialise.cs" />
     <Compile Include="Startup\BizLayerModule.cs" />
   </ItemGroup>

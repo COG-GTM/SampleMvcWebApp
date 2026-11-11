@@ -7,8 +7,8 @@ Bootstrap 3 / jQuery. Hosted on **http://localhost:8080** (IIS Express).
 | Project | What lives there |
 |---|---|
 | `AssessmentDelivery.Data` | `AssessmentDeliveryDb` (EF6 DbContext) and entities mapped onto the shared tables |
-| `AssessmentDelivery.Business` | rules: retake eligibility, accommodation codes, seat counting |
-| `AssessmentDelivery.Services` | booking / admin / eligibility / results services; calls the `usp_*` procs |
+| `AssessmentDelivery.Business` | rules: retake eligibility, accommodation codes, roster CSV, capacity audit |
+| `AssessmentDelivery.Services` | admin / eligibility / results services (reads, plus the centre edit) |
 | `AssessmentDelivery.Web` | MVC 5 controllers, views, theme (`Content/Site.css`) |
 | `AssessmentDelivery.Tests` | NUnit 3 unit tests |
 
@@ -53,11 +53,10 @@ packages\NUnit.ConsoleRunner.3.16.3\tools\nunit3-console.exe AssessmentDelivery.
 
 ## Notes
 
-- Writes that touch seats go through the stored procedures (`usp_BookSeat`, `usp_CancelBooking`,
-  `usp_RescheduleBooking`, `usp_ChangeCapacity`); messages raised by the procs are shown on screen.
-  Editing a centre's name/active flag is a plain EF update.
-- Bookings made by partners through booking-api (channel `PARTNER`) and imported bookings show up in
-  *My bookings* next to portal bookings.
+- MBA-3824 retired the booking and capacity pages (`/Booking/**`, `/Admin/Sessions/Capacity/{id}`): they are served
+  by the scheduling-service UI under `/app`, and the routing gateway (:8000) redirects the old URLs
+  ([ADR 0004](../docs/adr/0004-retire-portal-booking-slice.md)). The portal no longer writes seats; editing a
+  centre's name/active flag is a plain EF update.
 - The "Booked" column in centre admin is counted from the Booking rows (BOOKED + ATTENDED); the
   "Seats avail." column is the stored `ExamSession.SeatsAvailable` figure.
 - "Roster (CSV)" on each centre-admin session row (`/Admin/Sessions/Roster/{id}?format=csv`) downloads the
