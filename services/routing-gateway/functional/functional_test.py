@@ -257,9 +257,11 @@ def main():
     before = legacy_booking_count("NW00000902")
     st, h, b, route = raw("POST", GW + "/api/v1/bookings", {"sessionId": s_nyc, "candidateNumber": "NW00000902"})
     j = json.loads(b)
-    relayed = wait_for(lambda: legacy_booking_count("NW00000902") == before + 1)
+    relayed = (wait_for(lambda: legacy_booking_count("NW00000902") == before + 1) if REAL_SCHEDULING
+               else legacy_booking_count("NW00000902") == before)
     check(f"C2 ({C2}, not on modern-centers) partner booking -> 201 via the gateway v1 translation (modern-write-centers=*), "
-          "written by scheduling-service and projected into dbo.Booking by the relay",
+          "written by scheduling-service" + (" and projected into dbo.Booking by the relay" if REAL_SCHEDULING
+                                             else ", no legacy Booking row (stub, no relay)"),
           route == "modern" and st == 201 and j.get("bookingId") in modern_bookings() and relayed, f"{st} {route} {b!r}")
     legacy_id = j["bookingId"]
     st, h, b, route = raw("POST", GW + "/api/v1/bookings", {"sessionId": s_bos, "candidateNumber": "NW00000901"})

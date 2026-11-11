@@ -14,7 +14,7 @@ Docker (Linux containers, so the Testcontainers ITs ran), SQL Server 2022 (`MSSQ
 | 3 | Java 8 services | `cd services && JAVA_HOME=<jdk8> mvnw.cmd -B verify` | BUILD SUCCESS: booking-api 9, results-service 4, capacity-sync 3 = **16/16** |
 | 4 | scheduling-service (unit + JaCoCo gate + vitest + Testcontainers ITs) | `cd services && JAVA_HOME=<jdk21> mvn -B -f scheduling-service/pom.xml verify` | BUILD SUCCESS: **53/53** unit, **8/8** vitest, **22/22** ITs (`SchedulingApiIT` 12, `SingleWriterRelayIT` 10) |
 | 5 | routing-gateway unit + integration | `cd services && JAVA_HOME=<jdk21> mvn -B -f routing-gateway/pom.xml verify` | BUILD SUCCESS, **62/62** |
-| 6 | routing-gateway functional suite | see "Gateway functional suite" below | **30/30 passed** (Git Bash on Windows, real scheduling-service, `SCHEDULING=real`) |
+| 6 | routing-gateway functional suite | see "Gateway functional suite" below | **30/30 passed** with `SCHEDULING=real` (real scheduling-service + relay) and **30/30** with `SCHEDULING=stub` (`scheduling_stub.py`, no relay), Git Bash on Windows |
 | 7 | characterization unit tests | `cd characterization && PYTHONUTF8=1 python -m pytest -q` | **31 passed**, 3 deselected (live-estate tests, covered by 8/9) |
 | 8 | characterization replay, legacy | `characterization/replay --target legacy --estate-dir ../../SampleMvcWebApp-legacy` (estate from the `legacy-baseline` worktree) | **86/86 MATCH** (`characterization/reports/replay-legacy-e458238.md`) |
 | 9 | characterization replay, modern via :8000 | `characterization/replay --target modern --base-url http://localhost:8000 --report parity-e45ee7a.md` | **63/86 MATCH; 17 ADR-APPROVED DIVERGENCE; 1 KNOWN_ONCALL_DEFECT (#57); 0 MISMATCH; 5 NOT REPLAYABLE; 0 SKIPPED; 0 ERROR** (`characterization/reports/parity-e45ee7a.md`, `reports/parity.md`); none of the 57 earlier MATCH rows regressed |
@@ -50,5 +50,7 @@ by hand with the M6 PowerShell scripts:
 Result: 30 passed, 0 failed (startup guard, 16-request read transparency, direct-write refusal for the four legacy logins,
 retired procs absent, v1 book/duplicate/not-open/validation/malformed JSON/unknown booking/reschedule/cancel through :8000,
 allow-list hot reload and rollback, portal redirects, ownership by booking id, rejected refresh without relay).
+The same steps with `scheduling_stub.py 8090` in place of scheduling-service and `SCHEDULING=stub` also gave 30 passed, 0 failed
+(in stub mode the C1/C2 relay checks assert that no `dbo.Booking` row appears, since the stub has no relay).
 The Linux runner was updated the same way (post-M4 `ad_portal` read login default, relay-shaped allow-list file) but was not run
 on Linux in this session.
