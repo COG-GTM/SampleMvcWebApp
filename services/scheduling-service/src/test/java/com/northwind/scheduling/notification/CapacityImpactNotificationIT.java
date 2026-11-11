@@ -145,6 +145,9 @@ class CapacityImpactNotificationIT extends SqlServerTestBase {
                 HttpMethod.GET, null, LIST);
         assertThat(unknown.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(unknown.getBody()).isEmpty();
+        assertThat(http.getForEntity("/internal/notifications", String.class).getStatusCode().value()).isEqualTo(400);
+        assertThat(http.getForEntity("/internal/notifications?candidateNumber=+", String.class).getStatusCode().value())
+                .isEqualTo(400);
         assertThat(http.getForObject("/v3/api-docs", String.class)).doesNotContain("/internal/notifications");
     }
 

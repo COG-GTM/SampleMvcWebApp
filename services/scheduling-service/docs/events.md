@@ -56,7 +56,8 @@ between delivery and `markRelayed` redelivers the event), so ports deduplicate o
 `AssessmentDelivery` (no `AuditLog`, no `RelayCheckpoint`), so reconciliation is unaffected.
 
 **Stub.** `LoggingNotificationAdapter` is the only `NotificationPort`: no email/SMS. It writes one JSON log line
-(`"event":"CandidateCapacityImpactNotified"` plus every field above) and keeps the newest
+(`"event":"CandidateCapacityImpactNotified"` plus every field above; with the `plain-logs` profile the message itself
+carries impact, candidateNumber, bookingId, sessionId, previous/new status and eventId as `key=value`) and keeps the newest
 `scheduling.notifications.stub.max-records` (default 10000) in memory, readable at
-`GET /internal/notifications[?candidateNumber=NW...]` on :8090 (not in the public OpenAPI spec; the routing gateway
-does not route `/internal/**`). The store is per process and empty after a restart.
+`GET /internal/notifications?candidateNumber=NW...` on :8090 (`candidateNumber` is required, 400 without it, so there
+is no bulk listing; not in the public OpenAPI spec; the routing gateway does not route `/internal/**`). The store is per process and empty after a restart.
