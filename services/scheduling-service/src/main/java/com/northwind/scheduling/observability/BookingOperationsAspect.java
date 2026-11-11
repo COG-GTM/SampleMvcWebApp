@@ -76,7 +76,7 @@ public class BookingOperationsAspect {
                     : failure instanceof SchedulingException ? BookingMetrics.BUSINESS_ERROR : BookingMetrics.ERROR;
             String code = failure == null ? null
                     : failure instanceof SchedulingException se ? se.code().name() : failure.getClass().getSimpleName();
-            Ids ids = ids(operation, args, result);
+            Ids ids = withCandidate(ids(operation, args, result));
             String centerCode = ids.centerCode != null ? ids.centerCode : centerFor(ids.sessionId, ids.bookingId);
             safely(() -> metrics.record(operation, outcome, centerCode, code, nanos));
             safely(() -> logOperation(operation, outcome, code, centerCode, ids, nanos, failed));
@@ -111,6 +111,19 @@ public class BookingOperationsAspect {
                 yield new Ids(intArg(args, 0), null, null, null, out == null ? null : out.session().centerCode());
             }
         };
+    }
+
+    /** reschedule (and failed cancels) only carry a bookingId; the candidate is known from that booking. */
+    private Ids withCandidate(Ids ids) {
+        if (ids.candidateNumber != null || ids.bookingId == null) {
+            return ids;
+        }
+        try {
+            String candidate = repo.booking(ids.bookingId).map(Rows.Booking::candidateNumber).orElse(null);
+            return new Ids(ids.sessionId, ids.bookingId, ids.newBookingId, candidate, ids.centerCode);
+        } catch (RuntimeException e) {
+            return ids;
+        }
     }
 
     private static Integer intArg(Object[] args, int i) {
