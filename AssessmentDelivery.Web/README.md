@@ -60,3 +60,6 @@ packages\NUnit.ConsoleRunner.3.16.3\tools\nunit3-console.exe AssessmentDelivery.
   *My bookings* next to portal bookings.
 - The "Booked" column in centre admin is counted from the Booking rows (BOOKED + ATTENDED); the
   "Seats avail." column is the stored `ExamSession.SeatsAvailable` figure.
+- "Roster (CSV)" on each centre-admin session row (`/Admin/Sessions/Roster/{id}?format=csv`) downloads the
+  exam-day roster: BOOKED and ATTENDED bookings, then the WAITLISTED section with `Waitlist.Position`, each
+  sorted by last/first name; CANCELLED rows are left out. UTF-8 with BOM, RFC 4180 quoting, read-only.
