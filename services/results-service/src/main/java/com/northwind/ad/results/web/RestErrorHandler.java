@@ -1,6 +1,7 @@
 package com.northwind.ad.results.web;
 
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -22,26 +23,32 @@ public class RestErrorHandler {
     private static final Logger LOG = LoggerFactory.getLogger(RestErrorHandler.class);
 
     @ExceptionHandler(ApiException.class)
-    public ResponseEntity<Map<String, String>> api(ApiException e) {
-        return error(e.getStatus(), e.getError(), e.getMessage());
+    public ResponseEntity<Map<String, Object>> api(ApiException e) {
+        return error(e.getStatus(), e.getError(), e.getMessage(), e.getDetails());
     }
 
     @ExceptionHandler({HttpMessageNotReadableException.class, MissingServletRequestParameterException.class,
             MissingServletRequestPartException.class, MultipartException.class})
-    public ResponseEntity<Map<String, String>> badRequest(Exception e) {
+    public ResponseEntity<Map<String, Object>> badRequest(Exception e) {
         return error(HttpStatus.BAD_REQUEST, "BAD_REQUEST", e.getMessage());
     }
 
     @ExceptionHandler(DataAccessException.class)
-    public ResponseEntity<Map<String, String>> db(DataAccessException e) {
+    public ResponseEntity<Map<String, Object>> db(DataAccessException e) {
         LOG.error("DB failure", e);
         return error(HttpStatus.INTERNAL_SERVER_ERROR, "DB_ERROR", e.getMostSpecificCause().getMessage());
     }
 
-    private ResponseEntity<Map<String, String>> error(HttpStatus status, String code, String msg) {
-        Map<String, String> m = new HashMap<String, String>();
+    private ResponseEntity<Map<String, Object>> error(HttpStatus status, String code, String msg) {
+        return error(status, code, msg, Collections.<String, Object>emptyMap());
+    }
+
+    private ResponseEntity<Map<String, Object>> error(HttpStatus status, String code, String msg,
+                                                      Map<String, Object> details) {
+        Map<String, Object> m = new LinkedHashMap<String, Object>();
         m.put("error", code);
         m.put("message", msg);
-        return new ResponseEntity<Map<String, String>>(m, status);
+        m.putAll(details);
+        return new ResponseEntity<Map<String, Object>>(m, status);
     }
 }

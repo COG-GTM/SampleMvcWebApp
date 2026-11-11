@@ -13,6 +13,21 @@
     <packaging>jar</packaging>
     <name>results-service</name>
     <description>Score file / result ingestion</description>
+
+    <properties>
+        <!-- last line with Java 8 support; functional tests run against SQL Server 2022 in Docker -->
+        <testcontainers.version>1.21.4</testcontainers.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mssqlserver</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <build>
         <finalName>results-service</finalName>
         <plugins>

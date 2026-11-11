@@ -14,6 +14,7 @@ UNION ALL SELECT 'Candidate',   COUNT(*) FROM dbo.Candidate
 UNION ALL SELECT 'Booking',     COUNT(*) FROM dbo.Booking
 UNION ALL SELECT 'Waitlist',    COUNT(*) FROM dbo.Waitlist
 UNION ALL SELECT 'Result',      COUNT(*) FROM dbo.Result
+UNION ALL SELECT 'ResultUpload', COUNT(*) FROM dbo.ResultUpload
 UNION ALL SELECT 'AuditLog',    COUNT(*) FROM dbo.AuditLog;
 
 SELECT s.Status AS SessionStatus, b.Status AS BookingStatus, COUNT(*) AS Bookings

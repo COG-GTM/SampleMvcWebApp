@@ -63,6 +63,7 @@ Fixed anchor dates (sessions 2026-09-01 .. 2027-03-31, "now" for the seed is
 | Booking | 3,587 | BOOKED 1811, ATTENDED 1444, CANCELLED 298, WAITLISTED 34; PORTAL / PARTNER / IMPORT |
 | Waitlist | 34 | one row per WAITLISTED booking |
 | Result | 1,444 | one per ATTENDED booking, pass/fail by PassingScore |
+| ResultUpload | 0 | filled by results-service score file uploads |
 | AuditLog | 12 | exam catalogue inserts |
 
 Candidates `NW00000901`..`NW00000999` are the unassigned block: no bookings, no results.

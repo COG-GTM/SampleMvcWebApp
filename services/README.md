@@ -97,7 +97,7 @@ Eligibility reasons: `FIRST_ATTEMPT`, `ALREADY_PASSED`, `RETAKE_WAIT_NOT_ELAPSED
 
 | Method | Path | |
 |---|---|---|
-| POST | `/api/v1/results` | `{bookingId, score, scoredAt}` -> 201; 409 if the booking already has a result |
+| POST | `/api/v1/results` | `{bookingId, score, scoredAt}` -> 201 `CREATED`; 200 `DUPLICATE` for an identical replay; 409 `DUPLICATE_RESULT` if the booking has a different result |
 | POST | `/api/v1/results/upload` | multipart `file`, CSV `candidateNumber,sessionId,score,scoredAt` with a header row |
 | GET | `/api/v1/results/candidate/{candidateNumber}` | |
 
@@ -110,13 +110,17 @@ candidateNumber,sessionId,score,scoredAt
 NW00000003,1,780,2026-09-10T12:31:00
 CSV
 curl -F file=@NWLON01_20260910.csv http://localhost:8082/api/v1/results/upload
-# {"fileName":"NWLON01_20260910.csv","rowsRead":1,"imported":1,"skipped":0,"errors":[]}
+# {"fileName":"NWLON01_20260910.csv","sha256":"…","uploadId":1,"previouslyUploaded":false,"previousUploadId":null,
+#  "rowsRead":1,"imported":1,"duplicates":0,"conflicts":0,"skipped":0,"errors":[],"conflictRows":[]}
+# uploading the same file again: 200, imported=0, duplicates=1, previouslyUploaded=true
 
 curl http://localhost:8082/api/v1/results/candidate/NW00000003
 ```
 
 Bad CSV rows are skipped and listed in `errors` with their line number; the file name is stored
-in `Result.SourceFile`.
+in `Result.SourceFile` and every upload (with its SHA-256) in `ResultUpload`. Rows already stored
+with the same score/scoredAt count as `duplicates`; rows with a different result are listed in
+`conflictRows` and audited as `DUPLICATE_REJECTED`. See docs/SYSTEM_OVERVIEW.md for the rules.
 
 ### capacity-sync :8083
 

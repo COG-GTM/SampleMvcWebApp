@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.northwind.ad.results.model.IngestOutcome;
 import com.northwind.ad.results.model.ResultRequest;
 import com.northwind.ad.results.model.UploadReport;
 import com.northwind.ad.results.service.CsvRowParser;
@@ -37,18 +38,24 @@ public class ResultsController {
         if (req == null || req.getBookingId() == null || req.getScore() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "bookingId and score are required");
         }
-        Date scoredAt;
-        if (req.getScoredAt() == null || req.getScoredAt().trim().length() == 0) {
-            scoredAt = new Date();
-        } else {
+        Date scoredAt = null; // not sent: stored as now, replays matched on score only
+        if (req.getScoredAt() != null && req.getScoredAt().trim().length() > 0) {
             try {
                 scoredAt = CsvRowParser.parseDate(req.getScoredAt().trim());
             } catch (IllegalArgumentException e) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", e.getMessage());
             }
         }
-        Map<String, Object> out = ingestService.ingest(req.getBookingId(), req.getScore(), scoredAt, null);
-        return new ResponseEntity<Map<String, Object>>(out, HttpStatus.CREATED);
+        IngestOutcome outcome = ingestService.ingest(req.getBookingId(), req.getScore(), scoredAt, null);
+        switch (outcome.getStatus()) {
+            case CREATED:
+                return new ResponseEntity<Map<String, Object>>(outcome.toBody(), HttpStatus.CREATED);
+            case DUPLICATE:
+                return new ResponseEntity<Map<String, Object>>(outcome.toBody(), HttpStatus.OK);
+            default:
+                throw new ApiException(HttpStatus.CONFLICT, "DUPLICATE_RESULT", outcome.conflictMessage(),
+                        outcome.conflictDetails());
+        }
     }
 
     @RequestMapping(value = "/upload", method = RequestMethod.POST)
@@ -60,7 +67,7 @@ public class ResultsController {
         if (name == null || name.length() == 0) {
             name = "upload.csv";
         }
-        return importer.importFile(name, file.getInputStream());
+        return importer.importFile(name, file.getBytes());
     }
 
     @RequestMapping(value = "/candidate/{candidateNumber}", method = RequestMethod.GET)
