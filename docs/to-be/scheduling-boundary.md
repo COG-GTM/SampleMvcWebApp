@@ -139,5 +139,5 @@ No contradiction was found in the matrix's other cells: portal R on Room/Candida
 These rows no longer touch scheduling tables. They call scheduling-service over HTTP (portal: `AssessmentDelivery.Services/Scheduling/SchedulingClient.cs`, base URL `Scheduling.BaseUrl` in `Web.config`; booking-api: `client/SchedulingClient.java`, `scheduling.base-url`). Their tripwire rows were removed from `inventory-guard.psv` along with this change:
 
 - Portal booking: P-B01, P-B02, P-B06 to P-B13 (`BookingService.cs`). Exam, TestCenter and Candidate reads stay local reference-data reads. Retake eligibility is still checked in the portal before book/reschedule (HB-08).
-- Portal admin: P-A01, P-A03 to P-A08 (`AdminService.cs`). `ListCapacitySyncRuns` still reads the legacy AuditLog until Session 5 retires capacity-sync.
+- Portal admin: P-A01, P-A03 to P-A08 (`AdminService.cs`). `ListCapacitySyncRuns` reads `GET /reconciler/runs` (capacity-sync is retired into the service reconciler) and maps each run to the legacy CAPACITY_SYNC row shape.
 - booking-api: BA-01, BA-02, BA-07 to BA-09, BA-11, BA-14 to BA-16 (`BookingDao.java`, `SessionDao.java`, `SeatCounter.java` deleted). See `docs/to-be/partner-booking-path-change.md`.
