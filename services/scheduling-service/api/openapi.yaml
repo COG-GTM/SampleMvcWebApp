@@ -300,6 +300,13 @@ paths:
                     legacyCode: 50006
                     message: Booking 1201 cannot be moved to session 155 (different
                       exam)
+                DUPLICATE_BOOKING:
+                  summary: DUPLICATE_BOOKING (legacy 50002)
+                  value:
+                    error: DUPLICATE_BOOKING
+                    legacyCode: 50002
+                    message: Candidate NW00000901 already has an active booking on
+                      session 154
                 NOT_CANCELLABLE:
                   summary: NOT_CANCELLABLE (legacy 50004)
                   value:
@@ -334,7 +341,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
           description: "Rule violation: NOT_CANCELLABLE, SAME_SESSION, DIFFERENT_EXAM,\
-            \ SESSION_NOT_OPEN, NO_ACCOMMODATION_SEAT, NOT_ELIGIBLE"
+            \ SESSION_NOT_OPEN, DUPLICATE_BOOKING, NO_ACCOMMODATION_SEAT, NOT_ELIGIBLE"
       summary: "Reschedule a booking to another session of the same exam (cancel +\
         \ book, new booking id, ODD-05)"
       tags:

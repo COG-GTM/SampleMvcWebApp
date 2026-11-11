@@ -137,6 +137,8 @@ class OpenApiSpecIT extends SqlServerTestBase {
         JsonNode book409 = spec.at("/paths/~1api~1v2~1bookings/post/responses/409/content/application~1json");
         assertThat(book409.at("/schema/$ref").asText()).isEqualTo("#/components/schemas/ApiError");
         assertThat(book409.at("/examples/NO_ACCOMMODATION_SEAT/value/legacyCode").asInt()).isEqualTo(50003);
+        assertThat(spec.at("/paths/~1api~1v2~1bookings~1{bookingId}~1reschedule/post/responses/409/content/application~1json/examples")
+                .fieldNames()).toIterable().contains("DUPLICATE_BOOKING", "NO_ACCOMMODATION_SEAT", "SAME_SESSION");
         assertThat(spec.at("/paths/~1api~1v2~1bookings/post/responses/201/content/application~1json/schema/$ref").asText())
                 .isEqualTo("#/components/schemas/BookingResultDto");
         assertThat(spec.at("/paths/~1api~1v2~1bookings/post/requestBody/content/application~1json/schema/$ref").asText())
