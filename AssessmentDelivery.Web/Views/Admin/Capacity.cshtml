@@ -1,0 +1,51 @@
+@model AssessmentDelivery.Web.Models.CapacityViewModel
+@{
+    ViewBag.Title = "Change Capacity";
+    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Centers") + "\">Test Centres</a> &raquo; <a href=\"" + Url.Action("Sessions", new { centerId = Model.CenterId }) + "\">" + Html.Encode(Model.CenterName) + "</a> &raquo; Session #" + Model.Session.SessionId + " &raquo; Capacity";
+}
+<div class="nw-page-head"><h2>Capacity administration <small>Session #@Model.Session.SessionId</small></h2></div>
+<div class="row">
+    <div class="col-md-5">
+        <div class="nw-panel">
+            <div class="nw-panel-heading">Session details</div>
+            <table class="table table-condensed nw-detail">
+                <tr><th>Centre</th><td>@Model.CenterName</td></tr>
+                <tr><th>Exam</th><td><strong>@Model.Session.ExamCode</strong> &ndash; @Model.Session.ExamTitle</td></tr>
+                <tr><th>Room</th><td>@Model.Session.RoomName</td></tr>
+                <tr><th>Start</th><td>@Model.Session.StartsAt.ToString("dddd dd MMM yyyy HH:mm")</td></tr>
+                <tr><th>Status</th><td>@Html.StatusPill(Model.Session.Status)</td></tr>
+            </table>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="nw-panel">
+            <div class="nw-panel-heading">Seat position</div>
+            <table class="table table-condensed nw-grid nw-seatbox">
+                <thead><tr><th class="num">Capacity</th><th class="num">Acc. capacity</th><th class="num">Seats available</th><th class="num">Booked</th><th class="num">Waitlist</th></tr></thead>
+                <tbody><tr>
+                    <td class="num">@Model.Session.Capacity</td>
+                    <td class="num">@Model.Session.AccommodationCapacity</td>
+                    <td class="num">@Model.Session.SeatsAvailable</td>
+                    <td class="num">@Model.Session.Booked</td>
+                    <td class="num">@Model.Session.WaitlistCount</td>
+                </tr></tbody>
+            </table>
+        </div>
+        <div class="nw-panel">
+            <div class="nw-panel-heading">Change capacity</div>
+            <div class="nw-panel-body">
+                @using (Html.BeginRouteForm("AdminCapacity", new { id = Model.Session.SessionId }, FormMethod.Post, new { @class = "form-inline nw-form" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(false, "", new { @class = "alert alert-danger nw-alert" })
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.NewCapacity)
+                        @Html.TextBoxFor(m => m.NewCapacity, new { @class = "form-control input-sm", type = "number", min = "0", style = "width:90px" })
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">Update capacity</button>
+                    <p class="help-block small">Seats available moves by the same amount. Capacity cannot be lower than the accommodation capacity.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
