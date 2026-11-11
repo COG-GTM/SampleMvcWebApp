@@ -28,6 +28,8 @@ from App Service settings, and the committed transforms/profiles hold only place
 
 Scripts are numbered and run in order: `schema/` -> `procs/` -> `triggers/` -> `seed/`.
 `db/checks/` holds read-only diagnostic queries.
+Rebuild locally with `db/apply.sh` (Linux/macOS) or `db/apply.ps1` (Windows); see `db/README.md`
+for seed volumes and the check scripts.
 
 | Table | Purpose / key columns |
 |---|---|
