@@ -15,7 +15,6 @@ import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.northwind.scheduling.domain.AccommodationFloorPolicy;
 import com.northwind.scheduling.domain.RetakeDayCounting;
 import com.northwind.scheduling.domain.RetakeEligibilityPolicy;
-import com.northwind.scheduling.domain.SeatFormula;
 
 /** Wires the ADR 0002 rule switches ({@code scheduling.rules.*}) into the Spring-free domain. */
 @Configuration
@@ -30,11 +29,6 @@ public class RulesConfig {
     public AccommodationFloorPolicy accommodationFloorPolicy(
             @Value("${scheduling.rules.accommodation-floor:allocated}") String floor) {
         return AccommodationFloorPolicy.parse(floor);
-    }
-
-    @Bean
-    public SeatFormula seatFormula(@Value("${scheduling.rules.seat-formula:standard}") String formula) {
-        return SeatFormula.parse(formula);
     }
 
     @Bean

@@ -42,7 +42,6 @@ scheduling:
   rules:
     retake-days: ${SCHEDULING_RULES_RETAKE_DAYS:calendar}            # calendar (portal RetakeRules.cs) | working (booking-api DateUtils.addWorkingDays)
     accommodation-floor: ${SCHEDULING_RULES_ACCOMMODATION_FLOOR:allocated}  # allocated (usp_ChangeCapacity) | booked
-    seat-formula: ${SCHEDULING_RULES_SEAT_FORMULA:standard}           # standard (seat-drift) | capacity-sync (CapacitySyncService)
   # Stand-in for the M3 routing gateway (GET /api/v2/internal/routing/resolve): centres served by this service.
   routing:
     modern-centers: ${SCHEDULING_ROUTING_MODERN_CENTERS:}
