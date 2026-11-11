@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Rebuilds the AssessmentDelivery database from scratch (DEV ONLY - drops the database).
-# Runs schema -> procs -> triggers -> seed in file-name order.
+# Runs schema -> procs -> triggers -> seed -> security in file-name order.
 #
 #   AD_SQL_SERVER    default localhost,1433
 #   AD_SQL_USER      default sa
@@ -43,6 +43,8 @@ run_sql -d master -Q "IF DB_ID('AssessmentDelivery') IS NOT NULL BEGIN ALTER DAT
 
 folders="schema procs triggers"
 [ "$SEED" -eq 1 ] && folders="$folders seed"
+# security last: logins/users that need the tables to exist (035 = scheduling-service read-only importer)
+folders="$folders security"
 
 for folder in $folders; do
   for f in $(ls "$DB_DIR/$folder"/*.sql | sort); do

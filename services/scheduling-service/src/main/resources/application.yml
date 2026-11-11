@@ -1,0 +1,57 @@
+# scheduling-service (MBA-3821). Every value can be overridden with the env var shown.
+server:
+  port: ${SERVER_PORT:8090}
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: scheduling-service
+  datasource:
+    # Own database "Scheduling" - never AssessmentDelivery. Created on start-up when missing
+    # (config/SchedulingDatabaseBootstrap) and migrated by Flyway (db/migration).
+    url: ${SCHEDULING_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=Scheduling;encrypt=true;trustServerCertificate=true}
+    username: ${SCHEDULING_DB_USER:sa}
+    password: ${SCHEDULING_DB_PASSWORD:Str0ng!Passw0rd}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: always
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+scheduling:
+  database:
+    create-if-missing: ${SCHEDULING_DB_CREATE:true}
+  # Read-only source for the snapshot importer: login ad_sched_import (db/security/035_sched_import_login.sql).
+  legacy:
+    url: ${SCHEDULING_LEGACY_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=AssessmentDelivery;encrypt=true;trustServerCertificate=true;applicationIntent=ReadOnly}
+    username: ${SCHEDULING_LEGACY_DB_USER:ad_sched_import}
+    password: ${SCHEDULING_LEGACY_DB_PASSWORD:Sch3dImport!Dev2026}
+  import:
+    # true = import snapshots + seat inventory on start-up when the Scheduling DB has no sessions yet
+    on-startup: ${SCHEDULING_IMPORT_ON_STARTUP:true}
+  # Rule switches - decisions and transcript evidence in docs/adr/0002-ported-rule-decisions.md
+  rules:
+    retake-days: ${SCHEDULING_RULES_RETAKE_DAYS:calendar}            # calendar (portal RetakeRules.cs) | working (booking-api DateUtils.addWorkingDays)
+    accommodation-floor: ${SCHEDULING_RULES_ACCOMMODATION_FLOOR:allocated}  # allocated (usp_ChangeCapacity) | booked
+    seat-formula: ${SCHEDULING_RULES_SEAT_FORMULA:standard}           # standard (seat-drift) | capacity-sync (CapacitySyncService)
+  # Stand-in for the M3 routing gateway (GET /api/v2/internal/routing/resolve): centres served by this service.
+  routing:
+    modern-centers: ${SCHEDULING_ROUTING_MODERN_CENTERS:}
+    default-target: ${SCHEDULING_ROUTING_DEFAULT_TARGET:legacy}
+  # Default Booking.channel for /api/v2 + /app (the portal replacement); /api/v1 compat records PARTNER.
+  # Same vocabulary as legacy CK_Booking_Channel so the M4 outbox can write it back unchanged.
+  default-channel: PORTAL
+  actor: ${SCHEDULING_ACTOR:scheduling-service}
+
+logging:
+  level:
+    com.northwind: INFO

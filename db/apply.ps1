@@ -1,6 +1,6 @@
 <#
     apply.ps1 - rebuilds the AssessmentDelivery database (DEV ONLY - drops the database).
-    Runs schema -> procs -> triggers -> seed in file-name order, same as apply.sh.
+    Runs schema -> procs -> triggers -> seed -> security in file-name order, same as apply.sh.
 
       .\db\apply.ps1                      rebuild + seed against localhost,1433
       .\db\apply.ps1 -NoSeed              rebuild without seed data
@@ -46,6 +46,8 @@ if ($r.Code -ne 0) { $r.Output | Write-Host; Write-Error "drop failed"; exit 1 }
 
 $folders = @("schema", "procs", "triggers")
 if (-not $NoSeed) { $folders += "seed" }
+# security last: logins/users that need the tables to exist (035 = scheduling-service read-only importer)
+$folders += "security"
 
 foreach ($folder in $folders) {
     Get-ChildItem -Path (Join-Path $dbDir $folder) -Filter *.sql | Sort-Object Name | ForEach-Object {
