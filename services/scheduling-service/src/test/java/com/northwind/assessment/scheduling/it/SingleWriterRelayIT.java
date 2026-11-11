@@ -76,6 +76,9 @@ class SingleWriterRelayIT extends SqlServerTestBase {
                 "UPDATE dbo.ExamSession SET SeatsAvailable = 0 WHERE SessionId = " + sessionId,
                 "UPDATE dbo.ExamSession SET Capacity = 1 WHERE SessionId = " + sessionId,
                 "UPDATE dbo.ExamSession SET AccommodationCapacity = 0 WHERE SessionId = " + sessionId,
+                "INSERT INTO dbo.ExamSession (ExamId, TestCenterId, RoomId, StartsAt, Capacity, SeatsAvailable) "
+                        + "SELECT TOP 1 ExamId, TestCenterId, RoomId, DATEADD(DAY, 400, StartsAt), 99, 99 FROM dbo.ExamSession",
+                "DELETE FROM dbo.ExamSession WHERE SessionId = " + sessionId,
                 "EXEC dbo.usp_BookSeat @SessionId = " + sessionId + ", @CandidateId = 1",
                 "EXEC dbo.usp_CancelBooking @BookingId = " + bookingId,
                 "EXEC dbo.usp_ChangeCapacity @SessionId = " + sessionId + ", @NewCapacity = 1",
