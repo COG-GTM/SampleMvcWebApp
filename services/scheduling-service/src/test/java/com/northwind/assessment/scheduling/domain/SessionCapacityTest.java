@@ -206,36 +206,40 @@ class SessionCapacityTest {
     }
 
     /**
-     * Guardrail for on-call defect #57 (the 30 -> 24 shape): ATTENDED still count in the ALLOCATED floor
-     * (4 accommodation seats + 2 ATTENDED + 19 BOOKED = 25), even though only BOOKED count for the waitlist bump.
+     * Regression for run-463f5cbfbee6 (scheduling-service@1.4.0): BOS01 session #198, capacity 23, 2 accommodation
+     * seats, 8 standard bookings. The floor is the allocation only (legacy {@code @NewCapacity < @AccCap}); booked
+     * standard seats must not be added to it, so 23 -> 9 is accepted like the legacy portal.
      */
     @Test
-    void onCallDefect57_floorStillCountsAttended_30To24Rejected_bumpCountUnaffected() {
-        BookingSlot[] slots = new BookingSlot[21];
-        for (int i = 0; i < 21; i++) {
-            slots[i] = slot(i + 1, i + 1, i < 2 ? BookingStatus.ATTENDED : BookingStatus.BOOKED, null, i);
+    void usp_ChangeCapacity_allocatedFloorIgnoresStandardSeatsHeld_session198_23To9Accepted() {
+        BookingSlot[] slots = new BookingSlot[8];
+        for (int i = 0; i < 8; i++) {
+            slots[i] = slot(i + 1, i + 1, BookingStatus.BOOKED, null, i);
         }
-        SessionCapacity s = open(30, 4, slots);
-        assertViolation(() -> s.changeCapacity(24, AccommodationFloorPolicy.ALLOCATED),
+        SessionCapacity s = open(23, 2, slots);
+        CapacityChange c = s.changeCapacity(9, AccommodationFloorPolicy.ALLOCATED);
+        assertThat(c.oldCapacity()).isEqualTo(23);
+        assertThat(c.newCapacity()).isEqualTo(9);
+        assertThat(c.bumpedBookingIds()).isEmpty();
+        assertThat(s.seatsAvailable()).isEqualTo(1);
+        assertViolation(() -> s.changeCapacity(1, AccommodationFloorPolicy.ALLOCATED),
                 RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR, 50005);
-        assertThat(s.capacity()).isEqualTo(30);
-        assertThat(s.changeCapacity(25, AccommodationFloorPolicy.ALLOCATED).bumpedBookingIds()).isEmpty();
     }
 
+    /** Legacy accepts a cut below the seats held when it stays at or above the allocation; the trigger bumps. */
     @Test
-    void usp_ChangeCapacity_allocatedFloorKeepsAccommodationSeatsForExtraTime_50005() {
+    void usp_ChangeCapacity_allocatedFloorAllowsCutBelowSeatsHeld_bumpsNewestBooked() {
         SessionCapacity s = open(12, 2,
                 slot(1, 1, BookingStatus.BOOKED, null, 0),
                 slot(2, 2, BookingStatus.BOOKED, null, 1),
                 slot(3, 3, BookingStatus.BOOKED, "SR", 2),
                 slot(4, 4, BookingStatus.ATTENDED, null, 3),
                 slot(5, 5, BookingStatus.BOOKED, "ET25", 4));
-        assertViolation(() -> s.changeCapacity(5, AccommodationFloorPolicy.ALLOCATED),
+        CapacityChange c = s.changeCapacity(3, AccommodationFloorPolicy.ALLOCATED);
+        assertThat(c.newCapacity()).isEqualTo(3);
+        assertThat(c.bumpedBookingIds()).containsExactly(5L);
+        assertViolation(() -> s.changeCapacity(1, AccommodationFloorPolicy.ALLOCATED),
                 RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR, 50005);
-        assertThat(s.capacity()).isEqualTo(12);
-        CapacityChange c = s.changeCapacity(6, AccommodationFloorPolicy.ALLOCATED);
-        assertThat(c.newCapacity()).isEqualTo(6);
-        assertThat(c.bumped()).isEmpty();
     }
 
     @Test

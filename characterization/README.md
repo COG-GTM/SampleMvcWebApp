@@ -179,7 +179,8 @@ Not applicable as golden transcripts (the replay compares a single deterministic
 ## Known defects (modern target)
 
 `known-defects.yaml` lists transcripts that are expected to differ on `--target modern` for a known, tracked
-reason (currently the on-call defect from #57 in scheduling-service capacity reductions). On a modern replay a
+reason (currently none: the on-call defect from #57, capacity reductions rejected with
+`CAPACITY_BELOW_ACCOMMODATION_FLOOR`, was fixed in run-463f5cbfbee6). On a modern replay a
 listed transcript that differs is reported as **KNOWN-DEFECT**: counted in its own column and in the status counts,
 never as MATCH and never hidden (the full request/expected/actual is in the mismatch section). This happens only when
 the actual run also shows the entry's `signature` business fields (for #57: `error: CAPACITY_BELOW_ACCOMMODATION_FLOOR`,
