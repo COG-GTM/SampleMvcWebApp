@@ -1,0 +1,15 @@
+# Shared retake-eligibility case table (HB-07). One row per case, '|' separated:
+# id | RetakeWaitDays | prior attempts (StartsAt@P|F, ';' separated) | requested date |
+#   portal Eligible | portal Reason | portal EarliestRetakeDate | partner eligible | partner reason | partner earliestRetakeDate
+# '-' = null/empty. Portal = AssessmentDelivery.Business RetakeRules (calendar days, en-GB date in reason).
+# Partner = booking-api RetakeEligibilityService (working days Mon-Fri, ISO date).
+FIRST_ATTEMPT|30|-|2026-12-01|true|No previous attempts|-|true|FIRST_ATTEMPT|-
+ALREADY_PASSED|30|2026-06-10T09:00:00@F;2026-09-02T09:00:00@P|2026-12-01|false|Candidate has already passed this exam|-|false|ALREADY_PASSED|-
+HB07_SAT_ON_CALENDAR_DATE|30|2026-11-07T09:00:00@F|2026-12-07|true|Retake wait period has elapsed|2026-12-07|false|RETAKE_WAIT_NOT_ELAPSED|2026-12-18
+HB07_SAT_DAY_BEFORE|30|2026-11-07T09:00:00@F|2026-12-06|false|Retake wait period applies until 07 Dec 2026|2026-12-07|false|RETAKE_WAIT_NOT_ELAPSED|2026-12-18
+HB07_SAT_ON_WORKING_DATE|30|2026-11-07T09:00:00@F|2026-12-18|true|Retake wait period has elapsed|2026-12-07|true|RETAKE_ALLOWED|2026-12-18
+FRIDAY_ATTEMPT|30|2026-11-06T09:00:00@F|2026-12-06|true|Retake wait period has elapsed|2026-12-06|false|RETAKE_WAIT_NOT_ELAPSED|2026-12-18
+MONDAY_WAIT_10|10|2026-11-09T09:00:00@F|2026-11-20|true|Retake wait period has elapsed|2026-11-19|false|RETAKE_WAIT_NOT_ELAPSED|2026-11-23
+LATEST_OF_MANY|30|2026-09-01T09:00:00@F;2026-10-15T09:00:00@F|2026-11-14|true|Retake wait period has elapsed|2026-11-14|false|RETAKE_WAIT_NOT_ELAPSED|2026-11-26
+WAIT_ZERO_SAME_DAY|0|2026-11-10T09:00:00@F|2026-11-10|true|Retake wait period has elapsed|2026-11-10|true|RETAKE_ALLOWED|2026-11-10
+TIME_OF_DAY_IGNORED|30|2026-11-07T18:30:00@F|2026-12-07|true|Retake wait period has elapsed|2026-12-07|false|RETAKE_WAIT_NOT_ELAPSED|2026-12-18
