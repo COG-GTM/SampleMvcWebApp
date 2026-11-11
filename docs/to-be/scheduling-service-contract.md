@@ -76,7 +76,7 @@ The legacy portal raises `PortalException(message)` for 50000/16 (`AssessmentDel
 ## 6. Channel, idempotency and concurrency
 
 - **`channel`** is required on book and reschedule and is stored on `Booking.Channel` (`PORTAL`, `PARTNER`, `IMPORT`). It selects these legacy differences:
-  - **Seat accounting.** Today a PARTNER BOOKED insert decrements `SeatsAvailable` twice (DAO plus trigger 032) and a partner cancel releases once (HB-01, HB-02, pinned by `BookingApiContractTest.partnerBookAndCancelSeatMath`). The service implements this behind `scheduling.legacy-seat-accounting=true` (default) so Phase 2 parity and Phase 3 zero-drift diffs hold. Turning it off is a post-cutover product decision, not a migration step.
+  - **Seat accounting.** Today a PARTNER BOOKED insert decrements `SeatsAvailable` twice (DAO plus trigger 032) and a partner cancel releases once (HB-01, HB-02, pinned by `BookingApiContractTest.partnerBookAndCancelSeatMath`). The service implements this behind `scheduling.legacy-seat-accounting` (env `SCHEDULING_LEGACY_SEAT_ACCOUNTING`). **Decision (parent, Phase 1): the runtime default is `false`.** The service is the single writer, so in Phase 2 a partner booking takes one seat. The characterization target sets it to `true` for the pinned HB-01/HB-02 scenarios, and so should any dual-run that diffs against legacy partner traffic.
   - **Reschedule semantics** (section 3).
   - **Audit actor**, which comes from `X-Actor`.
 - **Idempotency.**
@@ -107,6 +107,28 @@ Today two engines read `Result` and `Exam`, and both join `ExamSession` for `Sta
 
 ## 8. Open decisions (need an owner before Phase 1 closes)
 
-1. Keep `legacy-seat-accounting` (HB-01/HB-02 double decrement) on through cutover? The default here is on, for parity.
+1. ~~Keep `legacy-seat-accounting` on through cutover?~~ Decided: default off. It is on only for characterization and legacy-parity dual-runs (section 6).
 2. Serialising partner bookings removes the HB-29 duplicate waitlist positions. Accept this as the one intentional non-reproduction, since it cannot be reproduced deterministically?
 3. Reference feed via Change Tracking needs `ALTER DATABASE ... SET CHANGE_TRACKING = ON` on `AssessmentDelivery` (DBA change).
+
+## 9. Phase 1 implementation deviations (services/scheduling-service, PR #89)
+
+| Area | Deviation | Why |
+|---|---|---|
+| `POST /sessions` | Added: it creates an ExamSession, which is admin and fixture creation. | Session creation was the portal admin's direct INSERT, so the contract had no endpoint for it. The characterization target and dual-run need one. |
+| `POST /reference/sync[?full=true]` | Added: it forces a relay catch-up or a full resync. | It makes fixture rows written to AssessmentDelivery visible immediately instead of after the 30 s poll. |
+| `POST /reconciler/runs` | Optional `sessionIds` (comma list) and `trigger` query parameters. | The suite's `reconcileSeats(ids)` limits a run to its own sessions. Omitting them gives capacity-sync's every-OPEN-session run. A run already in progress returns 409 `RECONCILER_RUNNING`. |
+| `GET /audit?entityName=&entityId=` | Added: read-only AuditLog rows for an entity. | Parity checks and the Phase 3 AuditLog diff. |
+| `POST /admin/import[?replace=true]` | Added: re-runs the initial import from AssessmentDelivery. Disabled unless `scheduling.import.api-enabled=true`. | Cutover rehearsal. It is gated because `replace=true` wipes Scheduling data. |
+| `/admin/storage/*` | Added: a direct-write compatibility API (insert/patch/delete Booking, patch ExamSession, adjust seats). It applies the former trigger behaviour explicitly (HB-04/HB-05). Disabled unless `scheduling.storage-api.enabled=true`. | The suite's RAW_STORAGE scenarios, and dual-run replays of legacy direct writers. Not for clients. |
+| Unknown candidate on `POST /bookings` | 404 `CANDIDATE_NOT_FOUND` with `legacyState: 0` and the legacy FK message (`FK_Booking_Candidate`). | usp_BookSeat re-raised the FK violation as Msg 50000 with state 0 (BS-22). |
+| Roster CSV | Cells that start with `= + - @`, tab or CR get a leading `'`. | Neutralises spreadsheet formula (CSV) injection. Every other cell is unchanged. |
+| Reconciler formula (HB-03 removal) | With `scheduling.legacy-seat-accounting=false` (runtime default) the reconciler sets every session's `SeatsAvailable` to the seat-drift.sql definition, `Capacity - (BOOKED + ATTENDED)`, so a run always ends with zero drift. capacity-sync's `max(0, Capacity - AccommodationCapacity - StandardBooked)` on OPEN sessions applies only when the flag is `true` (characterization, legacy-parity dual-run). | HB-03 makes the nightly sync create drift. Once the service is the single writer that is a defect, not parity. |
+| Reconciler history | The initial import seeds `ReconcilerRun` rows from legacy `CAPACITY_SYNC` AuditLog rows (`trigger=… status=… checked=… updated=…`; `COMPLETED` becomes `OK`; runs already present are skipped, so re-imports are idempotent). Runs include `actor`. | So that `GET /reconciler/runs` shows pre-cutover capacity-sync history. The portal DTO reads `actor`. |
+| Lock order and deadlock retry | Every command locks `UPDLOCK, HOLDLOCK` on ExamSession rows first (ascending SessionId when a reschedule touches two), then the Booking row. A transaction that still loses a 1205 is re-run up to 5 times. Autocommit statements, including every read endpoint and the reschedule pre-reads, get the same bounded 1205 retry (`RetryingJdbcTemplate`). READ_COMMITTED_SNAPSHOT is deliberately not enabled, so read semantics match legacy. | The procs' booking-then-session order deadlocked crossing reschedules (about half of them, HB-15/MR-13) and, over JDBC, cancel/attend-vs-book. In Phase 3 load these surfaced as 5xx where the target is "no worse than legacy". CX-08 accepts zero victims, and its expectations are unchanged. |
+| `GET /sessions/capacity-audit` | `testCenterId` and `sessionId` are both optional. `from` is inclusive and `to` exclusive, both `date-time` as in usp_GetCapacityAudit (a bare `yyyy-MM-dd` means midnight). | The portal page always passes `testCenterId`. Other callers can query by session. |
+
+### Security posture (Phase 1)
+
+The contract does not define authentication, so the service matches the legacy trust model. Today every caller (portal, booking-api, results-service, capacity-sync) connects to `AssessmentDelivery` as the shared `ad_app` login over the internal network, with no per-caller authorization. scheduling-service has the same posture: **no authentication on any endpoint, reachable only on the internal network** (bind it or firewall it to the estate subnet). `X-Client-Id` scopes idempotency and `X-Actor` names the audit actor. Neither is a credential. The destructive and compatibility endpoints (`/admin/import`, `/admin/storage/*`) are off by default. Adding service-to-service auth (mTLS or OAuth2 client credentials) is a follow-up for after cutover. It needs every Phase 2 client to change at once.
+

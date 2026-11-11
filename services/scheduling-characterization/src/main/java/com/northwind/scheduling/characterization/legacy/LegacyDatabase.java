@@ -1,5 +1,6 @@
 package com.northwind.scheduling.characterization.legacy;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -118,6 +119,37 @@ public final class LegacyDatabase implements AutoCloseable {
 
     public String jdbcUrl() {
         return jdbcUrl;
+    }
+
+    /** Runs a sqlcmd script as sa inside the provisioned container (used by other targets, e.g. scheduling-service bootstrap). */
+    public void runScriptAsSa(Path script) {
+        if (container == null) {
+            throw new IllegalStateException("runScriptAsSa needs a database provisioned by this run");
+        }
+        try {
+            String dest = "/tmp/" + script.getFileName();
+            container.copyFileToContainer(MountableFile.forHostPath(script), dest);
+            ExecResult r = container.execInContainer("/opt/mssql-tools18/bin/sqlcmd", "-C", "-b", "-S", "localhost,1433",
+                    "-U", "sa", "-P", SA_PASSWORD, "-i", dest);
+            if (r.getExitCode() != 0) {
+                throw new IllegalStateException(script + " failed (" + r.getExitCode() + "):\n" + r.getStdout() + r.getStderr());
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** JDBC URL for another database on the same server. */
+    public String jdbcUrlFor(String database) {
+        return jdbcUrl.replaceFirst("databaseName=[^;]+", "databaseName=" + database);
+    }
+
+    public String user() {
+        return user;
+    }
+
+    public String password() {
+        return password;
     }
 
     @Override
