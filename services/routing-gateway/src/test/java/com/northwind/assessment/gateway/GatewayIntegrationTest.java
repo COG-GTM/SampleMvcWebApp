@@ -500,6 +500,37 @@ class GatewayIntegrationTest {
                 .expectHeader().valueEquals("Location", "/app/my-bookings?candidateNumber=NW00000901");
     }
 
+    @Test
+    void partnerEligibilityComesFromTheSingleWriterOnceEveryWriteIsModern() throws Exception {
+        String path = "/api/v1/candidates/NW00000953/eligibility?examCode=CTA-NET1&date=2026-12-10";
+        client.get().uri(path).exchange().expectStatus().isOk().expectHeader().valueEquals("X-Route", "legacy");
+        scheduling.verify(0, getRequestedFor(urlPathMatching("/api/v2/candidates/.*")));
+        bookingApi.resetRequests();
+
+        Files.writeString(configFile, "routing.modern-centers=\nrouting.modern-write-centers=*\nrouting.coexistence-mode=relay\n");
+        client.post().uri("/actuator/refresh").exchange().expectStatus().isOk();
+        scheduling.stubFor(get(urlPathEqualTo("/api/v2/candidates/NW00000953/eligibility"))
+                .willReturn(okJson("{\"eligible\":true,\"reason\":\"RETAKE_ALLOWED\",\"earliestRetakeDate\":\"2026-11-29\"}")));
+        scheduling.stubFor(get(urlPathEqualTo("/api/v2/candidates/NW99999999/eligibility")).willReturn(aResponse()
+                .withStatus(404).withHeader("Content-Type", "application/json")
+                .withBody("{\"error\":\"CANDIDATE_NOT_FOUND\",\"message\":\"Candidate NW99999999 not found\",\"legacyCode\":null}")));
+
+        EntityExchangeResult<String> r = client.get().uri(path).exchange().expectStatus().isOk()
+                .expectHeader().valueEquals("X-Route", "modern").expectBody(String.class).returnResult();
+        assertThat(lf(r.getResponseBody())).isEqualTo(
+                "{\n  \"eligible\" : true,\n  \"reason\" : \"RETAKE_ALLOWED\",\n  \"earliestRetakeDate\" : \"2026-11-29\"\n}");
+        scheduling.verify(getRequestedFor(urlPathEqualTo("/api/v2/candidates/NW00000953/eligibility"))
+                .withQueryParam("examCode", equalTo("CTA-NET1")).withQueryParam("date", equalTo("2026-12-10")));
+        bookingApi.verify(0, getRequestedFor(urlPathMatching("/api/v1/candidates/.*")));
+
+        EntityExchangeResult<String> e = client.get().uri("/api/v1/candidates/NW99999999/eligibility?examCode=CTA-NET1")
+                .exchange().expectStatus().isNotFound().expectBody(String.class).returnResult();
+        assertThat(lf(e.getResponseBody())).isEqualTo(
+                "{\n  \"error\" : \"CANDIDATE_NOT_FOUND\",\n  \"message\" : \"Candidate NW99999999 not found\"\n}");
+        client.get().uri("/api/v1/candidates/NW00000953/bookings").exchange().expectStatus().isOk()
+                .expectHeader().valueEquals("X-Route", "legacy");
+    }
+
     /** Jackson pretty-prints with the platform line separator (CRLF on Windows); the assertions use LF. */
     private static String lf(String body) {
         return body == null ? null : body.replace("\r\n", "\n");

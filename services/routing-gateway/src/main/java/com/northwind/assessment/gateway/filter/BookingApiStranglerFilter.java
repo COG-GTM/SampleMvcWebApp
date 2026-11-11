@@ -43,8 +43,10 @@ public class BookingApiStranglerFilter implements GatewayFilter {
     private static final Pattern SESSION = Pattern.compile("^/api/v1/sessions/(\\d+)$");
     private static final Pattern BOOKING = Pattern.compile("^/api/v1/bookings/(\\d+)$");
     private static final Pattern RESCHEDULE = Pattern.compile("^/api/v1/bookings/(\\d+)/reschedule$");
+    private static final Pattern ELIGIBILITY = Pattern.compile("^/api/v1/candidates/([^/]+)/eligibility$");
+    static final String SINGLE_WRITER_RULE = "single-writer-rule";
 
-    private enum Shape { SESSION, SESSION_LIST, BOOKING, BOOKING_RESPONSE }
+    private enum Shape { SESSION, SESSION_LIST, BOOKING, BOOKING_RESPONSE, ELIGIBILITY }
 
     private final RoutingService routing;
     private final WebClient modern;
@@ -80,6 +82,15 @@ public class BookingApiStranglerFilter implements GatewayFilter {
             String uri = v2.encode().buildAndExpand(center.stripTrailing()).toUriString();
             return route(exchange, chain, ResolveKey.centerCode(center), null, false,
                     () -> call(HttpMethod.GET, uri, null), Shape.SESSION_LIST, false);
+        }
+        if (HttpMethod.GET.equals(method) && (m = ELIGIBILITY.matcher(path)).matches() && routing.allWritesModern()) {
+            // Not center-specific: once scheduling-service writes every booking, its retake rule (ADR 0002 s4) is the
+            // one a partner booking is checked against, so the partner eligibility answer must come from it too.
+            String uri = "/api/v2/candidates/" + m.group(1) + "/eligibility" + (query == null ? "" : "?" + query);
+            RouteAttributes.set(exchange, RouteDecision.modern(null, SINGLE_WRITER_RULE));
+            return call(HttpMethod.GET, uri, null)
+                    .onErrorResume(e -> Mono.just(new V2Result(HttpStatus.BAD_GATEWAY, null)))
+                    .flatMap(r -> respond(exchange, r, Shape.ELIGIBILITY, false));
         }
         if (HttpMethod.GET.equals(method) && (m = SESSION.matcher(path)).matches()) {
             String id = m.group(1);
@@ -170,6 +181,7 @@ public class BookingApiStranglerFilter implements GatewayFilter {
             case SESSION_LIST -> V1Shapes.sessionList(body);
             case BOOKING -> V1Shapes.project(body, V1Shapes.BOOKING_FIELDS);
             case BOOKING_RESPONSE -> V1Shapes.project(body, V1Shapes.BOOKING_RESPONSE_FIELDS);
+            case ELIGIBILITY -> V1Shapes.project(body, V1Shapes.ELIGIBILITY_FIELDS);
         };
         return Responses.json(exchange, status, v1);
     }

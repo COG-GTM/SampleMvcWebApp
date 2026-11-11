@@ -103,6 +103,41 @@ adr_divergences:
              "step5.business.totalDrift", "business.driftSessions", "business.totalDrift",
              "db_state.bookings.154[[]*].status", "db_state.bookings.157[[]*].status",
              "db_state.waitlist.154", "db_state.waitlist.157", "db_state.examSession.*.SeatsAvailable"]
+  - transcript: retake_calendar_boundary_partner
+    adr: "section 4 (transcript listed)"
+    reason: >-
+      One retake rule for both channels, calendar days: the partner channel now gets the portal's answer (booking-api counted working days, DateUtils.addWorkingDays). Only the eligibility answer may differ.
+    fields: ["business.earliestRetakeDate", "business.eligible", "business.reason"]
+  - transcript: retake_day_before_calendar_boundary_partner
+    adr: "section 4 (transcript listed)"
+    reason: >-
+      One retake rule for both channels, calendar days: the partner channel now gets the portal's answer (booking-api counted working days, DateUtils.addWorkingDays). Only the eligibility answer may differ.
+    fields: ["business.earliestRetakeDate", "business.eligible", "business.reason"]
+  - transcript: retake_inside_window_partner
+    adr: "section 4 (transcript listed)"
+    reason: >-
+      One retake rule for both channels, calendar days: the partner channel now gets the portal's answer (booking-api counted working days, DateUtils.addWorkingDays). Only the eligibility answer may differ.
+    fields: ["business.earliestRetakeDate", "business.eligible", "business.reason"]
+  - transcript: retake_month_end_boundary_partner
+    adr: "section 4 (transcript listed)"
+    reason: >-
+      One retake rule for both channels, calendar days: the partner channel now gets the portal's answer (booking-api counted working days, DateUtils.addWorkingDays). Only the eligibility answer may differ.
+    fields: ["business.earliestRetakeDate", "business.eligible", "business.reason"]
+  - transcript: retake_outside_window_partner
+    adr: "section 4 (transcript listed)"
+    reason: >-
+      One retake rule for both channels, calendar days: the partner channel now gets the portal's answer (booking-api counted working days, DateUtils.addWorkingDays). Only the eligibility answer may differ.
+    fields: ["business.earliestRetakeDate", "business.eligible", "business.reason"]
+  - transcript: retake_weekend_span_between_rules_partner
+    adr: "section 4 (transcript listed)"
+    reason: >-
+      One retake rule for both channels, calendar days: the partner channel now gets the portal's answer (booking-api counted working days, DateUtils.addWorkingDays). Only the eligibility answer may differ.
+    fields: ["business.earliestRetakeDate", "business.eligible", "business.reason"]
+  - transcript: retake_working_day_boundary_partner
+    adr: "section 4 (transcript listed)"
+    reason: >-
+      One retake rule for both channels, calendar days: the partner channel now gets the portal's answer (booking-api counted working days, DateUtils.addWorkingDays). Only the eligibility answer may differ.
+    fields: ["business.earliestRetakeDate", "business.eligible", "business.reason"]
 
 # mismatch_root_causes: root cause of every remaining MISMATCH (printed in the report). None on this head.
 mismatch_root_causes: []

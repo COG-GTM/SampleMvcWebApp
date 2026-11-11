@@ -35,10 +35,11 @@ Build/test only: `cd services && JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./
 | `POST /api/v1/bookings` | body `sessionId` | `POST /api/v2/bookings` with `channel=PARTNER` -> 201 `{bookingId,status}` |
 | `DELETE /api/v1/bookings/{id}?reason=` | bookingId | `DELETE /api/v2/bookings/{id}?reason=` (default `Cancelled by partner`) -> `BookingInfo` |
 | `POST /api/v1/bookings/{id}/reschedule` | bookingId | `POST /api/v2/bookings/{id}/reschedule` -> **200** `{bookingId,status}` (v2 answers 201) |
+| `GET /api/v1/candidates/{n}/eligibility?examCode=&date=` | not center-specific: modern whenever every write is (`*` in `routing.modern-write-centers` or `routing.modern-centers`) | `GET /api/v2/candidates/{n}/eligibility` -> `EligibilityResult` `{eligible,reason,earliestRetakeDate}`; the single writer's retake rule decides every partner booking (ADR 0002 section 4, calendar days), so the partner eligibility answer comes from it too (`reason=single-writer-rule`) |
 
 v2 errors `{error,message,legacyCode}` become v1 `{error,message}` with the same status. Bodies are written the way
 booking-api writes them (Jackson pretty printer, v1 field order, explicit nulls, `yyyy-MM-ddTHH:mm:ss`,
-`Content-Type: application/json;charset=UTF-8`). Candidate bookings/eligibility and session lists without
+`Content-Type: application/json;charset=UTF-8`). Candidate booking lists and session lists without
 `centerCode` are not center-specific and stay legacy.
 
 **Portal** (paths case-insensitive, like MVC routing; GET answers 302, POST answers 303). The .NET booking and

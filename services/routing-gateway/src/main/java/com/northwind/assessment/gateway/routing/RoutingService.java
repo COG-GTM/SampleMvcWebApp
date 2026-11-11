@@ -53,6 +53,11 @@ public class RoutingService {
                 .map(r -> RouteDecision.modern(r.map(ResolvedCenter::centerCode).orElse(centerHint), RETIRED));
     }
 
+    /** True when scheduling-service is the writer for every center, so its booking rules are the ones in force. */
+    public boolean allWritesModern() {
+        return allowList.get().allWritesModern();
+    }
+
     public Mono<RouteDecision> decide(ResolveKey key, Long bookingId, boolean write) {
         Set<String> centers = allowList.get().centersFor(write);
         if (decider.isModernBookingId(bookingId)) {

@@ -129,7 +129,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.book({"sessionId": new, "candidateNumber": b["candidateNumber"], "channel": b["channel"]})
         m = re.fullmatch(r"/api/v2/candidates/([^/]+)/eligibility", p)
         if m:
-            return self.send(200, {"eligible": True, "reason": "No previous attempt", "earliestRetakeDate": None})
+            if not q.get("examCode", "").strip():
+                return self.err(400, "VALIDATION", "examCode is required")
+            if m.group(1) == "NW99999999":
+                return self.err(404, "CANDIDATE_NOT_FOUND", f"Candidate {m.group(1)} not found")
+            if q["examCode"].strip() == "NOPE":
+                return self.err(404, "EXAM_NOT_FOUND", f"Exam {q['examCode']} not found")
+            return self.send(200, {"eligible": True, "reason": "FIRST_ATTEMPT", "earliestRetakeDate": None})
         if re.fullmatch(r"/api/v2/sessions/(\d+)/waitlist", p):
             return self.send(200, [])
         self.err(404, "NOT_FOUND", f"No stub route for {method} {p}")
