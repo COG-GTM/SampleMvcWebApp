@@ -160,6 +160,15 @@ public class SchedulingCommands {
     }
 
     private void cancelInTx(int bookingId, String reason, String actor) {
+        // The proc ran in one server round trip, so its booking-then-session lock window was tiny. Over JDBC that window
+        // widens enough for cancel-vs-book to deadlock (cancel holds the booking X, book holds the session U and reads
+        // the booking). Taking the session lock first makes them serialise, as they effectively did in the proc.
+        // Crossing reschedules still deadlock: each one locks its own source session first, then the other's target.
+        List<Integer> owning = jdbc.queryForList("SELECT SessionId FROM dbo.Booking WHERE BookingId = ?", Integer.class, bookingId);
+        if (!owning.isEmpty()) {
+            jdbc.queryForList("SELECT SessionId FROM dbo.ExamSession WITH (UPDLOCK, HOLDLOCK) WHERE SessionId = ?", Integer.class,
+                    owning.get(0));
+        }
         List<Map<String, Object>> rows = jdbc.queryForList(
                 "SELECT Status, SessionId FROM dbo.Booking WITH (UPDLOCK, HOLDLOCK) WHERE BookingId = ?", bookingId);
         if (rows.isEmpty()) {
