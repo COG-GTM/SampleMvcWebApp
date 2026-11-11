@@ -1,6 +1,7 @@
 using Autofac;
 using AssessmentDelivery.Business.Startup;
 using AssessmentDelivery.Data.Startup;
+using AssessmentDelivery.Services.Scheduling;
 
 namespace AssessmentDelivery.Services.Startup
 {
@@ -18,6 +19,9 @@ namespace AssessmentDelivery.Services.Startup
             //---------------------------
             //Register service layer: autowire all
             builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
+
+            //one client per app: base URL from the Scheduling.BaseUrl appSetting
+            builder.Register(c => new SchedulingClient()).As<ISchedulingClient>().SingleInstance();
         }
     }
 }
