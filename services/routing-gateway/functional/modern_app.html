@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Northwind Scheduling (modern UI stub)</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:0;background:#f4f7fb;color:#1d2733}
+header{background:#0b5cad;color:#fff;padding:14px 24px;font-size:20px}
+header small{opacity:.8;font-size:13px;margin-left:12px}
+main{padding:24px;max-width:980px}
+table{border-collapse:collapse;width:100%;background:#fff}
+th,td{border:1px solid #d6dde6;padding:6px 10px;text-align:left}
+th{background:#e8eef6}
+.card{background:#fff;border:1px solid #d6dde6;padding:16px;border-radius:6px;margin-bottom:16px}
+.ok{background:#e6f6ea;border-color:#7cc58c}
+.err{background:#fdecea;border-color:#e99}
+button,a.btn{background:#0b5cad;color:#fff;border:0;padding:6px 12px;border-radius:4px;text-decoration:none;cursor:pointer}
+</style></head>
+<body><header>Northwind Assessment Network &mdash; Scheduling <small>modern UI (scheduling-service stand-in, served under /app)</small></header>
+<main id="main">Loading&hellip;</main>
+<script>
+const q = new URLSearchParams(location.search), main = document.getElementById('main');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function api(method, url, body) {
+  const r = await fetch(url, {method, headers: {'Content-Type': 'application/json'}, body: body && JSON.stringify(body)});
+  return {status: r.status, route: r.headers.get('X-Route'), json: await r.json()};
+}
+async function findSessions() {
+  const center = q.get('centerCode') || '', exam = q.get('examCode') || '', date = q.get('date') || '';
+  const r = await api('GET', `/api/v2/sessions?centerCode=${encodeURIComponent(center)}` +
+      (exam ? `&examCode=${encodeURIComponent(exam)}` : '') + (date ? `&from=${encodeURIComponent(date)}` : ''));
+  const open = r.json.filter(s => s.status === 'OPEN');
+  main.innerHTML = `<h2>Find sessions &mdash; ${esc(center)}</h2>
+    <p id="api-route">GET /api/v2/sessions answered ${r.status} via X-Route: <b>${esc(r.route)}</b></p>
+    <table><tr><th>Session</th><th>Exam</th><th>Center</th><th>Starts</th><th>Seats</th><th></th></tr>
+    ${open.map(s => `<tr><td>${s.sessionId}</td><td>${esc(s.examCode)} ${esc(s.examTitle)}</td><td>${esc(s.centerCode)}</td>
+      <td>${esc(s.startsAt)}</td><td>${s.seatsAvailable}/${s.capacity}</td>
+      <td><a class="btn" href="/app/book?sessionId=${s.sessionId}">Book</a></td></tr>`).join('')}</table>`;
+}
+async function book() {
+  const sid = q.get('sessionId');
+  const r = await api('GET', `/api/v2/sessions/${sid}`), s = r.json;
+  main.innerHTML = `<h2>Book session ${esc(sid)}</h2>
+    <div class="card">${esc(s.examCode)} ${esc(s.examTitle)}<br>${esc(s.centerName)} (${esc(s.centerCode)}), ${esc(s.roomName)}<br>
+    Starts ${esc(s.startsAt)} &middot; ${s.seatsAvailable} seats left</div>
+    <form id="f" class="card"><label>Candidate number <input name="candidateNumber" id="candidateNumber"
+      value="${esc(q.get('candidateNumber') || '')}"></label> <button type="submit" id="confirm">Confirm booking</button></form>
+    <div id="result"></div>`;
+  document.getElementById('f').onsubmit = async e => {
+    e.preventDefault();
+    const b = await api('POST', '/api/v2/bookings', {sessionId: Number(sid),
+      candidateNumber: document.getElementById('candidateNumber').value, channel: 'PORTAL'});
+    document.getElementById('result').innerHTML = b.status === 201
+      ? `<div class="card ok" id="confirmation">Booking <b>${b.json.bookingId}</b> ${esc(b.json.status)} for ${esc(b.json.candidateNumber)}
+         (session ${b.json.sessionId}, ${b.json.seatsAvailable} seats left) &mdash; created in scheduling-service, X-Route: ${esc(b.route)}</div>`
+      : `<div class="card err">${esc(b.json.error)}: ${esc(b.json.message)}</div>`;
+  };
+}
+function other() {
+  main.innerHTML = `<h2>${esc(location.pathname)}</h2><div class="card">Modern UI deep link received: <code>${esc(location.pathname + location.search)}</code></div>`;
+}
+const p = location.pathname.replace(/\/$/, '');
+(p === '/app' ? findSessions : p === '/app/book' ? book : other)();
+</script></body></html>
