@@ -1,6 +1,6 @@
 # Characterization replay: target `legacy`
 
-- commit: `e458238` (tag `legacy-baseline`, legacy code); harness: `characterization/` copied from the tested SHA `ad48c47` into the tag worktree (MBA-3825)
+- commit: `e458238` (tag `legacy-baseline`, legacy code); harness: `characterization/` copied from the tested SHA `90becef` into the tag worktree (MBA-3825)
 - portal: http://localhost:8080  api: http://localhost:8081  sync: http://localhost:8083
 - reseed: `restore`  compare: `all`  SEED_AS_OF: `2026-11-10`
 - result: **64/64 transcripts match**

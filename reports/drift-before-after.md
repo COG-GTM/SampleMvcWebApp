@@ -2,7 +2,7 @@
 
 | | Legacy (before) | Modern (after) |
 |---|---|---|
-| Code | tag `legacy-baseline`, commit `e458238da39c991b51d8f670f6d0c463b51b372f` (tag object `40cfb01`) | **tested code SHA `ad48c47f25949df3cc2333a8cd0656aa0b0cdb9d`** (branch `devin/mba-3825-parity-proof-v2`) |
+| Code | tag `legacy-baseline`, commit `e458238da39c991b51d8f670f6d0c463b51b372f` (tag object `40cfb01`) | **tested code SHA `90becef3a79ea7cec0034ec54d786795c04bee2d`** (branch `devin/mba-3825-parity-proof-v2`) |
 | Estate | `scripts/run-legacy.ps1` in a `git worktree` of the tag: portal :8080, booking-api :8081, capacity-sync :8083 | `run-legacy.ps1` (reseed) + `run-scheduling-service.ps1` + `run-routing-gateway.ps1`; all traffic through the gateway :8000 |
 | Starting state | `db/apply.ps1` fresh seed (seed "now" 2026-11-10) | fresh seed + `reseed-scheduling-db.sh` (restore AssessmentDelivery from the fresh-seed backup, then `mode=reset` import into Scheduling: both DBs consistent, runbook §4) |
 | Workload | `scripts/mixed-traffic.ps1` (defaults: 20 portal + 20 partner bookings, 3 + 3 cancels, sessions 154 155 157 158, candidates NW00000901..941) | same script with `PORTAL_URL=BOOKING_API_URL=http://localhost:8000` |
@@ -42,18 +42,18 @@ while seats are really free; modern books them (one seat per booking) and the st
 # legacy (worktree of tag legacy-baseline)
 git worktree add --detach ../ad-legacy legacy-baseline
 powershell -ExecutionPolicy Bypass -File scripts/run-legacy.ps1 < /dev/null
-"$BASH" characterization/replay --target legacy --report replay-legacy.md       # harness copied from ad48c47
+"$BASH" characterization/replay --target legacy --report replay-legacy.md       # harness copied from 90becef
 powershell -ExecutionPolicy Bypass -File db/apply.ps1 < /dev/null                  # fresh seed before the workload
 powershell -ExecutionPolicy Bypass -File scripts/mixed-traffic.ps1 < /dev/null
 sqlcmd -S localhost,1433 -E -C -d AssessmentDelivery -W -s '|' -i db/checks/seat-drift.sql
 powershell -ExecutionPolicy Bypass -File scripts/run-legacy.ps1 -Stop < /dev/null
 
-# modern (branch at ad48c47)
+# modern (branch at 90becef)
 powershell -ExecutionPolicy Bypass -File scripts/run-legacy.ps1 < /dev/null       # reseeds AssessmentDelivery
 sqlcmd -S localhost,1433 -E -C -Q "BACKUP DATABASE [AssessmentDelivery] TO DISK = N'<backup dir>\AssessmentDelivery_scheduling_seed.bak' WITH INIT, FORMAT, COPY_ONLY"
 powershell -ExecutionPolicy Bypass -File scripts/run-scheduling-service.ps1 -SkipBuild < /dev/null
 powershell -ExecutionPolicy Bypass -File scripts/run-routing-gateway.ps1 -SkipBuild < /dev/null
-# (64-transcript replay, see characterization/reports/parity-ad48c47.md)
+# (64-transcript replay, see characterization/reports/parity-90becef.md)
 RESEED_BACKUP_PATH=<seed .bak> "$BASH" services/scheduling-service/scripts/reseed-scheduling-db.sh
 curl -s http://localhost:8090/internal/relay                                       # pending 0 before the workload
 PORTAL_URL=http://localhost:8000 BOOKING_API_URL=http://localhost:8000 powershell -ExecutionPolicy Bypass -File scripts/mixed-traffic.ps1 < /dev/null
@@ -73,9 +73,9 @@ sqlcmd -S localhost,1433 -E -C -d AssessmentDelivery -W -s '|' -i db/checks/seat
 | [modern-mixed-traffic.txt](drift-before-after/modern-mixed-traffic.txt) | modern workload through :8000 (0 drift rows) |
 | [modern-relay-status.json](drift-before-after/modern-relay-status.json) | relay status after the workload (`pending: 0`) |
 | [modern-reconciliation.txt](drift-before-after/modern-reconciliation.txt) | `GET /internal/reconciliation` response (0 mismatches, 0 drift) |
-| [reconciliation-20261111-233512.md](drift-before-after/reconciliation-20261111-233512.md) | the report file that call wrote |
+| [reconciliation-20261111-235704.md](drift-before-after/reconciliation-20261111-235704.md) | the report file that call wrote |
 | [modern-seat-drift.txt](drift-before-after/modern-seat-drift.txt) | modern `seat-drift.sql`, 0 rows |
 | [gateway-redirect-probe.txt](drift-before-after/gateway-redirect-probe.txt) | retired portal URLs and `/app` through :8000 (ADR 0004 redirects; `/app` stays on :8000) |
 
 All outputs come from one run on 2026-11-11 (Windows Server 2022 VM, SQL Server 2022, one instance shared by both estates
-one after the other). Commits after `ad48c47` on this branch change only reports/docs.
+one after the other). Commits after `90becef` on this branch change only reports/docs.

@@ -1,5 +1,5 @@
-# legacy-baseline e458238da39c991b51d8f670f6d0c463b51b372f (tag object 40cfb01) | run 2026-11-11T23:25Z, after powershell -ExecutionPolicy Bypass -File db/apply.ps1 (fresh seed)
-# powershell -ExecutionPolicy Bypass -File scripts/mixed-traffic.ps1   (PORTAL_URL=http://localhost:8080, BOOKING_API_URL=http://localhost:8081 defaults)
+# legacy-baseline e458238da39c991b51d8f670f6d0c463b51b372f (tag object 40cfb01) | run 2026-11-11T23:50Z, after powershell -ExecutionPolicy Bypass -File db/apply.ps1 (fresh seed)
+# powershell -NoProfile -ExecutionPolicy Bypass -File scripts/mixed-traffic.ps1   (PORTAL_URL=http://localhost:8080, BOOKING_API_URL=http://localhost:8081 defaults)
 [mixed-traffic] sessions: 154 155 157 158
 [mixed-traffic] candidates: NW00000901 .. NW00000941
 [mixed-traffic] booking 20 portal + 20 partner seats
@@ -13,3 +13,4 @@
     158|11|0|7
 [mixed-traffic] db\checks\seat-drift.sql: 2 row(s)
 [mixed-traffic] done
+exit=0

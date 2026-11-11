@@ -1,11 +1,11 @@
 # Parity report: legacy `legacy-baseline` vs modern estate (MBA-3825)
 
-- **Tested code SHA** (scheduling-service, routing-gateway, harness): `ad48c47`
-- Legacy side: tag `legacy-baseline` (commit `e458238da39c991b51d8f670f6d0c463b51b372f`), replayed directly (:8080/:8081/:8083) with the harness copied from `ad48c47`
+- **Tested code SHA** (scheduling-service, routing-gateway, harness): `90becef`
+- Legacy side: tag `legacy-baseline` (commit `e458238da39c991b51d8f670f6d0c463b51b372f`), replayed directly (:8080/:8081/:8083) with the harness copied from `90becef`
 - Modern side: `scripts/run-legacy.ps1` + `run-scheduling-service.ps1` + `run-routing-gateway.ps1` at the tested SHA, every request through the gateway `http://localhost:8000`
 - Transcripts: the 64 M1 transcripts in `characterization/transcripts/`, unchanged
 - Matching = same HTTP status, business fields and Booking/Waitlist/ExamSession/AuditLog state after normalization (`characterization/harness/normalize.py`, `compare.py`, `--compare all`). Expected value = M1 legacy transcript, actual value = replay.
-- Raw replays: [replay-legacy-ad48c47.md](replay-legacy-ad48c47.md), [replay-modern-ad48c47.md](replay-modern-ad48c47.md)
+- Raw replays: [replay-legacy-90becef.md](replay-legacy-90becef.md), [replay-modern-90becef.md](replay-modern-90becef.md)
 
 Commands:
 
@@ -182,12 +182,12 @@ $.after.sessions[0].SeatsAvailable: 4 -> 5
 
 ```
 $.before.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=77 event=27fbdcb8-b1cc-4f1b-aad9-9ae5caad72ae BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=244 event=df17462f-bfd4-446f-a1cb-711091973a8c BookingCreated channel=PARTNER'
 $.before.sessions[0].SeatDrift: -1 -> 0
 $.before.sessions[0].SeatsAvailable: 3 -> 4
 $.steps[0].sessions_after[0].SeatsAvailable: 3 -> 4
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=77 event=27fbdcb8-b1cc-4f1b-aad9-9ae5caad72ae BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=244 event=df17462f-bfd4-446f-a1cb-711091973a8c BookingCreated channel=PARTNER'
 $.after.sessions[0].SeatDrift: -1 -> 0
 $.after.sessions[0].SeatsAvailable: 3 -> 4
 ```
@@ -235,17 +235,17 @@ $.after.sessions[0].SeatsAvailable: 2 -> 5
 
 ```
 $.before.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=80 event=8531fae3-6f9d-4c5e-a8dc-5581f4be7651 BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=247 event=d3352dd7-b48e-4621-a15b-af2f706b1bc3 BookingCreated channel=PARTNER'
 $.before.sessions[0].SeatDrift: -1 -> 0
 $.before.sessions[0].SeatsAvailable: 3 -> 4
 $.steps[0].sessions_after[0].SeatsAvailable: 1 -> 3
 $.steps[1].sessions_after[0].SeatsAvailable: -1 -> 2
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=80 event=8531fae3-6f9d-4c5e-a8dc-5581f4be7651 BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=247 event=d3352dd7-b48e-4621-a15b-af2f706b1bc3 BookingCreated channel=PARTNER'
 $.after.audit[1].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[1].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=81 event=eb06dc4b-481e-44f2-a797-f5610aab1da2 BookingCreated channel=PARTNER'
+$.after.audit[1].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=248 event=6e92a08f-66af-417b-84e0-e5600d6a6231 BookingCreated channel=PARTNER'
 $.after.audit[2].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[2].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=82 event=15276c9c-a8b2-494e-a431-5d450621f001 BookingCreated channel=PARTNER'
+$.after.audit[2].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'outbox seq=249 event=a7bef394-0787-4210-9c89-4f533b4d63aa BookingCreated channel=PARTNER'
 $.after.sessions[0].SeatDrift: -3 -> 0
 $.after.sessions[0].SeatsAvailable: -1 -> 2
 ```
@@ -283,7 +283,7 @@ $.after.sessions[0].SeatsAvailable: 10 -> 11
 ```
 $.steps[0].sessions_after[0].SeatsAvailable: 9 -> 10
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=85 event=4ce07568-cccc-4f29-95b9-70173af385da BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=252 event=f3b8c613-b4a2-4877-bc4a-8aa72edd6650 BookingCreated channel=PARTNER'
 $.after.sessions[0].SeatDrift: -1 -> 0
 $.after.sessions[0].SeatsAvailable: 9 -> 10
 ```
@@ -329,7 +329,7 @@ $.after.sessions[0].SeatsAvailable: 10 -> 11
 ```
 $.steps[0].sessions_after[0].SeatsAvailable: 9 -> 10
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-1001' -> 'outbox seq=4 event=f72bf297-9ba9-4933-a6db-6bc609209f2a BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-1001' -> 'outbox seq=171 event=0cb585e9-e670-4fbf-a4a1-3cc6b9951e88 BookingCreated channel=PARTNER'
 $.after.sessions[0].SeatDrift: -1 -> 0
 $.after.sessions[0].SeatsAvailable: 9 -> 10
 ```
@@ -360,7 +360,7 @@ $.after.waitlist: length 4 -> 3
 ```
 $.after.audit[0].Action: 'BOOK' -> 'WAITLIST'
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=153 status=WAITLISTED channel=PARTNER' -> 'outbox seq=7 event=6d5b6628-59fd-4259-b674-e65ee7b0727d BookingWaitlisted channel=PARTNER'
+$.after.audit[0].Detail: 'session=153 status=WAITLISTED channel=PARTNER' -> 'outbox seq=174 event=16a66b29-4258-4aec-a070-2566b308d864 BookingWaitlisted channel=PARTNER'
 ```
 
 ### BK-05-portal-duplicate-booking
@@ -397,12 +397,12 @@ $.after.sessions[0].SeatsAvailable: 10 -> 11
 
 ```
 $.before.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=10 event=7a1a75d6-b4ce-47c2-b541-ace0f490c079 BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=177 event=ea998c55-3361-46df-89f3-422ed9beadcd BookingCreated channel=PARTNER'
 $.before.sessions[0].SeatDrift: -1 -> 0
 $.before.sessions[0].SeatsAvailable: 9 -> 10
 $.steps[0].sessions_after[0].SeatsAvailable: 9 -> 10
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=10 event=7a1a75d6-b4ce-47c2-b541-ace0f490c079 BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=177 event=ea998c55-3361-46df-89f3-422ed9beadcd BookingCreated channel=PARTNER'
 $.after.sessions[0].SeatDrift: -1 -> 0
 $.after.sessions[0].SeatsAvailable: 9 -> 10
 ```
@@ -504,14 +504,14 @@ replay ERROR: RuntimeError: step portal_book produced no id for save_as=b1: {'st
 
 ```
 $.before.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-2001' -> 'outbox seq=18 event=bc6ce96c-d620-492a-9bec-9d7fb6803b47 BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-2001' -> 'outbox seq=185 event=39fc0951-2e32-46e6-ae40-3c604ca4abfa BookingCreated channel=PARTNER'
 $.before.sessions[0].SeatDrift: -1 -> 0
 $.before.sessions[0].SeatsAvailable: 9 -> 10
 $.steps[0].sessions_after[0].SeatsAvailable: 10 -> 11
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-2001' -> 'outbox seq=18 event=bc6ce96c-d620-492a-9bec-9d7fb6803b47 BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-2001' -> 'outbox seq=185 event=39fc0951-2e32-46e6-ae40-3c604ca4abfa BookingCreated channel=PARTNER'
 $.after.audit[1].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[1].Detail: 'partner-cancel' -> 'outbox seq=19 event=272b7d30-523e-4a5a-a643-b074029561b8 BookingCancelled reason=partner-cancel'
+$.after.audit[1].Detail: 'partner-cancel' -> 'outbox seq=186 event=dec760cc-44d6-4736-a2c5-f4945b0a5abd BookingCancelled reason=partner-cancel'
 $.after.sessions[0].SeatDrift: -1 -> 0
 $.after.sessions[0].SeatsAvailable: 10 -> 11
 ```
@@ -537,12 +537,12 @@ replay ERROR: RuntimeError: step portal_book produced no id for save_as=b1: {'st
 ```
 $.before.audit[0].Action: 'BOOK' -> 'WAITLIST'
 $.before.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=153 status=WAITLISTED channel=PARTNER' -> 'outbox seq=22 event=b0d12977-0ffb-49cf-86e9-66d2a14b6135 BookingWaitlisted channel=PARTNER'
+$.before.audit[0].Detail: 'session=153 status=WAITLISTED channel=PARTNER' -> 'outbox seq=189 event=17700995-d85d-4218-badd-b994178ef364 BookingWaitlisted channel=PARTNER'
 $.after.audit[0].Action: 'BOOK' -> 'WAITLIST'
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=153 status=WAITLISTED channel=PARTNER' -> 'outbox seq=22 event=b0d12977-0ffb-49cf-86e9-66d2a14b6135 BookingWaitlisted channel=PARTNER'
+$.after.audit[0].Detail: 'session=153 status=WAITLISTED channel=PARTNER' -> 'outbox seq=189 event=17700995-d85d-4218-badd-b994178ef364 BookingWaitlisted channel=PARTNER'
 $.after.audit[1].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[1].Detail: 'Cancelled by partner' -> 'outbox seq=23 event=5c8daa98-dcc8-472f-9e0a-f492fa8f177b BookingCancelled reason=Cancelled by partner'
+$.after.audit[1].Detail: 'Cancelled by partner' -> 'outbox seq=190 event=73584dae-cd28-49ec-a0d0-07a0bc8da602 BookingCancelled reason=Cancelled by partner'
 ```
 
 ### CN-05-portal-cancel-on-full-session-no-promotion
@@ -576,7 +576,7 @@ $.after.sessions[0].SeatsAvailable: 1 -> 0
 ```
 $.after.audit: length 1 -> 2
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'Cancelled by partner' -> 'outbox seq=26 event=52d41fd7-9021-4b3d-a2a7-d347e9e5ac37 BookingCancelled reason=Cancelled by partner'
+$.after.audit[0].Detail: 'Cancelled by partner' -> 'outbox seq=193 event=1145bb1e-5f3c-4e47-b9a8-a4b7550ba29e BookingCancelled reason=Cancelled by partner'
 $.after.bookings[23].LastModified: '2026-11-09T10:43:00' -> '<now>'
 ```
 
@@ -602,16 +602,16 @@ replay ERROR: RuntimeError: step portal_book produced no id for save_as=b1: {'st
 
 ```
 $.before.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=30 event=6e47cd83-877d-4552-9103-69e287838796 BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=197 event=d19691f9-2294-41a7-a38a-61648a2feade BookingCreated channel=PARTNER'
 $.before.audit[1].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[1].Detail: 'Cancelled by partner' -> 'outbox seq=31 event=11c7382b-1e89-48ec-8524-a19baac7c359 BookingCancelled reason=Cancelled by partner'
+$.before.audit[1].Detail: 'Cancelled by partner' -> 'outbox seq=198 event=3b87c0a2-29be-4edf-bb1b-69ff15dfb47b BookingCancelled reason=Cancelled by partner'
 $.before.sessions[0].SeatDrift: -1 -> 0
 $.before.sessions[0].SeatsAvailable: 10 -> 11
 $.steps[0].sessions_after[0].SeatsAvailable: 10 -> 11
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=30 event=6e47cd83-877d-4552-9103-69e287838796 BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=197 event=d19691f9-2294-41a7-a38a-61648a2feade BookingCreated channel=PARTNER'
 $.after.audit[1].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[1].Detail: 'Cancelled by partner' -> 'outbox seq=31 event=11c7382b-1e89-48ec-8524-a19baac7c359 BookingCancelled reason=Cancelled by partner'
+$.after.audit[1].Detail: 'Cancelled by partner' -> 'outbox seq=198 event=3b87c0a2-29be-4edf-bb1b-69ff15dfb47b BookingCancelled reason=Cancelled by partner'
 $.after.sessions[0].SeatDrift: -1 -> 0
 $.after.sessions[0].SeatsAvailable: 10 -> 11
 ```
@@ -758,7 +758,7 @@ $.steps[0].response.errors[0].state: 5 -> 62
 ```
 $.before.audit: length 2 -> 1
 $.before.audit[0].Actor: 'ad_app' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=154 status=BOOKED' -> 'outbox seq=56 event=a416b6a1-a740-496f-bf2b-fd96a071c469 BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=154 status=BOOKED' -> 'outbox seq=223 event=e05caf8a-e4d3-4c90-bc13-92eba051b2e4 BookingCreated channel=PARTNER'
 $.before.bookings: length 12 -> 11
 $.before.bookings[10].CandidateNumber: 'NW00000930' -> 'NW00000931'
 $.before.bookings[10].Channel: 'PORTAL' -> 'PARTNER'
@@ -774,7 +774,7 @@ $.steps[0].sessions_after[0].Capacity: 10 -> 20
 $.steps[0].sessions_after[0].SeatsAvailable: 0 -> 10
 $.after.audit: length 3 -> 1
 $.after.audit[0].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=154 status=BOOKED' -> 'outbox seq=56 event=a416b6a1-a740-496f-bf2b-fd96a071c469 BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=154 status=BOOKED' -> 'outbox seq=223 event=e05caf8a-e4d3-4c90-bc13-92eba051b2e4 BookingCreated channel=PARTNER'
 $.after.bookings: length 12 -> 11
 $.after.bookings[10].CandidateNumber: 'NW00000930' -> 'NW00000931'
 $.after.bookings[10].Channel: 'PORTAL' -> 'PARTNER'
@@ -909,53 +909,53 @@ $.steps[1].response.calls[40].op: 'portal_cancel' -> 'api_cancel'
 $.steps[1].response.calls[41].alerts: missing in replay (expected ['Booking <booking:3> cancelled.'])
 $.after.audit: length 47 -> 25
 $.after.audit[0].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=152 status=BOOKED' -> 'outbox seq=89 event=92808e5a-cdda-47c1-bec4-a9196459ed54 BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=152 status=BOOKED' -> 'outbox seq=256 event=b5ff926f-5174-4637-8d85-2373098dc78a BookingCreated channel=PARTNER'
 $.after.audit[1].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[1].Detail: 'session=154 status=BOOKED channel=PARTNER ref=MT-0001' -> 'outbox seq=90 event=1923b570-e7a5-4228-aa14-ad51eb4e1d22 BookingCreated channel=PARTNER'
+$.after.audit[1].Detail: 'session=154 status=BOOKED channel=PARTNER ref=MT-0001' -> 'outbox seq=257 event=5432a74d-1918-4376-abdd-797f0d80f6f7 BookingCreated channel=PARTNER'
 $.after.audit[2].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[2].Detail: 'session=155 status=BOOKED' -> 'outbox seq=91 event=305d4479-942e-45b6-9e9e-008f31b41677 BookingCreated channel=PARTNER'
+$.after.audit[2].Detail: 'session=155 status=BOOKED' -> 'outbox seq=258 event=c271e337-1320-445a-a1ff-abef478b21ac BookingCreated channel=PARTNER'
 $.after.audit[3].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[3].Detail: 'session=157 status=BOOKED channel=PARTNER ref=MT-0002' -> 'outbox seq=92 event=9681bf8e-0d96-4520-9d6d-ab6af457786b BookingCreated channel=PARTNER'
+$.after.audit[3].Detail: 'session=157 status=BOOKED channel=PARTNER ref=MT-0002' -> 'outbox seq=259 event=130932e1-1409-45b1-b3a0-e6a85038ba96 BookingCreated channel=PARTNER'
 $.after.audit[4].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[4].Detail: 'session=152 status=BOOKED' -> 'outbox seq=93 event=577bcfed-2c22-4081-b91d-fb287e2cc528 BookingCreated channel=PARTNER'
+$.after.audit[4].Detail: 'session=152 status=BOOKED' -> 'outbox seq=260 event=dd575a15-e4a3-4efc-b8f9-f70539d64643 BookingCreated channel=PARTNER'
 $.after.audit[5].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[5].Detail: 'session=154 status=BOOKED channel=PARTNER ref=MT-0003' -> 'outbox seq=94 event=d67902bf-c5f5-404d-9347-37dd2e4e8390 BookingCreated channel=PARTNER'
+$.after.audit[5].Detail: 'session=154 status=BOOKED channel=PARTNER ref=MT-0003' -> 'outbox seq=261 event=b93fb121-4e45-404a-9638-188402f951cd BookingCreated channel=PARTNER'
 $.after.audit[6].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[6].Detail: 'session=155 status=BOOKED' -> 'outbox seq=95 event=40c6cba5-5adb-4d16-bff0-1d520f762b05 BookingCreated channel=PARTNER'
+$.after.audit[6].Detail: 'session=155 status=BOOKED' -> 'outbox seq=262 event=6cca8bfd-defc-4d3a-80c0-3b006853e2ea BookingCreated channel=PARTNER'
 $.after.audit[7].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[7].Detail: 'session=157 status=BOOKED channel=PARTNER ref=MT-0004' -> 'outbox seq=96 event=fafa03cf-68f0-4247-971a-15a108a026bd BookingCreated channel=PARTNER'
+$.after.audit[7].Detail: 'session=157 status=BOOKED channel=PARTNER ref=MT-0004' -> 'outbox seq=263 event=edcb8c93-79b6-4e3a-a582-45e485f28f84 BookingCreated channel=PARTNER'
 $.after.audit[8].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[8].Detail: 'session=152 status=BOOKED' -> 'outbox seq=97 event=b6e14c1e-ab89-4c00-85e7-bc4e624f3b33 BookingCreated channel=PARTNER'
+$.after.audit[8].Detail: 'session=152 status=BOOKED' -> 'outbox seq=264 event=9e6d808b-6ded-4052-89d1-c5e4b5e8cb92 BookingCreated channel=PARTNER'
 $.after.audit[9].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[9].Detail: 'session=154 status=BOOKED channel=PARTNER ref=MT-0005' -> 'outbox seq=98 event=def73eeb-86eb-4e18-b1b7-ada958ec2b41 BookingCreated channel=PARTNER'
+$.after.audit[9].Detail: 'session=154 status=BOOKED channel=PARTNER ref=MT-0005' -> 'outbox seq=265 event=47440e49-ae1b-496b-8296-54fd899b24b0 BookingCreated channel=PARTNER'
 $.after.audit[10].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[10].Detail: 'session=155 status=BOOKED' -> 'outbox seq=99 event=dd0d9577-2186-4b52-a843-00e60104bc33 BookingCreated channel=PARTNER'
+$.after.audit[10].Detail: 'session=155 status=BOOKED' -> 'outbox seq=266 event=22cb9743-6a03-4dab-9c25-b424ee759109 BookingCreated channel=PARTNER'
 $.after.audit[11].Action: 'BOOK' -> 'WAITLIST'
 $.after.audit[11].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[11].Detail: 'session=157 status=BOOKED channel=PARTNER ref=MT-0006' -> 'outbox seq=100 event=8aba1d48-90c8-4f11-91d6-40f43b44c842 BookingWaitlisted channel=PARTNER'
+$.after.audit[11].Detail: 'session=157 status=BOOKED channel=PARTNER ref=MT-0006' -> 'outbox seq=267 event=8129ea2d-43bd-4c56-9528-eb24cf5dd06e BookingWaitlisted channel=PARTNER'
 $.after.audit[12].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[12].Detail: 'session=152 status=BOOKED' -> 'outbox seq=101 event=9ac74ff2-1a4e-43ac-aad2-9b479b29a3ee BookingCreated channel=PARTNER'
+$.after.audit[12].Detail: 'session=152 status=BOOKED' -> 'outbox seq=268 event=b6505ec0-22aa-47ef-b769-8f6e43c98ec3 BookingCreated channel=PARTNER'
 $.after.audit[13].Action: 'BOOK' -> 'WAITLIST'
 $.after.audit[13].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[13].Detail: 'session=154 status=BOOKED channel=PARTNER ref=MT-0007' -> 'outbox seq=102 event=57abbba9-3e52-4a8b-aa93-72d68c3d57f4 BookingWaitlisted channel=PARTNER'
+$.after.audit[13].Detail: 'session=154 status=BOOKED channel=PARTNER ref=MT-0007' -> 'outbox seq=269 event=48353c10-c7a9-4de9-99c5-96f74f89a530 BookingWaitlisted channel=PARTNER'
 $.after.audit[14].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[14].Detail: 'session=155 status=BOOKED' -> 'outbox seq=103 event=90bc8008-a9e8-40fa-b265-42670e42750b BookingCreated channel=PARTNER'
+$.after.audit[14].Detail: 'session=155 status=BOOKED' -> 'outbox seq=270 event=212325a0-319d-4f0f-8043-343e7551a5ee BookingCreated channel=PARTNER'
 $.after.audit[15].Action: 'BOOK' -> 'WAITLIST'
 $.after.audit[15].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[15].Detail: 'session=157 status=WAITLISTED channel=PARTNER ref=MT-0008' -> 'outbox seq=104 event=03f20f7a-c111-40d8-b23c-f3df18defd71 BookingWaitlisted channel=PARTNER'
+$.after.audit[15].Detail: 'session=157 status=WAITLISTED channel=PARTNER ref=MT-0008' -> 'outbox seq=271 event=ddf20f12-7a71-436e-b4b5-b5b4e120e504 BookingWaitlisted channel=PARTNER'
 $.after.audit[16].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[16].Detail: 'session=152 status=BOOKED' -> 'outbox seq=105 event=7a039dab-820a-4669-8bb0-059334b1af93 BookingCreated channel=PARTNER'
+$.after.audit[16].Detail: 'session=152 status=BOOKED' -> 'outbox seq=272 event=0d502d1f-be2d-4586-8184-7186962d1683 BookingCreated channel=PARTNER'
 $.after.audit[17].Action: 'BOOK' -> 'WAITLIST'
 $.after.audit[17].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[17].Detail: 'session=154 status=BOOKED channel=PARTNER ref=MT-0009' -> 'outbox seq=106 event=28735b60-6514-41b3-8566-91f59aff273c BookingWaitlisted channel=PARTNER'
+$.after.audit[17].Detail: 'session=154 status=BOOKED channel=PARTNER ref=MT-0009' -> 'outbox seq=273 event=429b0845-d1ba-44c0-b3f7-070f422e2771 BookingWaitlisted channel=PARTNER'
 $.after.audit[18].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[18].Detail: 'session=155 status=BOOKED' -> 'outbox seq=107 event=606417df-83f5-4023-94fb-9df8f557b0a4 BookingCreated channel=PARTNER'
+$.after.audit[18].Detail: 'session=155 status=BOOKED' -> 'outbox seq=274 event=4e3403f6-0cc3-4e6e-94b0-7bfdfc15f403 BookingCreated channel=PARTNER'
 $.after.audit[19].Action: 'BOOK' -> 'WAITLIST'
 $.after.audit[19].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[19].Detail: 'session=157 status=WAITLISTED channel=PARTNER ref=MT-0010' -> 'outbox seq=108 event=d1b36a43-a34a-4325-be2c-c5624d547578 BookingWaitlisted channel=PARTNER'
+$.after.audit[19].Detail: 'session=157 status=WAITLISTED channel=PARTNER ref=MT-0010' -> 'outbox seq=275 event=953c0e84-d1cd-4163-97ac-800409bfc022 BookingWaitlisted channel=PARTNER'
 $.after.audit[20].Action: 'BOOK' -> 'CANCEL'
 $.after.audit[20].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[20].Detail: 'session=152 status=BOOKED' -> 'outbox seq=109 event=7ae0df92-4ed3-4647-90c8-186d194b6879 BookingCancelled reason=mixed-traffic'
+$.after.audit[20].Detail: 'session=152 status=BOOKED' -> 'outbox seq=276 event=ac449a80-f1d0-4ff4-b5ac-ca8599c0e921 BookingCancelled reason=mixed-traffic'
 $.after.audit[20].EntityId: '<booking:21>' -> '<booking:1>'
 ```
 
@@ -1002,7 +1002,7 @@ $.after.sessions[1].SeatsAvailable: 9 -> 11
 ```
 $.before.audit: length 3 -> 1
 $.before.audit[0].Actor: 'ad_app' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=163 status=BOOKED' -> 'outbox seq=115 event=0566e0bb-ae08-4508-837e-cb82a7a329be BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=163 status=BOOKED' -> 'outbox seq=282 event=8e3c7666-1da3-442c-881e-7837cab9d3fe BookingCreated channel=PARTNER'
 $.before.bookings: length 6 -> 4
 $.before.bookings[3].AccommodationCode: 'ET25' -> None
 $.before.bookings[3].CandidateNumber: 'NW00000941' -> 'NW00000942'
@@ -1026,7 +1026,7 @@ $.steps[2].response.total_drift: 176 -> 0
 $.steps[2].sessions_after[0].SeatsAvailable: 2 -> 4
 $.after.audit: length 4 -> 2
 $.after.audit[0].Actor: 'ad_app' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=163 status=BOOKED' -> 'outbox seq=115 event=0566e0bb-ae08-4508-837e-cb82a7a329be BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=163 status=BOOKED' -> 'outbox seq=282 event=8e3c7666-1da3-442c-881e-7837cab9d3fe BookingCreated channel=PARTNER'
 $.after.audit[1].Action: 'BOOK' -> 'CAPACITY_SYNC'
 $.after.audit[1].Actor: 'booking-api' -> 'capacity-sync'
 $.after.audit[1].Detail: 'session=163 status=BOOKED channel=PARTNER' -> 'trigger=MANUAL status=SKIPPED checked=0 updated=0 reason=capacity.sync.enabled=false'
@@ -1061,17 +1061,17 @@ replay ERROR: RuntimeError: step portal_book produced no id for save_as=b1: {'st
 
 ```
 $.before.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-3001' -> 'outbox seq=34 event=73580d31-80c0-4006-9063-f89cee06fe26 BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-3001' -> 'outbox seq=201 event=5b3c0f67-7ba5-4a32-b102-98c08692023b BookingCreated channel=PARTNER'
 $.before.sessions[0].SeatDrift: -1 -> 0
 $.before.sessions[0].SeatsAvailable: 9 -> 10
 $.steps[0].sessions_after[0].SeatsAvailable: 10 -> 11
 $.steps[0].sessions_after[1].SeatsAvailable: 3 -> 4
 $.after.audit: length 3 -> 2
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-3001' -> 'outbox seq=34 event=73580d31-80c0-4006-9063-f89cee06fe26 BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-3001' -> 'outbox seq=201 event=5b3c0f67-7ba5-4a32-b102-98c08692023b BookingCreated channel=PARTNER'
 $.after.audit[1].Action: 'CANCEL' -> 'RESCHEDULE'
 $.after.audit[1].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[1].Detail: 'Rescheduled' -> 'outbox seq=35 event=7222ad78-cec4-4ba4-ac33-daa778ea74aa BookingRescheduled from=<booking:1> to=<booking:2>'
+$.after.audit[1].Detail: 'Rescheduled' -> 'outbox seq=202 event=9368e01f-111c-469a-bcb7-ce051ac1f069 BookingRescheduled from=<booking:1> to=<booking:2>'
 $.after.audit[1].EntityId: '<booking:1>' -> '<booking:2>'
 $.after.sessions[0].SeatDrift: -1 -> 0
 $.after.sessions[0].SeatsAvailable: 10 -> 11
@@ -1099,12 +1099,12 @@ replay ERROR: RuntimeError: step portal_book produced no id for save_as=b1: {'st
 
 ```
 $.before.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=38 event=55062c25-aa86-49e8-938b-4c9487f29164 BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=205 event=64c3cb86-6cc9-473f-a374-659c3caf47e8 BookingCreated channel=PARTNER'
 $.before.sessions[0].SeatDrift: -1 -> 0
 $.before.sessions[0].SeatsAvailable: 9 -> 10
 $.steps[0].sessions_after[0].SeatsAvailable: 9 -> 10
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=38 event=55062c25-aa86-49e8-938b-4c9487f29164 BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=205 event=64c3cb86-6cc9-473f-a374-659c3caf47e8 BookingCreated channel=PARTNER'
 $.after.sessions[0].SeatDrift: -1 -> 0
 $.after.sessions[0].SeatsAvailable: 9 -> 10
 ```
@@ -1129,12 +1129,12 @@ replay ERROR: RuntimeError: step portal_book produced no id for save_as=b1: {'st
 
 ```
 $.before.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=41 event=6fa0581b-4c08-43d9-ad7a-0162090eda7a BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=208 event=4f108ee6-9fed-4d0e-a024-33f8c97af816 BookingCreated channel=PARTNER'
 $.before.sessions[0].SeatDrift: -1 -> 0
 $.before.sessions[0].SeatsAvailable: 9 -> 10
 $.steps[0].sessions_after[0].SeatsAvailable: 9 -> 10
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=41 event=6fa0581b-4c08-43d9-ad7a-0162090eda7a BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER' -> 'outbox seq=208 event=4f108ee6-9fed-4d0e-a024-33f8c97af816 BookingCreated channel=PARTNER'
 $.after.sessions[0].SeatDrift: -1 -> 0
 $.after.sessions[0].SeatsAvailable: 9 -> 10
 ```
@@ -1159,7 +1159,7 @@ replay ERROR: RuntimeError: step portal_book produced no id for save_as=b1: {'st
 
 ```
 $.before.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-3008' -> 'outbox seq=44 event=a7409057-c5ab-49f5-8f3e-e8c395cfc4b3 BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-3008' -> 'outbox seq=211 event=0798ed64-99db-4483-8d7a-e4f12daacfcb BookingCreated channel=PARTNER'
 $.before.sessions[0].SeatDrift: -1 -> 0
 $.before.sessions[0].SeatsAvailable: 9 -> 10
 $.steps[0].response.path: '/Booking/MyBookings?candidateNumber=NW00000927' -> '/app/reschedule/<booking:1>'
@@ -1169,7 +1169,7 @@ $.steps[0].response.rendered.heading: 'My bookings' -> None
 $.steps[0].sessions_after[1].SeatsAvailable: 4 -> 5
 $.after.audit: length 3 -> 1
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-3008' -> 'outbox seq=44 event=a7409057-c5ab-49f5-8f3e-e8c395cfc4b3 BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=154 status=BOOKED channel=PARTNER ref=PX-3008' -> 'outbox seq=211 event=0798ed64-99db-4483-8d7a-e4f12daacfcb BookingCreated channel=PARTNER'
 $.after.bookings: length 15 -> 14
 $.after.bookings[10].CancelReason: 'Rescheduled' -> None
 $.after.bookings[10].CancelledAt: '<now>' -> None
@@ -1190,16 +1190,16 @@ $.after.sessions[1].SeatsAvailable: 4 -> 5
 
 ```
 $.before.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.before.audit[0].Detail: 'session=158 status=BOOKED channel=PARTNER ref=PX-3009' -> 'outbox seq=46 event=b617b088-045d-4628-8026-456cd44de48b BookingCreated channel=PARTNER'
+$.before.audit[0].Detail: 'session=158 status=BOOKED channel=PARTNER ref=PX-3009' -> 'outbox seq=213 event=b6c05c4f-16b5-4b20-bb7b-85f7aecaf053 BookingCreated channel=PARTNER'
 $.before.sessions[1].SeatDrift: -1 -> 0
 $.before.sessions[1].SeatsAvailable: 5 -> 6
 $.steps[0].sessions_after[1].SeatsAvailable: 6 -> 7
 $.after.audit: length 3 -> 2
 $.after.audit[0].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[0].Detail: 'session=158 status=BOOKED channel=PARTNER ref=PX-3009' -> 'outbox seq=46 event=b617b088-045d-4628-8026-456cd44de48b BookingCreated channel=PARTNER'
+$.after.audit[0].Detail: 'session=158 status=BOOKED channel=PARTNER ref=PX-3009' -> 'outbox seq=213 event=b6c05c4f-16b5-4b20-bb7b-85f7aecaf053 BookingCreated channel=PARTNER'
 $.after.audit[1].Action: 'CANCEL' -> 'RESCHEDULE'
 $.after.audit[1].Actor: 'booking-api' -> 'scheduling-service'
-$.after.audit[1].Detail: 'Rescheduled' -> 'outbox seq=47 event=42211f1e-5454-4daf-86f6-0d0ee5838be8 BookingRescheduled from=<booking:1> to=<booking:2>'
+$.after.audit[1].Detail: 'Rescheduled' -> 'outbox seq=214 event=460f2bba-6665-429c-a0ed-8cbbf91eb570 BookingRescheduled from=<booking:1> to=<booking:2>'
 $.after.audit[1].EntityId: '<booking:1>' -> '<booking:2>'
 $.after.sessions[1].SeatDrift: -1 -> 0
 $.after.sessions[1].SeatsAvailable: 6 -> 7
@@ -1286,13 +1286,15 @@ $.after.sessions[0].SeatsAvailable: 9 -> 8
 
 ## Observations (not parity mismatches)
 
-- The harness fix of this PR: `CN-02` and `CN-06` used to flake against modern because the booking/cancel timestamps written by
-  scheduling-service's JVM clock could be a few seconds behind the scenario start taken from the DB clock, so they were not
-  normalized to `<now>`. `normalize.py` now parses ISO timestamps (fraction, `Z`, offsets) and treats volatile timestamp keys up
-  to 30 s before the scenario start as run-time values (`test_runtime_timestamps_from_another_clock_are_normalized`). Both now
-  differ only by the classified audit/seat lines above, with no timestamp lines.
-- `--settle-url` (new, optional): the modern snapshots are taken after the outbox relay reports `pending: 0`, so a snapshot can
-  never race the asynchronous projection into `dbo.Booking/Waitlist/ExamSession` (`test_wait_settled_*`).
+- Harness fix of this PR: `CN-02` and `CN-06` used to flake against modern. The scheduling-service JVM clock writes the
+  booking/cancel timestamps, and these could land a few seconds before the scenario start taken from the DB clock, so they were
+  not normalized to `<now>`. `normalize.py` now parses ISO timestamps (fraction, `Z`, offsets), converts offsets to the DB's
+  timezone (`DATEPART(TZOFFSET, SYSDATETIMEOFFSET())`, read with the baseline) and treats volatile timestamp keys up to
+  30 s before the scenario start as run-time values. Both transcripts now differ only by the classified audit/seat lines
+  above, with no timestamp lines.
+- `--settle-url` (new, optional): modern snapshots are taken only after the outbox relay reports a real `pending` count of 0
+  (null = empty outbox, an error body = not settled). A snapshot therefore can't race the asynchronous projection into
+  `dbo.Booking/Waitlist/ExamSession`.
 - Relay audit rows carry `AuditLog.Actor` = the event's actor (`scheduling-service`), while ADR 0003 "Not changed" says
-  `scheduling-relay`. Audit text only (not a Booking/Waitlist/ExamSession field, and the legacy actor `booking-api` differs anyway);
-  left unchanged and listed as an open item rather than changed in this evidence PR.
+  `scheduling-relay`. This is audit text only: it is not a Booking/Waitlist/ExamSession field, and the legacy actor (`booking-api`)
+  differs anyway. It is left unchanged here and listed as an open item.
