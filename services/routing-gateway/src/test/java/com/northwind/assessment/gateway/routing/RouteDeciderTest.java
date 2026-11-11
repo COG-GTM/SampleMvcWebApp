@@ -68,6 +68,24 @@ class RouteDeciderTest {
     }
 
     @Test
+    void wildcardRoutesEveryResolvedCenterModern() {
+        RouteDecision d = decider.decide("NYC01", Set.of("*"), null, null);
+        assertThat(d.route()).isEqualTo(Route.MODERN);
+        assertThat(d.reason()).isEqualTo("all-centers");
+        assertThat(decider.decide("BOS01", Set.of("BOS01", "*"), null, null).reason()).isEqualTo("allow-listed");
+        assertThat(decider.decide(null, Set.of("*"), null, null).route()).isEqualTo(Route.LEGACY);
+    }
+
+    @Test
+    void writeCentersApplyToWritesOnly() {
+        AllowList list = new AllowList(Set.of("BOS01"), Set.of("*"), Set.of("BOS01"), "relay");
+        assertThat(list.centersFor(false)).containsExactly("BOS01");
+        assertThat(list.centersFor(true)).containsExactlyInAnyOrder("BOS01", "*");
+        assertThat(new AllowList(Set.of(), Set.of("*"), Set.of(), "relay").isEmpty()).isFalse();
+        assertThat(new AllowList(Set.of(), Set.of(), Set.of(), "none").isEmpty()).isTrue();
+    }
+
+    @Test
     void customFloor() {
         assertThat(new RouteDecider(1000).isModernBookingId(1000L)).isTrue();
         assertThat(new RouteDecider(1000).isModernBookingId(999L)).isFalse();

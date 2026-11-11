@@ -10,7 +10,7 @@ import java.util.Set;
 /**
  * Guard for {@code routing.modern-centers}. Until the outbox relay (M4) is live, writes made by scheduling-service
  * never reach {@code AssessmentDelivery}, so only test/demo centers ({@code routing.test-centers}) may be
- * allow-listed. Any other center on the list requires {@code routing.coexistence-mode=relay}.
+ * allow-listed. Any other center on the list (including {@code *}) requires {@code routing.coexistence-mode=relay}.
  */
 public final class AllowListPolicy {
 
