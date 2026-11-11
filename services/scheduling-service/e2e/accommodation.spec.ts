@@ -64,6 +64,22 @@ test('a second ET candidate sees the session unavailable; the pre-filled code st
   await page.getByTestId('find-accommodation-select').selectOption('SR');
   await expect(card).not.toHaveAttribute('data-unavailable', 'true');
   await expect(page.getByTestId(`book-${SESSION}`)).toHaveText(/Book a seat|Join waitlist/);
+
+  // switching to another candidate drops the previous explicit choice and pre-fills their own default
+  await page.getByTestId('find-candidate-input').fill('NW00000983');
+  await expect(page.getByTestId('find-accommodation-select')).toHaveValue('ET50');
+  await expect(card).toHaveAttribute('data-unavailable', 'true');
+
+  // the explicit choice survives Book -> Back to sessions
+  await page.getByTestId('find-accommodation-select').selectOption('SR');
+  await page.getByTestId(`book-${SESSION}`).click();
+  await expect(page.getByTestId('accommodation-select')).toHaveValue('SR');
+  await page.getByRole('link', { name: /Back to sessions/ }).click();
+  await expect(page.getByTestId('find-accommodation-select')).toHaveValue('SR');
+
+  // clearing the candidate forgets the remembered one
+  await page.getByTestId('find-candidate-input').fill('');
+  expect(await page.evaluate(() => localStorage.getItem('scheduling.candidateNumber'))).toBeNull();
 });
 
 test('POST /api/v2/bookings for another ET seat returns 409 NO_ACCOMMODATION_SEAT without consuming a seat', async ({ request }) => {
