@@ -130,8 +130,8 @@ document.querySelectorAll('.toolbar button').forEach(function(b){b.onclick=funct
 def side_html(name, css, side, base: Path):
     shots = []
     for s in side.get("shots", []):
-        p = base / s["file"]
-        if p.exists():
+        p = (base / s["file"]).resolve()
+        if p.is_relative_to(base.resolve()) and p.is_file():
             shots.append(f'<div class="shot"><img alt="{E(s.get("label", ""))}" src="{img_data_uri(p)}"/>'
                          f'<div class="cap">{E(s.get("label", ""))}</div></div>')
     notes = f'<p>{E(side["notes"])}</p>' if side.get("notes") else ""
