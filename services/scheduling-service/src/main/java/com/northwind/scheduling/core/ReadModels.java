@@ -13,6 +13,8 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -217,13 +219,18 @@ public class ReadModels {
             args.add(sessionId);
         }
         if (status != null) {
-            where.append(" AND b.Status = ?");
-            args.add(status.toUpperCase(Locale.ROOT));
+            // OpenAPI: status is a form-style array (status=BOOKED,ATTENDED)
+            List<String> statuses = Arrays.stream(status.split(",")).map(String::trim).filter(v -> !v.isEmpty())
+                    .map(v -> v.toUpperCase(Locale.ROOT)).toList();
+            where.append(" AND b.Status IN (").append(String.join(", ", Collections.nCopies(statuses.size(), "?"))).append(")");
+            args.addAll(statuses);
         }
         String order = switch (sort == null ? "-bookedAt" : sort) {
             case "bookingId" -> " ORDER BY b.BookingId";
+            case "bookingId,desc" -> " ORDER BY b.BookingId DESC";
             case "bookedAt" -> " ORDER BY b.BookedAt, b.BookingId";
             case "sessionStartsAt" -> " ORDER BY s.StartsAt, b.BookingId";
+            case "sessionStartsAt,desc" -> " ORDER BY s.StartsAt DESC, b.BookingId DESC";
             default -> " ORDER BY b.BookedAt DESC, b.BookingId DESC";
         };
         int top = limit == null ? 1000 : Math.max(1, Math.min(limit, 10000));

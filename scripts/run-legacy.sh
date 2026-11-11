@@ -22,6 +22,13 @@ MSSQL_IMAGE="${MSSQL_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}"
 export MSSQL_SA_PASSWORD="${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}"
 # capacity-sync (:8083) is retired: its seat reconciler lives in scheduling-service (services/capacity-sync/README.md)
 SERVICES="booking-api:8081 results-service:8082"
+# scheduling-service (Java 21, own Scheduling DB) owns ExamSession/Booking/Waitlist and runs the nightly reconciler
+SCHED_DIR="$ROOT/services/scheduling-service"
+SCHED_JAR="$SCHED_DIR/target/scheduling-service.jar"
+JAVA21_HOME="${JAVA21_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}"
+SCHED_PORT="${SCHED_PORT:-8084}"
+export SCHEDULING_PORT="$SCHED_PORT"
+export SCHEDULING_BASE_URL="${SCHEDULING_BASE_URL:-http://localhost:$SCHED_PORT/api/v1}"   # read by booking-api, results-service
 RETIRED_SERVICES="capacity-sync"   # still stopped by cmd_stop if an older estate left it running
 
 log() { echo "[run-legacy] $*"; }
@@ -149,11 +156,44 @@ start_services() {
     done
 }
 
+start_scheduling() {
+    if [ ! -f "$SCHED_DIR/pom.xml" ]; then
+        log "services/scheduling-service not present on this branch - not started"
+        return
+    fi
+    [ -x "$JAVA21_HOME/bin/java" ] || die "JDK 21 not found for scheduling-service - set JAVA21_HOME"
+    if [ "${SKIP_BUILD:-0}" != "1" ] || [ ! -f "$SCHED_JAR" ]; then
+        log "building scheduling-service (JAVA_HOME=$JAVA21_HOME)"
+        (cd "$SCHED_DIR" && JAVA_HOME="$JAVA21_HOME" "$ROOT/services/mvnw" -q -B -DskipTests package)
+    fi
+    log "bootstrapping the Scheduling database"
+    if [ -n "$SQLCMD" ]; then
+        sa_sql -i "$SCHED_DIR/db/bootstrap.sql" >/dev/null
+    else
+        sa_sql < "$SCHED_DIR/db/bootstrap.sql" >/dev/null
+    fi
+    if pid_alive "$RUN_DIR/scheduling-service.pid"; then
+        log "scheduling-service already running (pid $(cat "$RUN_DIR/scheduling-service.pid"))"
+        return
+    fi
+    port_open "$SCHED_PORT" && die "port $SCHED_PORT is already in use by another process"
+    log "starting scheduling-service on :$SCHED_PORT"
+    nohup "$JAVA21_HOME/bin/java" ${SCHED_JAVA_OPTS:-} -jar "$SCHED_JAR" > "$RUN_DIR/scheduling-service.log" 2>&1 &
+    echo $! > "$RUN_DIR/scheduling-service.pid"
+    for _ in $(seq 1 180); do
+        port_open "$SCHED_PORT" && return
+        pid_alive "$RUN_DIR/scheduling-service.pid" || die "scheduling-service exited during startup, see .run/scheduling-service.log"
+        sleep 1
+    done
+    die "scheduling-service did not open :$SCHED_PORT, see .run/scheduling-service.log"
+}
+
 print_urls() {
     cat <<URLS
 
   booking-api      http://localhost:8081/api/v1/sessions
   results-service  http://localhost:8082/api/v1/results/candidate/{candidateNumber}
+  scheduling-svc   http://localhost:$SCHED_PORT/api/v1/sessions   (reconciler: POST /api/v1/reconciler/runs)
   SQL Server       localhost,1433  db AssessmentDelivery  login ad_app
 
   logs and pids:   .run/
@@ -169,7 +209,7 @@ cmd_status() {
         echo "sql-server       stopped"
     fi
     local entry name port state
-    for entry in $SERVICES; do
+    for entry in $SERVICES scheduling-service:$SCHED_PORT; do
         name="${entry%%:*}"; port="${entry##*:}"
         if pid_alive "$RUN_DIR/$name.pid"; then
             state="running  (pid $(cat "$RUN_DIR/$name.pid"), :$port)"
@@ -183,7 +223,7 @@ cmd_status() {
 
 cmd_stop() {
     local entry name pid
-    for entry in $SERVICES $RETIRED_SERVICES; do
+    for entry in $SERVICES scheduling-service:$SCHED_PORT $RETIRED_SERVICES; do
         name="${entry%%:*}"
         if pid_alive "$RUN_DIR/$name.pid"; then
             pid="$(cat "$RUN_DIR/$name.pid")"
@@ -204,6 +244,7 @@ cmd_start() {
     apply_db
     build_services
     start_services
+    start_scheduling
     log "all services up"
     print_urls
 }
