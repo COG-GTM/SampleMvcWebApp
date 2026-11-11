@@ -58,6 +58,8 @@ start_sql() {
     has="$(sqlcmd_sa -Q "SET NOCOUNT ON; SELECT CASE WHEN DB_ID('AssessmentDelivery') IS NULL THEN 0 ELSE 1 END" | tr -d '[:space:]')"
     if [ "$has" != "1" ] || [ "${RESEED_LEGACY:-0}" = "1" ]; then
         log "seeding AssessmentDelivery (db/apply.sh, also creates login ad_sched_import)"
+        command -v sqlcmd >/dev/null 2>&1 || [ -x /opt/mssql-tools18/bin/sqlcmd ] || [ -x /opt/mssql-tools/bin/sqlcmd ] \
+            || die "seeding needs a host sqlcmd (db/apply.sh): install mssql-tools18"
         AD_SA_PASSWORD="$MSSQL_SA_PASSWORD" "$ROOT/db/apply.sh" >/dev/null
     else
         # older seeds predate db/security/035 - apply it idempotently
@@ -83,6 +85,7 @@ start() {
     cp "$SVC/target/scheduling-service.jar" "$RUN_DIR/scheduling-service.jar"
     log "starting on :$PORT (log $LOG_FILE)"
     SCHEDULING_IMPORT_ON_STARTUP="${SCHEDULING_IMPORT_ON_STARTUP:-true}" \
+    SCHEDULING_DB_PASSWORD="${SCHEDULING_DB_PASSWORD:-$MSSQL_SA_PASSWORD}" \
         nohup "$JAVA_HOME/bin/java" -jar "$RUN_DIR/scheduling-service.jar" >"$LOG_FILE" 2>&1 &
     echo $! >"$PID_FILE"
     for _ in $(seq 1 90); do
