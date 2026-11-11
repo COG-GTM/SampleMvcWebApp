@@ -24,9 +24,14 @@ public class JdbcLegacyReferenceSource implements LegacyReferenceSource {
 
     public JdbcLegacyReferenceSource(@Value("${scheduling.legacy.url}") String url,
                                      @Value("${scheduling.legacy.username}") String user,
-                                     @Value("${scheduling.legacy.password}") String password) {
+                                     @Value("${scheduling.legacy.password}") String password,
+                                     @Value("${scheduling.legacy.login-timeout-seconds:5}") int loginTimeoutSeconds) {
         DriverManagerDataSource ds = new DriverManagerDataSource(url, user, password);
         ds.setDriverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        // bounds the legacySource readiness check (and import) when AssessmentDelivery is unreachable
+        java.util.Properties props = new java.util.Properties();
+        props.setProperty("loginTimeout", String.valueOf(loginTimeoutSeconds));
+        ds.setConnectionProperties(props);
         this.jdbc = new JdbcTemplate(ds);
     }
 
