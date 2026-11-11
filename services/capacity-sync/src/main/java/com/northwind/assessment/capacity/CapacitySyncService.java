@@ -61,10 +61,14 @@ public class CapacitySyncService {
                     expected = 0;
                 }
                 if (expected != current) {
-                    jdbc.update("UPDATE dbo.ExamSession SET SeatsAvailable = ?, LastModified = GETDATE() "
-                            + "WHERE SessionId = ? AND Status = 'OPEN'", expected, sessionId);
-                    LOG.debug("Session {} SeatsAvailable {} -> {}", sessionId, current, expected);
-                    updated++;
+                    // only if nobody booked/cancelled since we read the row, otherwise next run picks it up
+                    int n = jdbc.update("UPDATE dbo.ExamSession SET SeatsAvailable = ?, LastModified = GETDATE() "
+                            + "WHERE SessionId = ? AND Status = 'OPEN' AND SeatsAvailable = ?",
+                            expected, sessionId, current);
+                    if (n == 1) {
+                        LOG.debug("Session {} SeatsAvailable {} -> {}", sessionId, current, expected);
+                        updated++;
+                    }
                 }
             }
             run.setSessionsChecked(sessions.size());
