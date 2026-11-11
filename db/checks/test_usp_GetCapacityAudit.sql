@@ -73,7 +73,7 @@ EXEC dbo.usp_GetCapacityAudit @TestCenterId = @c1, @From = '2030-01-01', @To = '
 SET @n = (SELECT COUNT(*) FROM @out);
 INSERT INTO @results VALUES ('C1 lists exactly 4 rows (3 changes + malformed)', IIF(@n = 4, 1, 0), CONCAT('rows=', @n));
 INSERT INTO @results VALUES ('C1 rows newest first',
-    IIF((SELECT STRING_AGG(CAST(AuditId AS VARCHAR(20)), ',') WITHIN GROUP (ORDER BY Seq) FROM @out)
+    IIF(STUFF((SELECT ',' + CAST(AuditId AS VARCHAR(20)) FROM @out ORDER BY Seq FOR XML PATH('')), 1, 1, '')
         = CONCAT(@bad, ',', @a3, ',', @a2, ',', @a1)
         , 1, 0), NULL);
 INSERT INTO @results VALUES ('C1 excludes C2 change, CAPACITY_SYNC and EntityId 0',
