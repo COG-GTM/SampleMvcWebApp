@@ -205,6 +205,23 @@ class SessionCapacityTest {
         assertThat(s.changeCapacity(3, AccommodationFloorPolicy.ALLOCATED).newCapacity()).isEqualTo(3);
     }
 
+    /**
+     * Guardrail for on-call defect #57 (the 30 -> 24 shape): ATTENDED still count in the ALLOCATED floor
+     * (4 accommodation seats + 2 ATTENDED + 19 BOOKED = 25), even though only BOOKED count for the waitlist bump.
+     */
+    @Test
+    void onCallDefect57_floorStillCountsAttended_30To24Rejected_bumpCountUnaffected() {
+        BookingSlot[] slots = new BookingSlot[21];
+        for (int i = 0; i < 21; i++) {
+            slots[i] = slot(i + 1, i + 1, i < 2 ? BookingStatus.ATTENDED : BookingStatus.BOOKED, null, i);
+        }
+        SessionCapacity s = open(30, 4, slots);
+        assertViolation(() -> s.changeCapacity(24, AccommodationFloorPolicy.ALLOCATED),
+                RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR, 50005);
+        assertThat(s.capacity()).isEqualTo(30);
+        assertThat(s.changeCapacity(25, AccommodationFloorPolicy.ALLOCATED).bumpedBookingIds()).isEmpty();
+    }
+
     @Test
     void usp_ChangeCapacity_allocatedFloorKeepsAccommodationSeatsForExtraTime_50005() {
         SessionCapacity s = open(12, 2,
@@ -280,8 +297,22 @@ class SessionCapacityTest {
                 slot(1, 1, BookingStatus.ATTENDED, null, 50),
                 slot(2, 2, BookingStatus.ATTENDED, null, 60),
                 slot(3, 3, BookingStatus.BOOKED, null, 0));
-        CapacityChange c = s.changeCapacity(1, AccommodationFloorPolicy.ALLOCATED);
+        CapacityChange c = s.changeCapacity(0, AccommodationFloorPolicy.ALLOCATED);
         assertThat(c.bumpedBookingIds()).containsExactly(3L);
+        assertThat(s.seatsAvailable()).isZero();
+    }
+
+    @Test
+    void trg_ExamSession_Update_onlyBookedCountAgainstNewCapacity_deliveredSessionWithAttendedBumpsNobody() {
+        // capacity_decrease_delivered_with_attended_admin: 2 ATTENDED + 1 BOOKED, capacity 3 -> 1; BOOKED (1) fits in 1.
+        SessionCapacity s = open(3,
+                0,
+                slot(1, 1, BookingStatus.ATTENDED, null, 50),
+                slot(2, 2, BookingStatus.ATTENDED, null, 60),
+                slot(3, 3, BookingStatus.BOOKED, null, 0));
+        CapacityChange c = s.changeCapacity(1, AccommodationFloorPolicy.ALLOCATED);
+        assertThat(c.bumpedBookingIds()).isEmpty();
+        assertThat(s.waitlist()).isEmpty();
         assertThat(s.seatsAvailable()).isZero();
     }
 

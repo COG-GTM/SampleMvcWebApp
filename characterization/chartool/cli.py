@@ -1,8 +1,11 @@
 """Command line: `capture` (write golden transcripts from the legacy estate) and `replay` (compare a target)."""
 import argparse
+import fnmatch
 import json
+import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from . import LEGACY_BASELINE_SHA
@@ -26,12 +29,47 @@ def load_known_defects(path=KNOWN_DEFECTS):
             for d in data.get("known_defects", [])}
 
 
+CLASSIFICATION = Path(__file__).resolve().parents[1] / "modern-classification.yaml"
+
+# M4 relay bookkeeping in AssessmentDelivery (db/schema/011_relay_tables.sql), restarted with every scenario reset
+RELAY_RESET_SQL = "DELETE FROM dbo.RelayBookingMap; DELETE FROM dbo.RelayCheckpoint;"
+RELAY_SETTLE_SECONDS = 30
+
+
+def load_classification(path=CLASSIFICATION):
+    """(adr, not_replayable): {scenario: entry} from modern-classification.yaml.
+
+    adr_divergences: differences ADR 0002 records as approved ({adr, reason, signature?}); a run only counts as
+    ADR-DIVERGENCE when every differing field is listed in the entry's `fields` prefixes (when given) and the
+    `signature` business fields (when given) are present - anything else stays a MISMATCH.
+    not_replayable: scenarios whose legacy entry point has no modern equivalent ({reason, covered_by}); the replay
+    raises Unsupported for them and they are reported as RETIRED with the stated reason, never as MATCH."""
+    import yaml
+    if not Path(path).exists():
+        return {}, {}
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    adr = {d["transcript"]: d for d in data.get("adr_divergences", [])}
+    # investigated mismatches: stay MISMATCH, the report shows the root cause
+    adr.update({d["transcript"]: d for d in data.get("mismatch_root_causes", [])})
+    retired = {d["transcript"]: d for d in data.get("not_replayable", [])}
+    return adr, retired
+
+
+def _diffs_within(diffs, prefixes):
+    # per-step paths ("step3.business.x") are judged like the final ones ("business.x")
+    # a prefix with "*" is a glob over the whole path (db_state.examSession.*.SeatsAvailable)
+    def ok(path, p):
+        path = re.sub(r"^step\d+\.", "", str(path))
+        return fnmatch.fnmatchcase(path, p) if "*" in p else path.startswith(p)
+    return all(any(ok(path, p) for p in prefixes) for path, _e, _a in diffs)
+
+
 def _has_signature(actual, signature):
     return any(all(s["expected"]["business_fields"].get(k) == v for k, v in signature.items())
                for s in actual["steps"])
 
 
-def classify_modern_mismatch(transcript, actual, known):
+def classify_modern_mismatch(transcript, actual, known, adr=None, diffs=()):
     """MISMATCH by default; KNOWN-DEFECT when listed in known-defects.yaml and the actual run shows the entry's
     `signature` business fields (so an unrelated regression in that scenario is still a MISMATCH); SKIPPED when the gateway refused to
     route the center (CENTER_NOT_MODERN: the scenario's center is not on the allow-list, nothing reached modern)."""
@@ -44,6 +82,16 @@ def classify_modern_mismatch(transcript, actual, known):
         return "MISMATCH", "listed in known-defects.yaml, but the known-defect signature %s is absent: a different "                            "regression" % json.dumps(entry["signature"], sort_keys=True)
     if any(s["expected"]["business_fields"].get("error") == "CENTER_NOT_MODERN" for s in actual["steps"]):
         return "SKIPPED", "gateway: center not on routing.modern-centers (CENTER_NOT_MODERN)"
+    entry = (adr or {}).get(transcript["scenario"])
+    if entry is not None and entry.get("root_cause"):
+        return "MISMATCH", "root cause: %s" % entry["root_cause"]
+    if entry is not None:
+        ok_fields = not entry.get("fields") or _diffs_within(diffs, entry["fields"])
+        ok_sig = not entry.get("signature") or _has_signature(actual, entry["signature"])
+        if ok_fields and ok_sig:
+            return "ADR-DIVERGENCE", "ADR 0002 %s: %s" % (entry["adr"], entry["reason"])
+        return "MISMATCH", "listed as ADR 0002 %s, but the run differs beyond it (fields %s, signature %s)" % (
+            entry["adr"], entry.get("fields"), json.dumps(entry.get("signature"), sort_keys=True))
     return "MISMATCH", None
 
 
@@ -123,20 +171,53 @@ def modern_target(config, db, args):
     base_reset = legacy_reset_fn(db, config)
 
     def reset(sc):
-        base_reset(sc)
         if args.modern_reset_cmd:
+            base_reset(sc)
             subprocess.run(args.modern_reset_cmd, shell=True, check=True)
             return
-        # Re-import the freshly reset legacy state into scheduling-service (contract item 4).
-        # Pending outbox rows from the previous scenario would be relayed (M4) into the freshly reset legacy DB.
+        # Pending outbox rows from the previous scenario would be relayed (M4) into the freshly reset legacy DB,
+        # so the Scheduling side is cleared first.
         sched.run_script("IF OBJECT_ID('dbo.outbox_event') IS NOT NULL DELETE FROM dbo.outbox_event; "
                          "DELETE FROM waitlist_entry; DELETE FROM capacity_change; DELETE FROM booking; "
                          "DELETE FROM exam_session;")
+        base_reset(sc)
+        # The restored Booking table reuses legacy ids, so the relay's id map and checkpoints must restart too
+        # (otherwise UQ_RelayBookingMap_Legacy rejects the next projected booking and the relay stalls).
+        db.run_script(RELAY_RESET_SQL)
+        # Re-import the freshly reset legacy state into scheduling-service (contract item 4).
         r = requests.post(config.scheduling_url + "/internal/import/sessions", timeout=300)
         r.raise_for_status()
-    mixed = (args.base_url, args.base_url) if partner_api == "v1" else None
+
+    def settle():
+        # db-state legacy reads AssessmentDelivery, which the M4 relay updates asynchronously: drain it first.
+        if args.db_state != "legacy":
+            return
+        deadline = time.monotonic() + RELAY_SETTLE_SECONDS
+        while True:
+            requests.post(config.scheduling_url + "/internal/relay/run", timeout=config.http_timeout)
+            pending = sched.scalar("SELECT COUNT(*) FROM dbo.outbox_event WHERE relayed_at IS NULL")
+            if not pending:
+                return
+            if time.monotonic() > deadline:
+                raise RuntimeError("outbox relay did not drain: %s event(s) pending after %ss"
+                                   % (pending, RELAY_SETTLE_SECONDS))
+            time.sleep(0.2)
+    def legacy_booking_id(booking_id):
+        # db-state legacy sees the relay's projection: map the scheduling-service id to its legacy dbo.Booking id
+        if args.db_state != "legacy":
+            return booking_id
+        mapped = db.scalar("SELECT LegacyBookingId FROM dbo.RelayBookingMap WHERE ModernBookingId = ?", (booking_id,))
+        return booking_id if mapped is None else mapped
+
+    # Behind the routing gateway (v1 served) every legacy entry point has a route: /sync/** -> capacity-sync,
+    # /api/v1/results/** -> results-service, /api/v1/** -> booking-api v1 translation, /api/v2/** -> scheduling-service.
+    gateway = partner_api == "v1"
+    mixed = (args.base_url, args.base_url) if gateway else None
     print("[char] modern target %s (partner calls via %s, db-state %s)" % (args.base_url, partner_api, args.db_state))
-    return Target("modern", config, adapters, state, reset, sync_url=None, mixed_urls=mixed), partner_api
+    return Target("modern", config, adapters, state, reset, sync_url=args.base_url if gateway else None, mixed_urls=mixed,
+                  results_url=args.base_url if gateway else None,
+                  routing_url=args.base_url if gateway else None, settle_fn=settle,
+                  booking_id_fn=legacy_booking_id), partner_api
 
 
 def cmd_capture(args):
@@ -174,6 +255,7 @@ def cmd_replay(args):
         target, partner = modern_target(config, db, args)
         extra = " partner-api=%s db-state=%s" % (partner, args.db_state)
     known = load_known_defects() if args.target == "modern" else {}
+    adr, retired = load_classification() if args.target == "modern" else ({}, {})
     results = []
     for t in transcripts:
         sc = {"name": t["scenario"], "group": t["group"], "channel": t["channel"], "setup_sql": t["setup_sql"],
@@ -185,10 +267,15 @@ def cmd_replay(args):
             diffs = compare(t, actual, args.target)
             status, note = ("MISMATCH" if diffs else "MATCH"), None
             if diffs and args.target == "modern":
-                status, note = classify_modern_mismatch(t, actual, known)
+                status, note = classify_modern_mismatch(t, actual, known, adr, diffs)
             results.append({"transcript": t, "actual": actual, "diffs": diffs, "status": status, "note": note})
         except Unsupported as e:
-            results.append({"transcript": t, "status": "SKIPPED", "diffs": [], "note": str(e)})
+            entry = retired.get(t["scenario"])
+            if entry is not None:
+                results.append({"transcript": t, "status": "RETIRED", "diffs": [],
+                                "note": "%s Covered by: %s. (%s)" % (entry["reason"], entry["covered_by"], e)})
+            else:
+                results.append({"transcript": t, "status": "SKIPPED", "diffs": [], "note": str(e)})
         except Exception as e:  # noqa: BLE001 - report and continue with the next transcript
             results.append({"transcript": t, "status": "ERROR", "diffs": [], "note": "%s: %s" % (type(e).__name__, e)})
         print("  %-8s %s" % (results[-1]["status"], t["scenario"]))

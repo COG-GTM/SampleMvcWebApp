@@ -3,8 +3,9 @@
     mixed-traffic.ps1 - smoke/load script that exercises both booking channels (Windows twin of mixed-traffic.sh).
 
 .DESCRIPTION
-    PORTAL channel  : retired in MBA-3824 (the portal booking pages are gone); -PortalBookings must stay 0.
-                      Portal-channel writes now go through the modern API: scripts/mixed-traffic.sh with ROUTING_URL.
+    PORTAL channel  : retired in MBA-3824 (the portal booking pages are gone). With -RoutingUrl (or ROUTING_URL) the
+                      portal channel is POST/DELETE <RoutingUrl>/api/v2/bookings with channel PORTAL (what the modern
+                      UI does), same as scripts/mixed-traffic.sh; without it -PortalBookings must stay 0.
     PARTNER channel : booking-api REST on -BookingApiUrl (POST /api/v1/bookings, DELETE /api/v1/bookings/{id})
 
     Run it on a freshly seeded database (scripts\run-legacy.ps1). Inputs are picked by query so
@@ -15,9 +16,12 @@
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts\mixed-traffic.ps1
     powershell -ExecutionPolicy Bypass -File scripts\mixed-traffic.ps1 -PartnerBookings 10
+    powershell -ExecutionPolicy Bypass -File scripts\mixed-traffic.ps1 -RoutingUrl http://localhost:8000
 #>
 param(
-    [int]$PortalBookings  = $(if ($env:PORTAL_BOOKINGS)  { [int]$env:PORTAL_BOOKINGS }  else { 0 }),
+    [string]$RoutingUrl    = $(if ($env:ROUTING_URL)     { $env:ROUTING_URL }     else { '' }),
+    [int]$PortalBookings  = $(if ($env:PORTAL_BOOKINGS)  { [int]$env:PORTAL_BOOKINGS }  elseif ($env:ROUTING_URL) { 20 } else { 0 }),
+    [int]$RelaySettleSeconds = $(if ($env:RELAY_SETTLE_SECONDS) { [int]$env:RELAY_SETTLE_SECONDS } else { 3 }),
     [int]$PartnerBookings = $(if ($env:PARTNER_BOOKINGS) { [int]$env:PARTNER_BOOKINGS } else { 20 }),
     [int]$Cancels         = $(if ($env:CANCELS)          { [int]$env:CANCELS }          else { 3 }),
     [int]$Sessions        = $(if ($env:SESSIONS)         { [int]$env:SESSIONS }         else { 4 }),
@@ -32,6 +36,8 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $root = Split-Path -Parent $PSScriptRoot
 $BookingApiUrl = $BookingApiUrl.TrimEnd('/')
+$RoutingUrl = $RoutingUrl.TrimEnd('/')
+if ($RoutingUrl -and -not $PSBoundParameters.ContainsKey('PortalBookings') -and -not $env:PORTAL_BOOKINGS) { $PortalBookings = 20 }
 
 function Write-Log([string]$msg) { Write-Host "[mixed-traffic] $msg" }
 
@@ -49,9 +55,9 @@ function Invoke-Query([string]$tsql) {
 
 try { Invoke-WebRequest "$BookingApiUrl/api/v1/sessions?from=2099-01-01" -UseBasicParsing -TimeoutSec 30 | Out-Null }
 catch { throw "booking-api not reachable at $BookingApiUrl" }
-if ($PortalBookings -gt 0) { throw 'PORTAL channel retired (MBA-3824): use -PortalBookings 0, or scripts/mixed-traffic.sh with ROUTING_URL' }
+if ($PortalBookings -gt 0 -and -not $RoutingUrl) { throw 'PORTAL channel retired (MBA-3824): use -PortalBookings 0, or pass -RoutingUrl (modern API)' }
 
-$total = $PartnerBookings
+$total = $PortalBookings + $PartnerBookings
 $firstNumber = 'NW{0:D8}' -f $FirstCandidate
 
 # --- inputs ---------------------------------------------------------------
@@ -71,7 +77,17 @@ Write-Log "sessions: $($sessionIds -join ' ')"
 Write-Log "candidates: $($candidates[0].Number) .. $($candidates[$total - 1].Number)"
 
 $partnerIds = New-Object System.Collections.ArrayList
-$stats = @{ PartnerOk = 0; PartnerFail = 0 }
+$portalIds = New-Object System.Collections.ArrayList
+$stats = @{ PartnerOk = 0; PartnerFail = 0; PortalOk = 0; PortalFail = 0 }
+
+function Add-PortalBooking($cand, [string]$sessionId) {
+    $body = @{ sessionId = [int]$sessionId; candidateNumber = $cand.Number; channel = 'PORTAL' } | ConvertTo-Json -Compress
+    try {
+        $r = Invoke-WebRequest "$RoutingUrl/api/v2/bookings" -Method Post -ContentType 'application/json' -Body $body -UseBasicParsing -TimeoutSec 60
+        $id = ($r.Content | ConvertFrom-Json).bookingId
+        if ($r.StatusCode -lt 300 -and $id) { [void]$portalIds.Add([long]$id); $stats.PortalOk++ } else { $stats.PortalFail++ }
+    } catch { $stats.PortalFail++ }
+}
 
 function Add-PartnerBooking($cand, [string]$sessionId, [string]$ref) {
     $body = @{ sessionId = [int]$sessionId; candidateNumber = $cand.Number; externalRef = $ref } | ConvertTo-Json -Compress
@@ -83,14 +99,28 @@ function Add-PartnerBooking($cand, [string]$sessionId, [string]$ref) {
     } catch { $stats.PartnerFail++ }
 }
 
-# --- bookings: partner channel, round-robin over sessions ---------------
-Write-Log "booking $PartnerBookings partner seats"
-for ($i = 0; $i -lt $PartnerBookings; $i++) {
-    Add-PartnerBooking $candidates[$i] $sessionIds[$i % $sessionIds.Count] ('MT-{0:D4}' -f ($i + 1))
+# --- bookings: interleave the two channels, round-robin over sessions (same order as mixed-traffic.sh) ----
+Write-Log "booking $PortalBookings portal + $PartnerBookings partner seats"
+$i = 0; $p = 0; $q = 0
+while ($p -lt $PortalBookings -or $q -lt $PartnerBookings) {
+    if ($p -lt $PortalBookings) {
+        Add-PortalBooking $candidates[$i] $sessionIds[$i % $sessionIds.Count]; $p++; $i++
+    }
+    if ($q -lt $PartnerBookings) {
+        Add-PartnerBooking $candidates[$i] $sessionIds[$i % $sessionIds.Count] ('MT-{0:D4}' -f ($q + 1)); $q++; $i++
+    }
 }
+if ($PortalBookings -gt 0) { Write-Log "portal : $($stats.PortalOk) ok, $($stats.PortalFail) failed" }
 Write-Log "partner: $($stats.PartnerOk) ok, $($stats.PartnerFail) failed"
 
-# --- cancels: the first few partner bookings ------------------------------
+# --- cancels: the first few bookings on each channel ---------------------
+$cPortal = 0
+for ($k = 0; $k -lt $Cancels -and $k -lt $portalIds.Count; $k++) {
+    try {
+        $r = Invoke-WebRequest "$RoutingUrl/api/v2/bookings/$($portalIds[$k])?reason=mixed-traffic" -Method Delete -UseBasicParsing -TimeoutSec 60
+        if ($r.StatusCode -eq 200) { $cPortal++ }
+    } catch { }
+}
 $cPartner = 0
 for ($k = 0; $k -lt $Cancels -and $k -lt $partnerIds.Count; $k++) {
     try {
@@ -98,7 +128,11 @@ for ($k = 0; $k -lt $Cancels -and $k -lt $partnerIds.Count; $k++) {
         if ($r.StatusCode -eq 200) { $cPartner++ }
     } catch { }
 }
-Write-Log "cancelled: $cPartner partner"
+Write-Log "cancelled: $cPortal portal, $cPartner partner"
+if ($RoutingUrl) {
+    Write-Log "waiting ${RelaySettleSeconds}s for the outbox relay to project into AssessmentDelivery"
+    Start-Sleep -Seconds $RelaySettleSeconds
+}
 
 # --- summary ---------------------------------------------------------------
 Write-Log 'session summary (SessionId|Capacity|SeatsAvailable|Booked):'

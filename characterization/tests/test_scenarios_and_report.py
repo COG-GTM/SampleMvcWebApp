@@ -147,10 +147,46 @@ def test_known_defect_is_counted_separately_not_as_match():
     text, matched, total = render_report([{"transcript": t, "status": status, "note": note, "diffs": [("x", 1, 2)]}],
                                          "modern", "http://localhost:8090", "abc", "opts")
     assert (matched, total) == (0, 1)
-    assert "KNOWN-DEFECT 1" in text and "| 0/1 MATCH | 0 | 1 | 0 | 0 |" in text and "on-call defect #57" in text
+    assert "KNOWN_ONCALL_DEFECT (#57) 1" in text and "| 0/1 MATCH | 0 | 1 | 0 | 0 | 0 | 0 |" in text
+    assert "on-call defect #57" in text
+
+
+def test_adr_divergence_only_when_the_diff_stays_inside_the_recorded_fields():
+    from chartool.cli import classify_modern_mismatch
+    from chartool.report import render as render_report
+    t = {"scenario": "s2", "group": "booking", "channel": "PARTNER", "tags": [], "steps": [{"request": {}}]}
+    actual = {"steps": [{"expected": {"business_fields": {"outcome": "BOOKED"}}}]}
+    adr = {"s2": {"adr": "section 1", "reason": "no partner double decrement", "fields": ["steps[0].business.seats",
+                                                                                        "db_state.examSession."]}}
+    inside = [("steps[0].business.seatsAvailable", 7, 8), ("db_state.examSession.152.SeatsAvailable", 7, 8)]
+    status, note = classify_modern_mismatch(t, actual, {}, adr, inside)
+    assert status == "ADR-DIVERGENCE" and "ADR 0002 section 1" in note
+    outside = inside + [("steps[0].business.outcome", "BOOKED", "WAITLISTED")]
+    assert classify_modern_mismatch(t, actual, {}, adr, outside)[0] == "MISMATCH"
+    assert classify_modern_mismatch(t, actual, {}, {}, inside)[0] == "MISMATCH"
+    text, matched, total = render_report([{"transcript": t, "status": status, "note": note, "diffs": inside}],
+                                         "modern", "http://localhost:8000", "abc", "opts")
+    assert (matched, total) == (0, 1) and "ADR-APPROVED DIVERGENCE 1" in text and "| 0/1 MATCH | 1 | 0 | 0 | 0 | 0 | 0 |" in text
+
+
+def test_classification_file_references_real_transcripts_and_states_reasons():
+    from chartool.cli import load_classification, load_known_defects
+    names = {s["name"] for s in load_all(CHAR / "scenarios")}
+    adr, retired = load_classification()
+    assert set(adr) <= names and set(retired) <= names
+    assert not (set(adr) & set(retired)) and not (set(adr) & set(load_known_defects()))
+    assert all((d.get("adr") and d.get("reason")) or d.get("root_cause") for d in adr.values())
+    assert all(d["reason"] and d["covered_by"] for d in retired.values())
 
 
 def test_legacy_tree_override(tmp_path):
     from chartool import db
     from chartool.config import Config
     assert db.legacy_tree(Config(legacy_root=str(tmp_path))) == tmp_path
+
+
+def test_adr_field_globs_only_accept_the_listed_session_column():
+    from chartool.cli import _diffs_within
+    seats = ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
+    assert _diffs_within([("step3.db_state.examSession.153.SeatsAvailable", 5, 4), ("business.seatsAvailable", 5, 4)], seats)
+    assert not _diffs_within([("db_state.examSession.153.Capacity", 20, 21)], seats)
