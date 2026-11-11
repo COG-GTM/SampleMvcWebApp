@@ -15,6 +15,8 @@ export default function Book() {
   const [candidate, setCandidate] = useCandidateNumber();
   const [number, setNumber] = useState(candidate);
   const [acc, setAcc] = useState('');
+  const [accTouched, setAccTouched] = useState(false);
+  const [profileDefault, setProfileDefault] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const numberError = !number ? 'Enter your candidate number' : !CANDIDATE_RE.test(number) ? 'Format is NW followed by 8 digits, e.g. NW00000901' : '';
@@ -25,6 +27,16 @@ export default function Book() {
     if (!sessionId) return;
     api.session(sessionId).then(setSession).catch((e) => toast('error', 'Session not found', e.message));
   }, [sessionId, toast]);
+
+  // ADR 0002 ODD-07: blank means "no accommodation" in the API, so the UI pre-selects the profile default explicitly
+  useEffect(() => {
+    if (!CANDIDATE_RE.test(number)) { setProfileDefault(null); return; }
+    let live = true;
+    api.candidate(number)
+      .then((c) => { if (!live) return; setProfileDefault(c.defaultAccommodationCode); if (!accTouched) setAcc(c.defaultAccommodationCode ?? ''); })
+      .catch(() => { if (live) setProfileDefault(null); });
+    return () => { live = false; };
+  }, [number, accTouched]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -73,9 +85,10 @@ export default function Book() {
           </div>
           <div>
             <label className="label" htmlFor="acc">Accommodation (optional)</label>
-            <select id="acc" data-testid="accommodation-select" className={`input ${accError ? 'input-error' : ''}`} value={acc} onChange={(e) => setAcc(e.target.value)}>
+            <select id="acc" data-testid="accommodation-select" className={`input ${accError ? 'input-error' : ''}`} value={acc} onChange={(e) => { setAccTouched(true); setAcc(e.target.value); }}>
               {ACCOMMODATIONS.map((a) => <option key={a.code} value={a.code}>{a.label}</option>)}
             </select>
+            {profileDefault && <p className="mt-1 text-xs text-slate-500" data-testid="accommodation-default">Profile default: {profileDefault}</p>}
             {accError && <p className="mt-1 text-xs text-rose-600">{accError}</p>}
           </div>
           <button type="submit" className="btn-primary w-full sm:w-auto" disabled={busy || session.status !== 'OPEN'} data-testid="confirm-book">
