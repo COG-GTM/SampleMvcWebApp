@@ -189,7 +189,7 @@ public final class SessionCapacity {
             // (AdminService.ChangeCapacity), so no legacy code was ever surfaced for it.
             throw new SchedulingRuleException(RuleViolation.VALIDATION, "newCapacity must be zero or more");
         }
-        floorPolicy.check(newCapacity, accommodationCapacity, accommodationSeatsUsed(), seatsHeld());
+        floorPolicy.check(newCapacity, accommodationCapacity, accommodationSeatsUsed());
         int old = capacity;
         capacity = newCapacity;
         int excess = bumpableCount() - newCapacity;

@@ -140,6 +140,32 @@ class SchedulingApiIT extends SqlServerTestBase {
         assertThat((List<?>) raised.getBody().get("bumpedBookingIds")).isEmpty();
     }
 
+    /**
+     * Regression for run-463f5cbfbee6 (BOS01 session #198 23 -> 9): on a session with accommodation seats, a cut to
+     * exactly the seats held is at or above the allocation, so legacy usp_ChangeCapacity accepts it.
+     */
+    @Test
+    void usp_ChangeCapacity_reductionOnAccommodationSession_floorIsAllocationOnly_notPlusStandardSeats() {
+        int sessionId = openSession("s.accommodation_capacity >= 1 AND NOT EXISTS (SELECT 1 FROM booking b "
+                + "WHERE b.session_id = s.session_id AND b.status IN ('BOOKED','ATTENDED') AND b.accommodation_code IN ('ET25','ET50')) "
+                + "AND (SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id AND b.status IN ('BOOKED','ATTENDED')) "
+                + "BETWEEN s.accommodation_capacity AND s.capacity - 1");
+        Map<String, Object> session = get("/api/v2/sessions/" + sessionId);
+        int held = ((Number) session.get("bookedSeats")).intValue();
+        int outboxBefore = db.queryForObject("SELECT COUNT(*) FROM outbox_event WHERE session_id = ? AND event_type = 'CapacityChanged'",
+                Integer.class, sessionId);
+
+        ResponseEntity<Map<String, Object>> r = putCapacity(sessionId, held);
+
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat((List<?>) r.getBody().get("bumpedBookingIds")).isEmpty();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> after = (Map<String, Object>) r.getBody().get("session");
+        assertThat(after).containsEntry("capacity", held).containsEntry("seatsAvailable", 0);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM outbox_event WHERE session_id = ? AND event_type = 'CapacityChanged'",
+                Integer.class, sessionId)).isEqualTo(outboxBefore + 1);
+    }
+
     @Test
     void usp_RescheduleBooking_sameExamCancelsAndBooks_differentExamRejectedWith50006() {
         Map<String, Object> pair = db.queryForMap("SELECT TOP 1 a.session_id AS a, b.session_id AS b FROM exam_session a "

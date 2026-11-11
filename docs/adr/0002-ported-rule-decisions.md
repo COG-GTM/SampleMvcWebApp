@@ -153,7 +153,15 @@ this: the allocation is kept as set, and only the number of accommodation seats 
 `pr51_bookedExtraTimeFloor_allowsBelowAllocationButNotBelowBookedEtSeats`, and the integration
 test `trg_ExamSession_Update_capacityDecreaseBumpsNewestBookedToWaitlist_andFloorRejectsWith50005`.
 
-Transcripts: `capacity_below_accommodation_floor_admin` (strict rule confirmed at `legacy-baseline`: 50005), `proc_error_contract_db`; on the modern target `capacity_decrease_full_session_with_waitlist_admin` is listed in `characterization/known-defects.yaml` (on-call defect #57)
+**The floor is the allocation only.** Standard (non ET25/ET50) seats already held do not raise it: a cut
+below the seats held but at or above `AccommodationCapacity` is accepted and `trg_ExamSession_Update` bumps the
+newest BOOKED bookings (section 2). scheduling-service@1.4.0 added the standard seats held to the floor
+(BOS01 session #198: 23 -> 9 rejected with floor 2 + 8 = 10) and was rolled back to this rule in incident
+run-463f5cbfbee6; regression tests `usp_ChangeCapacity_allocatedFloorIgnoresStandardSeatsHeld_session198_23To9Accepted`,
+`usp_ChangeCapacity_allocatedFloorAllowsCutBelowSeatsHeld_bumpsNewestBooked` and
+`usp_ChangeCapacity_reductionOnAccommodationSession_floorIsAllocationOnly_notPlusStandardSeats`.
+
+Transcripts: `capacity_below_accommodation_floor_admin` (strict rule confirmed at `legacy-baseline`: 50005), `proc_error_contract_db`, `capacity_decrease_full_session_with_waitlist_admin` (no longer a known defect after run-463f5cbfbee6)
 
 ## 6. Smaller channel differences found while porting
 
