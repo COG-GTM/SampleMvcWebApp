@@ -104,9 +104,14 @@ if (-not $SkipBuild) {
 $iis = Get-IISExpress
 $existing = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
 if ($existing) {
-    Write-Host "Port $Port is already in use (pid $($existing[0].OwningProcess)) - stopping it"
-    Stop-Process -Id $existing[0].OwningProcess -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 2
+    $owner = Get-Process -Id $existing[0].OwningProcess -ErrorAction SilentlyContinue
+    if ($owner -and $owner.ProcessName -eq 'iisexpress') {
+        Write-Host "Stopping previous IIS Express on port $Port (pid $($owner.Id))"
+        Stop-Process -Id $owner.Id -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+    } else {
+        throw "Port $Port is in use by another process (pid $($existing[0].OwningProcess)); stop it or pass -Port"
+    }
 }
 
 $logDir = Join-Path $root 'logs'
