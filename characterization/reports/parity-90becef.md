@@ -1298,3 +1298,7 @@ $.after.sessions[0].SeatsAvailable: 9 -> 8
 - Relay audit rows carry `AuditLog.Actor` = the event's actor (`scheduling-service`), while ADR 0003 "Not changed" says
   `scheduling-relay`. This is audit text only: it is not a Booking/Waitlist/ExamSession field, and the legacy actor (`booking-api`)
   differs anyway. It is left unchanged here and listed as an open item.
+- `GET /app?candidateNumber=...` through :8000 now stays on the gateway but lands on `/app/` without the query string
+  (`reports/drift-before-after/gateway-redirect-probe.txt`). scheduling-service drops the query on its own
+  (`SpaConfig.addRedirectViewController("/app", "/app/")`, same on :8090 directly). That predates this PR, is outside its scope
+  and is listed as an open item.
