@@ -28,6 +28,8 @@ from App Service settings, and the committed transforms/profiles hold only place
 
 Scripts are numbered and run in order: `schema/` -> `procs/` -> `triggers/` -> `seed/`.
 `db/checks/` holds read-only diagnostic queries.
+Rebuild locally with `db/apply.sh` (Linux/macOS) or `db/apply.ps1` (Windows); see `db/README.md`
+for seed volumes and the check scripts.
 
 | Table | Purpose / key columns |
 |---|---|
@@ -68,6 +70,8 @@ code above).
 Maven multi-module (`services/pom.xml`), Java 8, Spring Boot 1.5.x. Each service
 has `application.properties` (local dev) and `application-azure.properties` (Azure
 SQL placeholders, password from `AZURE_SQL_PASSWORD`).
+Build/run notes and curl examples: `services/README.md`; on Linux `scripts/run-legacy.sh`
+starts SQL Server in Docker plus all three services.
 
 **booking-api :8081**
 
