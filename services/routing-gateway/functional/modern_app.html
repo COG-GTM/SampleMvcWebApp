@@ -24,11 +24,11 @@ async function api(method, url, body) {
 }
 async function findSessions() {
   const center = q.get('centerCode') || '', exam = q.get('examCode') || '', date = q.get('date') || '';
-  const r = await api('GET', `/api/v2/sessions?centerCode=${encodeURIComponent(center)}` +
-      (exam ? `&examCode=${encodeURIComponent(exam)}` : '') + (date ? `&from=${encodeURIComponent(date)}` : ''));
+  const r = await api('GET', `/api/v2/centers/${encodeURIComponent(center)}/sessions?` +
+      (exam ? `examCode=${encodeURIComponent(exam)}&` : '') + (date ? `from=${encodeURIComponent(date)}` : ''));
   const open = r.json.filter(s => s.status === 'OPEN');
   main.innerHTML = `<h2>Find sessions &mdash; ${esc(center)}</h2>
-    <p id="api-route">GET /api/v2/sessions answered ${r.status} via X-Route: <b>${esc(r.route)}</b></p>
+    <p id="api-route">GET /api/v2/centers/{centerCode}/sessions answered ${r.status} via X-Route: <b>${esc(r.route)}</b></p>
     <table><tr><th>Session</th><th>Exam</th><th>Center</th><th>Starts</th><th>Seats</th><th></th></tr>
     ${open.map(s => `<tr><td>${s.sessionId}</td><td>${esc(s.examCode)} ${esc(s.examTitle)}</td><td>${esc(s.centerCode)}</td>
       <td>${esc(s.startsAt)}</td><td>${s.seatsAvailable}/${s.capacity}</td>

@@ -67,9 +67,16 @@ public class BookingApiStranglerFilter implements GatewayFilter {
             if (center == null || center.isBlank()) {
                 return chain.filter(exchange);
             }
+            UriComponentsBuilder v2 = UriComponentsBuilder.fromPath("/api/v2/centers/{centerCode}/sessions");
+            for (String param : new String[] {"examCode", "from", "to"}) {
+                String value = exchange.getRequest().getQueryParams().getFirst(param);
+                if (value != null) {
+                    v2.queryParam(param, value);
+                }
+            }
+            String uri = v2.encode().buildAndExpand(center.trim()).toUriString();
             return route(exchange, chain, ResolveKey.centerCode(center), null, false,
-                    () -> call(HttpMethod.GET, "/api/v2/sessions" + (query == null ? "" : "?" + query), null),
-                    Shape.SESSION_LIST, false);
+                    () -> call(HttpMethod.GET, uri, null), Shape.SESSION_LIST, false);
         }
         if (HttpMethod.GET.equals(method) && (m = SESSION.matcher(path)).matches()) {
             String id = m.group(1);

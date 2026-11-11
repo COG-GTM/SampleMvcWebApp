@@ -233,14 +233,14 @@ class GatewayIntegrationTest {
         setAllowList("BOS01");
         scheduling.stubFor(get("/api/v2/sessions/100").willReturn(okJson(
                 "{\"sessionId\":100,\"centerCode\":\"BOS01\",\"bookedSeats\":3,\"waitlistCount\":1}")));
-        scheduling.stubFor(get(urlPathEqualTo("/api/v2/sessions")).willReturn(okJson("[{\"sessionId\":100}]")));
+        scheduling.stubFor(get(urlPathEqualTo("/api/v2/centers/BOS01/sessions")).willReturn(okJson("[{\"sessionId\":100}]")));
         client.get().uri("/api/v1/sessions/100").exchange().expectHeader().valueEquals("X-Route", "modern")
                 .expectBody(String.class).value(b -> assertThat(b).contains("\"bookedSeats\" : 3")
                         .doesNotContain("waitlistCount"));
         client.get().uri("/api/v1/sessions?centerCode=BOS01&examCode=CTA-NET1").exchange()
                 .expectHeader().valueEquals("X-Route", "modern");
-        scheduling.verify(getRequestedFor(urlPathEqualTo("/api/v2/sessions"))
-                .withQueryParam("examCode", equalTo("CTA-NET1")));
+        scheduling.verify(getRequestedFor(urlPathEqualTo("/api/v2/centers/BOS01/sessions"))
+                .withQueryParam("examCode", equalTo("CTA-NET1")).withoutQueryParam("centerCode"));
         client.get().uri("/api/v1/sessions?centerCode=NYC01").exchange().expectHeader().valueEquals("X-Route", "legacy");
         client.get().uri("/api/v1/sessions").exchange().expectHeader().valueEquals("X-Route", "legacy");
     }

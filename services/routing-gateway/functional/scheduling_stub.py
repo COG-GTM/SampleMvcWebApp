@@ -2,7 +2,7 @@
 
 Implements the slice of the integration contract the gateway uses:
   GET  /internal/routing/resolve?sessionId=|bookingId=|centerId=|centerCode=
-  GET  /api/v2/sessions?centerCode=&examCode=&from=&to=, GET /api/v2/sessions/{id}
+  GET  /api/v2/centers/{centerCode}/sessions?examCode=&from=&to=, GET /api/v2/sessions/{id}
   POST /api/v2/bookings, GET|DELETE /api/v2/bookings/{id}, POST /api/v2/bookings/{id}/reschedule
   GET  /api/v2/candidates/{n}/eligibility, GET /api/v2/sessions/{id}/waitlist, PUT /api/v2/sessions/{id}/capacity
   GET  /app/** (a tiny SPA that calls /api/v2 with relative URLs)
@@ -92,8 +92,9 @@ class Handler(BaseHTTPRequestHandler):
         if m and method == "GET":
             s = session_json(int(m.group(1)))
             return self.send(200, s) if s else self.err(404, "SESSION_NOT_FOUND", f"Session {m.group(1)} not found")
-        if p == "/api/v2/sessions" and method == "GET":
-            qs = "&".join(f"{k}={v}" for k, v in q.items())
+        m = re.fullmatch(r"/api/v2/centers/([^/]+)/sessions", p)
+        if m and method == "GET":
+            qs = "&".join(f"{k}={v}" for k, v in dict(q, centerCode=m.group(1)).items())
             status, body = http("GET", f"{BOOKING_API}/api/v1/sessions?{qs}")
             out = [session_json(s["sessionId"]) for s in json.loads(body)] if status == 200 else []
             return self.send(200, [s for s in out if s])
