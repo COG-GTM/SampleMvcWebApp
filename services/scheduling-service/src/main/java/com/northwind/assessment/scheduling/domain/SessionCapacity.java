@@ -78,7 +78,16 @@ public final class SessionCapacity {
     }
 
     public int accommodationSeatsAvailable() {
-        return Math.max(0, accommodationCapacity - accommodationSeatsUsed());
+        return SeatFormulas.accommodationSeatsAvailable(accommodationCapacity, accommodationSeatsUsed());
+    }
+
+    /**
+     * Whether a booking with {@code accommodationCode} has a seat of the kind it needs here: ET25/ET50 need a free
+     * accommodation seat (usp_BookSeat state 3); SR, RB and no accommodation are never constrained by it. The code is
+     * normalised first (ADR 0002 6a: blank means none, no implicit default).
+     */
+    public boolean hasSeatFor(String accommodationCode) {
+        return !AccommodationCodes.requiresAccommodationSeat(accommodationCode) || accommodationSeatsAvailable() > 0;
     }
 
     public int waitlistCount() {
@@ -108,7 +117,7 @@ public final class SessionCapacity {
             throw new SchedulingRuleException(RuleViolation.DUPLICATE_BOOKING,
                     "Candidate already has an active booking on session " + sessionId);
         }
-        if (AccommodationCodes.requiresAccommodationSeat(code) && accommodationSeatsUsed() >= accommodationCapacity) {
+        if (!hasSeatFor(code)) {
             throw new SchedulingRuleException(RuleViolation.NO_ACCOMMODATION_SEAT,
                     "No accommodation seat available on session " + sessionId);
         }

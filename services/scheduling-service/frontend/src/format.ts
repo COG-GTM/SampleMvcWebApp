@@ -26,6 +26,30 @@ export function validateCapacity(value: string, accommodationCapacity: number): 
 
 export const needsAccommodationSeat = (code: string | null | undefined) => code === 'ET25' || code === 'ET50';
 
+/** Free ET25/ET50 seats on a session (accommodationCapacity - accommodationUsed, floored at 0). */
+export function accommodationSeatsLeft(s: { accommodationCapacity: number; accommodationUsed: number; accommodationSeatsAvailable?: number }): number {
+  return s.accommodationSeatsAvailable ?? Math.max(0, s.accommodationCapacity - s.accommodationUsed);
+}
+
+/** Mirrors SessionCapacity.hasSeatFor: only ET25/ET50 need a free accommodation seat. The server stays authoritative. */
+export function hasSeatFor(code: string | null | undefined, s: { accommodationCapacity: number; accommodationUsed: number; accommodationSeatsAvailable?: number }): boolean {
+  return !needsAccommodationSeat(code) || accommodationSeatsLeft(s) > 0;
+}
+
+/** Sentinel for an explicit "None" accommodation choice in the URL (?acc=NONE), so it is not replaced by the default. */
+export const ACC_NONE = 'NONE';
+
+/**
+ * Accommodation code to use for a search/booking: an explicit choice (?acc=, including NONE) wins over the
+ * candidate's DefaultAccommodationCode (ADR 0002 6a: the UI pre-fills the default, the API books what it is sent).
+ */
+export function effectiveAccommodation(explicit: string | null | undefined, candidateDefault: string | null | undefined): string {
+  if (explicit != null && explicit !== '') return explicit === ACC_NONE ? '' : explicit;
+  return candidateDefault ?? '';
+}
+
+export const accommodationParam = (code: string) => (code ? code : ACC_NONE);
+
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '-';
   const d = new Date(iso);

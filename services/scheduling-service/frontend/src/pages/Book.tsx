@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { api, BookingResult, Eligibility } from '../api';
+import { api, ApiError, BookingResult, Eligibility } from '../api';
 import { ErrorBox, PageHeader, SeatMeter, Spinner, StatusBadge } from '../components/ui';
-import { ACCOMMODATION_OPTIONS, formatDateTime, needsAccommodationSeat, validateCandidateNumber } from '../format';
+import {
+  ACCOMMODATION_OPTIONS, accommodationParam, accommodationSeatsLeft, effectiveAccommodation, formatDateTime, hasSeatFor,
+  needsAccommodationSeat, validateCandidateNumber,
+} from '../format';
 import { rememberCandidate, rememberedCandidate, toastError, useLoad } from '../hooks';
 
 export default function Book() {
@@ -13,8 +16,11 @@ export default function Book() {
   const session = useLoad(() => api.session(sessionId), [sessionId]);
   const [candidate, setCandidate] = useState((params.get('candidateNumber') ?? '').toUpperCase() || rememberedCandidate());
   const [touched, setTouched] = useState(false);
-  const [accommodation, setAccommodation] = useState('');
+  const explicitAcc = params.get('acc');
+  const [accommodation, setAccommodation] = useState(() => effectiveAccommodation(explicitAcc, null));
   const prefilledAccommodation = useRef<string | null>(null);
+  // An explicit choice (carried over from the search, or picked here) is never replaced by the profile default.
+  const explicitChoice = useRef(!!explicitAcc);
   const [eligibility, setEligibility] = useState<Eligibility | null>(null);
   const [candidateName, setCandidateName] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -28,7 +34,7 @@ export default function Book() {
     setCandidateName(null);
     const previous = prefilledAccommodation.current;
     prefilledAccommodation.current = null;
-    if (previous) setAccommodation((a) => (a === previous ? '' : a));
+    if (previous && !explicitChoice.current) setAccommodation((a) => (a === previous ? '' : a));
     if (candidateError || !s) return;
     const n = candidate.trim().toUpperCase();
     let live = true;
@@ -36,7 +42,7 @@ export default function Book() {
       if (!live) return;
       setCandidateName(`${c.firstName} ${c.lastName}`);
       const preset = c.defaultAccommodationCode;
-      if (preset) {
+      if (preset && !explicitChoice.current) {
         setAccommodation((a) => {
           if (a) return a;
           prefilledAccommodation.current = preset;
@@ -52,9 +58,9 @@ export default function Book() {
   if (session.loading && !s) return <Spinner />;
   if (session.error || !s) return <ErrorBox error={session.error ?? new Error('Session not found')} />;
 
-  const accLeft = Math.max(0, s.accommodationCapacity - s.accommodationUsed);
-  const accError = needsAccommodationSeat(accommodation) && accLeft === 0
-    ? 'No extra-time seats left on this session - pick another session or a different accommodation' : null;
+  const accLeft = accommodationSeatsLeft(s);
+  const accError = !hasSeatFor(accommodation, s)
+    ? `No accommodation seat left for ${accommodation} on this session - pick another session or a different accommodation` : null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,13 +72,17 @@ export default function Book() {
       const r = await api.book(s.sessionId, n, accommodation || null);
       rememberCandidate(n);
       setResult(r);
+      const usedAcc = r.status === 'BOOKED' && needsAccommodationSeat(r.accommodationCode);
       session.setData({ ...s, seatsAvailable: r.seatsAvailable, bookedSeats: r.status === 'BOOKED' ? s.bookedSeats + 1 : s.bookedSeats,
-        accommodationUsed: r.status === 'BOOKED' && needsAccommodationSeat(r.accommodationCode) ? s.accommodationUsed + 1 : s.accommodationUsed,
+        accommodationUsed: usedAcc ? s.accommodationUsed + 1 : s.accommodationUsed,
+        accommodationSeatsAvailable: usedAcc ? Math.max(0, accLeft - 1) : accLeft,
         waitlistCount: r.status === 'WAITLISTED' ? s.waitlistCount + 1 : s.waitlistCount });
       if (r.status === 'BOOKED') toast.success(`Seat booked - booking #${r.bookingId}`, { description: `${r.seatsAvailable} seats left on this session` });
       else toast.warning(`Session is full - you are #${r.waitlistPosition} on the waitlist`, { description: `Booking #${r.bookingId}` });
     } catch (err) {
       toastError(err);
+      // Someone else may have taken the last (accommodation) seat: show the live counts again.
+      if (err instanceof ApiError && err.status === 409) void session.reload();
     } finally {
       setSubmitting(false);
     }
@@ -81,7 +91,7 @@ export default function Book() {
   return (
     <div className="grid gap-6 lg:grid-cols-5">
       <div className="lg:col-span-3">
-        <PageHeader title="Book a seat" subtitle={<Link to={`/?centerCode=${s.centerCode}`} className="text-brand-600 hover:underline">Back to {s.centerName} sessions</Link>} />
+        <PageHeader title="Book a seat" subtitle={<Link to={`/?${backQuery(s.centerCode, candidate, accommodation, explicitChoice.current)}`} className="text-brand-600 hover:underline">Back to {s.centerName} sessions</Link>} />
         {result ? (
           <div className="card p-6" data-testid="booking-confirmation">
             <div className="flex items-center gap-3">
@@ -116,7 +126,8 @@ export default function Book() {
             )}
             <label className="block">
               <span className="label">Accommodation (optional)</span>
-              <select className={`input ${accError ? 'input-error' : ''}`} value={accommodation} onChange={(e) => setAccommodation(e.target.value)} data-testid="accommodation-select">
+              <select className={`input ${accError ? 'input-error' : ''}`} value={accommodation}
+                onChange={(e) => { explicitChoice.current = true; setAccommodation(e.target.value); }} data-testid="accommodation-select">
                 {ACCOMMODATION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
               {accError && <p className="field-error">{accError}</p>}
@@ -149,10 +160,18 @@ export default function Book() {
               <span className="text-xs text-slate-500">seats left of {s.capacity}</span>
             </div>
             <SeatMeter available={s.seatsAvailable} capacity={s.capacity} booked={s.bookedSeats} />
-            <p className="mt-2 text-xs text-slate-500">{accLeft} of {s.accommodationCapacity} extra-time (ET25/ET50) seats free - {s.waitlistCount} waiting</p>
+            <p className="mt-2 text-xs text-slate-500"><span data-testid="summary-accommodation-left">{accLeft} accommodation {accLeft === 1 ? 'seat' : 'seats'} left</span> of {s.accommodationCapacity} (ET25/ET50) - {s.waitlistCount} waiting</p>
           </div>
         </div>
       </aside>
     </div>
   );
+}
+
+function backQuery(centerCode: string, candidate: string, accommodation: string, explicit: boolean): string {
+  const q = new URLSearchParams({ centerCode });
+  const n = candidate.trim().toUpperCase();
+  if (n && !validateCandidateNumber(n)) q.set('candidateNumber', n);
+  if (explicit) q.set('acc', accommodationParam(accommodation));
+  return q.toString();
 }

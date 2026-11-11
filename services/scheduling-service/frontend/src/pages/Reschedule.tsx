@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { api, Session } from '../api';
+import { api, ApiError, Session } from '../api';
 import { Empty, ErrorBox, Modal, PageHeader, Spinner, StatusBadge } from '../components/ui';
-import { formatDateTime } from '../format';
+import { accommodationSeatsLeft, formatDateTime, hasSeatFor, needsAccommodationSeat } from '../format';
 import { todayIso, toastError, useLoad } from '../hooks';
 
 /** Reschedule = cancel + book, only to another session of the same exam (usp_RescheduleBooking). */
@@ -27,6 +27,7 @@ export default function Reschedule() {
   const b = booking.data;
   const movable = b.status === 'BOOKED' || b.status === 'WAITLISTED';
   const choices = (options.data ?? []).filter((s) => s.sessionId !== b.sessionId && s.status === 'OPEN');
+  const extraTime = needsAccommodationSeat(b.accommodationCode);
 
   const confirm = async () => {
     if (!target) return;
@@ -40,6 +41,11 @@ export default function Reschedule() {
     } catch (e) {
       toastError(e);
       setBusy(false);
+      // The original booking is untouched on any rejection; refresh the targets so live seat counts show.
+      if (e instanceof ApiError && e.status === 409) {
+        setTarget(null);
+        void options.reload();
+      }
     }
   };
 
@@ -58,7 +64,14 @@ export default function Reschedule() {
       {!movable ? <Empty>This booking is {b.status.toLowerCase()} and can no longer be rescheduled.</Empty> : (
         <>
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-            <p className="text-sm text-slate-600">Pick another <b>{b.examCode}</b> session. Rescheduling is only possible within the same exam.</p>
+            <div className="text-sm text-slate-600">
+              <p>Pick another <b>{b.examCode}</b> session. Rescheduling is only possible within the same exam.</p>
+              {extraTime && (
+                <p className="mt-1" data-testid="reschedule-accommodation-note">
+                  This booking has <b>{b.accommodationCode}</b> extra time, so it needs a free accommodation seat: sessions without one are unavailable.
+                </p>
+              )}
+            </div>
             <label className="w-72">
               <span className="label">Test center</span>
               <select className="input" value={center} onChange={(e) => setCenterCode(e.target.value)} data-testid="reschedule-center">
@@ -69,16 +82,28 @@ export default function Reschedule() {
           {options.loading && !options.data && <Spinner label="Loading sessions" />}
           {options.data && choices.length === 0 && <Empty>No other open {b.examCode} sessions at this center.</Empty>}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {choices.map((s) => (
-              <button key={s.sessionId} onClick={() => setTarget(s)} data-testid="reschedule-option" data-session-id={s.sessionId}
-                className="card p-4 text-left transition hover:border-brand-500 hover:shadow-md">
-                <p className="font-semibold">{formatDateTime(s.startsAt)}</p>
-                <p className="text-sm text-slate-500">{s.roomName} - session {s.sessionId}</p>
-                <p className={`mt-2 text-sm font-medium ${s.seatsAvailable > 0 ? 'text-emerald-700' : 'text-amber-600'}`}>
-                  {s.seatsAvailable > 0 ? `${s.seatsAvailable} seats left` : 'Full - you would be waitlisted'}
-                </p>
-              </button>
-            ))}
+            {choices.map((s) => {
+              const blocked = !hasSeatFor(b.accommodationCode, s);
+              const accLeft = accommodationSeatsLeft(s);
+              return (
+                <button key={s.sessionId} onClick={() => setTarget(s)} disabled={blocked} data-testid="reschedule-option" data-session-id={s.sessionId}
+                  data-unavailable={blocked ? 'true' : 'false'}
+                  className={`card p-4 text-left transition ${blocked ? 'cursor-not-allowed opacity-60' : 'hover:border-brand-500 hover:shadow-md'}`}>
+                  <p className="font-semibold">{formatDateTime(s.startsAt)}</p>
+                  <p className="text-sm text-slate-500">{s.roomName} - session {s.sessionId}</p>
+                  {blocked ? (
+                    <p className="mt-2 text-sm font-medium text-rose-600" data-testid="reschedule-unavailable-reason">
+                      No {b.accommodationCode} seat left - unavailable
+                    </p>
+                  ) : (
+                    <p className={`mt-2 text-sm font-medium ${s.seatsAvailable > 0 ? 'text-emerald-700' : 'text-amber-600'}`}>
+                      {s.seatsAvailable > 0 ? `${s.seatsAvailable} seats left` : 'Full - you would be waitlisted'}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-slate-500">{accLeft} accommodation {accLeft === 1 ? 'seat' : 'seats'} left</p>
+                </button>
+              );
+            })}
           </div>
         </>
       )}

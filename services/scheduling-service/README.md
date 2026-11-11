@@ -116,7 +116,7 @@ is contained to the relay (the projection code consumes the same state-carrying 
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/centers/{centerCode}/sessions?examCode=&from=&to=` | v1 `SessionInfo` fields + `accommodationUsed`, `waitlistCount`; `from` inclusive, `to` exclusive (`yyyy-MM-dd`) |
+| GET | `/centers/{centerCode}/sessions?examCode=&from=&to=` | v1 `SessionInfo` fields + `accommodationUsed`, `accommodationSeatsAvailable`, `waitlistCount`; `from` inclusive, `to` exclusive (`yyyy-MM-dd`) |
 | GET | `/sessions/{sessionId}` | |
 | POST | `/bookings` | `{"sessionId","candidateNumber","accommodationCode","externalRef","channel"}` -> 201 `BOOKED`/`WAITLISTED` |
 | GET | `/bookings/{bookingId}` | v1 `BookingInfo` fields + `origin`, `legacyBookingId`, `waitlistPosition` |
@@ -135,7 +135,7 @@ Errors: `{"error","message","legacyCode"}` with booking-api v1 codes/statuses, e
 
 ## UI deep links
 
-`/app?centerCode=BOS01&examCode=&date=`, `/app/book?sessionId=`, `/app/my-bookings?candidateNumber=`,
+`/app?centerCode=BOS01&examCode=&date=&candidateNumber=&acc=`, `/app/book?sessionId=&candidateNumber=&acc=`, `/app/my-bookings?candidateNumber=`,
 `/app/reschedule/{bookingId}`, `/app/admin/centers/{centerCode}`, `/app/admin/sessions/{sessionId}`.
 Every `/app/**` path is forwarded to the SPA; the SPA calls `/api/v2/...` with relative URLs so it
 works behind the routing gateway on :8000. For UI development: `cd frontend && npm run dev`
@@ -161,3 +161,21 @@ mvn -B verify -DskipFrontend=true   # backend only
   cd e2e && npm ci && npx playwright install chromium
   BASE_URL=http://localhost:8090 CENTER_CODE=BOS01 node run.mjs
   ```
+
+- Accommodation booking (MBA-3830): an ET25 candidate books the last accommodation seat in `/app`, a second
+  extra-time candidate sees the session unavailable, the API answers 409 `NO_ACCOMMODATION_SEAT` (50003) without
+  consuming a general seat, and an ET reschedule to that session is disabled and refused (screenshots `e2e/screenshots/a5-*`):
+
+  ```bash
+  cd e2e && BASE_URL=http://localhost:8090 node accommodation.mjs
+  ```
+
+## Accommodation seats (MBA-3830)
+
+ET25/ET50 bookings need a free accommodation seat (`AccommodationCapacity`, from `Room.AccommodationSeats`); SR, RB and
+no accommodation never do (`SessionCapacity.hasSeatFor`). Every session reports `accommodationSeatsAvailable`. The API
+books exactly the code it is sent (ADR 0002 6a); `/app` pre-fills the candidate's `defaultAccommodationCode` on Find
+sessions and Book (editable; an explicit choice, including None, is kept as `?acc=`), marks sessions without an
+accommodation seat unavailable for ET25/ET50, and disables such reschedule targets for ET bookings. The server check
+stays authoritative: book and reschedule answer 409 `NO_ACCOMMODATION_SEAT` / 50003, a rejected reschedule leaves the
+original booking intact, and capacity cannot go below `AccommodationCapacity` (409 / 50005).

@@ -344,4 +344,90 @@ class SessionCapacityTest {
         assertViolation(() -> s.attend(1), RuleViolation.BOOKING_NOT_ACTIVE, null);
         assertViolation(() -> s.attend(2), RuleViolation.BOOKING_NOT_ACTIVE, null);
     }
+
+    // MBA-3830 (A5): extra-time candidates reserve an accommodation-capable seat.
+
+    @Test
+    void mba3830_hasSeatFor_extraTimeNeedsFreeAccommodationSeat_srRbAndBlankNeverConstrained() {
+        SessionCapacity free = open(10, 2, slot(1, 1, BookingStatus.BOOKED, "ET25", 0));
+        assertThat(free.accommodationSeatsAvailable()).isEqualTo(1);
+        assertThat(free.hasSeatFor("ET25")).isTrue();
+        assertThat(free.hasSeatFor(" et50 ")).isTrue();
+
+        SessionCapacity full = open(10, 1, slot(1, 1, BookingStatus.BOOKED, "ET50", 0));
+        assertThat(full.accommodationSeatsAvailable()).isZero();
+        assertThat(full.hasSeatFor("ET25")).isFalse();
+        assertThat(full.hasSeatFor("et50")).isFalse();
+        for (String code : new String[] {"SR", "rb", null, "", "  "}) {
+            assertThat(full.hasSeatFor(code)).as("code %s", code).isTrue();
+        }
+
+        SessionCapacity none = open(10, 0);
+        assertThat(none.hasSeatFor("ET25")).isFalse();
+        assertThat(none.hasSeatFor("SR")).isTrue();
+        assertThat(none.hasSeatFor(null)).isTrue();
+    }
+
+    @Test
+    void mba3830_ac2_et50TakesLastOfTwoAccommodationSeats_generalAndAccommodationCountersBothDrop() {
+        SessionCapacity s = open(20, 2, slot(1, 1, BookingStatus.BOOKED, "ET25", 0));
+        int seatsBefore = s.seatsAvailable();
+        Reservation r = s.reserve(2, "et50");
+        assertThat(r.status()).isEqualTo(BookingStatus.BOOKED);
+        assertThat(r.accommodationCode()).isEqualTo("ET50");
+        s.record(2, 2, r, T0.plusMinutes(5));
+        assertThat(s.seatsAvailable()).isEqualTo(seatsBefore - 1);
+        assertThat(s.accommodationSeatsUsed()).isEqualTo(2);
+        assertThat(s.accommodationSeatsAvailable()).isZero();
+        assertThat(s.hasSeatFor("ET25")).isFalse();
+    }
+
+    @Test
+    void mba3830_ac3_accommodationFull_extraTimeRejected50003_beforeAnySeatIsTaken() {
+        SessionCapacity s = open(20, 1, slot(1, 1, BookingStatus.BOOKED, "ET25", 0));
+        int seatsBefore = s.seatsAvailable();
+        assertViolation(() -> s.reserve(2, "ET25"), RuleViolation.NO_ACCOMMODATION_SEAT, 50003);
+        assertThat(RuleViolation.NO_ACCOMMODATION_SEAT.kind()).isEqualTo(RuleViolation.Kind.CONFLICT);
+        assertThat(s.seatsAvailable()).isEqualTo(seatsBefore);
+        assertThat(s.bookings()).hasSize(1);
+    }
+
+    @Test
+    void mba3830_ac3_accommodationCheckPrecedesWaitlist_fullSessionWithNoAccommodationSeatRejects() {
+        SessionCapacity s = open(1, 1, slot(1, 1, BookingStatus.BOOKED, "ET50", 0));
+        assertThat(s.seatsAvailable()).isZero();
+        assertViolation(() -> s.reserve(2, "ET25"), RuleViolation.NO_ACCOMMODATION_SEAT, 50003);
+        assertThat(s.reserve(2, "SR").status()).isEqualTo(BookingStatus.WAITLISTED);
+    }
+
+    @Test
+    void mba3830_ac4_srAndRbBookingsDoNotConsumeAccommodationCapacity() {
+        SessionCapacity s = open(10, 1);
+        s.record(1, 1, s.reserve(1, "SR"), T0);
+        s.record(2, 2, s.reserve(2, "RB"), T0.plusMinutes(1));
+        s.record(3, 3, s.reserve(3, null), T0.plusMinutes(2));
+        assertThat(s.seatsAvailable()).isEqualTo(7);
+        assertThat(s.accommodationSeatsUsed()).isZero();
+        assertThat(s.accommodationSeatsAvailable()).isEqualTo(1);
+        assertThat(s.reserve(4, "ET25").status()).isEqualTo(BookingStatus.BOOKED);
+    }
+
+    @Test
+    void mba3830_cancellingAnEtBookingFreesItsAccommodationSeat() {
+        SessionCapacity s = open(10, 1, slot(1, 1, BookingStatus.BOOKED, "ET25", 0));
+        assertThat(s.hasSeatFor("ET50")).isFalse();
+        s.cancel(1);
+        assertThat(s.accommodationSeatsAvailable()).isEqualTo(1);
+        assertThat(s.hasSeatFor("ET50")).isTrue();
+    }
+
+    @Test
+    void mba3830_ac6_capacityBelowAccommodationCapacityRejected50005_nothingChanges() {
+        SessionCapacity s = open(6, 4, slot(1, 1, BookingStatus.BOOKED, "ET25", 0));
+        assertViolation(() -> s.changeCapacity(3, AccommodationFloorPolicy.ALLOCATED),
+                RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR, 50005);
+        assertThat(s.capacity()).isEqualTo(6);
+        assertThat(s.accommodationSeatsAvailable()).isEqualTo(3);
+        assertThat(s.changeCapacity(4, AccommodationFloorPolicy.ALLOCATED).newCapacity()).isEqualTo(4);
+    }
 }
