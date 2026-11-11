@@ -1,7 +1,7 @@
 @model AssessmentDelivery.Web.Models.SessionsViewModel
 @{
     ViewBag.Title = "Sessions - " + Model.Center.CenterCode;
-    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Centers") + "\">Test Centres</a> &raquo; " + Model.Center.CenterCode + " &raquo; Sessions";
+    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Centers") + "\">Test Centres</a> &raquo; " + Html.Encode(Model.Center.CenterCode) + " &raquo; Sessions";
 }
 <div class="nw-page-head">
     <h2>@Model.Center.Name <small>@Model.Center.CenterCode &middot; @Model.Center.City &middot; @Model.Center.Region</small></h2>

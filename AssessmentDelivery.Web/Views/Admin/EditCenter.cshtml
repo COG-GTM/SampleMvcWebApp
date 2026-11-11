@@ -1,7 +1,7 @@
 @model AssessmentDelivery.Web.Models.EditCenterViewModel
 @{
     ViewBag.Title = "Edit Centre";
-    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Centers") + "\">Test Centres</a> &raquo; " + Model.CenterCode + " &raquo; Edit";
+    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Centers") + "\">Test Centres</a> &raquo; " + Html.Encode(Model.CenterCode) + " &raquo; Edit";
 }
 <div class="nw-page-head"><h2>Edit centre @Model.CenterCode</h2></div>
 <div class="row">

@@ -1,7 +1,7 @@
 @model AssessmentDelivery.Web.Models.CapacityViewModel
 @{
     ViewBag.Title = "Change Capacity";
-    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Centers") + "\">Test Centres</a> &raquo; <a href=\"" + Url.Action("Sessions", new { centerId = Model.CenterId }) + "\">" + Model.CenterName + "</a> &raquo; Session #" + Model.Session.SessionId + " &raquo; Capacity";
+    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Centers") + "\">Test Centres</a> &raquo; <a href=\"" + Url.Action("Sessions", new { centerId = Model.CenterId }) + "\">" + Html.Encode(Model.CenterName) + "</a> &raquo; Session #" + Model.Session.SessionId + " &raquo; Capacity";
 }
 <div class="nw-page-head"><h2>Capacity administration <small>Session #@Model.Session.SessionId</small></h2></div>
 <div class="row">
