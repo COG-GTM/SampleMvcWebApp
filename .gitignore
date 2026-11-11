@@ -170,3 +170,6 @@ logs/
 
 # run-legacy.ps1 / run-legacy.sh logs and pids
 .run/
+
+# characterization harness: seed-clock copies of scripts/mixed-traffic.*
+scripts/.seed-clock-*

@@ -58,3 +58,19 @@ def test_legacy_target_defaults_keep_response_ids():
     target = Target("legacy", type("C", (), {"results_url": None})(), {}, None, None)
     target.settle_fn()
     assert target.booking_id_fn(3590) == 3590
+
+
+def test_mixed_traffic_session_window_is_anchored_on_the_seed_clock(tmp_path):
+    import pytest
+    from chartool.runner import seed_clock_script
+
+    script = tmp_path / "mixed-traffic.sh"
+    script.write_text("ROOT=x\nsql \"SELECT s.SessionId FROM dbo.ExamSession s WHERE s.StartsAt > GETDATE() AND 1=1\"\n")
+    anchored = seed_clock_script(script)
+    assert anchored.parent == tmp_path and anchored.name == ".seed-clock-mixed-traffic.sh"
+    assert "s.StartsAt > '20261111 00:00:00' AND 1=1" in anchored.read_text()
+    assert "GETDATE()" not in anchored.read_text()
+
+    script.write_text("no session window here\n")
+    with pytest.raises(RuntimeError):
+        seed_clock_script(script)

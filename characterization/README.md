@@ -46,14 +46,16 @@ behaviour by accident.
      PRG redirect, the flash message, validation errors and rendered fields are recorded.
    - `PARTNER`: booking-api v1 REST on :8081 (`POST /api/v1/bookings`, `DELETE /api/v1/bookings/{id}`,
      `POST /api/v1/bookings/{id}/reschedule`, `GET /api/v1/candidates/{n}/eligibility`).
-   - `SYSTEM`: `scripts/mixed-traffic.ps1|.sh` (fixed `SEED`, defaults 20/20/3/4), `POST :8083/sync/run`,
+   - `SYSTEM`: `scripts/mixed-traffic.ps1|.sh` (fixed `SEED`, defaults 20/20/3/4; run from a `.seed-clock-` copy whose
+     session window is `StartsAt > SEED_AS_OF` instead of `GETDATE()`, so the same sessions are picked on any day), `POST :8083/sync/run`,
      and `db/checks/seat-drift.sql`.
 4. **DB snapshot** of the affected `ExamSession` rows (Capacity, AccommodationCapacity, SeatsAvailable,
    Status), **every** `Booking` and `Waitlist` row on those sessions, the candidates' `Result` rows, and
    the `AuditLog` rows written by the scenario; taken before and after.
 5. **Normalization.** Seed booking ids are kept (they are deterministic); ids created by setup SQL become
    `setup#n`, ids created by the steps become `new#n` (also inside URLs, flash messages and modern
-   50,000,000+ ids); `GETDATE()` timestamps written during the scenario become `<now>`; fractional
+   50,000,000+ ids); `GETDATE()` timestamps written during the scenario become `<now>` (so do seed timestamps after the seed
+   clock `SEED_AS_OF` = 2026-11-11, i.e. OPEN sessions' `StartsAt`, exactly as at capture time); fractional
    seconds are dropped. Portal messages are mapped to booking-api error codes and `usp_*` states
    (50001 not open, 50002 duplicate, 50003 no accommodation seat, 50005 invalid capacity, 50006 different
    exam) so both channels expose the same `business_fields`.

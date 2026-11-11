@@ -6,7 +6,7 @@ import sys
 
 import requests
 
-from . import LEGACY_BASELINE_SHA, LEGACY_BASELINE_TAG, TRANSCRIPT_FORMAT
+from . import LEGACY_BASELINE_SHA, LEGACY_BASELINE_TAG, SEED_AS_OF, TRANSCRIPT_FORMAT
 from .adapters_modern import Unsupported
 from .db import legacy_tree
 from .normalize import IdMap, deep_norm
@@ -20,6 +20,22 @@ def resolve(value, db, step_results):
     if isinstance(value, str) and value.startswith("@step"):
         return step_results[int(value[5:]) - 1].get("booking_id")
     return value
+
+
+SESSION_WINDOW = "s.StartsAt > GETDATE()"
+
+
+def seed_clock_script(script):
+    """Copy of a mixed-traffic script (legacy-baseline's or this branch's) whose session window is anchored on the
+    seed clock (SEED_AS_OF) instead of GETDATE(), written next to the original so its relative paths still resolve.
+    Only the traffic generator's input selection changes; the estate under test is untouched."""
+    text = script.read_text(encoding="utf-8")
+    if text.count(SESSION_WINDOW) != 1:
+        raise RuntimeError("%s: expected exactly one '%s'" % (script, SESSION_WINDOW))
+    anchored = script.with_name(".seed-clock-" + script.name)
+    anchored.write_text(text.replace(SESSION_WINDOW, "s.StartsAt > '%s'" % SEED_AS_OF.strftime("%Y%m%d %H:%M:%S")),
+                        encoding="utf-8", newline="")
+    return anchored
 
 
 def run_mixed_traffic(config, step, portal_url, booking_api_url, routing_url=None):
@@ -36,9 +52,9 @@ def run_mixed_traffic(config, step, portal_url, booking_api_url, routing_url=Non
     root = config.repo_root if routing_url else legacy_tree(config)
     if sys.platform.startswith("win"):
         cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-               str(root / "scripts" / "mixed-traffic.ps1")]
+               str(seed_clock_script(root / "scripts" / "mixed-traffic.ps1"))]
     else:
-        cmd = ["bash", str(root / "scripts" / "mixed-traffic.sh")]
+        cmd = ["bash", str(seed_clock_script(root / "scripts" / "mixed-traffic.sh"))]
     p = subprocess.run(cmd, env=env, capture_output=True, text=True)
     lines = [ln for ln in (p.stdout or "").splitlines() if ln.startswith("[mixed-traffic]")]
     return {"request": {"command": "scripts/mixed-traffic", "env": {k: str(v) for k, v in (step.get("env") or {}).items()}},
@@ -132,7 +148,8 @@ def _waitlist_position(raw, booking_id):
 
 def run_scenario(sc, target, db, seed_max):
     # whole seconds and a small margin: booking-api truncates timestamps, SQL datetime rounds to 3 ms
-    since = db.now().replace(microsecond=0) - _dt.timedelta(seconds=2)
+    # Seed timestamps after SEED_AS_OF (OPEN sessions' StartsAt) normalize to <now> as they did at capture time.
+    since = min(db.now().replace(microsecond=0) - _dt.timedelta(seconds=2), SEED_AS_OF)
     target.reset_fn(sc)
     state = target.state
     pre = state.max_ids()
