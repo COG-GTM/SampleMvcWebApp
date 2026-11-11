@@ -4,6 +4,8 @@
     migration) instead of going through usp_BookSeat.
     usp_BookSeat already adjusts the counter for portal bookings.
     2013-04  migration cutover
+    2026-11  MBA-3823: skipped for the scheduling-service outbox relay, which writes the exact
+             SeatsAvailable that scheduling-service decided (session context writer = scheduling-relay).
 */
 USE AssessmentDelivery;
 GO
@@ -14,6 +16,8 @@ AFTER INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF CAST(SESSION_CONTEXT(N'writer') AS NVARCHAR(64)) = N'scheduling-relay' RETURN;
 
     UPDATE s
        SET s.SeatsAvailable = s.SeatsAvailable - x.Cnt
