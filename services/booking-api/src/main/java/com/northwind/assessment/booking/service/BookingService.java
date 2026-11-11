@@ -123,7 +123,7 @@ public class BookingService {
         if (old == null) {
             throw ApiException.notFound("BOOKING_NOT_FOUND", "Booking " + bookingId + " not found");
         }
-        Map<String, Object> r = scheduling.reschedule(bookingId, newSessionId.intValue());
+        Map<String, Object> r = scheduling.reschedule(bookingId, newSessionId.intValue(), channel);
         awaitLegacyStatus(bookingId, "CANCELLED");
         return new BookingResponse(legacyId(r), String.valueOf(r.get("status")));
     }

@@ -61,9 +61,10 @@ public class SchedulingClient {
         return exchange(HttpMethod.DELETE, "/api/v2/bookings/" + bookingId + "?reason={reason}", null, reason);
     }
 
-    public Map<String, Object> reschedule(int bookingId, int newSessionId) {
+    public Map<String, Object> reschedule(int bookingId, int newSessionId, String channel) {
         Map<String, Object> body = new HashMap<String, Object>();
         body.put("newSessionId", newSessionId);
+        body.put("channel", channel);
         return exchange(HttpMethod.POST, "/api/v2/bookings/" + bookingId + "/reschedule", body);
     }
 

@@ -100,11 +100,11 @@ public class SchedulingClientTest {
                 .andExpect(method(HttpMethod.DELETE))
                 .andRespond(withSuccess("{\"bookingId\":77,\"status\":\"CANCELLED\"}", MediaType.APPLICATION_JSON));
         server.expect(requestTo("http://gateway:8000/api/v2/bookings/77/reschedule")).andExpect(method(HttpMethod.POST))
-                .andExpect(content().string("{\"newSessionId\":9}"))
+                .andExpect(content().json("{\"newSessionId\":9,\"channel\":\"PARTNER\"}"))
                 .andRespond(withStatus(HttpStatus.CREATED).contentType(MediaType.APPLICATION_JSON)
                         .body("{\"bookingId\":50000009,\"status\":\"BOOKED\"}"));
         Map<String, Object> c = client.cancel(77, "Moved");
-        Map<String, Object> r = client.reschedule(77, 9);
+        Map<String, Object> r = client.reschedule(77, 9, "PARTNER");
         assertEquals("CANCELLED", c.get("status"));
         assertEquals(50000009, ((Number) r.get("bookingId")).intValue());
         server.verify();

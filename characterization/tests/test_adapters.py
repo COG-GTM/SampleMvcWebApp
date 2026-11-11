@@ -59,6 +59,8 @@ class _Stub(BaseHTTPRequestHandler):
         body = self._record()
         if body and body.get("sessionId") == 281:
             return self._send(409, {"error": "SESSION_NOT_OPEN", "message": "closed", "legacyCode": 50001})
+        if body and body.get("accommodationCode") == "XX":
+            return self._send(400, {"error": "VALIDATION", "message": "unknown accommodation", "legacyCode": None})
         self._send(201, {"bookingId": 50000001, "status": "BOOKED", "seatsAvailable": 14})
 
     def do_PUT(self):
@@ -98,7 +100,7 @@ def test_modern_portal_requests_map_to_v2_with_channel_portal(stub):
     a["PORTAL"].cancel(50000001, "Candidate request")
     assert _Stub.calls[-1][:2] == ("DELETE", "/api/v2/bookings/50000001?reason=Candidate+request")
     a["PORTAL"].reschedule(50000001, 258)
-    assert _Stub.calls[-1] == ("POST", "/api/v2/bookings/50000001/reschedule", {"newSessionId": 258})
+    assert _Stub.calls[-1] == ("POST", "/api/v2/bookings/50000001/reschedule", {"newSessionId": 258, "channel": "PORTAL"})
     r = a["PORTAL"].eligibility("NW00000950", "CTA-NET1", "2026-11-20")
     assert _Stub.calls[-1][1].startswith("/api/v2/candidates/NW00000950/eligibility?")
     assert r["business"]["earliestRetakeDate"] == "2026-11-29"
@@ -119,3 +121,13 @@ def test_partner_calls_stay_v1_through_the_gateway(stub):
                                                             "accommodationCode": None, "externalRef": "NAN-1"})
     a["PARTNER"].cancel(3586, None)
     assert _Stub.calls[-1][:2] == ("DELETE", "/api/v1/bookings/3586")
+
+
+def test_modern_portal_channel_reports_request_validation_as_the_portal_generic_error(stub):
+    a = modern_adapters(stub, "v2")
+    r = a["PORTAL"].book(462, "NW00000901", "XX")
+    assert r["business"] == {"outcome": "ERROR", "error": "PORTAL_ERROR", "legacyCode": None}
+    r = a["PARTNER"].book(462, "NW00000901", "XX")
+    assert r["business"] == {"outcome": "ERROR", "error": "VALIDATION", "legacyCode": None}
+    r = a["PORTAL"].book(281, "NW00000901")
+    assert r["business"] == {"outcome": "ERROR", "error": "SESSION_NOT_OPEN", "legacyCode": 50001}

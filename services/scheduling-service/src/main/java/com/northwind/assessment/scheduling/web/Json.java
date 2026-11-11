@@ -82,7 +82,7 @@ public final class Json {
     public record CapacityResponse(Session session, java.util.List<Long> bumpedBookingIds) {
     }
 
-    public record RescheduleRequest(Integer newSessionId) {
+    public record RescheduleRequest(Integer newSessionId, String channel) {
     }
 
     public record Route(String centerCode, int centerId, Integer sessionId, Long bookingId, String bookingOrigin) {
