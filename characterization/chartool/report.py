@@ -8,7 +8,15 @@ GROUP_ORDER = ["booking", "full_session", "duplicate_closed", "cancellation", "r
                "mixed_traffic"]
 
 
-STATUSES = ("MATCH", "MISMATCH", "KNOWN-DEFECT", "SKIPPED", "ERROR")
+STATUSES = ("MATCH", "ADR-DIVERGENCE", "KNOWN-DEFECT", "MISMATCH", "RETIRED", "SKIPPED", "ERROR")
+# report names used in the M6 parity report (MBA-3825)
+LABELS = {"MATCH": "MATCH", "ADR-DIVERGENCE": "ADR-APPROVED DIVERGENCE", "KNOWN-DEFECT": "KNOWN_ONCALL_DEFECT (#57)",
+          "MISMATCH": "MISMATCH", "RETIRED": "NOT REPLAYABLE (retired legacy surface)", "SKIPPED": "SKIPPED (unexplained)",
+          "ERROR": "ERROR"}
+
+
+def label(status):
+    return LABELS.get(status, status)
 
 
 def report_group(transcript):
@@ -39,19 +47,24 @@ def render(results, target, base_url, estate_sha, options):
              "- Target: `%s`%s" % (target, (" base url `%s`" % base_url) if base_url else ""),
              "- Options: `%s`" % options, "",
              "**Overall: %d/%d MATCH**" % (matched, total), "",
-             "Status counts: %s" % ", ".join("%s %d" % (s, sum(1 for r in results if r["status"] == s))
+             "Status counts: %s" % ", ".join("%s %d" % (label(s), sum(1 for r in results if r["status"] == s))
                                              for s in STATUSES), "",
-             "KNOWN-DEFECT = differs from the legacy transcript for a reason listed in `characterization/known-defects.yaml`;"
-             " counted separately (never as MATCH, never hidden).", "",
-             "## Totals per scenario group", "", "| Group | Result | Mismatch | Known defect | Skipped | Error |",
-             "|---|---|---|---|---|---|"]
+             "KNOWN_ONCALL_DEFECT (#57) = differs from the legacy transcript for a reason listed in"
+             " `characterization/known-defects.yaml`; ADR-APPROVED DIVERGENCE = a difference ADR 0002 records (entry in"
+             " `characterization/modern-classification.yaml`, section cited); NOT REPLAYABLE = the legacy entry point was"
+             " retired and has no modern equivalent (reason and modern coverage stated). All counted separately, never as"
+             " MATCH, never hidden.", "",
+             "## Totals per scenario group", "",
+             "| Group | Result | ADR-approved | Known defect #57 | Mismatch | Not replayable | Skipped | Error |",
+             "|---|---|---|---|---|---|---|---|"]
     for g in GROUP_ORDER + sorted(set(groups) - set(GROUP_ORDER)):
         rs = groups.get(g, [])
         if not rs:
             continue
         count = lambda s: sum(1 for r in rs if r["status"] == s)  # noqa: E731
-        lines.append("| %s | %d/%d MATCH | %d | %d | %d | %d |" % (g, count("MATCH"), len(rs), count("MISMATCH"),
-                                                                  count("KNOWN-DEFECT"), count("SKIPPED"), count("ERROR")))
+        lines.append("| %s | %d/%d MATCH | %d | %d | %d | %d | %d | %d |" % (
+            g, count("MATCH"), len(rs), count("ADR-DIVERGENCE"), count("KNOWN-DEFECT"), count("MISMATCH"),
+            count("RETIRED"), count("SKIPPED"), count("ERROR")))
     lines += ["", "## Per scenario", "", "| Scenario | Group | Channel | Oddity | Result | Note |", "|---|---|---|---|---|---|"]
     for r in sorted(results, key=lambda r: (GROUP_ORDER.index(report_group(r["transcript"]))
                                             if report_group(r["transcript"]) in GROUP_ORDER else 99,
@@ -59,13 +72,14 @@ def render(results, target, base_url, estate_sha, options):
         t = r["transcript"]
         note = r.get("note") or (t.get("modern_expected_mismatch") if r["status"] == "MISMATCH" and target != "legacy" else "")
         lines.append("| %s | %s | %s | %s | %s | %s |" % (t["scenario"], report_group(t), t["channel"],
-                                                       "yes" if t.get("oddity") else "", r["status"], note or ""))
-    bad = [r for r in results if r["status"] in ("MISMATCH", "KNOWN-DEFECT", "ERROR")]
+                                                       "yes" if t.get("oddity") else "", label(r["status"]),
+                                                       (note or "").replace("|", "/")))
+    bad = [r for r in results if r["status"] in ("MISMATCH", "ADR-DIVERGENCE", "KNOWN-DEFECT", "ERROR")]
     if bad:
         lines += ["", "## Mismatches", ""]
     for r in bad:
         t = r["transcript"]
-        lines += ["### %s (%s)" % (t["scenario"], r["status"]), "",
+        lines += ["### %s (%s)" % (t["scenario"], label(r["status"])), "",
                   "Baseline SHA `%s`; expected mismatch per ADR 0002: %s" % (LEGACY_BASELINE_SHA,
                                                                             t.get("modern_expected_mismatch") or "none"), ""]
         if r.get("note"):

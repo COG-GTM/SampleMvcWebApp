@@ -26,12 +26,36 @@ def load_known_defects(path=KNOWN_DEFECTS):
             for d in data.get("known_defects", [])}
 
 
+CLASSIFICATION = Path(__file__).resolve().parents[1] / "modern-classification.yaml"
+
+
+def load_classification(path=CLASSIFICATION):
+    """(adr, not_replayable): {scenario: entry} from modern-classification.yaml.
+
+    adr_divergences: differences ADR 0002 records as approved ({adr, reason, signature?}); a run only counts as
+    ADR-DIVERGENCE when every differing field is listed in the entry's `fields` prefixes (when given) and the
+    `signature` business fields (when given) are present - anything else stays a MISMATCH.
+    not_replayable: scenarios whose legacy entry point has no modern equivalent ({reason, covered_by}); the replay
+    raises Unsupported for them and they are reported as RETIRED with the stated reason, never as MATCH."""
+    import yaml
+    if not Path(path).exists():
+        return {}, {}
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    adr = {d["transcript"]: d for d in data.get("adr_divergences", [])}
+    retired = {d["transcript"]: d for d in data.get("not_replayable", [])}
+    return adr, retired
+
+
+def _diffs_within(diffs, prefixes):
+    return all(any(str(path).startswith(p) for p in prefixes) for path, _e, _a in diffs)
+
+
 def _has_signature(actual, signature):
     return any(all(s["expected"]["business_fields"].get(k) == v for k, v in signature.items())
                for s in actual["steps"])
 
 
-def classify_modern_mismatch(transcript, actual, known):
+def classify_modern_mismatch(transcript, actual, known, adr=None, diffs=()):
     """MISMATCH by default; KNOWN-DEFECT when listed in known-defects.yaml and the actual run shows the entry's
     `signature` business fields (so an unrelated regression in that scenario is still a MISMATCH); SKIPPED when the gateway refused to
     route the center (CENTER_NOT_MODERN: the scenario's center is not on the allow-list, nothing reached modern)."""
@@ -44,6 +68,14 @@ def classify_modern_mismatch(transcript, actual, known):
         return "MISMATCH", "listed in known-defects.yaml, but the known-defect signature %s is absent: a different "                            "regression" % json.dumps(entry["signature"], sort_keys=True)
     if any(s["expected"]["business_fields"].get("error") == "CENTER_NOT_MODERN" for s in actual["steps"]):
         return "SKIPPED", "gateway: center not on routing.modern-centers (CENTER_NOT_MODERN)"
+    entry = (adr or {}).get(transcript["scenario"])
+    if entry is not None:
+        ok_fields = not entry.get("fields") or _diffs_within(diffs, entry["fields"])
+        ok_sig = not entry.get("signature") or _has_signature(actual, entry["signature"])
+        if ok_fields and ok_sig:
+            return "ADR-DIVERGENCE", "ADR 0002 %s: %s" % (entry["adr"], entry["reason"])
+        return "MISMATCH", "listed as ADR 0002 %s, but the run differs beyond it (fields %s, signature %s)" % (
+            entry["adr"], entry.get("fields"), json.dumps(entry.get("signature"), sort_keys=True))
     return "MISMATCH", None
 
 
@@ -134,9 +166,14 @@ def modern_target(config, db, args):
                          "DELETE FROM exam_session;")
         r = requests.post(config.scheduling_url + "/internal/import/sessions", timeout=300)
         r.raise_for_status()
-    mixed = (args.base_url, args.base_url) if partner_api == "v1" else None
+    # Behind the routing gateway (v1 served) every legacy entry point has a route: /sync/** -> capacity-sync,
+    # /api/v1/results/** -> results-service, /api/v1/** -> booking-api v1 translation, /api/v2/** -> scheduling-service.
+    gateway = partner_api == "v1"
+    mixed = (args.base_url, args.base_url) if gateway else None
     print("[char] modern target %s (partner calls via %s, db-state %s)" % (args.base_url, partner_api, args.db_state))
-    return Target("modern", config, adapters, state, reset, sync_url=None, mixed_urls=mixed), partner_api
+    return Target("modern", config, adapters, state, reset, sync_url=args.base_url if gateway else None, mixed_urls=mixed,
+                  results_url=args.base_url if gateway else None,
+                  routing_url=args.base_url if gateway else None), partner_api
 
 
 def cmd_capture(args):
@@ -174,6 +211,7 @@ def cmd_replay(args):
         target, partner = modern_target(config, db, args)
         extra = " partner-api=%s db-state=%s" % (partner, args.db_state)
     known = load_known_defects() if args.target == "modern" else {}
+    adr, retired = load_classification() if args.target == "modern" else ({}, {})
     results = []
     for t in transcripts:
         sc = {"name": t["scenario"], "group": t["group"], "channel": t["channel"], "setup_sql": t["setup_sql"],
@@ -185,10 +223,15 @@ def cmd_replay(args):
             diffs = compare(t, actual, args.target)
             status, note = ("MISMATCH" if diffs else "MATCH"), None
             if diffs and args.target == "modern":
-                status, note = classify_modern_mismatch(t, actual, known)
+                status, note = classify_modern_mismatch(t, actual, known, adr, diffs)
             results.append({"transcript": t, "actual": actual, "diffs": diffs, "status": status, "note": note})
         except Unsupported as e:
-            results.append({"transcript": t, "status": "SKIPPED", "diffs": [], "note": str(e)})
+            entry = retired.get(t["scenario"])
+            if entry is not None:
+                results.append({"transcript": t, "status": "RETIRED", "diffs": [],
+                                "note": "%s Covered by: %s. (%s)" % (entry["reason"], entry["covered_by"], e)})
+            else:
+                results.append({"transcript": t, "status": "SKIPPED", "diffs": [], "note": str(e)})
         except Exception as e:  # noqa: BLE001 - report and continue with the next transcript
             results.append({"transcript": t, "status": "ERROR", "diffs": [], "note": "%s: %s" % (type(e).__name__, e)})
         print("  %-8s %s" % (results[-1]["status"], t["scenario"]))

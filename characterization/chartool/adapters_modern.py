@@ -72,6 +72,19 @@ class V2Adapter:
         return self._call("capacity", "PUT", "/api/v2/sessions/%d/capacity" % session,
                           json={"newCapacity": int(new_capacity), "actor": "admin"})
 
+    def search(self, center_code, probe=()):
+        """Modern equivalent of the retired portal search page (/Booking, MBA-3824): the /app session finder lists the
+        active centers (GET /api/v2/centers) and the bookable (OPEN) sessions of the chosen center."""
+        centers = requests.get(self.url + "/api/v2/centers", timeout=self.timeout)
+        r = requests.get(self.url + "/api/v2/centers/%s/sessions" % center_code, timeout=self.timeout)
+        rows = json_or_text(r)
+        ids = {s.get("sessionId") for s in rows if s.get("status") == "OPEN"} if isinstance(rows, list) else set()
+        codes = json_or_text(centers)
+        biz = {"centerFilter": sorted(c.get("centerCode") for c in codes) if isinstance(codes, list) else [],
+               "listed": {str(i): i in ids for i in probe}}
+        req = {"method": "GET", "path": "/api/v2/centers/%s/sessions" % center_code}
+        return {"request": req, "response": {"status": r.status_code}, "business": biz}
+
     def eligibility(self, candidate, exam_code, date):
         return self._call("eligibility", "GET", "/api/v2/candidates/%s/eligibility" % candidate,
                           params={"examCode": exam_code, "date": date})
