@@ -176,9 +176,13 @@ class SchedulingApiIT extends SqlServerTestBase {
     void routingResolveAndV1FacadeAndImportTrigger() {
         assertThat(get("/api/v2/internal/routing/resolve?centerCode=SFO01")).containsEntry("target", "legacy");
         assertThat(get("/api/v2/internal/routing/resolve?sessionId=300")).containsEntry("centerCode", "AMS01");
+        assertThat(get("/api/v2/internal/routing/resolve?centerId=2")).containsEntry("centerCode", "AMS01");
+        assertThat(http.getForEntity("/api/v2/internal/routing/resolve?centerId=99", String.class).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
         Map<String, Object> v1 = http.exchange("/api/v1/bookings", HttpMethod.POST,
                 new HttpEntity<>(Map.of("sessionId", 154, "candidateNumber", "NW00000930", "externalRef", "P-1")), MAP).getBody();
         assertThat(v1).containsOnlyKeys("bookingId", "status").containsEntry("status", "BOOKED");
+        assertThat(((Number) v1.get("bookingId")).longValue()).isGreaterThanOrEqualTo(50_000_000L); // modern id floor
         assertThat(get("/api/v1/bookings/" + v1.get("bookingId"))).containsEntry("channel", "PARTNER");
         Map<String, Object> run = http.exchange("/api/v2/internal/import/sessions", HttpMethod.POST, null, MAP).getBody();
         assertThat(run).containsEntry("mode", "MERGE").containsEntry("centers", 2).containsEntry("sessions", 0);

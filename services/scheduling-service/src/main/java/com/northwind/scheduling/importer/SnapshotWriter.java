@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,9 @@ import com.northwind.scheduling.legacy.LegacyRows;
 public class SnapshotWriter {
 
     private final JdbcTemplate jdbc;
+
+    @Value("${scheduling.booking-id-floor:50000000}")
+    private long bookingIdFloor;
 
     public SnapshotWriter(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
@@ -137,6 +141,21 @@ public class SnapshotWriter {
         jdbc.update("DELETE FROM exam_session");
         for (String table : List.of("waitlist_entry", "booking", "exam_session")) {
             jdbc.execute("DBCC CHECKIDENT ('" + table + "', RESEED, 0) WITH NO_INFOMSGS");
+        }
+    }
+
+    /**
+     * Raises the booking identity to {@code scheduling.booking-id-floor} (default 50000000) so bookings created
+     * here never collide with legacy BookingIds; the M3 routing-gateway routes ids at or above the floor to this
+     * service regardless of its allow-list (ownership by origin). Only ever raises the seed.
+     */
+    public void ensureBookingIdFloor() {
+        if (bookingIdFloor <= 0) {
+            return;
+        }
+        Long current = jdbc.queryForObject("SELECT CAST(IDENT_CURRENT('booking') AS BIGINT)", Long.class);
+        if (current == null || current < bookingIdFloor) {
+            jdbc.execute("DBCC CHECKIDENT ('booking', RESEED, " + bookingIdFloor + ") WITH NO_INFOMSGS");
         }
     }
 

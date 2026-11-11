@@ -1,5 +1,6 @@
 package com.northwind.scheduling.web;
 
+import com.northwind.scheduling.persistence.Rows;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -53,13 +54,19 @@ public class InternalController {
     /**
      * Stub for the M3 per-test-center routing gateway: which backend serves a centre. Centres listed in
      * SCHEDULING_ROUTING_MODERN_CENTERS ("*" = all) resolve to "modern", the rest to the default target.
-     * The centre can be given directly or via a session/booking id.
+     * The centre can be given directly (code or id) or via a session/booking id; the M3 routing-gateway
+     * (services/routing-gateway) only uses the resolved centerCode and applies its own allow-list.
      */
     @GetMapping("/routing/resolve")
     public RoutingDto resolve(@RequestParam(required = false) String centerCode,
                               @RequestParam(required = false) Integer sessionId,
-                              @RequestParam(required = false) Integer bookingId) {
+                              @RequestParam(required = false) Integer bookingId,
+                              @RequestParam(required = false) Integer centerId) {
         String code = centerCode;
+        if ((code == null || code.isBlank()) && centerId != null) {
+            code = service.centers().stream().filter(c -> c.id() == centerId).map(Rows.Center::code).findFirst()
+                    .orElseThrow(() -> new SchedulingException(ErrorCode.CENTER_NOT_FOUND, "Center " + centerId + " not found"));
+        }
         if ((code == null || code.isBlank()) && sessionId != null) {
             code = service.session(sessionId).centerCode();
         }
@@ -67,7 +74,7 @@ public class InternalController {
             code = service.booking(bookingId).centerCode();
         }
         if (code == null || code.isBlank()) {
-            throw new SchedulingException(ErrorCode.VALIDATION, "centerCode, sessionId or bookingId is required");
+            throw new SchedulingException(ErrorCode.VALIDATION, "centerCode, centerId, sessionId or bookingId is required");
         }
         String c = service.center(code.trim()).code();
         if (modernCenters.contains("*") || modernCenters.contains(c.toUpperCase())) {
