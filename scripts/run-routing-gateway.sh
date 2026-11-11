@@ -37,16 +37,17 @@ running() { [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; }
 case "$CMD" in
   start)
     if running; then log "already running (pid $(cat "$PID_FILE"))"; exit 0; fi
+    if ss -ltn 2>/dev/null | grep -q ":8000 "; then log "port 8000 is already in use by another process"; exit 1; fi
     build
     mkdir -p "$RUN_DIR"
     # shellcheck disable=SC2046
     nohup $(java_cmd) >"$LOG_FILE" 2>&1 &
     echo $! >"$PID_FILE"
     for _ in $(seq 1 60); do
+      if ! running; then log "routing-gateway exited during startup:"; tail -n 20 "$LOG_FILE"; rm -f "$PID_FILE"; exit 1; fi
       if curl -fsS http://localhost:8000/actuator/health >/dev/null 2>&1; then
         log "routing-gateway up on http://localhost:8000 (pid $(cat "$PID_FILE"), log $LOG_FILE)"; exit 0
       fi
-      if ! running; then log "routing-gateway exited during startup:"; tail -n 20 "$LOG_FILE"; exit 1; fi
       sleep 1
     done
     log "routing-gateway did not become healthy in 60 s, see $LOG_FILE"; exit 1 ;;
