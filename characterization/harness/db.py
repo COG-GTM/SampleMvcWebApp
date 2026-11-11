@@ -25,9 +25,17 @@ class Db:
             args += ["-d", database or self.t.database]
         return args
 
+    @staticmethod
+    def _sqlcmd(args, timeout=None):
+        try:
+            return subprocess.run(args, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8",
+                                  errors="replace", timeout=timeout)
+        except OSError as e:
+            raise SqlError(f"cannot run sqlcmd ({args[0]}): {e}") from e
+
     def run(self, sql, database=None, check=True, timeout=600):
         args = self._base(database) + ["-h", "-1", "-W", "-y", "0", "-Q", sql]
-        proc = subprocess.run(args, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
+        proc = self._sqlcmd(args, timeout=timeout)
         out = (proc.stdout or "") + (proc.stderr or "")
         if check and (proc.returncode != 0 or MSG_RE.search(out)):
             raise SqlError(f"sqlcmd failed ({proc.returncode}): {out.strip()[:2000]}\nSQL: {sql[:500]}")
@@ -39,7 +47,7 @@ class Db:
         body = "\n".join(line for line in script.splitlines()
                          if not re.match(r"\s*(GO|USE\s+\w+;?)\s*$", line, re.IGNORECASE))
         args = self._base() + ["-h", "-1", "-W", "-s", "|", "-Q", "SET NOCOUNT ON;\n" + body]
-        proc = subprocess.run(args, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        proc = self._sqlcmd(args)
         out = (proc.stdout or "") + (proc.stderr or "")
         if proc.returncode != 0 or MSG_RE.search(out):
             raise SqlError(out[:2000])

@@ -69,3 +69,13 @@ def test_apply_seed_refuses_a_database_db_apply_does_not_build():
     db.t = types.SimpleNamespace(database="ParityTest")
     with pytest.raises(SqlError, match="only rebuilds AssessmentDelivery"):
         db.apply_seed()
+
+
+def test_missing_sqlcmd_is_a_sql_error():
+    import types
+    import pytest
+    from harness.db import Db, SqlError
+    db = Db(types.SimpleNamespace(sqlcmd="no-such-sqlcmd-binary", sql_server="localhost", sql_user="sa",
+                                  sql_password="x", database="AssessmentDelivery"))
+    with pytest.raises(SqlError, match="cannot run sqlcmd"):
+        db.run("SELECT 1")
