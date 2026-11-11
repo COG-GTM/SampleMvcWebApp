@@ -205,6 +205,23 @@ class SessionCapacityTest {
         assertThat(s.changeCapacity(3, AccommodationFloorPolicy.ALLOCATED).newCapacity()).isEqualTo(3);
     }
 
+    /**
+     * Guardrail for on-call defect #57 (the 30 -> 24 shape): ATTENDED still count in the ALLOCATED floor
+     * (4 accommodation seats + 2 ATTENDED + 19 BOOKED = 25), even though only BOOKED count for the waitlist bump.
+     */
+    @Test
+    void onCallDefect57_floorStillCountsAttended_30To24Rejected_bumpCountUnaffected() {
+        BookingSlot[] slots = new BookingSlot[21];
+        for (int i = 0; i < 21; i++) {
+            slots[i] = slot(i + 1, i + 1, i < 2 ? BookingStatus.ATTENDED : BookingStatus.BOOKED, null, i);
+        }
+        SessionCapacity s = open(30, 4, slots);
+        assertViolation(() -> s.changeCapacity(24, AccommodationFloorPolicy.ALLOCATED),
+                RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR, 50005);
+        assertThat(s.capacity()).isEqualTo(30);
+        assertThat(s.changeCapacity(25, AccommodationFloorPolicy.ALLOCATED).bumpedBookingIds()).isEmpty();
+    }
+
     @Test
     void usp_ChangeCapacity_allocatedFloorKeepsAccommodationSeatsForExtraTime_50005() {
         SessionCapacity s = open(12, 2,
