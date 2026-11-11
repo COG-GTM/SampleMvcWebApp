@@ -28,7 +28,7 @@ export default function CapacityEditor({ session, onChanged }: { session: Sessio
       onChanged(r);
       const detail = [
         r.demotedBookingIds.length ? `${r.demotedBookingIds.length} booking(s) moved to the waitlist` : '',
-        r.notifiedCandidates ? `${r.notifiedCandidates} candidate(s) notified` : '',
+        r.notifiedCandidates ? `${r.notifiedCandidates} candidate notification(s) queued (stub, no email/SMS)` : '',
       ].filter(Boolean).join('; ');
       toast('success', `Session #${session.sessionId}: capacity ${r.oldCapacity} → ${r.newCapacity}`, detail || undefined);
       setEditing(false);
@@ -63,7 +63,7 @@ export default function CapacityEditor({ session, onChanged }: { session: Sessio
       <Modal open={confirming} title="Confirm capacity change" onClose={() => setConfirming(false)}>
         <p className="text-sm text-slate-600">Change session #{session.sessionId} from <b>{session.capacity}</b> to <b>{n}</b> seats?</p>
         {demotions > 0 && <p className="mt-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{demotions} active booking(s) exceed the new capacity; the newest will be moved to the waitlist.</p>}
-        {n < session.capacity && session.bookedSeats > 0 && <p className="mt-2 text-xs text-slate-500" data-testid="capacity-notify-hint">Affected candidates will be notified (MBA-3831).</p>}
+        {n < session.capacity && session.bookedSeats > 0 && <p className="mt-2 text-xs text-slate-500" data-testid="capacity-notify-hint">A notification event is queued for each affected candidate (MBA-3831; stub, no email/SMS yet).</p>}
         <div className="mt-5 flex justify-end gap-2">
           <button className="btn-secondary" onClick={() => setConfirming(false)}>Back</button>
           <button className="btn-primary" disabled={busy} onClick={apply} data-testid="confirm-capacity">{busy ? 'Saving…' : 'Confirm'}</button>
