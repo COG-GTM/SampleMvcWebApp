@@ -47,7 +47,8 @@ import java.util.stream.Collectors;
  * direct-write compatibility API (/admin/storage). Seat drift runs services/scheduling-service/db/checks/seat-drift.sql
  * against the Scheduling database.
  *
- * External service: -Dscheduling.baseUrl=http://host:8084/api/v1 plus -Dlegacy.jdbcUrl (AssessmentDelivery) and
+ * External service (start it with SCHEDULING_LEGACY_SEAT_ACCOUNTING=true and SCHEDULING_STORAGE_API=true or the
+ * equivalent properties): -Dscheduling.baseUrl=http://host:8084/api/v1 plus -Dlegacy.jdbcUrl (AssessmentDelivery) and
  * optionally -Dscheduling.jdbcUrl (defaults to the legacy URL with databaseName=Scheduling).
  */
 public final class SchedulingServiceTarget implements SchedulingTarget {
@@ -126,7 +127,8 @@ public final class SchedulingServiceTarget implements SchedulingTarget {
                     "--scheduling.import.on-startup=if-empty",
                     "--scheduling.reference.poll-ms=0",
                     "--scheduling.reconciler.cron=-",
-                    "--scheduling.storage-api.enabled=true")
+                    "--scheduling.storage-api.enabled=true",
+                    "--scheduling.legacy-seat-accounting=true")
                     .redirectErrorStream(true).redirectOutput(log).start();
             Http http = new Http("http://localhost:" + port + "/api/v1");
             waitHealthy(p, "http://localhost:" + port, log);
