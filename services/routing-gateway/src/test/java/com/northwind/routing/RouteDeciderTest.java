@@ -59,6 +59,9 @@ class RouteDeciderTest {
         assertThat(PortalRoutes.redirect(resched, "BOS01", q())).isEqualTo("/app/reschedule/42");
         var mine = PortalRoutes.match("GET", "/Booking/MyBookings", q("centerCode", "BOS01")).orElseThrow();
         assertThat(PortalRoutes.redirect(mine, "BOS01", q())).isEqualTo("/app/my-bookings");
+        var bookmark = PortalRoutes.match("GET", "/Booking/MyBookings", q("candidateNumber", "NW00000042")).orElseThrow();
+        assertThat(PortalRoutes.redirect(bookmark, null, q("candidateNumber", "NW00000042")))
+                .isEqualTo("/app/my-bookings?candidateNumber=NW00000042");
         var admin = PortalRoutes.match("GET", "/Admin/Sessions", q("centerId", "1")).orElseThrow();
         assertThat(admin.lookup()).isEqualTo(Lookup.of(Lookup.Kind.CENTER_ID, "1"));
         assertThat(PortalRoutes.redirect(admin, "BOS01", q())).isEqualTo("/app/admin/centers/BOS01");
@@ -67,9 +70,11 @@ class RouteDeciderTest {
     }
 
     @Test
-    void routesWithoutACentreKeyAndNonBookingPagesStayLegacy() {
-        assertThat(PortalRoutes.match("GET", "/Booking", q())).isEmpty();
-        assertThat(PortalRoutes.match("GET", "/Booking/MyBookings", q("candidateNumber", "NW00000001"))).isEmpty();
+    void retiredPagesMatchWithoutACentreKeyAndNonBookingPagesStayLegacy() {
+        assertThat(PortalRoutes.redirect(PortalRoutes.match("GET", "/Booking", q()).orElseThrow(), null, q())).isEqualTo("/app/");
+        assertThat(PortalRoutes.redirect(PortalRoutes.match("GET", "/Booking/Book", q()).orElseThrow(), null, q())).isEqualTo("/app/");
+        assertThat(PortalRoutes.redirect(PortalRoutes.match("GET", "/Admin/Sessions", q("centerId", "99")).orElseThrow(), null, q()))
+                .isEqualTo("/app/");
         assertThat(PortalRoutes.match("GET", "/Admin/Sessions", q())).isEmpty();
         assertThat(PortalRoutes.match("GET", "/Admin/Centers", q())).isEmpty();
         assertThat(PortalRoutes.match("GET", "/Admin/Sessions/Roster/154", q("format", "csv"))).isEmpty();

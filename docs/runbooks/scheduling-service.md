@@ -179,6 +179,10 @@ With the relay live and the legacy write denial in place (`db/security/040_singl
 > **Single writer (MBA-3823).** Once `db/security/040_single_writer.sql` is applied, routing a centre back to legacy
 > only moves its *reads*: legacy booking/capacity writes stay denied for every centre, so the steps below do not restore
 > legacy writes on their own. To hand writes back to legacy use §6 (it is all-or-nothing, not per centre).
+>
+> **M5 (MBA-3824).** The portal booking/capacity pages, the four booking procs and booking-api's write SQL are deleted
+> ([ADR 0004](../adr/0004-retire-portal-booking-slice.md)); the gateway redirects the old portal URLs to `/app` for every
+> centre. There is no legacy write path left to roll back to; restoring one means reverting the MBA-3824 change.
 
 Which backend serves a centre is decided by the routing allow-list `scheduling.routing.modern-centers`
 (env `SCHEDULING_ROUTING_MODERN_CENTERS`, comma-separated centre codes, `*` = all; everything else goes to

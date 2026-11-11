@@ -43,8 +43,10 @@ java -jar services/results-service/target/results-service.jar
 java -jar services/capacity-sync/target/capacity-sync.jar
 ```
 
-`scripts/mixed-traffic.sh` books a batch of seats through both channels (portal via `usp_BookSeat`,
-partner via booking-api) on a freshly seeded database and prints a short summary.
+`scripts/mixed-traffic.sh` books a batch of seats through both channels (portal and partner) on a freshly seeded
+database and prints a short summary. Since MBA-3824 booking-api no longer writes (direct writes on :8081 get
+`410 LEGACY_WRITE_RETIRED`) and the portal booking pages are gone: point `PORTAL_URL` and `BOOKING_API_URL` at the
+routing gateway (:8000), which serves both from scheduling-service ([ADR 0004](../docs/adr/0004-retire-portal-booking-slice.md)).
 
 ## Profiles / configuration
 

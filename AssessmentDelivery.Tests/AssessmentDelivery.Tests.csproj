@@ -71,7 +71,6 @@
     <Compile Include="UnitTests\CapacityAuditDetailTests.cs" />
     <Compile Include="UnitTests\RetakeRulesTests.cs" />
     <Compile Include="UnitTests\RosterCsvTests.cs" />
-    <Compile Include="UnitTests\SeatCounterTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

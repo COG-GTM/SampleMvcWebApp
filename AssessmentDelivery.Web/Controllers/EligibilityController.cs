@@ -1,6 +1,5 @@
 using System;
 using System.Web.Mvc;
-using AssessmentDelivery.Services.Booking;
 using AssessmentDelivery.Services.Common;
 using AssessmentDelivery.Services.Eligibility;
 using AssessmentDelivery.Web.Models;
@@ -10,12 +9,10 @@ namespace AssessmentDelivery.Web.Controllers
     public class EligibilityController : Controller
     {
         private readonly IEligibilityService _eligibility;
-        private readonly IBookingService _booking;
 
-        public EligibilityController(IEligibilityService eligibility, IBookingService booking)
+        public EligibilityController(IEligibilityService eligibility)
         {
             _eligibility = eligibility;
-            _booking = booking;
         }
 
         // GET /Eligibility?candidateNumber=&examCode=&date=
@@ -26,7 +23,7 @@ namespace AssessmentDelivery.Web.Controllers
                 CandidateNumber = candidateNumber,
                 ExamCode = examCode,
                 Date = date ?? DateTime.Today,
-                Exams = _booking.ListExams()
+                Exams = _eligibility.ListExams()
             };
 
             if (!string.IsNullOrWhiteSpace(candidateNumber) && !string.IsNullOrWhiteSpace(examCode))

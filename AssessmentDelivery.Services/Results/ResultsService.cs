@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using AssessmentDelivery.Data.DataClasses;
+using AssessmentDelivery.Data.DataClasses.Entities;
 
 namespace AssessmentDelivery.Services.Results
 {
@@ -11,6 +13,13 @@ namespace AssessmentDelivery.Services.Results
         public ResultsService(AssessmentDeliveryDb db)
         {
             _db = db;
+        }
+
+        public Candidate FindCandidate(string candidateNumber)
+        {
+            if (string.IsNullOrWhiteSpace(candidateNumber)) return null;
+            var number = candidateNumber.Trim().ToUpper();
+            return _db.Candidates.AsNoTracking().SingleOrDefault(c => c.CandidateNumber == number);
         }
 
         public IList<CandidateResultItem> GetResultsForCandidate(string candidateNumber)

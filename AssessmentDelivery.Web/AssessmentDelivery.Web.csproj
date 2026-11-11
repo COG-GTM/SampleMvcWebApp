@@ -127,7 +127,6 @@
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="Controllers\AdminController.cs" />
-    <Compile Include="Controllers\BookingController.cs" />
     <Compile Include="Controllers\EligibilityController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\ResultsController.cs" />
@@ -136,7 +135,6 @@
     <Compile Include="Infrastructure\PortalHtmlExtensions.cs" />
     <Compile Include="Infrastructure\WebUiInitialise.cs" />
     <Compile Include="Models\AdminModels.cs" />
-    <Compile Include="Models\BookingModels.cs" />
     <Compile Include="Models\LookupModels.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Global.asax.cs">
@@ -148,16 +146,10 @@
     <Content Include="favicon.ico" />
     <Content Include="Views\Web.config" />
     <Content Include="Views\_ViewStart.cshtml" />
-    <Content Include="Views\Admin\Capacity.cshtml" />
     <Content Include="Views\Admin\CapacityAudit.cshtml" />
     <Content Include="Views\Admin\Centers.cshtml" />
     <Content Include="Views\Admin\EditCenter.cshtml" />
     <Content Include="Views\Admin\Sessions.cshtml" />
-    <Content Include="Views\Booking\Book.cshtml" />
-    <Content Include="Views\Booking\Cancel.cshtml" />
-    <Content Include="Views\Booking\Index.cshtml" />
-    <Content Include="Views\Booking\MyBookings.cshtml" />
-    <Content Include="Views\Booking\Reschedule.cshtml" />
     <Content Include="Views\Eligibility\Index.cshtml" />
     <Content Include="Views\Results\Index.cshtml" />
     <Content Include="Views\Shared\_Layout.cshtml" />

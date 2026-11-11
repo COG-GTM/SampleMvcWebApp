@@ -2,34 +2,31 @@ package com.northwind.assessment.booking.web;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.northwind.assessment.booking.dao.BookingDao;
 import com.northwind.assessment.booking.model.BookingInfo;
-import com.northwind.assessment.booking.model.BookingRequest;
-import com.northwind.assessment.booking.model.BookingResponse;
-import com.northwind.assessment.booking.model.RescheduleRequest;
-import com.northwind.assessment.booking.service.BookingService;
 
+/**
+ * Partner booking reads. MBA-3824 retired the write SQL: book, cancel and reschedule are served by
+ * scheduling-service through the routing gateway (:8000), which answers /api/v1/bookings writes itself
+ * (docs/adr/0004-retire-portal-booking-slice.md). A write that reaches :8081 directly gets 410.
+ */
 @RestController
 @RequestMapping("/api/v1/bookings")
 public class BookingController {
 
-    @Autowired
-    private BookingService bookingService;
+    static final String LEGACY_WRITE_RETIRED = "LEGACY_WRITE_RETIRED";
 
     @Autowired
     private BookingDao bookingDao;
 
     @RequestMapping(method = RequestMethod.POST)
-    public ResponseEntity<BookingResponse> book(@RequestBody BookingRequest req) {
-        return new ResponseEntity<BookingResponse>(bookingService.book(req), HttpStatus.CREATED);
+    public void book() {
+        throw retired();
     }
 
     @RequestMapping(value = "/{bookingId}", method = RequestMethod.GET)
@@ -42,15 +39,17 @@ public class BookingController {
     }
 
     @RequestMapping(value = "/{bookingId}", method = RequestMethod.DELETE)
-    public BookingInfo cancel(@PathVariable("bookingId") int bookingId,
-                              @RequestParam(value = "reason", required = false) String reason) {
-        bookingService.cancel(bookingId, reason);
-        return bookingDao.findById(bookingId);
+    public void cancel(@PathVariable("bookingId") int bookingId) {
+        throw retired();
     }
 
     @RequestMapping(value = "/{bookingId}/reschedule", method = RequestMethod.POST)
-    public BookingResponse reschedule(@PathVariable("bookingId") int bookingId,
-                                      @RequestBody RescheduleRequest req) {
-        return bookingService.reschedule(bookingId, req == null ? null : req.getNewSessionId());
+    public void reschedule(@PathVariable("bookingId") int bookingId) {
+        throw retired();
+    }
+
+    static ApiException retired() {
+        return new ApiException(HttpStatus.GONE, LEGACY_WRITE_RETIRED, "booking-api no longer writes bookings; "
+                + "send book/cancel/reschedule through the routing gateway (:8000) to scheduling-service");
     }
 }
