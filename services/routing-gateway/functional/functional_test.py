@@ -84,7 +84,11 @@ def free_sessions(center, n):
     _, _, sessions = http("GET", f"{SCHED}/api/v2/centers/{center}/sessions")
     ok = [s for s in sessions or [] if s.get("status") == "OPEN" and s.get("seatsAvailable", 0) > 0
           and str(s.get("startsAt")) > "2026-11-12"]
-    return [s["sessionId"] for s in ok[:n]]
+    by_exam = {}
+    for s in ok:
+        by_exam.setdefault(s.get("examCode"), []).append(s["sessionId"])
+    same_exam = [ids for ids in by_exam.values() if len(ids) >= n]  # reschedule needs the same exam
+    return same_exam[0][:n] if same_exam else [s["sessionId"] for s in ok[:n]]
 
 
 def main():
@@ -103,7 +107,7 @@ def main():
     s, h, _ = http("GET", f"{GW}/Booking?CenterCode={C1}&ExamCode=CTA-SEC2")
     check("portal: C1 /Booking redirects to modern UI", s == 302 and h.get("Location", "").startswith(f"/app/?center={C1}"),
           h.get("Location"))
-    legacy_center = sql(f"SELECT t.CenterCode FROM ExamSession s JOIN TestCenter t ON t.TestCenterId=s.TestCenterId WHERE s.ExamSessionId={LEGACY_SESSION}")
+    legacy_center = sql(f"SELECT t.CenterCode FROM ExamSession s JOIN TestCenter t ON t.TestCenterId=s.TestCenterId WHERE s.SessionId={LEGACY_SESSION}")
     s, h, body = http("GET", f"{GW}/Booking?CenterCode={legacy_center}")
     check(f"portal: C2 ({legacy_center}) /Booking renders MVC 5 page", s == 200 and h.get("X-Route") == "legacy"
           and isinstance(body, str) and "<html" in body.lower())
@@ -111,7 +115,7 @@ def main():
     check("modern UI proxied through :8000", s == 200 and h.get("X-Route") == "modern" and "root" in str(body))
 
     sessions = free_sessions(C1, 2)
-    check(f"{C1} has two bookable sessions in scheduling-service", len(sessions) == 2, str(sessions))
+    check(f"{C1} has two bookable same-exam sessions in scheduling-service", len(sessions) == 2, str(sessions))
     s, h, b1 = http("POST", f"{GW}/api/v1/bookings", {"sessionId": sessions[0], "candidateNumber": cand(0), "externalRef": f"FT-{stamp}"})
     check("v1 book on C1 session: 201, X-Route modern, v1 shape {bookingId,status}",
           s == 201 and h.get("X-Route") == "modern" and isinstance(b1, dict) and set(b1) == {"bookingId", "status"}, f"{s} {b1}")
@@ -127,7 +131,7 @@ def main():
     check("v1 book on C2 session: 201, X-Route legacy, v1 shape", s == 201 and h.get("X-Route") == "legacy"
           and isinstance(b2, dict) and set(b2) == {"bookingId", "status"}, f"{s} {b2}")
     check("legacy Booking row written", legacy_id is not None and
-          sql(f"SELECT COUNT(*) FROM Booking WHERE BookingId={legacy_id} AND ExamSessionId={LEGACY_SESSION}") == "1",
+          sql(f"SELECT COUNT(*) FROM Booking WHERE BookingId={legacy_id} AND SessionId={LEGACY_SESSION}") == "1",
           f"Booking count {before} -> {sql('SELECT COUNT(*) FROM Booking')}")
 
     s, _, err = http("POST", f"{GW}/api/v2/bookings", {"sessionId": LEGACY_SESSION, "candidateNumber": cand(2)})
