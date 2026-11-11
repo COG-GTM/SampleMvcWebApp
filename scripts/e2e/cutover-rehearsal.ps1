@@ -78,7 +78,7 @@ $a = @(); if ($SkipBuild) { $a += '-SkipBuild' }
 try { Sql @('-Q', 'SELECT 1') } catch {
     # fresh machine: the legacy launcher installs/configures SQL Server and the sa login before the db apply script can run
     Step 'SQL Server not ready: letting the legacy launcher initialize it'
-    & (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -NoPortal @a
+    & (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -NoPortal -SaPassword $SaPassword @a
     & (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -Stop
 }
 Step 'legacy: building the production copy from the legacy-baseline db scripts and backing it up'
@@ -87,7 +87,7 @@ if ($LASTEXITCODE -ne 0) { throw 'production copy build failed' }
 # one copy for both runs: rebuilding twice would give the seed's trigger-written AuditLog rows different LoggedAt values
 Sql @('-Q', "BACKUP DATABASE AssessmentDelivery TO DISK = N'$CopyFile' WITH INIT, COPY_ONLY")
 Step 'legacy: starting the legacy estate on the copy'
-& (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -SkipDb @a
+& (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -SkipDb -SaPassword $SaPassword @a
 Invoke-Py @((Join-Path $PSScriptRoot 'cutover.py'), 'capture', '--target', 'legacy', '--repo', $LegacyRoot, '--out', (Join-Path $OutDir 'legacy.json'))
 & (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -Stop
 
@@ -117,7 +117,7 @@ Set-Content (Join-Path $runDir 'scheduling-service.pid') $p.Id
 Wait-Http 'http://localhost:8084/api/v1/sessions/1' 180
 Remove-Item Env:\SCHEDULING_IMPORT
 Step 'starting the rewired portal, booking-api and results-service from this checkout'
-& (Join-Path $root 'scripts\run-legacy.ps1') -SkipDb @a
+& (Join-Path $root 'scripts\run-legacy.ps1') -SkipDb -SaPassword $SaPassword @a
 Invoke-Py @((Join-Path $PSScriptRoot 'cutover.py'), 'capture', '--target', 'migrated', '--repo', $root, '--out', (Join-Path $OutDir 'migrated.json'))
 
 # ---------------------------------------------------------------- 3. diff
