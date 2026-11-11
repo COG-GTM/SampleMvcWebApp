@@ -734,3 +734,4 @@ components:
         updated: {type: integer}
         skipped: {type: integer, description: 'lost compare-and-set'}
         error: {type: string, nullable: true}
+        actor: {type: string, description: 'audit actor of the run (X-Actor, else capacity-sync); seeded runs carry the legacy AuditLog actor'}

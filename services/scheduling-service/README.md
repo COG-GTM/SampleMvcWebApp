@@ -79,7 +79,7 @@ No authentication: the service keeps the legacy trust model (shared `ad_app`, in
 | `usp_ChangeCapacity` + `trg_ExamSession_Update` | `changeCapacity` + `Demotion`: delta applied with a zero floor, then on a cut the newest BOOKED rows (`BookedAt DESC`) are demoted and seats recounted as `Capacity - BOOKED` (HB-05) |
 | `usp_RescheduleBooking` | `reschedulePortal`: same-exam guard before the transaction, then lock both sessions (ascending SessionId) and cancel + book in one transaction, so crossing reschedules serialise instead of deadlocking (HB-15). Any 1205 victim is retried up to 5 times |
 | `trg_Booking_SeatSync` | explicit: a PARTNER booking takes 2 seats (HB-01) only while `scheduling.legacy-seat-accounting=true` (env `SCHEDULING_LEGACY_SEAT_ACCOUNTING`). The runtime default is `false`; the characterization target turns it on |
-| `CapacitySyncService.runSync` | `SeatReconciler`: `max(0, Capacity - AccommodationCapacity - StandardBooked)` with a compare-and-set, `CAPACITY_SYNC` audit rows, run history (HB-03) |
+| `CapacitySyncService.runSync` | `SeatReconciler` (compare-and-set, `CAPACITY_SYNC` audit rows, run history seeded from legacy `CAPACITY_SYNC` audit at import). Formula: `Capacity - (BOOKED + ATTENDED)` on every session by default, so each run converges to zero drift (HB-03 intentionally removed). capacity-sync's `max(0, Capacity - AccommodationCapacity - StandardBooked)` on OPEN sessions applies only with `SCHEDULING_LEGACY_SEAT_ACCOUNTING=true` |
 
 Proc rejections come back as `{error, message, legacyState}`. `legacyState` is the RAISERROR state, and `5000+state` is
 the documented code (HB-14). The message text is the proc's.
