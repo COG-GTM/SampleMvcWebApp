@@ -45,7 +45,7 @@ final class RetiredPortalLinks {
         }
         if (BOOKING_INDEX.matcher(path).matches()) {
             return target(centerKey, center, c -> optional(optional(optional(link("/app"),
-                    "centerCode", c), "examCode", p.get("examcode")), "date", p.get("from")));
+                    "centerCode", c), "examCode", p.get("examcode")), "date", singleDay(p)));
         }
         if (BOOK.matcher(path).matches() && isNumber(p.get("sessionid"))) {
             return target(ResolveKey.session(p.get("sessionid")), center,
@@ -79,6 +79,11 @@ final class RetiredPortalLinks {
 
     private static UriComponentsBuilder withCandidate(UriComponentsBuilder b, Map<String, String> p) {
         return optional(b, "candidateNumber", p.get("candidatenumber"));
+    }
+
+    /** The modern search filters one day: a From-To range opens the open-ended list instead of its first day. */
+    private static String singleDay(Map<String, String> p) {
+        return !has(p, "to") || p.get("to").trim().equals(String.valueOf(p.get("from")).trim()) ? p.get("from") : null;
     }
 
     private static boolean has(Map<String, String> p, String key) {

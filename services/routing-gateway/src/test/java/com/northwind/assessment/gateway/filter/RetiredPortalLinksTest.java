@@ -33,6 +33,14 @@ class RetiredPortalLinksTest {
     }
 
     @Test
+    void searchRangeDoesNotCollapseToItsFirstDay() {
+        assertThat(match("/booking", Map.of("centercode", "den01", "from", "2026-12-01", "to", "2026-12-20"))
+                .location().apply("DEN01")).isEqualTo("/app?centerCode=DEN01");
+        assertThat(match("/booking", Map.of("centercode", "den01", "from", "2026-12-01", "to", "2026-12-01"))
+                .location().apply("DEN01")).isEqualTo("/app?centerCode=DEN01&date=2026-12-01");
+    }
+
+    @Test
     void searchPageWithoutParametersGoesToTheModernSearch() {
         assertThat(match("/booking", Map.of()).location().apply(null)).isEqualTo("/app");
         assertThat(match("/booking/index/", Map.of()).location().apply(null)).isEqualTo("/app");
