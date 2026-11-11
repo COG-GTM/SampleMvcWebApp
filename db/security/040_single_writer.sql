@@ -28,6 +28,7 @@ BEGIN
     SET @u = QUOTENAME(@name);
     SET @sql = N'DENY INSERT, UPDATE, DELETE ON dbo.Booking TO ' + @u + N';'
              + N'DENY INSERT, UPDATE, DELETE ON dbo.Waitlist TO ' + @u + N';'
+             + N'DENY INSERT, DELETE ON dbo.ExamSession TO ' + @u + N';'
              + N'DENY UPDATE ON dbo.ExamSession (Capacity, SeatsAvailable, AccommodationCapacity) TO ' + @u + N';'
              + N'DENY EXECUTE ON dbo.usp_BookSeat TO ' + @u + N';'
              + N'DENY EXECUTE ON dbo.usp_CancelBooking TO ' + @u + N';'
