@@ -1,0 +1,1255 @@
+openapi: 3.0.1
+info:
+  description: |
+    Test-centre scheduling API of the Northwind Assessment Network (scheduling-service, MBA-3821).
+    Consumers: the modern UI under `/app` and the routing gateway's `/api/v1` -> `/api/v2` translation (M3).
+    The committed contract is `services/scheduling-service/api/openapi.yaml`; breaking changes against
+    `api/baseline/` fail the build (OpenApiCompatibilityTest). Rule decisions: docs/adr/0002-ported-rule-decisions.md.
+
+    ## Errors
+    Every 4xx is an `ApiError`: `error` is the symbolic code, `message` is human readable, and `legacyCode` is
+    `50000 + RAISERROR state` of the legacy procs (ODD-11, HB-14), e.g. `NO_ACCOMMODATION_SEAT` = 50003, or
+    null when the rule never existed as a proc error. Malformed input (unreadable JSON, wrong path/param type)
+    answers `BAD_REQUEST` without `legacyCode`.
+
+    | error | HTTP | legacyCode |
+    |---|---|---|
+    | `VALIDATION` | 400 | null |
+    | `BAD_REQUEST` | 400 | null |
+    | `CANDIDATE_NOT_FOUND` | 404 | null |
+    | `SESSION_NOT_FOUND` | 404 | null |
+    | `BOOKING_NOT_FOUND` | 404 | null |
+    | `EXAM_NOT_FOUND` | 404 | null |
+    | `CENTER_NOT_FOUND` | 404 | null |
+    | `SESSION_NOT_OPEN` | 409 | 50001 |
+    | `DUPLICATE_BOOKING` | 409 | 50002 |
+    | `NO_ACCOMMODATION_SEAT` | 409 | 50003 |
+    | `NOT_CANCELLABLE` | 409 | 50004 |
+    | `INVALID_CAPACITY` | 409 | 50005 |
+    | `DIFFERENT_EXAM` | 409 | 50006 |
+    | `SAME_SESSION` | 409 | null |
+    | `NOT_ELIGIBLE` | 409 | null |
+  title: Northwind Scheduling API
+  version: 2.0.0
+servers:
+- description: scheduling-service (default :8090)
+  url: /
+tags:
+- name: Bookings
+- name: Candidates
+- name: Capacity
+- name: Reference data
+- name: Sessions
+paths:
+  /api/v2/bookings:
+    post:
+      operationId: book
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookRequest"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingResultDto"
+          description: Created
+        "400":
+          content:
+            application/json:
+              examples:
+                VALIDATION:
+                  summary: VALIDATION
+                  value:
+                    error: VALIDATION
+                    legacyCode: null
+                    message: sessionId and candidateNumber are required
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: VALIDATION"
+        "404":
+          content:
+            application/json:
+              examples:
+                CANDIDATE_NOT_FOUND:
+                  summary: CANDIDATE_NOT_FOUND
+                  value:
+                    error: CANDIDATE_NOT_FOUND
+                    legacyCode: null
+                    message: Candidate NW00009999 not found
+                SESSION_NOT_FOUND:
+                  summary: SESSION_NOT_FOUND
+                  value:
+                    error: SESSION_NOT_FOUND
+                    legacyCode: null
+                    message: Session 99999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: CANDIDATE_NOT_FOUND, SESSION_NOT_FOUND"
+        "409":
+          content:
+            application/json:
+              examples:
+                DUPLICATE_BOOKING:
+                  summary: DUPLICATE_BOOKING (legacy 50002)
+                  value:
+                    error: DUPLICATE_BOOKING
+                    legacyCode: 50002
+                    message: Candidate NW00000901 already has an active booking on
+                      session 154
+                NOT_ELIGIBLE:
+                  summary: NOT_ELIGIBLE
+                  value:
+                    error: NOT_ELIGIBLE
+                    legacyCode: null
+                    message: "Candidate NW00000939 is not eligible to book MHL-RN1\
+                      \ (RETAKE_WAIT_NOT_ELAPSED), earliest retake date 2026-12-07"
+                NO_ACCOMMODATION_SEAT:
+                  summary: NO_ACCOMMODATION_SEAT (legacy 50003)
+                  value:
+                    error: NO_ACCOMMODATION_SEAT
+                    legacyCode: 50003
+                    message: No accommodation seat available on session 155
+                SESSION_NOT_OPEN:
+                  summary: SESSION_NOT_OPEN (legacy 50001)
+                  value:
+                    error: SESSION_NOT_OPEN
+                    legacyCode: 50001
+                    message: Session 263 is not open for booking
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Rule violation: SESSION_NOT_OPEN, DUPLICATE_BOOKING, NO_ACCOMMODATION_SEAT,\
+            \ NOT_ELIGIBLE"
+      summary: "Book a seat (WAITLISTED when the session is full); returns the legacy\
+        \ {bookingId, status} plus the live booking and session"
+      tags:
+      - Bookings
+  /api/v2/bookings/{bookingId}:
+    delete:
+      operationId: cancel
+      parameters:
+      - in: path
+        name: bookingId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - in: query
+        name: reason
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Failed to convert value of type 'java.lang.String' to
+                      required type 'int'
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: BAD_REQUEST"
+        "404":
+          content:
+            application/json:
+              examples:
+                BOOKING_NOT_FOUND:
+                  summary: BOOKING_NOT_FOUND
+                  value:
+                    error: BOOKING_NOT_FOUND
+                    legacyCode: null
+                    message: Booking 99999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: BOOKING_NOT_FOUND"
+        "409":
+          content:
+            application/json:
+              examples:
+                NOT_CANCELLABLE:
+                  summary: NOT_CANCELLABLE (legacy 50004)
+                  value:
+                    error: NOT_CANCELLABLE
+                    legacyCode: 50004
+                    message: Booking 1201 is CANCELLED
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Rule violation: NOT_CANCELLABLE"
+      summary: "Cancel a booking (frees the seat, nobody is promoted, ODD-09)"
+      tags:
+      - Bookings
+    get:
+      operationId: booking
+      parameters:
+      - in: path
+        name: bookingId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Failed to convert value of type 'java.lang.String' to
+                      required type 'int'
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: BAD_REQUEST"
+        "404":
+          content:
+            application/json:
+              examples:
+                BOOKING_NOT_FOUND:
+                  summary: BOOKING_NOT_FOUND
+                  value:
+                    error: BOOKING_NOT_FOUND
+                    legacyCode: null
+                    message: Booking 99999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: BOOKING_NOT_FOUND"
+      summary: Get a booking
+      tags:
+      - Bookings
+  /api/v2/bookings/{bookingId}/reschedule:
+    post:
+      operationId: reschedule
+      parameters:
+      - in: path
+        name: bookingId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RescheduleRequest"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingResultDto"
+          description: Created
+        "400":
+          content:
+            application/json:
+              examples:
+                VALIDATION:
+                  summary: VALIDATION
+                  value:
+                    error: VALIDATION
+                    legacyCode: null
+                    message: sessionId and candidateNumber are required
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: VALIDATION"
+        "404":
+          content:
+            application/json:
+              examples:
+                BOOKING_NOT_FOUND:
+                  summary: BOOKING_NOT_FOUND
+                  value:
+                    error: BOOKING_NOT_FOUND
+                    legacyCode: null
+                    message: Booking 99999 not found
+                SESSION_NOT_FOUND:
+                  summary: SESSION_NOT_FOUND
+                  value:
+                    error: SESSION_NOT_FOUND
+                    legacyCode: null
+                    message: Session 99999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: BOOKING_NOT_FOUND, SESSION_NOT_FOUND"
+        "409":
+          content:
+            application/json:
+              examples:
+                DIFFERENT_EXAM:
+                  summary: DIFFERENT_EXAM (legacy 50006)
+                  value:
+                    error: DIFFERENT_EXAM
+                    legacyCode: 50006
+                    message: Booking 1201 cannot be moved to session 155 (different
+                      exam)
+                NOT_CANCELLABLE:
+                  summary: NOT_CANCELLABLE (legacy 50004)
+                  value:
+                    error: NOT_CANCELLABLE
+                    legacyCode: 50004
+                    message: Booking 1201 is CANCELLED
+                NOT_ELIGIBLE:
+                  summary: NOT_ELIGIBLE
+                  value:
+                    error: NOT_ELIGIBLE
+                    legacyCode: null
+                    message: "Candidate NW00000939 is not eligible to book MHL-RN1\
+                      \ (RETAKE_WAIT_NOT_ELAPSED), earliest retake date 2026-12-07"
+                NO_ACCOMMODATION_SEAT:
+                  summary: NO_ACCOMMODATION_SEAT (legacy 50003)
+                  value:
+                    error: NO_ACCOMMODATION_SEAT
+                    legacyCode: 50003
+                    message: No accommodation seat available on session 155
+                SAME_SESSION:
+                  summary: SAME_SESSION
+                  value:
+                    error: SAME_SESSION
+                    legacyCode: null
+                    message: Booking 1201 is already on session 154
+                SESSION_NOT_OPEN:
+                  summary: SESSION_NOT_OPEN (legacy 50001)
+                  value:
+                    error: SESSION_NOT_OPEN
+                    legacyCode: 50001
+                    message: Session 263 is not open for booking
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Rule violation: NOT_CANCELLABLE, SAME_SESSION, DIFFERENT_EXAM,\
+            \ SESSION_NOT_OPEN, NO_ACCOMMODATION_SEAT, NOT_ELIGIBLE"
+      summary: "Reschedule a booking to another session of the same exam (cancel +\
+        \ book, new booking id, ODD-05)"
+      tags:
+      - Bookings
+  /api/v2/candidates/{candidateNumber}:
+    get:
+      operationId: candidate
+      parameters:
+      - in: path
+        name: candidateNumber
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidateDto"
+          description: OK
+        "404":
+          content:
+            application/json:
+              examples:
+                CANDIDATE_NOT_FOUND:
+                  summary: CANDIDATE_NOT_FOUND
+                  value:
+                    error: CANDIDATE_NOT_FOUND
+                    legacyCode: null
+                    message: Candidate NW00009999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: CANDIDATE_NOT_FOUND"
+      summary: Get a candidate profile
+      tags:
+      - Candidates
+  /api/v2/candidates/{candidateNumber}/bookings:
+    get:
+      operationId: candidateBookings
+      parameters:
+      - in: path
+        name: candidateNumber
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookingDto"
+          description: OK
+        "404":
+          content:
+            application/json:
+              examples:
+                CANDIDATE_NOT_FOUND:
+                  summary: CANDIDATE_NOT_FOUND
+                  value:
+                    error: CANDIDATE_NOT_FOUND
+                    legacyCode: null
+                    message: Candidate NW00009999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: CANDIDATE_NOT_FOUND"
+      summary: List a candidate's bookings
+      tags:
+      - Candidates
+  /api/v2/candidates/{candidateNumber}/eligibility:
+    get:
+      operationId: eligibility
+      parameters:
+      - in: path
+        name: candidateNumber
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: examCode
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: date
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EligibilityDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                VALIDATION:
+                  summary: VALIDATION
+                  value:
+                    error: VALIDATION
+                    legacyCode: null
+                    message: sessionId and candidateNumber are required
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: VALIDATION"
+        "404":
+          content:
+            application/json:
+              examples:
+                CANDIDATE_NOT_FOUND:
+                  summary: CANDIDATE_NOT_FOUND
+                  value:
+                    error: CANDIDATE_NOT_FOUND
+                    legacyCode: null
+                    message: Candidate NW00009999 not found
+                EXAM_NOT_FOUND:
+                  summary: EXAM_NOT_FOUND
+                  value:
+                    error: EXAM_NOT_FOUND
+                    legacyCode: null
+                    message: Exam NOPE not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: CANDIDATE_NOT_FOUND, EXAM_NOT_FOUND"
+      summary: "Check retake eligibility for an exam (calendar days, ODD-04)"
+      tags:
+      - Candidates
+  /api/v2/centers:
+    get:
+      operationId: centers
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CenterDto"
+          description: OK
+      summary: List test centres
+      tags:
+      - Reference data
+  /api/v2/centers/{centerCode}/sessions:
+    get:
+      operationId: sessions
+      parameters:
+      - in: path
+        name: centerCode
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: examCode
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: from
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: to
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SessionDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                VALIDATION:
+                  summary: VALIDATION
+                  value:
+                    error: VALIDATION
+                    legacyCode: null
+                    message: sessionId and candidateNumber are required
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: VALIDATION"
+        "404":
+          content:
+            application/json:
+              examples:
+                CENTER_NOT_FOUND:
+                  summary: CENTER_NOT_FOUND
+                  value:
+                    error: CENTER_NOT_FOUND
+                    legacyCode: null
+                    message: Center NOPE not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: CENTER_NOT_FOUND"
+      summary: Search a centre's sessions (optional exam and date range)
+      tags:
+      - Sessions
+  /api/v2/exams:
+    get:
+      operationId: exams
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExamDto"
+          description: OK
+      summary: List published exams
+      tags:
+      - Reference data
+  /api/v2/sessions/{sessionId}:
+    get:
+      operationId: session
+      parameters:
+      - in: path
+        name: sessionId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Failed to convert value of type 'java.lang.String' to
+                      required type 'int'
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: BAD_REQUEST"
+        "404":
+          content:
+            application/json:
+              examples:
+                SESSION_NOT_FOUND:
+                  summary: SESSION_NOT_FOUND
+                  value:
+                    error: SESSION_NOT_FOUND
+                    legacyCode: null
+                    message: Session 99999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: SESSION_NOT_FOUND"
+      summary: Get a session with derived seat counts
+      tags:
+      - Sessions
+  /api/v2/sessions/{sessionId}/capacity:
+    put:
+      operationId: changeCapacity
+      parameters:
+      - in: path
+        name: sessionId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CapacityRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CapacityResultDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                VALIDATION:
+                  summary: VALIDATION
+                  value:
+                    error: VALIDATION
+                    legacyCode: null
+                    message: sessionId and candidateNumber are required
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: VALIDATION"
+        "404":
+          content:
+            application/json:
+              examples:
+                SESSION_NOT_FOUND:
+                  summary: SESSION_NOT_FOUND
+                  value:
+                    error: SESSION_NOT_FOUND
+                    legacyCode: null
+                    message: Session 99999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: SESSION_NOT_FOUND"
+        "409":
+          content:
+            application/json:
+              examples:
+                INVALID_CAPACITY:
+                  summary: INVALID_CAPACITY (legacy 50005)
+                  value:
+                    error: INVALID_CAPACITY
+                    legacyCode: 50005
+                    message: "Capacity 1 is invalid for session 154 (must be at least\
+                      \ 2, the accommodation capacity)"
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Rule violation: INVALID_CAPACITY"
+      summary: "Change a session's capacity (newest bookings above it are demoted\
+        \ to the waitlist, ODD-02)"
+      tags:
+      - Capacity
+  /api/v2/sessions/{sessionId}/capacity-changes:
+    get:
+      operationId: capacityChanges
+      parameters:
+      - in: path
+        name: sessionId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CapacityChangeDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Failed to convert value of type 'java.lang.String' to
+                      required type 'int'
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: BAD_REQUEST"
+        "404":
+          content:
+            application/json:
+              examples:
+                SESSION_NOT_FOUND:
+                  summary: SESSION_NOT_FOUND
+                  value:
+                    error: SESSION_NOT_FOUND
+                    legacyCode: null
+                    message: Session 99999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: SESSION_NOT_FOUND"
+      summary: List a session's capacity changes
+      tags:
+      - Capacity
+  /api/v2/sessions/{sessionId}/waitlist:
+    get:
+      operationId: waitlist
+      parameters:
+      - in: path
+        name: sessionId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WaitlistEntryDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Failed to convert value of type 'java.lang.String' to
+                      required type 'int'
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: BAD_REQUEST"
+        "404":
+          content:
+            application/json:
+              examples:
+                SESSION_NOT_FOUND:
+                  summary: SESSION_NOT_FOUND
+                  value:
+                    error: SESSION_NOT_FOUND
+                    legacyCode: null
+                    message: Session 99999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: SESSION_NOT_FOUND"
+      summary: List a session's waitlist in position order
+      tags:
+      - Sessions
+components:
+  schemas:
+    ApiError:
+      type: object
+      description: Error body of every 4xx answer (ApiExceptionHandler)
+      properties:
+        error:
+          type: string
+          description: Symbolic error code (booking-api vocabulary)
+          enum:
+          - VALIDATION
+          - BAD_REQUEST
+          - CANDIDATE_NOT_FOUND
+          - SESSION_NOT_FOUND
+          - BOOKING_NOT_FOUND
+          - EXAM_NOT_FOUND
+          - CENTER_NOT_FOUND
+          - SESSION_NOT_OPEN
+          - DUPLICATE_BOOKING
+          - NO_ACCOMMODATION_SEAT
+          - NOT_CANCELLABLE
+          - INVALID_CAPACITY
+          - DIFFERENT_EXAM
+          - SAME_SESSION
+          - NOT_ELIGIBLE
+          example: NO_ACCOMMODATION_SEAT
+        legacyCode:
+          type: integer
+          format: int32
+          description: "50000 + legacy proc RAISERROR state (ODD-11): 50001..50006,\
+            \ see the table in the API description; null when the rule had no proc\
+            \ error. Present on /api/v2 rule errors, absent for BAD_REQUEST and on\
+            \ /api/v1."
+          example: 50003
+          nullable: true
+        message:
+          type: string
+          description: Human-readable message
+          example: No accommodation seat available on session 155
+      required:
+      - error
+      - message
+    BookRequest:
+      type: object
+      properties:
+        accommodationCode:
+          type: string
+          example: ET25
+          nullable: true
+        candidateNumber:
+          type: string
+          example: NW00000920
+        channel:
+          type: string
+          description: Booking channel; defaults to PORTAL (scheduling.default-channel)
+          enum:
+          - PORTAL
+          - PARTNER
+          example: PORTAL
+          nullable: true
+        externalRef:
+          type: string
+          example: PX-3008
+          nullable: true
+        sessionId:
+          type: integer
+          format: int32
+          example: 154
+      required:
+      - candidateNumber
+      - sessionId
+    BookingDto:
+      type: object
+      properties:
+        accommodationCode:
+          type: string
+          example: ET25
+          nullable: true
+        bookedAt:
+          type: string
+          format: date-time
+        bookingId:
+          type: integer
+          format: int32
+          example: 1201
+        cancelReason:
+          type: string
+          nullable: true
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+        candidateName:
+          type: string
+          example: First20 Last20
+        candidateNumber:
+          type: string
+          example: NW00000920
+        centerCode:
+          type: string
+          example: SFO01
+        centerName:
+          type: string
+          example: Bayside Assessment Centre
+        channel:
+          type: string
+          enum:
+          - PORTAL
+          - PARTNER
+          - IMPORT
+          example: PORTAL
+        examCode:
+          type: string
+          example: MHL-RN1
+        examTitle:
+          type: string
+          example: Registered Nurse Part 1
+        externalRef:
+          type: string
+          example: PX-3008
+          nullable: true
+        rescheduledFrom:
+          type: integer
+          format: int32
+          nullable: true
+        sessionId:
+          type: integer
+          format: int32
+          example: 154
+        sessionStartsAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - BOOKED
+          - WAITLISTED
+          - CANCELLED
+          - ATTENDED
+          example: BOOKED
+        waitlistPosition:
+          type: integer
+          format: int32
+          nullable: true
+      required:
+      - accommodationCode
+      - bookedAt
+      - bookingId
+      - cancelReason
+      - cancelledAt
+      - candidateName
+      - candidateNumber
+      - centerCode
+      - centerName
+      - channel
+      - examCode
+      - examTitle
+      - externalRef
+      - rescheduledFrom
+      - sessionId
+      - sessionStartsAt
+      - status
+      - waitlistPosition
+    BookingResultDto:
+      type: object
+      properties:
+        booking:
+          $ref: "#/components/schemas/BookingDto"
+        bookingId:
+          type: integer
+          format: int32
+          example: 1201
+        session:
+          $ref: "#/components/schemas/SessionDto"
+        status:
+          type: string
+          enum:
+          - BOOKED
+          - WAITLISTED
+          - CANCELLED
+          - ATTENDED
+          example: BOOKED
+        waitlistPosition:
+          type: integer
+          format: int32
+          nullable: true
+      required:
+      - booking
+      - bookingId
+      - session
+      - status
+      - waitlistPosition
+    CandidateDto:
+      type: object
+      properties:
+        candidateNumber:
+          type: string
+          example: NW00000920
+        defaultAccommodationCode:
+          type: string
+          example: ET25
+          nullable: true
+        email:
+          type: string
+          example: c20@example.test
+        firstName:
+          type: string
+          example: First20
+        lastName:
+          type: string
+          example: Last20
+      required:
+      - candidateNumber
+      - defaultAccommodationCode
+      - email
+      - firstName
+      - lastName
+    CapacityChangeDto:
+      type: object
+      properties:
+        changedAt:
+          type: string
+          format: date-time
+        changedBy:
+          type: string
+          example: scheduling-service
+        demotedBookings:
+          type: integer
+          format: int32
+        id:
+          type: integer
+          format: int32
+        newCapacity:
+          type: integer
+          format: int32
+        oldCapacity:
+          type: integer
+          format: int32
+        reason:
+          type: string
+          example: Room maintenance
+          nullable: true
+      required:
+      - changedAt
+      - changedBy
+      - demotedBookings
+      - id
+      - newCapacity
+      - oldCapacity
+      - reason
+    CapacityRequest:
+      type: object
+      properties:
+        capacity:
+          type: integer
+          format: int32
+          example: 20
+        reason:
+          type: string
+          example: Room maintenance
+          nullable: true
+      required:
+      - capacity
+    CapacityResultDto:
+      type: object
+      properties:
+        demotedBookingIds:
+          type: array
+          items:
+            type: integer
+            format: int32
+        newCapacity:
+          type: integer
+          format: int32
+          example: 5
+        oldCapacity:
+          type: integer
+          format: int32
+          example: 20
+        session:
+          $ref: "#/components/schemas/SessionDto"
+      required:
+      - demotedBookingIds
+      - newCapacity
+      - oldCapacity
+      - session
+    CenterDto:
+      type: object
+      properties:
+        centerCode:
+          type: string
+          example: SFO01
+        city:
+          type: string
+          example: San Francisco
+        name:
+          type: string
+          example: Bayside Assessment Centre
+        region:
+          type: string
+          example: NA-WEST
+        timeZone:
+          type: string
+          example: America/Los_Angeles
+      required:
+      - centerCode
+      - city
+      - name
+      - region
+      - timeZone
+    EligibilityDto:
+      type: object
+      properties:
+        candidateNumber:
+          type: string
+          example: NW00000920
+        date:
+          type: string
+          format: date
+          example: 2026-11-20
+        dayCounting:
+          type: string
+          example: calendar
+        earliestRetakeDate:
+          type: string
+          format: date
+          example: 2026-12-07
+          nullable: true
+        eligible:
+          type: boolean
+          example: false
+        examCode:
+          type: string
+          example: MHL-RN1
+        message:
+          type: string
+          example: Retake not allowed until 07/12/2026
+        reason:
+          type: string
+          enum:
+          - FIRST_ATTEMPT
+          - ALREADY_PASSED
+          - RETAKE_WAIT_NOT_ELAPSED
+          - RETAKE_ALLOWED
+          example: RETAKE_WAIT_NOT_ELAPSED
+      required:
+      - candidateNumber
+      - date
+      - dayCounting
+      - earliestRetakeDate
+      - eligible
+      - examCode
+      - message
+      - reason
+    ExamDto:
+      type: object
+      properties:
+        durationMinutes:
+          type: integer
+          format: int32
+          example: 120
+        examCode:
+          type: string
+          example: MHL-RN1
+        retakeWaitDays:
+          type: integer
+          format: int32
+          example: 30
+        title:
+          type: string
+          example: Registered Nurse Part 1
+      required:
+      - durationMinutes
+      - examCode
+      - retakeWaitDays
+      - title
+    RescheduleRequest:
+      type: object
+      properties:
+        newSessionId:
+          type: integer
+          format: int32
+          example: 163
+      required:
+      - newSessionId
+    SessionDto:
+      type: object
+      properties:
+        accommodationAvailable:
+          type: integer
+          format: int32
+        accommodationCapacity:
+          type: integer
+          format: int32
+          example: 2
+        accommodationUsed:
+          type: integer
+          format: int32
+        bookedSeats:
+          type: integer
+          format: int32
+        capacity:
+          type: integer
+          format: int32
+          example: 20
+        centerCode:
+          type: string
+          example: SFO01
+        centerName:
+          type: string
+          example: Bayside Assessment Centre
+        examCode:
+          type: string
+          example: MHL-RN1
+        examTitle:
+          type: string
+          example: Registered Nurse Part 1
+        roomName:
+          type: string
+          example: Room North
+        seatsAvailable:
+          type: integer
+          format: int32
+        sessionId:
+          type: integer
+          format: int32
+          example: 154
+        startsAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - OPEN
+          - CLOSED
+          - DELIVERED
+          - CANCELLED
+          example: OPEN
+        waitlistCount:
+          type: integer
+          format: int32
+      required:
+      - accommodationAvailable
+      - accommodationCapacity
+      - accommodationUsed
+      - bookedSeats
+      - capacity
+      - centerCode
+      - centerName
+      - examCode
+      - examTitle
+      - roomName
+      - seatsAvailable
+      - sessionId
+      - startsAt
+      - status
+      - waitlistCount
+    WaitlistEntryDto:
+      type: object
+      properties:
+        accommodationCode:
+          type: string
+          example: ET25
+          nullable: true
+        addedAt:
+          type: string
+          format: date-time
+        bookingId:
+          type: integer
+          format: int32
+          example: 1201
+        candidateName:
+          type: string
+          example: First20 Last20
+        candidateNumber:
+          type: string
+          example: NW00000920
+        position:
+          type: integer
+          format: int32
+      required:
+      - accommodationCode
+      - addedAt
+      - bookingId
+      - candidateName
+      - candidateNumber
+      - position

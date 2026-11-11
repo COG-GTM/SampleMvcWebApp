@@ -1,0 +1,22 @@
+description: |
+  v1 -> v2 translation: v2 rule errors carry {error, message, legacyCode}; the gateway maps legacyCode to the
+  portal's numbers (NO_ACCOMMODATION_SEAT = 50003 = 50000 + usp_BookSeat RAISERROR state 3, ODD-11/HB-14).
+name: v2 translated error carries legacy code
+request:
+  method: POST
+  url: /api/v2/bookings
+  headers:
+    Content-Type: application/json
+  body:
+    sessionId: 155
+    candidateNumber: NW00000940
+    accommodationCode: ET25
+    channel: PARTNER
+response:
+  status: 409
+  headers:
+    Content-Type: application/json
+  body:
+    error: NO_ACCOMMODATION_SEAT
+    message: No accommodation seat available on session 155
+    legacyCode: 50003

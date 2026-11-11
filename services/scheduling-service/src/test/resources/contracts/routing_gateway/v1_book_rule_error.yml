@@ -1,0 +1,19 @@
+description: |
+  Gateway v1 facade: a rule violation answers booking-api's {error, message} (no legacyCode on /api/v1).
+name: v1 book rule error keeps booking-api error shape
+request:
+  method: POST
+  url: /api/v1/bookings
+  headers:
+    Content-Type: application/json
+  body:
+    sessionId: 155
+    candidateNumber: NW00000940
+    accommodationCode: ET25
+response:
+  status: 409
+  headers:
+    Content-Type: application/json
+  body:
+    error: NO_ACCOMMODATION_SEAT
+    message: No accommodation seat available on session 155

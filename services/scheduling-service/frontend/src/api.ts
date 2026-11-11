@@ -1,3 +1,5 @@
+import type { BookRequest, CapacityRequest, RescheduleRequest } from './api.contract';
+
 export interface Center { centerCode: string; name: string; city: string; region: string; timeZone: string }
 export interface Exam { examCode: string; title: string; durationMinutes: number; retakeWaitDays: number }
 export interface Session {
@@ -50,16 +52,16 @@ export const api = {
   session: (id: number) => call<Session>('GET', `/sessions/${id}`),
   waitlist: (id: number) => call<WaitlistEntry[]>('GET', `/sessions/${id}/waitlist`),
   changeCapacity: (id: number, capacity: number, reason?: string) =>
-    call<CapacityResult>('PUT', `/sessions/${id}/capacity`, { capacity, reason }),
+    call<CapacityResult>('PUT', `/sessions/${id}/capacity`, { capacity, reason } satisfies CapacityRequest),
   candidate: (n: string) => call<Candidate>('GET', `/candidates/${encodeURIComponent(n)}`),
   bookings: (n: string) => call<Booking[]>('GET', `/candidates/${encodeURIComponent(n)}/bookings`),
   eligibility: (n: string, examCode: string, date?: string) =>
     call<Eligibility>('GET', `/candidates/${encodeURIComponent(n)}/eligibility${q({ examCode, date })}`),
   book: (sessionId: number, candidateNumber: string, accommodationCode?: string) =>
-    call<BookingResult>('POST', '/bookings', { sessionId, candidateNumber, accommodationCode: accommodationCode || null }),
+    call<BookingResult>('POST', '/bookings', { sessionId, candidateNumber, accommodationCode: accommodationCode || null } satisfies BookRequest),
   booking: (id: number) => call<Booking>('GET', `/bookings/${id}`),
   cancel: (id: number) => call<Booking>('DELETE', `/bookings/${id}`),
-  reschedule: (id: number, newSessionId: number) => call<BookingResult>('POST', `/bookings/${id}/reschedule`, { newSessionId }),
+  reschedule: (id: number, newSessionId: number) => call<BookingResult>('POST', `/bookings/${id}/reschedule`, { newSessionId } satisfies RescheduleRequest),
 };
 
 export const ACCOMMODATIONS = [

@@ -1,0 +1,16 @@
+description: |
+  Gateway v1 facade: a first attempt is eligible and earliestRetakeDate is present as JSON null.
+name: v1 eligibility first attempt
+request:
+  method: GET
+  url: /api/v1/candidates/NW00000901/eligibility
+  queryParameters:
+    examCode: MHL-RN1
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    eligible: true
+    reason: FIRST_ATTEMPT
+    earliestRetakeDate: null

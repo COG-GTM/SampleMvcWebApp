@@ -1,0 +1,25 @@
+description: UI reschedule (api.reschedule) answers 201 with a new booking id pointing back at the old one (ODD-05).
+name: ui reschedules a booking
+request:
+  method: POST
+  url: /api/v2/bookings/1/reschedule
+  headers:
+    Content-Type: application/json
+  body:
+    newSessionId: 163
+response:
+  status: 201
+  headers:
+    Content-Type: application/json
+  body:
+    bookingId: 14
+    status: WAITLISTED
+    waitlistPosition: 2
+    booking:
+      sessionId: 163
+      candidateNumber: NW00000901
+      rescheduledFrom: 1
+  matchers:
+    body:
+      - path: $.bookingId
+        type: by_type
