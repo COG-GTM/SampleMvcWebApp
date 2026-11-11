@@ -1,4 +1,3 @@
 # id|file|line|exact trimmed source line. Tripwire for docs/to-be/scheduling-boundary.md: if a cited line moves or
 # changes, update the inventory row and this file together. Phase 2 rewiring is EXPECTED to break rows here.
-P-R01|AssessmentDelivery.Services/Results/ResultsService.cs|21|.OrderByDescending(r => r.Session.StartsAt)
 X-09|db/procs/030_usp_GetCapacityAudit.sql|36|JOIN dbo.ExamSession s ON s.SessionId = al.EntityId

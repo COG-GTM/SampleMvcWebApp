@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -91,6 +91,19 @@ namespace AssessmentDelivery.Tests.UnitTests
         }
 
         [Test]
+        public void CapacityAuditSendsIsoDatesWithAnInclusiveToDay()
+        {
+            RespondOnce(200, "{\"rows\":[],\"total\":0}");
+            new SchedulingClient(_baseUrl).GetCapacityAudit(20, new DateTime(2026, 10, 12), new DateTime(2026, 11, 12), 164, 1, 50);
+
+            Assert.AreEqual("GET", _method);
+            StringAssert.StartsWith("/api/v1/sessions/capacity-audit?", _path);
+            StringAssert.Contains("from=2026-10-12&", _path);
+            StringAssert.Contains("to=2026-11-11&", _path);
+            StringAssert.Contains("sessionId=164", _path);
+        }
+
+        [Test]
         public void MissingSessionReadsAsNull()
         {
             RespondOnce(404, "{\"error\":\"SESSION_NOT_FOUND\",\"message\":\"Session 404 was not found.\"}");
@@ -102,6 +115,20 @@ namespace AssessmentDelivery.Tests.UnitTests
         {
             RespondOnce(500, "oops");
             Assert.Throws<SchedulingUnavailableException>(() => new SchedulingClient(_baseUrl).GetBooking(1));
+        }
+
+        [Test]
+        public void UnreachableServiceOnAWriteIsUnavailable()
+        {
+            var closed = new TcpListener(IPAddress.Loopback, 0);
+            closed.Start();
+            var port = ((IPEndPoint)closed.LocalEndpoint).Port;
+            closed.Stop();
+            var client = new SchedulingClient("http://127.0.0.1:" + port + "/api/v1", 5);
+            Assert.Throws<SchedulingUnavailableException>(() => client.Book(new ApiBookRequest
+            {
+                SessionId = 7, CandidateId = 9, AccommodationCode = "NONE", Channel = "PORTAL"
+            }, "portal"));
         }
     }
 }

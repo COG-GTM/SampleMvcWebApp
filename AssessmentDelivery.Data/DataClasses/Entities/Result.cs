@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -20,6 +20,9 @@ namespace AssessmentDelivery.Data.DataClasses.Entities
         public string SourceFile { get; set; }
 
         public DateTime ReceivedAt { get; set; }
+
+        /// <summary>Copy of the session start time taken at ingest (016_result_session_starts_at.sql).</summary>
+        public DateTime? SessionStartsAt { get; set; }
 
         public virtual Booking Booking { get; set; }
         public virtual Candidate Candidate { get; set; }

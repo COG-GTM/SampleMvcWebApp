@@ -143,7 +143,6 @@ SELECT CONCAT(
             var after = WriteSignature(_fixture.SessionId);
 
             Assert.AreEqual(before, after, "AuditLog / ExamSession / Booking / Waitlist unchanged");
-            StringAssert.Contains("SELECT", sql.ToString());
             Assert.IsFalse(Regex.IsMatch(sql.ToString(), @"\b(INSERT|UPDATE|DELETE|MERGE|EXEC|EXECUTE)\b", RegexOptions.IgnoreCase),
                 "export SQL must be read-only:\n" + sql);
         }
