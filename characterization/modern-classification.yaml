@@ -14,62 +14,62 @@ adr_divergences:
     adr: "section 1 (transcript listed)"
     reason: >-
       Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: last_seat_negative_counter_partner
     adr: "section 1 (transcript listed)"
     reason: >-
       Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: cancel_then_new_booker_gets_seat_partner
     adr: "section 1 (transcript listed)"
     reason: >-
       Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: accommodation_sr_rb_not_counted_partner
     adr: "section 1 (transcript listed)"
     reason: >-
       Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: book_inactive_center_partner
     adr: "section 1 (transcript listed)"
     reason: >-
       Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: reschedule_same_exam_partner
     adr: "section 1 (transcript listed)"
     reason: >-
       Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: accommodation_capacity_exhausted_partner
     adr: "section 1 (rule; transcript not on the section 1 list)"
     reason: >-
       Setup includes a partner v1 booking; ADR rule 1 (no partner double decrement, derived seats) is the only difference.
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: capacity_increase_admin
     adr: "section 1 (rule; transcript not on the section 1 list)"
     reason: >-
       Setup includes a partner v1 booking; ADR rule 1 (no partner double decrement, derived seats) is the only difference.
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: capacity_decrease_above_active_admin
     adr: "section 1 (rule; transcript not on the section 1 list)"
     reason: >-
       Setup includes a partner v1 booking; ADR rule 1 (no partner double decrement, derived seats) is the only difference.
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: capacity_decrease_below_active_admin
     adr: "section 1 (rule; transcript not on the section 1 list)"
     reason: >-
       Setup includes a partner v1 booking; ADR rule 1 (no partner double decrement, derived seats) is the only difference.
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: capacity_raise_then_lower_admin
     adr: "section 1 (rule; transcript not on the section 1 list)"
     reason: >-
       Setup includes a partner v1 booking; ADR rule 1 (no partner double decrement, derived seats) is the only difference.
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: accommodation_blank_uses_default_partner
     adr: "sections 6a + 1 (transcript listed in 6a)"
     reason: >-
       Partner blank accommodation books with no accommodation on both estates (6a); the only difference is the derived seat count (1).
-    fields: ["business.seatsAvailable", "db_state.examSession."]
+    fields: ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
   - transcript: accommodation_blank_uses_default_portal
     adr: "section 6a (transcript listed)"
     reason: >-

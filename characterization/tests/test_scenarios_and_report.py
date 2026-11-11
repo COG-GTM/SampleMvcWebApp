@@ -183,3 +183,10 @@ def test_legacy_tree_override(tmp_path):
     from chartool import db
     from chartool.config import Config
     assert db.legacy_tree(Config(legacy_root=str(tmp_path))) == tmp_path
+
+
+def test_adr_field_globs_only_accept_the_listed_session_column():
+    from chartool.cli import _diffs_within
+    seats = ["business.seatsAvailable", "db_state.examSession.*.SeatsAvailable"]
+    assert _diffs_within([("step3.db_state.examSession.153.SeatsAvailable", 5, 4), ("business.seatsAvailable", 5, 4)], seats)
+    assert not _diffs_within([("db_state.examSession.153.Capacity", 20, 21)], seats)

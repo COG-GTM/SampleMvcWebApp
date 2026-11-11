@@ -1,5 +1,6 @@
 """Command line: `capture` (write golden transcripts from the legacy estate) and `replay` (compare a target)."""
 import argparse
+import fnmatch
 import json
 import re
 import subprocess
@@ -56,7 +57,11 @@ def load_classification(path=CLASSIFICATION):
 
 def _diffs_within(diffs, prefixes):
     # per-step paths ("step3.business.x") are judged like the final ones ("business.x")
-    return all(any(re.sub(r"^step\d+\.", "", str(path)).startswith(p) for p in prefixes) for path, _e, _a in diffs)
+    # a prefix with "*" is a glob over the whole path (db_state.examSession.*.SeatsAvailable)
+    def ok(path, p):
+        path = re.sub(r"^step\d+\.", "", str(path))
+        return fnmatch.fnmatchcase(path, p) if "*" in p else path.startswith(p)
+    return all(any(ok(path, p) for p in prefixes) for path, _e, _a in diffs)
 
 
 def _has_signature(actual, signature):
