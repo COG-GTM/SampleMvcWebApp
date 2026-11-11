@@ -42,7 +42,9 @@ public final class CapacityChange {
                     + (floor == AccommodationFloorPolicy.ALLOCATED ? ", the accommodation capacity)" : ", the accommodation seats in use)"));
         }
         List<Demotion> demotions = new ArrayList<>();
-        int excess = booked.size() - newCapacity;
+        // ATTENDED rows occupy seats but are never demoted (only BOOKED rows move, as in 033_trg_ExamSession_Update)
+        int attended = Math.max(0, current.occupiedSeats() - booked.size());
+        int excess = Math.min(booked.size(), booked.size() + attended - newCapacity);
         if (newCapacity < current.capacity() && excess > 0) {
             Comparator<BookedSeat> oldestFirst = Comparator.comparing(BookedSeat::bookedAt)
                     .thenComparingInt(BookedSeat::bookingId);

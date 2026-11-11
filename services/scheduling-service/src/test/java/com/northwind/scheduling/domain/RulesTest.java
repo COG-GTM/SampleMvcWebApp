@@ -173,6 +173,16 @@ class RulesTest {
         }
 
         @Test
+        void attendedSeatsCountTowardsOccupancyButAreNeverDemoted() {
+            List<CapacityChange.BookedSeat> three = nine.subList(0, 3);
+            SessionCapacity twoAttended = new SessionCapacity(5, 0, 5, 0, 0);
+            assertThat(CapacityChange.plan(1, 4, twoAttended, three, null, AccommodationFloorPolicy.ALLOCATED).demotions())
+                    .containsExactly(new CapacityChange.Demotion(103, 1));
+            assertThat(CapacityChange.plan(1, 1, twoAttended, three, null, AccommodationFloorPolicy.ALLOCATED).demotions())
+                    .hasSize(3);
+        }
+
+        @Test
         void belowAccommodationCapacityRejected() { // CP-05/CP-06, ODD-06
             assertThatThrownBy(() -> CapacityChange.plan(154, 1, OPEN_154, nine, null, AccommodationFloorPolicy.ALLOCATED))
                     .isInstanceOf(SchedulingException.class)
