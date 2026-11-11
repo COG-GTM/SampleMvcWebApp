@@ -222,7 +222,7 @@ class GatewayIntegrationTest {
         assertThat(r.getResponseHeaders().getFirst("X-Route")).isEqualTo("modern");
         assertThat(lf(r.getResponseBody())).isEqualTo("{\n  \"bookingId\" : 50000002,\n  \"status\" : \"BOOKED\"\n}");
         scheduling.verify(postRequestedFor(urlEqualTo("/api/v2/bookings/50000001/reschedule"))
-                .withRequestBody(equalToJson("{\"newSessionId\":201}")));
+                .withRequestBody(equalToJson("{\"newSessionId\":201,\"channel\":\"PARTNER\"}")));
     }
 
     @Test

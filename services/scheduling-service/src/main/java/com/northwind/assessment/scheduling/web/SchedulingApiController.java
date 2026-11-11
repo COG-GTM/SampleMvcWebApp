@@ -127,7 +127,7 @@ public class SchedulingApiController {
     @PostMapping("/bookings/{bookingId}/reschedule")
     @ResponseStatus(HttpStatus.CREATED)
     public BookingResult reschedule(@PathVariable long bookingId, @RequestBody Json.RescheduleRequest body) {
-        return service.reschedule(bookingId, body.newSessionId());
+        return service.reschedule(bookingId, body.newSessionId(), body.channel());
     }
 
     @GetMapping("/candidates/{candidateNumber}")

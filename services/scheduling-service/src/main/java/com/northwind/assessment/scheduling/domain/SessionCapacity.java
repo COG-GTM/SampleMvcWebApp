@@ -291,8 +291,9 @@ public final class SessionCapacity {
      */
     public CapacityChange changeCapacity(int newCapacity, AccommodationFloorPolicy floorPolicy) {
         if (newCapacity < 0) {
-            throw new SchedulingRuleException(RuleViolation.VALIDATION, "newCapacity must be zero or more",
-                    RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR.legacyCode());
+            // Request validation, not a usp_ChangeCapacity error: the portal rejected it before calling the proc
+            // (AdminService.ChangeCapacity), so no legacy code was ever surfaced for it.
+            throw new SchedulingRuleException(RuleViolation.VALIDATION, "newCapacity must be zero or more");
         }
         floorPolicy.check(newCapacity, accommodationCapacity, accommodationSeatsUsed(), seatsHeld());
         int old = capacity;

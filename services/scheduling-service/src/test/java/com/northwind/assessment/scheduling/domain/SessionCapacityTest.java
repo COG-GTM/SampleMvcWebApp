@@ -241,7 +241,7 @@ class SessionCapacityTest {
     @Test
     void usp_ChangeCapacity_rejectsNegativeCapacity() {
         SessionCapacity s = open(10, 0);
-        assertViolation(() -> s.changeCapacity(-1, AccommodationFloorPolicy.ALLOCATED), RuleViolation.VALIDATION, 50005);
+        assertViolation(() -> s.changeCapacity(-1, AccommodationFloorPolicy.ALLOCATED), RuleViolation.VALIDATION, null);
     }
 
     @Test

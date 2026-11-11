@@ -1,19 +1,25 @@
 # MBA-3825 parity: legacy estate vs. modern slice through the routing gateway
 
-- **Final head SHA** (`origin/assessment-delivery-demo`, fetched right before branching): `e16030c933e221a4a0fcb52c99872a2708db765f`
+- **Base SHA** (`origin/assessment-delivery-demo`, fetched right before branching): `e45ee7a21c89eee0366dea6032dcd75b69d2af59`
 - Legacy estate: tag `legacy-baseline` = `e458238da39c991b51d8f670f6d0c463b51b372f`, started from a separate worktree
-- Modern estate: final head + this branch (`devin/mba-3825-parity-proof` at `0eb7550`): routing-gateway :8000 -> scheduling-service :8090,
-  M4 outbox relay draining into `AssessmentDelivery`, M5-trimmed portal :8080 behind the gateway. Partner traffic uses partner API v1 through
-  the gateway translation; DB state is read from `AssessmentDelivery` after the relay settles (`db-state=legacy`).
+- Modern estate: base + this branch (`devin/mba-3825-zero-mismatch`, runtime code at `0d73ab1`; later commits change only docs, reports,
+  the classification file and the gateway functional script): routing-gateway :8000 -> scheduling-service :8090, M4 outbox relay
+  draining into `AssessmentDelivery`, M5-trimmed portal :8080 behind the gateway. Partner traffic uses partner API v1 through the
+  gateway translation; DB state is read from `AssessmentDelivery` after the relay settles (`db-state=legacy`).
 - Full per-scenario evidence (request, expected, actual, business-field and normalized DB diffs for every non-MATCH):
-  [`characterization/reports/parity-e16030c.md`](../characterization/reports/parity-e16030c.md)
+  [`characterization/reports/parity-e45ee7a.md`](../characterization/reports/parity-e45ee7a.md). The previous run on `e16030c`
+  (57/86, 7 MISMATCH) stays in [`characterization/reports/parity-e16030c.md`](../characterization/reports/parity-e16030c.md).
 
 | Run | Command | Result |
 |---|---|---|
-| (a) legacy at `legacy-baseline` | `characterization/replay --target legacy --base-url http://localhost:8080` | **86/86 MATCH** ([report](../characterization/reports/replay-legacy-e458238.md)) |
-| (b) modern via :8000 on the final head | `characterization/replay --target modern --base-url http://localhost:8000 --report parity-e16030c.md` | **57/86 MATCH** |
+| (a) legacy at `legacy-baseline` | `characterization/replay --target legacy --estate-dir ../../SampleMvcWebApp-legacy` (estate from the tag worktree) | **86/86 MATCH** ([report](../characterization/reports/replay-legacy-e458238.md)) |
+| (b) modern via :8000 | `characterization/replay --target modern --base-url http://localhost:8000 --report parity-e45ee7a.md` | **63/86 MATCH** |
 
-**Parity line (modern, 86 transcripts): 57/86 MATCH; 16 ADR-APPROVED DIVERGENCE; 1 KNOWN_ONCALL_DEFECT (#57); 7 MISMATCH; 5 NOT REPLAYABLE (retired legacy surface); 0 SKIPPED; 0 ERROR.**
+**Parity line (modern, 86 transcripts): 63/86 MATCH; 17 ADR-APPROVED DIVERGENCE; 1 KNOWN_ONCALL_DEFECT (#57); 0 MISMATCH; 5 NOT REPLAYABLE (retired legacy surface); 0 SKIPPED; 0 ERROR.**
+
+Before every scenario the harness restores `AssessmentDelivery` from the pristine seeded copy and resets the modern side
+(deterministic seed, "now" = 2026-11-10). None of the 57 transcripts that matched on `e16030c` regressed; the 6 new MATCH rows
+and the new ADR row are listed under "Changes since e16030c".
 
 MATCH = same business fields and the same Booking/Waitlist/ExamSession state after normalization. The legacy run also compares
 the raw HTTP status and response. The modern run does not (`characterization/chartool/compare.py`), because the M1 portal
@@ -27,17 +33,17 @@ compared through the business fields instead (`modern_business`). Every other ca
 | booking | 5/9 MATCH | 3 | 0 | 0 | 1 | 0 | 0 |
 | full_session | 2/2 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
 | duplicate_closed | 6/6 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
-| cancellation | 5/9 MATCH | 1 | 0 | 3 | 0 | 0 | 0 |
-| reschedule | 7/10 MATCH | 2 | 0 | 1 | 0 | 0 | 0 |
+| cancellation | 8/9 MATCH | 1 | 0 | 0 | 0 | 0 | 0 |
+| reschedule | 8/10 MATCH | 2 | 0 | 0 | 0 | 0 | 0 |
 | capacity_increase | 1/3 MATCH | 1 | 0 | 0 | 1 | 0 | 0 |
-| capacity_decrease | 2/8 MATCH | 3 | 1 | 1 | 1 | 0 | 0 |
+| capacity_decrease | 3/8 MATCH | 3 | 1 | 0 | 1 | 0 | 0 |
 | retake_eligibility_portal | 10/10 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
 | retake_eligibility_partner | 10/10 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
-| accommodation | 6/11 MATCH | 4 | 0 | 1 | 0 | 0 | 0 |
-| mixed_traffic | 1/4 MATCH | 2 | 0 | 1 | 0 | 0 | 0 |
+| accommodation | 7/11 MATCH | 4 | 0 | 0 | 0 | 0 | 0 |
+| mixed_traffic | 1/4 MATCH | 3 | 0 | 0 | 0 | 0 | 0 |
 | contracts | 2/4 MATCH | 0 | 0 | 0 | 2 | 0 | 0 |
 
-## ADR-APPROVED DIVERGENCE (by transcript id, ADR section cited): 16
+## ADR-APPROVED DIVERGENCE (by transcript id, ADR section cited): 17
 
 | Transcript | Group | ADR 0002 citation |
 |---|---|---|
@@ -57,6 +63,7 @@ compared through the business fields instead (`modern_business`). Every other ca
 | `accommodation_sr_rb_not_counted_partner` | accommodation | ADR 0002 section 1 (transcript listed): Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking. |
 | `capacity_sync_fresh_seed_system` | mixed_traffic | ADR 0002 section 3 (transcript listed): Formula A everywhere; capacity-sync no longer rewrites seats with formula B, so the sync run reports no drift (and section 1 removes the partner drift it used to heal). |
 | `capacity_sync_with_accommodation_bookings` | mixed_traffic | ADR 0002 section 3 (transcript listed): Formula A everywhere; capacity-sync no longer rewrites seats with formula B, so the sync run reports no drift (and section 1 removes the partner drift it used to heal). |
+| `mixed_traffic_then_capacity_sync` | mixed_traffic | ADR 0002 section 7 (transcript listed): Mixed portal/partner traffic then a capacity-sync run: on legacy the partner double decrement (HB-01) made sessions 154/157 look full, so their last bookings were waitlisted, and formula B (HB-03) left drift (reports/drift-before-after.md: 112 before, 0 after). On modern those bookings are seated, nothing is waitlisted and seat-drift.sql reports 0. Only booking status in 154/157, their waitlists, seat counters and the drift counters may differ. |
 
 ## KNOWN_ONCALL_DEFECT (#57): 1
 
@@ -64,17 +71,9 @@ compared through the business fields instead (`modern_business`). Every other ca
 |---|---|---|
 | `capacity_decrease_full_session_with_waitlist_admin` | capacity_decrease | on-call defect #57 - scheduling-service rejects the reduction with 409 CAPACITY_BELOW_ACCOMMODATION_FLOOR (50005); legacy accepts it and bumps the two newest bookings |
 
-## MISMATCH (root cause; none is a migration bug that can be fixed small and low-risk without changing intended behaviour): 7
+## MISMATCH: 0
 
-| Transcript | Group | Root cause |
-|---|---|---|
-| `cancel_on_delivered_session_portal` | cancellation | root cause: Blank cancel reason: scheduling-service stores DEFAULT_CANCEL_REASON "Cancelled" (SchedulingService.DEFAULT_CANCEL_REASON); the legacy portal (usp_CancelBooking @Reason NULL) stored NULL. Not recorded in ADR 0002; booking status, seats and waitlist match. |
-| `cancel_other_candidates_booking_portal` | cancellation | root cause: Blank cancel reason: scheduling-service stores DEFAULT_CANCEL_REASON "Cancelled" (SchedulingService.DEFAULT_CANCEL_REASON); the legacy portal (usp_CancelBooking @Reason NULL) stored NULL. Not recorded in ADR 0002; booking status, seats and waitlist match. |
-| `cancel_then_new_booker_gets_seat_portal` | cancellation | root cause: Blank cancel reason: scheduling-service stores DEFAULT_CANCEL_REASON "Cancelled" (SchedulingService.DEFAULT_CANCEL_REASON); the legacy portal (usp_CancelBooking @Reason NULL) stored NULL. Not recorded in ADR 0002; booking status, seats and waitlist match. |
-| `reschedule_same_exam_portal` | reschedule | root cause: The modern reschedule copies the original booking's ExternalRef onto the replacement booking; the legacy portal path (usp_RescheduleBooking) inserted the new booking without one. Not recorded in ADR 0002. |
-| `capacity_negative_admin` | capacity_decrease | root cause: Both estates reject capacity -1 and change nothing; the legacy portal showed a generic error (PORTAL_ERROR), the modern API answers 400 VALIDATION with legacyCode 50005 (usp_ChangeCapacity's state for an invalid capacity). Error vocabulary only, not recorded in ADR 0002. |
-| `accommodation_unknown_code_portal` | accommodation | root cause: Both estates reject the unknown code and book nothing; the legacy portal showed a generic error page (PORTAL_ERROR, no code), the modern API answers 400 VALIDATION. Error vocabulary only, not recorded in ADR 0002. |
-| `mixed_traffic_then_capacity_sync` | mixed_traffic | root cause: Consequence of ADR sections 1 and 3: in the legacy run the partner double decrement made sessions 154/157 look full, so later bookings were waitlisted and capacity-sync reported drift (112 sessions); on the modern stack those bookings are seated, nothing is waitlisted and there is no drift. Booking/waitlist state differs, which the ADR does not list for this transcript, so it stays a MISMATCH. |
+None.
 
 ## NOT REPLAYABLE (retired legacy surface): 5
 
@@ -86,14 +85,18 @@ compared through the business fields instead (`modern_business`). Every other ca
 | `direct_sql_cancel_and_import_db` | contracts | Direct UPDATE/INSERT on AssessmentDelivery.dbo.Booking (cancel and IMPORT rows behind every application). db/security/040_single_writer.sql DENYs INSERT/UPDATE/DELETE on Booking to the legacy logins; bookings and cancellations are written by scheduling-service only and the reconciliation job reports any out-of-band row. Covered by: cancel_booked_on_full_session_portal, cancel_booked_on_full_session_partner, mixed_traffic_then_capacity_sync. (sql steps act on the legacy estate directly; no equivalent on target modern) |
 | `proc_error_contract_db` | contracts | Raises each usp_* error directly (usp_BookSeat, usp_ChangeCapacity, usp_RescheduleBooking). The procs were dropped in MBA-3824 (db/procs/090_retire_booking_procs.sql); the modern API carries the same error numbers as `legacyCode` (50001-50006) on its 409 responses. Covered by: book_full_session_portal, book_duplicate_portal, book_closed_session_portal, accommodation_capacity_exhausted_portal, capacity_below_accommodation_floor_admin, reschedule_different_exam_portal. (sql steps act on the legacy estate directly; no equivalent on target modern) |
 
+## Changes since e16030c (7 former MISMATCH rows)
+
+| Transcript | Was | Now | Why |
+|---|---|---|---|
+| `cancel_on_delivered_session_portal`, `cancel_other_candidates_booking_portal`, `cancel_then_new_booker_gets_seat_portal` | MISMATCH | MATCH | scheduling-service stores a blank/whitespace cancel reason as NULL, as `usp_CancelBooking @Reason = NULL` did for the portal (`db/procs/021_usp_CancelBooking.sql` at `legacy-baseline`). Partner v1 keeps its own default: booking-api sends `StringUtils.defaultIfBlank(reason, "Cancelled by partner")` (`services/booking-api/.../BookingService.java` at `legacy-baseline`), and the gateway translation still does. Reschedule keeps `'Rescheduled'`. |
+| `reschedule_same_exam_portal` | MISMATCH | MATCH | The replacement booking copies `ExternalRef` only on the partner channel: `usp_RescheduleBooking` (portal) inserted it without one, booking-api's v1 reschedule passed the old ref to the new booking. `POST /api/v2/bookings/{id}/reschedule` takes an optional `channel` (default `PORTAL`); the gateway and booking-api send `PARTNER`. `reschedule_same_exam_partner` stays as it was (ADR section 1 seats only). |
+| `capacity_negative_admin` | MISMATCH | MATCH | Negative capacity is request validation (`AdminService.ChangeCapacity` rejected it before calling `usp_ChangeCapacity`), so the modern 400 `VALIDATION` no longer carries `legacyCode 50005`. Portal-channel adapter mapping below turns the uncoded 400 into the portal's generic error. |
+| `accommodation_unknown_code_portal` | MISMATCH | MATCH | Portal-channel adapter mapping: an uncoded 400 `VALIDATION` on a portal/admin form is reported as `PORTAL_ERROR`, the vocabulary the legacy portal adapter records for every `PortalException` page error. Partner and coded errors are unchanged (see the PR description for the legacy citations). |
+| `mixed_traffic_then_capacity_sync` | MISMATCH | ADR-APPROVED DIVERGENCE | ADR 0002 section 7 (new): HB-01 + HB-03 made sessions 154/157 look full on legacy; modern seats those bookings, waitlists nobody and reports 0 drift. Allowed fields: the 6 drift counters, `db_state.bookings.154[*].status`, `db_state.bookings.157[*].status`, `db_state.waitlist.154/157`, `db_state.examSession.*.SeatsAvailable`. |
+
 ## Notes
 
-- ADR divergences were checked against `docs/adr/0002-ported-rule-decisions.md` and are only applied to the diff fields the
-  cited section explains (`characterization/modern-classification.yaml`); any other differing field keeps the scenario a
-  MISMATCH. Section 1 rules allow only `business.seatsAvailable` / `db_state.examSession.*.SeatsAvailable` (tightened after
-  Devin Review; every ADR-APPROVED scenario in this run differs only in fields the tightened rules accept, so the counts are unchanged).
-- Fixed in this PR and re-run: `capacity_decrease_delivered_with_attended_admin` (now MATCH). The capacity-cut bump counted ATTENDED
-  bookings; `trg_ExamSession_Update` bumps only BOOKED (ADR 0002 section 2). The on-call defect #57 floor is untouched.
-- The 12 SKIPPED of the M1 sanity run (direct :8090, pre-M4/M5 build) are gone: mixed traffic and capacity-sync now run through the
-  gateway with the relay, and the five direct-SQL/proc transcripts are NOT REPLAYABLE because M4/M5 dropped those procedures
-  and denied the legacy logins any write.
+- ADR divergences are only applied to the diff fields the cited section explains (`characterization/modern-classification.yaml`);
+  any other differing field keeps the scenario a MISMATCH. No comparator change in this PR.
+- KNOWN_ONCALL_DEFECT (#57) is unchanged: `AccommodationFloorPolicy` and the `floorPolicy.check(...)` arguments are untouched.

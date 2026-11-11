@@ -164,6 +164,53 @@ class SchedulingApiIT extends SqlServerTestBase {
     }
 
     @Test
+    void legacyParity_blankCancelReasonIsNull_rescheduleRefFollowsRequestChannel_negativeCapacityHasNoLegacyCode() {
+        Map<String, Object> pair = db.queryForMap("SELECT TOP 1 a.session_id AS a, b.session_id AS b FROM exam_session a "
+                + "JOIN exam_session b ON b.exam_id = a.exam_id AND b.session_id > a.session_id "
+                + "WHERE a.status = 'OPEN' AND b.status = 'OPEN' AND a.capacity > 25 AND b.capacity > 25 "
+                + "AND a.starts_at > '2026-11-20' ORDER BY a.session_id DESC");
+        int from = ((Number) pair.get("a")).intValue();
+        int to = ((Number) pair.get("b")).intValue();
+        List<String> candidates = eligibleCandidates(from, 3, to);
+
+        // usp_CancelBooking @Reason = NULL (portal): a blank or whitespace reason is stored as NULL
+        long portal = ((Number) book(from, candidates.get(0), null).getBody().get("bookingId")).longValue();
+        ResponseEntity<Map<String, Object>> cancelled = http.exchange("/api/v2/bookings/" + portal + "?reason=   ",
+                HttpMethod.DELETE, null, MAP);
+        assertThat(cancelled.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(cancelled.getBody()).containsEntry("status", "CANCELLED").containsEntry("cancelReason", null);
+
+        // usp_RescheduleBooking (portal, no channel sent = PORTAL) inserted the replacement without ExternalRef
+        long partnerA = partnerBooking(from, candidates.get(1), "PREF-A");
+        Map<String, Object> movedByPortal = reschedule(partnerA, to).getBody();
+        Map<String, Object> viaPortal = get("/api/v2/bookings/" + movedByPortal.get("bookingId"));
+        assertThat(viaPortal).containsEntry("externalRef", null).containsEntry("channel", "PORTAL");
+        assertThat(get("/api/v2/bookings/" + partnerA)).containsEntry("cancelReason", "Rescheduled");
+
+        // booking-api v1 reschedule re-booked through the partner path and copied the ExternalRef
+        long partnerB = partnerBooking(from, candidates.get(2), "PREF-B");
+        ResponseEntity<Map<String, Object>> movedByPartner = http.exchange("/api/v2/bookings/" + partnerB + "/reschedule",
+                HttpMethod.POST, new HttpEntity<>(Map.of("newSessionId", to, "channel", "PARTNER")), MAP);
+        assertThat(movedByPartner.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        Map<String, Object> viaPartner = get("/api/v2/bookings/" + movedByPartner.getBody().get("bookingId"));
+        assertThat(viaPartner).containsEntry("externalRef", "PREF-B").containsEntry("channel", "PARTNER");
+
+        // AdminService.ChangeCapacity rejected a negative capacity before usp_ChangeCapacity: no legacy code
+        assertError(putCapacity(from, -1), HttpStatus.BAD_REQUEST, "VALIDATION", null);
+    }
+
+    private long partnerBooking(int sessionId, String candidate, String externalRef) {
+        java.util.HashMap<String, Object> body = new java.util.HashMap<>();
+        body.put("sessionId", sessionId);
+        body.put("candidateNumber", candidate);
+        body.put("externalRef", externalRef);
+        body.put("channel", "PARTNER");
+        ResponseEntity<Map<String, Object>> r = http.exchange("/api/v2/bookings", HttpMethod.POST, new HttpEntity<>(body), MAP);
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return ((Number) r.getBody().get("bookingId")).longValue();
+    }
+
+    @Test
     void usp_CancelBooking_cancelsOnce_thenNotCancellable() {
         int sessionId = openSession("s.capacity - (SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id "
                 + "AND b.status IN ('BOOKED','ATTENDED')) > 2");
