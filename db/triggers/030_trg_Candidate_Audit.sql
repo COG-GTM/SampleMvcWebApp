@@ -4,6 +4,7 @@
     names/emails from the admin screen with no trail.
     2012-06  initial
     2015-02  DefaultAccommodationCode added to the tracked columns
+    2018-05  stop copying old/new name and email values into Detail
 */
 USE AssessmentDelivery;
 GO
@@ -20,10 +21,10 @@ BEGIN
     SELECT 'Candidate', i.CandidateId, 'UPDATE',
            LEFT(
              CASE WHEN ISNULL(d.FirstName,'') <> ISNULL(i.FirstName,'') OR ISNULL(d.LastName,'') <> ISNULL(i.LastName,'')
-                  THEN N'name: ' + ISNULL(d.FirstName,'') + N' ' + ISNULL(d.LastName,'') + N' -> ' + ISNULL(i.FirstName,'') + N' ' + ISNULL(i.LastName,'') + N'; '
+                  THEN N'name changed; '
                   ELSE N'' END
            + CASE WHEN ISNULL(d.Email,'') <> ISNULL(i.Email,'')
-                  THEN N'email: ' + ISNULL(d.Email,'') + N' -> ' + ISNULL(i.Email,'') + N'; '
+                  THEN N'email changed; '
                   ELSE N'' END
            + CASE WHEN ISNULL(d.DefaultAccommodationCode,'') <> ISNULL(i.DefaultAccommodationCode,'')
                   THEN N'accommodation: ' + ISNULL(d.DefaultAccommodationCode,'(none)') + N' -> ' + ISNULL(i.DefaultAccommodationCode,'(none)') + N'; '
