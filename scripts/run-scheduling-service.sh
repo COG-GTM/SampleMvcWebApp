@@ -12,6 +12,7 @@
 #      MVNW_REPOURL / ~/.m2 mirror if Maven Central rate-limits (see README)
 # The service creates its own "Scheduling" DB (Flyway) and imports snapshots on start-up
 # (SCHEDULING_IMPORT_ON_STARTUP=true) through the read-only login ad_sched_import.
+# On-call runbook (probes, metrics, JSON logs, rollback): docs/runbooks/scheduling-service.md
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
