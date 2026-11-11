@@ -20,7 +20,8 @@ import org.testcontainers.containers.MSSQLServerContainer;
 
 /**
  * MBA-3832 AC1/AC5: pausing the SQL Server container flips readiness to DOWN (503) while liveness stays UP, and
- * readiness recovers when the database is back. Uses its own container so the shared one of the other ITs is
+ * readiness recovers when the database is back; stopping the container flips it to DOWN again (a stopped container
+ * comes back on a new host port, so recovery is only asserted after the pause). Uses its own container so the shared one of the other ITs is
  * never paused.
  */
 @AutoConfigureObservability(tracing = false)
@@ -51,7 +52,7 @@ class ReadinessIT {
     TestRestTemplate http;
 
     @Test
-    void readinessFlipsWhileTheDatabaseIsPaused_livenessStaysUp() {
+    void readinessFlipsWhileTheDatabaseIsPausedOrStopped_livenessStaysUp() {
         ResponseEntity<Map<String, Object>> ready = health("readiness");
         assertThat(ready.getStatusCode().value()).isEqualTo(200);
         assertThat(ready.getBody()).containsEntry("status", "UP");
@@ -83,6 +84,17 @@ class ReadinessIT {
 
         await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofSeconds(1))
                 .untilAsserted(() -> assertThat(health("readiness").getStatusCode().value()).isEqualTo(200));
+
+        docker.stopContainerCmd(OWN_SQL.getContainerId()).withTimeout(5).exec();
+        await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
+            ResponseEntity<Map<String, Object>> down = health("readiness");
+            assertThat(down.getStatusCode().value()).isEqualTo(503);
+            assertThat(component(down, "schedulingDb")).containsEntry("status", "DOWN");
+            assertThat(component(down, "legacySource")).containsEntry("status", "DOWN");
+        });
+        ResponseEntity<Map<String, Object>> live = health("liveness");
+        assertThat(live.getStatusCode().value()).isEqualTo(200);
+        assertThat(live.getBody()).containsEntry("status", "UP");
     }
 
     private ResponseEntity<Map<String, Object>> health(String group) {

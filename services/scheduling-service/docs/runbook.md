@@ -23,8 +23,9 @@ JVM because a database is down):
 - `legacySource` - `SELECT 1` through the read-only `ad_sched_import` pool used by `JdbcLegacyReferenceSource`.
 - `readinessState` - the application has finished starting.
 
-Every probe has a JDBC query timeout and a wall-clock timeout (`SCHEDULING_HEALTH_TIMEOUT_MS`, default 2000 ms), so
-readiness answers within about 2 s even when SQL Server hangs; `details.error` says why (e.g.
+Every probe has a JDBC query timeout and a wall-clock timeout (`SCHEDULING_HEALTH_TIMEOUT_MS`, default 2000 ms). The
+two probes run one after the other, so readiness answers within about 2 x that timeout (~4 s) even when SQL Server
+hangs: give the orchestrator's readiness probe a timeout of at least 5 s. `details.error` says why (e.g.
 `no answer within 2000 ms`, `SQLServerException (SQLState 08S01, error 0)`, `earlier probes are still blocked`).
 The endpoint is unauthenticated, so driver messages (user, host) are never shown: read the SQLState (`08xxx` connection,
 `28000` login failed) and get the full message from the JSON log.

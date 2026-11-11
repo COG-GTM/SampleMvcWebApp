@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: scheduling-service
+  main:
+    # the banner bypasses logback and would be the only non-JSON stdout
+    banner-mode: "off"
   datasource:
     # The service's OWN database. Never AssessmentDelivery.
     url: ${SCHEDULING_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=Scheduling;encrypt=true;trustServerCertificate=true}
