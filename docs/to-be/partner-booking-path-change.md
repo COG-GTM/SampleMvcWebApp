@@ -14,7 +14,7 @@ Paths, payloads, status codes and the `{error, message}` error body are the same
 
 **Intended behaviour change (HB-01):** a partner booking that gets a seat used to decrement `SeatsAvailable` twice: once from booking-api and once from `trg_Booking_SeatSync`. scheduling-service now decrements once. Seat drift after partner bookings is 0. Nothing else in the partner contract changes.
 
-New error: scheduling-service unreachable or 5xx returns `503 {"error":"SCHEDULING_UNAVAILABLE"}`.
+New error: scheduling-service unreachable (connection failure, timeout) or a 5xx without a contract error body returns `503 {"error":"SCHEDULING_UNAVAILABLE"}`. A service `SYSTEM_ERROR` (SQL failure such as deadlock 1205) returns `500 {"error":"DB_ERROR","message":<SQL message>}`, the same as a SQL failure on the legacy direct path.
 
 The same root cause also took two seats on the target of a partner reschedule (HB-11). That also goes away; the rest of HB-11 stays (partner semantics, `externalRef` copied, retake re-checked).
 

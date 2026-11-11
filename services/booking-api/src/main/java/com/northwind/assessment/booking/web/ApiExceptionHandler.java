@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import com.northwind.assessment.booking.client.SchedulingClient;
 import com.northwind.assessment.booking.client.SchedulingException;
 
 @ControllerAdvice
@@ -42,6 +43,10 @@ public class ApiExceptionHandler {
     @ExceptionHandler(SchedulingException.class)
     public ResponseEntity<Map<String, Object>> handleScheduling(SchedulingException ex) {
         log.error("scheduling-service error {} {}: {}", ex.getHttpStatus(), ex.getError(), ex.getMessage());
+        if (SchedulingClient.SYSTEM_ERROR.equals(ex.getError())) {
+            // a SQL failure in the service: same response as a SQL failure in the legacy direct path (handleDb)
+            return body(HttpStatus.INTERNAL_SERVER_ERROR, "DB_ERROR", ex.getMessage());
+        }
         HttpStatus status = ex.getHttpStatus() >= 500 ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.valueOf(ex.getHttpStatus());
         return body(status, ex.getError(), ex.getMessage());
     }
