@@ -11,6 +11,7 @@ snapshots it; modern bookings live in memory with ids from 50,000,000. Test-only
 """
 import json
 import re
+from datetime import date, timedelta
 import sys
 import threading
 from datetime import datetime
@@ -94,7 +95,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, s) if s else self.err(404, "SESSION_NOT_FOUND", f"Session {m.group(1)} not found")
         m = re.fullmatch(r"/api/v2/centers/([^/]+)/sessions", p)
         if m and method == "GET":
-            qs = "&".join(f"{k}={v}" for k, v in dict(q, centerCode=m.group(1)).items())
+            q = dict(q, centerCode=m.group(1))
+            if q.get("to"):  # v2 'to' is exclusive (scheduling-service), v1 includes the whole day
+                try:
+                    q["to"] = (date.fromisoformat(q["to"].strip()) - timedelta(days=1)).isoformat()
+                except ValueError:
+                    pass
+            qs = "&".join(f"{k}={v}" for k, v in q.items())
             status, body = http("GET", f"{BOOKING_API}/api/v1/sessions?{qs}")
             out = [session_json(s["sessionId"]) for s in json.loads(body)] if status == 200 else []
             return self.send(200, [s for s in out if s])
