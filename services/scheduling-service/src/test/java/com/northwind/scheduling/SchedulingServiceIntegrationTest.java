@@ -203,9 +203,13 @@ class SchedulingServiceIntegrationTest {
         int b2 = book(s, candidate(), "PORTAL", null).getBody().get("bookingId").asInt();
         int b3 = book(s, candidate(), "PORTAL", null).getBody().get("bookingId").asInt();
         jdbc.update("UPDATE dbo.Booking SET BookedAt = DATEADD(MINUTE, -10, GETDATE()) WHERE BookingId = ?", b3);
+        jdbc.update("UPDATE dbo.Booking SET BookedAt = DATEADD(MINUTE, -3, GETDATE()) WHERE BookingId = ?", b1);
+        jdbc.update("UPDATE dbo.Booking SET BookedAt = DATEADD(MINUTE, -2, GETDATE()) WHERE BookingId = ?", b2);
         JsonNode r = post("/api/v1/sessions/" + s + "/capacity", Map.of("newCapacity", 1), null).getBody();
         assertThat(r.get("demotedBookingIds")).extracting(JsonNode::asInt).containsExactly(b1, b2);
         assertThat(get("/api/v1/bookings/" + b3).get("status").asText()).isEqualTo("BOOKED");
+        assertThat(jdbc.queryForList("SELECT BookingId FROM dbo.Waitlist WHERE SessionId = ? ORDER BY Position", Integer.class, s))
+                .containsExactly(b1, b2);
         assertThat(seats(s)).isZero();
     }
 
@@ -283,6 +287,20 @@ class SchedulingServiceIntegrationTest {
         JsonNode again = post("/api/v1/bookings/" + b + "/attendance", Map.of(), null).getBody();
         assertThat(again.get("transitioned").asBoolean()).isFalse();
         assertThat(again.get("status").asText()).isEqualTo("ATTENDED");
+        assertThat(get("/api/v1/sessions/" + s).get("bookedSeats").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void capacityAuditFiltersOptionalAndToIsExclusive() {
+        int s = session(5, 0);
+        post("/api/v1/sessions/" + s + "/capacity", Map.of("newCapacity", 7), null);
+        jdbc.update("UPDATE dbo.AuditLog SET LoggedAt = '2026-01-10T00:00:00' WHERE EntityName = 'ExamSession' AND EntityId = ? "
+                + "AND Action = 'CAPACITY'", s);
+        assertThat(get("/api/v1/sessions/capacity-audit?pageSize=500").get("totalRows").asInt()).isPositive();
+        assertThat(get("/api/v1/sessions/capacity-audit?sessionId=" + s + "&from=2026-01-01T00:00:00&to=2026-01-10T00:00:00")
+                .get("totalRows").asInt()).isZero();
+        JsonNode hit = get("/api/v1/sessions/capacity-audit?sessionId=" + s + "&from=2026-01-10T00:00:00&to=2026-01-10T00:00:01");
+        assertThat(hit.get("totalRows").asInt()).isEqualTo(1);
     }
 
     @Test
