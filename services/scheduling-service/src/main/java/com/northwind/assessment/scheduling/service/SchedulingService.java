@@ -28,6 +28,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class SchedulingService {
 
-    static final String DEFAULT_CANCEL_REASON = "Cancelled";
     private static final int MAX_EXTERNAL_REF = 40;
     private static final int MAX_REASON = 200;
     private static final int MAX_ACTOR = 60;
@@ -155,13 +155,14 @@ public class SchedulingService {
         int sessionId = bookings.sessionIdOf(bookingId).orElseThrow(() -> bookingNotFound(bookingId));
         identifySession(sessionId);
         SessionCapacity capacity = sessions.lockForUpdate(sessionId).orElseThrow(() -> sessionNotFound(sessionId));
-        String why = blankToNull(reason) == null ? DEFAULT_CANCEL_REASON : reason.trim();
-        if (why.length() > MAX_REASON) {
+        // Blank reason is stored as NULL, as usp_CancelBooking did for the portal; partner callers send their own default.
+        String why = blankToNull(reason);
+        if (why != null && why.length() > MAX_REASON) {
             throw invalid("reason is limited to 200 characters");
         }
         cancelLocked(capacity, bookingId, why);
         outbox.append(OutboxEventType.BookingCancelled, sessionId, bookingId, List.of(), List.of(bookingId), "scheduling-service",
-                Map.of("reason", why), now());
+                Collections.singletonMap("reason", why), now());
         return bookings.find(bookingId).orElseThrow();
     }
 
@@ -179,15 +180,23 @@ public class SchedulingService {
      * usp_RescheduleBooking / booking-api reschedule: same exam only, then cancel ("Rescheduled") + book in one
      * transaction; if the new booking is rejected the cancellation rolls back. Both session rows are locked
      * in ascending id order to avoid deadlocks.
+     * <p>The replacement booking belongs to the requesting channel, as on legacy: the portal path
+     * (usp_RescheduleBooking -> usp_BookSeat) inserted it as PORTAL without an ExternalRef, while booking-api v1
+     * re-booked through its partner path as PARTNER and copied the original ExternalRef.
      */
     public BookingResult reschedule(long requestedId, Integer newSessionId) {
+        return reschedule(requestedId, newSessionId, null);
+    }
+
+    public BookingResult reschedule(long requestedId, Integer newSessionId, String requestChannel) {
         return metrics.record(BookingMetrics.RESCHEDULE,
-                () -> tx.execute(status -> rescheduleInTransaction(requestedId, newSessionId)));
+                () -> tx.execute(status -> rescheduleInTransaction(requestedId, newSessionId, requestChannel)));
     }
 
     /** Metrics and logs carry the center and session the booking is moved away from. */
-    private BookingResult rescheduleInTransaction(long requestedId, Integer newSessionId) {
+    private BookingResult rescheduleInTransaction(long requestedId, Integer newSessionId, String requestChannel) {
         LogContext.bookingId(requestedId);
+        BookingChannel channel = parseChannel(requestChannel);
         if (newSessionId == null) {
             throw invalid("newSessionId is required");
         }
@@ -210,9 +219,8 @@ public class SchedulingService {
         cancelLocked(from, bookingId, ReschedulePolicy.CANCEL_REASON);
         CandidateView candidate = reference.candidateByNumber(booking.candidateNumber())
                 .orElseThrow(() -> new NotFoundException("CANDIDATE_NOT_FOUND", "Candidate of booking " + bookingId + " not found"));
-        BookingChannel channel = BookingChannel.valueOf(booking.channel()) == BookingChannel.IMPORT
-                ? BookingChannel.PORTAL : BookingChannel.valueOf(booking.channel());
-        BookingResult result = bookLocked(to, candidate, booking.accommodationCode(), booking.externalRef(), channel);
+        String externalRef = channel == BookingChannel.PARTNER ? booking.externalRef() : null;
+        BookingResult result = bookLocked(to, candidate, booking.accommodationCode(), externalRef, channel);
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("fromBookingId", bookingId);
         detail.put("toBookingId", result.bookingId());

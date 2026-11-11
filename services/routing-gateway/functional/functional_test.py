@@ -1,5 +1,5 @@
 """Functional tests: routing-gateway against the REAL legacy booking-api (:8081, SQL Server in Docker), scheduling-service
-on :8090 (the real one when SCHEDULING=real, else functional/scheduling_stub.py) and the portal stand-in (:8080).
+on :8090 (the single writer since M4/M5) (the real one when SCHEDULING=real, else functional/scheduling_stub.py) and the portal stand-in (:8080).
 Run via run-functional-tests.sh.
 
 Each check prints PASS/FAIL; the exit code is the number of failures. A JSON report goes to $REPORT (optional).
@@ -10,7 +10,7 @@ import subprocess
 import sys
 import time
 
-from stub_common import http, sql_rows
+from stub_common import SQLCMD, http, sql_rows
 
 GW = "http://localhost:8000"
 LEGACY = "http://localhost:8081"
@@ -48,9 +48,11 @@ def raw(method, url, body=None, headers=None):
     return r.status, hdrs, b, route
 
 
-def set_allow_list(centers, via="file"):
+def set_allow_list(centers, via="file", relay=True):
     with open(CONFIG, "w") as f:
         f.write(f"routing.modern-centers={','.join(centers)}\n")
+        if relay:  # post-M4/M5 shape (config/routing.properties): every write goes to the single writer, relay on
+            f.write("routing.modern-write-centers=*\nrouting.coexistence-mode=relay\n")
     if via == "refresh":
         http("POST", f"{GW}/actuator/refresh")
 
@@ -62,6 +64,15 @@ def wait_route(method, path, body, want, timeout=5.0):
         if route == want or time.monotonic() - start > timeout:
             return route, time.monotonic() - start, st, b
         time.sleep(0.1)
+
+
+def wait_for(cond, timeout=10.0):
+    end = time.monotonic() + timeout
+    while not cond():
+        if time.monotonic() > end:
+            return False
+        time.sleep(0.25)
+    return True
 
 
 def legacy_booking_count(candidate):
@@ -105,27 +116,73 @@ READS = [
 ]
 
 
-def write_sequence(base, s_bos, s_nyc):
-    """Booking writes in both centers incl. error paths; ids are deterministic after a DB reset."""
-    out = []
-    steps = [
-        ("POST", "/api/v1/bookings", {"sessionId": s_bos, "candidateNumber": "NW00000951"}),
-        ("POST", "/api/v1/bookings", {"sessionId": s_bos, "candidateNumber": "NW00000951"}),   # duplicate
-        ("POST", "/api/v1/bookings", {"sessionId": 1, "candidateNumber": "NW00000952"}),       # not open
-        ("POST", "/api/v1/bookings", {"sessionId": s_nyc, "candidateNumber": "NW00000952"}),
-        ("POST", "/api/v1/bookings", {"candidateNumber": "NW00000953"}),                      # validation
-        ("POST", "/api/v1/bookings", b"{not json"),
+LEGACY_LOGINS = ["ad_portal", "ad_booking_api", "ad_results", "ad_capacity_sync"]
+RETIRED_PROCS = ["usp_BookSeat", "usp_CancelBooking", "usp_RescheduleBooking", "usp_ChangeCapacity"]
+
+
+def sql_as(user, statement):
+    """Run a statement as database user `user` (impersonated by sa); returns (exit code, combined output)."""
+    q = (f"SET NOCOUNT ON; EXECUTE AS USER = '{user}'; BEGIN TRY {statement} END TRY BEGIN CATCH "
+         "PRINT CONCAT('ERR ', ERROR_NUMBER(), ' ', ERROR_MESSAGE()); END CATCH; REVERT;")
+    r = subprocess.run([SQLCMD, "-C", "-S", "localhost,1433", "-U", "sa", "-P", SA_PASSWORD, "-d", "AssessmentDelivery",
+                        "-Q", q], capture_output=True, text=True)
+    return r.returncode, (r.stdout + r.stderr).strip()
+
+
+def legacy_writes_refused(s_nyc):
+    """M4 single writer (db/security/040): every legacy login is DENIED booking/waitlist/seat writes, and the legacy
+    booking procs are retired (db/procs/090), so nothing but the relay can write a booking into AssessmentDelivery."""
+    candidate = sql_rows("SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000954'")[0][0]
+    statements = {
+        "INSERT dbo.Booking": f"BEGIN TRAN; INSERT INTO dbo.Booking (SessionId, CandidateId, Status, Channel) "
+                              f"VALUES ({s_nyc}, {candidate}, 'BOOKED', 'PARTNER'); ROLLBACK;",
+        "UPDATE dbo.Booking": "BEGIN TRAN; UPDATE dbo.Booking SET Status = 'CANCELLED' WHERE BookingId = 1; ROLLBACK;",
+        "UPDATE dbo.ExamSession.SeatsAvailable":
+            f"BEGIN TRAN; UPDATE dbo.ExamSession SET SeatsAvailable = SeatsAvailable - 1 WHERE SessionId = {s_nyc}; ROLLBACK;",
+    }
+    problems = []
+    for login in LEGACY_LOGINS:
+        for name, stmt in statements.items():
+            rc, out = sql_as(login, stmt)
+            if "ERR 229" not in out and "ERR 230" not in out:
+                problems.append(f"{login} {name}: not refused ({rc}) {out[:160]!r}")
+    procs = sql_rows("SELECT name FROM sys.procedures WHERE name IN (%s)" % ",".join(f"'{p}'" for p in RETIRED_PROCS),
+                     user="sa", password=SA_PASSWORD)
+    return problems, [r[0] for r in procs]
+
+
+def write_sequence(s_nyc):
+    """v1 booking writes (C2, empty allow-list) through :8000. Since M4/M5 the legacy route is booking-api, which only
+    validates and forwards the write to scheduling-service; the error paths must answer exactly as booking-api direct."""
+    out = {}
+    before = modern_bookings()
+    st, h, b, route = raw("POST", GW + "/api/v1/bookings", {"sessionId": s_nyc, "candidateNumber": "NW00000951"})
+    out["book"] = (st, h, b, route)
+    created = {k: v for k, v in modern_bookings().items() if k not in before}
+    errors = [
+        ("duplicate", "POST", "/api/v1/bookings", {"sessionId": s_nyc, "candidateNumber": "NW00000951"}, 409),
+        ("not open", "POST", "/api/v1/bookings", {"sessionId": 1, "candidateNumber": "NW00000952"}, 409),
+        ("validation", "POST", "/api/v1/bookings", {"candidateNumber": "NW00000953"}, 400),
+        ("malformed JSON", "POST", "/api/v1/bookings", b"{not json", 400),
+        ("unknown booking", "DELETE", "/api/v1/bookings/49999999", None, 404),
     ]
-    for m, p, b in steps:
-        st, h, body, _ = raw(m, base + p, b)
-        out.append((m, p, st, h, body))
-    new_id = json.loads(out[3][4])["bookingId"]
-    for m, p, b in [("POST", f"/api/v1/bookings/{new_id}/reschedule", {"newSessionId": open_session(C2, 1)}),
-                    ("DELETE", f"/api/v1/bookings/{json.loads(out[0][4])['bookingId']}?reason=Functional%20test", None),
-                    ("DELETE", "/api/v1/bookings/49999999", None)]:
-        st, h, body, _ = raw(m, base + p, b)
-        out.append((m, p, st, h, body))
-    return out
+    diffs = []
+    for name, m, p, body, want in errors:
+        g = raw(m, GW + p, body)
+        d = raw(m, LEGACY + p, body)
+        if g[0] != want or "error" not in json.loads(g[2]):
+            diffs.append(f"{name}: gateway {g[0]} {g[2][:160]!r} (want {want} with an error body)")
+        if (g[0], g[1], normalize(g[2])) != (d[0], d[1], normalize(d[2])):
+            diffs.append(f"{name}: direct={d[0]} {d[2][:120]!r} gateway={g[0]} {g[2][:120]!r}")
+    out["errors"] = (len(errors), diffs)
+    if st == 201:
+        bid = json.loads(b)["bookingId"]
+        out["reschedule"] = raw("POST", GW + f"/api/v1/bookings/{bid}/reschedule",
+                                {"newSessionId": open_session_same_exam(C2, s_nyc)})
+        if out["reschedule"][0] == 200:
+            out["cancel"] = raw("DELETE", GW + f"/api/v1/bookings/{json.loads(out['reschedule'][2])['bookingId']}"
+                                "?reason=Functional%20test")
+    return out, created
 
 
 def normalize(body):
@@ -134,23 +191,6 @@ def normalize(body):
     import re
     body = re.sub(rb'"timestamp" : "[^"]*"', b'"timestamp" : "<ts>"', body)
     return re.sub(rb"@[0-9a-f]{4,}", b"@<hash>", body)
-
-
-def mask_wall_clock(body):
-    """cancelledAt of a booking cancelled during the run is 'now' and differs between the two runs."""
-    body = normalize(body)
-    try:
-        j = json.loads(body)
-    except ValueError:
-        return body
-    if isinstance(j, dict) and j.get("cancelledAt"):
-        return body.replace(j["cancelledAt"].encode(), b"<now>")
-    return body
-
-
-def reset_db():
-    subprocess.run([os.path.join(ROOT, "db", "apply.sh")], check=True, capture_output=True,
-                   env=dict(os.environ, AD_SA_PASSWORD=os.environ.get("AD_SA_PASSWORD", "Str0ng!Passw0rd")))
 
 
 def main():
@@ -171,20 +211,29 @@ def main():
             diffs.append(f"{m} {p}: X-Route={g[3]}")
     check(f"transparency: {len(READS)} read requests byte-identical direct vs :8000 (headers normalized), all X-Route: legacy",
           not diffs, "; ".join(diffs))
-    sched_before = modern_bookings()
 
-    reset_db()
-    direct = write_sequence(LEGACY, s_bos, s_nyc)
-    reset_db()
-    via_gw = write_sequence(GW, s_bos, s_nyc)
-    wdiffs = [f"{a[0]} {a[1]}: direct={a[2]} {mask_wall_clock(a[4])!r} gateway={b[2]} {mask_wall_clock(b[4])!r}"
-              for a, b in zip(direct, via_gw)
-              if (a[2], a[3], mask_wall_clock(a[4])) != (b[2], b[3], mask_wall_clock(b[4]))]
-    check(f"transparency: {len(direct)} write requests (book/duplicate/not-open/validation/malformed/reschedule/cancel/404) "
-          "identical direct vs :8000 after DB reset", not wdiffs, "; ".join(wdiffs))
-    check("transparency: no scheduling-service writes with empty allow-list",
-          modern_bookings() == sched_before)
-    reset_db()
+    # 1b. Single writer (M4/M5): direct legacy writes are refused; v1 writes through :8000 reach scheduling-service
+    problems, procs = legacy_writes_refused(s_nyc)
+    check(f"single writer: direct booking/seat writes refused (permission denied) for {', '.join(LEGACY_LOGINS)}",
+          not problems, "; ".join(problems))
+    check(f"single writer: legacy booking procs retired ({', '.join(RETIRED_PROCS)} absent)", not procs, f"{procs}")
+    w, created = write_sequence(s_nyc)
+    st, h, b, route = w["book"]
+    j = json.loads(b) if b else {}
+    check(f"C2 ({C2}) v1 booking through :8000 (empty allow-list) -> 201 v1 {{bookingId,status}}, written by "
+          "scheduling-service with channel PARTNER",
+          st == 201 and list(j) == ["bookingId", "status"] and len(created) == 1
+          and list(created.values())[0]["channel"] == "PARTNER", f"{st} {route} {b!r} {created}")
+    n, diffs = w["errors"]
+    check(f"write error paths through :8000 ({n}: duplicate/not-open/validation/malformed JSON/unknown booking) answer "
+          "with the v1 error status and body, identical to booking-api direct", not diffs, "; ".join(diffs))
+    rs = w.get("reschedule")
+    check("C2 v1 reschedule through :8000 -> 200 {bookingId,status}",
+          rs is not None and rs[0] == 200 and list(json.loads(rs[2])) == ["bookingId", "status"], f"{rs}")
+    c = w.get("cancel")
+    check("C2 v1 cancel through :8000 -> 200 CANCELLED with the given reason",
+          c is not None and c[0] == 200 and json.loads(c[2]).get("status") == "CANCELLED"
+          and json.loads(c[2]).get("cancelReason") == "Functional test", f"{c}")
 
     # 2. C1 allow-listed, C2 not
     set_allow_list([C1])
@@ -198,16 +247,22 @@ def main():
           and h.get("content-type") == "application/json;charset=UTF-8", f"{st} {route} {b!r} {h}")
     modern_id = j["bookingId"]
     stub = modern_bookings()
-    check("C1 booking created in scheduling-service" + (" (Scheduling DB row)" if REAL_SCHEDULING else "")
-          + " with channel PARTNER, no legacy Booking row",
-          modern_id in stub and stub[modern_id]["channel"] == "PARTNER" and legacy_booking_count("NW00000901") == before,
-          f"{stub.get(modern_id)}")
+    # M4: the outbox relay projects every scheduling-service booking into dbo.Booking (the stub has no relay)
+    projected = (wait_for(lambda: legacy_booking_count("NW00000901") == before + 1) if REAL_SCHEDULING
+                 else legacy_booking_count("NW00000901") == before)
+    check("C1 booking created in scheduling-service" + (" (Scheduling DB row, projected into dbo.Booking by the relay)"
+          if REAL_SCHEDULING else ", no legacy Booking row (stub, no relay)") + " with channel PARTNER",
+          modern_id in stub and stub[modern_id]["channel"] == "PARTNER" and projected,
+          f"{stub.get(modern_id)} legacy rows {legacy_booking_count('NW00000901')} (before {before})")
     before = legacy_booking_count("NW00000902")
     st, h, b, route = raw("POST", GW + "/api/v1/bookings", {"sessionId": s_nyc, "candidateNumber": "NW00000902"})
     j = json.loads(b)
-    check(f"C2 ({C2}) partner booking -> X-Route: legacy, 201, legacy dbo.Booking row written",
-          route == "legacy" and st == 201 and j["bookingId"] < 50_000_000 and legacy_booking_count("NW00000902") == before + 1,
-          f"{st} {route} {b!r}")
+    relayed = (wait_for(lambda: legacy_booking_count("NW00000902") == before + 1) if REAL_SCHEDULING
+               else legacy_booking_count("NW00000902") == before)
+    check(f"C2 ({C2}, not on modern-centers) partner booking -> 201 via the gateway v1 translation (modern-write-centers=*), "
+          "written by scheduling-service" + (" and projected into dbo.Booking by the relay" if REAL_SCHEDULING
+                                             else ", no legacy Booking row (stub, no relay)"),
+          route == "modern" and st == 201 and j.get("bookingId") in modern_bookings() and relayed, f"{st} {route} {b!r}")
     legacy_id = j["bookingId"]
     st, h, b, route = raw("POST", GW + "/api/v1/bookings", {"sessionId": s_bos, "candidateNumber": "NW00000901"})
     check("C1 duplicate booking -> modern 409 with v1 error body {error,message} (legacyCode stripped)",
@@ -260,7 +315,9 @@ def main():
           and list(json.loads(b)) == list(json.loads(raw("GET", LEGACY + "/api/v1/bookings/1")[2]))
           and modern_bookings().get(j["bookingId"], {}).get("status") == "CANCELLED", f"{st} {route} {b!r}")
     st, h, b, route = raw("DELETE", GW + f"/api/v1/bookings/{legacy_id}")
-    check("legacy booking cancel with empty allow-list -> legacy", route == "legacy" and st == 200, f"{st} {route}")
+    # ids written since M4 are scheduling-service ids, so ownership routing decides, not the (empty) allow-list
+    want = "modern" if legacy_id >= 50_000_000 else "legacy"
+    check(f"C2 booking cancel with empty allow-list -> {want} by booking id, 200", route == want and st == 200, f"{st} {route}")
 
     # 5. Rollback via /actuator/refresh
     set_allow_list([C1], via="refresh")
@@ -272,7 +329,7 @@ def main():
           r1 == "modern" and r2 == "legacy", f"{r1} {r2}")
 
     # 6. Rejected refresh keeps the previous list
-    set_allow_list([C1, C2], via="refresh")
+    set_allow_list([C1, C2], via="refresh", relay=False)
     time.sleep(1.5)
     st, h, b, route = raw("GET", GW + f"/api/v1/sessions/{open_session(C2)}")
     check(f"refresh adding production center {C2} without relay is rejected (C2 stays legacy)", route == "legacy")

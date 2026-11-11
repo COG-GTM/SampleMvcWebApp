@@ -8,7 +8,7 @@
 #
 #   services/routing-gateway/functional/run-functional-tests.sh
 #
-# Env: SCHEDULING, JAVA21_HOME, AD_SA_PASSWORD (default Str0ng!Passw0rd), REPORT (JSON report path), KEEP_RUNNING=1.
+# Env: SCHEDULING, JAVA21_HOME, AD_DB_USER/AD_DB_PASSWORD (default ad_portal), AD_SA_PASSWORD (default Str0ng!Passw0rd), REPORT (JSON report path), KEEP_RUNNING=1.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODULE="$(cd "$HERE/.." && pwd)"
@@ -17,7 +17,7 @@ JAVA21_HOME="${JAVA21_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}"
 WORK="$MODULE/target/functional"
 mkdir -p "$WORK"
 export ROUTING_CONFIG_FILE="$WORK/routing.properties"
-echo "routing.modern-centers=" > "$ROUTING_CONFIG_FILE"
+printf 'routing.modern-centers=\nrouting.modern-write-centers=*\nrouting.coexistence-mode=relay\n' > "$ROUTING_CONFIG_FILE"
 PIDS=()
 cleanup() { if [[ "${KEEP_RUNNING:-0}" != "1" ]]; then for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null || true; done; fi; }
 trap cleanup EXIT
@@ -35,6 +35,8 @@ done
 [[ -f "$MODULE/target/routing-gateway.jar" ]] || (cd "$ROOT/services" && JAVA_HOME="$JAVA21_HOME" ./mvnw -q -B -f routing-gateway/pom.xml -DskipTests package)
 
 cd "$HERE"
+# M4 dropped the shared ad_app login (stub_common.py default); read-only checks use the portal login unless overridden.
+export AD_DB_USER="${AD_DB_USER:-ad_portal}" AD_DB_PASSWORD="${AD_DB_PASSWORD:-P0rtal!Dev2026}"
 if [[ "$SCHEDULING" == "real" ]]; then
   SA="${AD_SA_PASSWORD:-Str0ng!Passw0rd}"
   "$ROOT/scripts/run-scheduling-service.sh" stop

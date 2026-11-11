@@ -180,6 +180,36 @@ channel (`ReschedulePolicy`). Different-exam reschedules are rejected for every 
 
 Transcripts: `reschedule_same_session_portal`, `reschedule_same_session_partner`
 
+## 7. Mixed portal/partner traffic followed by a capacity-sync run
+
+**Legacy behaviour.** Transcript `mixed_traffic_then_capacity_sync` runs `scripts/mixed-traffic.ps1|.sh`
+(fixed seed; portal and partner bookings, cancels and reschedules) and then `POST /sync/run`. Two hidden
+behaviours compound on the legacy estate:
+
+- **HB-01** (section 1, `docs/as-is/hidden-behavior.md#hb-01`): every partner booking decrements
+  `SeatsAvailable` twice (booking-api + `trg_Booking_SeatSync`), and a cancel gives back one seat. The
+  busiest sessions of the workload therefore look full while seats are still free, so later bookings in
+  the same run are **waitlisted** instead of seated.
+- **HB-03** (section 3, `docs/as-is/hidden-behavior.md#hb-03`): capacity-sync rewrites `SeatsAvailable`
+  with formula B, so `db/checks/seat-drift.sql` (formula A) reports drift on every OPEN session with
+  accommodation seats.
+
+The drift evidence is `reports/drift-before-after.md`: the same mixed workload plus a capacity-sync run
+leaves **112** drifted sessions at `legacy-baseline` and **0** on the modern stack (reconciliation: 0
+mismatches).
+
+**Decision.** This is the intended outcome of sections 1 and 3, not a new rule: on the modern stack every
+booking takes exactly one seat and seats are always derived with formula A, so the bookings that legacy
+waitlisted are seated, nothing is waitlisted, the sync run is a no-op and there is no drift.
+
+**What may differ in the replay** (`characterization/modern-classification.yaml` restricts the
+ADR-APPROVED DIVERGENCE to these fields only): the status of the bookings the legacy run waitlisted, the
+waitlist rows themselves (sessions 154 and 157), the session seat counters, and the drift counters that
+`db/checks/seat-drift.sql` returns after the workload and after the sync run. Every other business field
+and every other table still has to match.
+
+Transcripts: `mixed_traffic_then_capacity_sync`
+
 ## Consequences
 
 - One codebase owns seat inventory; no trigger or batch job rewrites counts behind it.

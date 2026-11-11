@@ -124,6 +124,7 @@ public class BookingApiStranglerFilter implements GatewayFilter {
                 ObjectNode v2 = JsonNodeFactory.instance.objectNode();
                 v2.set("newSessionId", req != null && req.has("newSessionId") ? req.get("newSessionId")
                         : JsonNodeFactory.instance.nullNode());
+                v2.put("channel", PARTNER_CHANNEL);
                 // v1 reschedule answers 200 (plain @RequestMapping), v2 answers 201
                 return route(ex, chain, ResolveKey.booking(id), Ids.parseLong(id), true,
                         () -> call(HttpMethod.POST, "/api/v2/bookings/" + id + "/reschedule", V1Shapes.write(v2)),
