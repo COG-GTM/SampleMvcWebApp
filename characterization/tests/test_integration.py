@@ -44,7 +44,8 @@ def test_replay_legacy_matches_and_writes_a_report():
         text = report.read_text(encoding="utf-8")
         assert "**Overall: %d/%d MATCH**" % (len(SUBSET), len(SUBSET)) in text
         for n in SUBSET:
-            assert "| `%s` |" % n in text and "MATCH" in text
+            row = next(ln for ln in text.splitlines() if ln.startswith("| %s |" % n))
+            assert "| MATCH |" in row
     finally:
         report.unlink(missing_ok=True)
 
