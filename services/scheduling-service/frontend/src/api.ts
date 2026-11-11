@@ -5,7 +5,7 @@ export interface Candidate { candidateNumber: string; firstName: string; lastNam
 export interface Session {
   sessionId: number; examCode: string; examTitle: string; centerCode: string; centerName: string; roomName: string;
   startsAt: string; capacity: number; accommodationCapacity: number; seatsAvailable: number; status: string;
-  bookedSeats: number; accommodationUsed: number; waitlistCount: number;
+  bookedSeats: number; accommodationUsed: number; accommodationSeatsAvailable: number; waitlistCount: number;
 }
 export interface Booking {
   bookingId: number; sessionId: number; candidateNumber: string; examCode: string; sessionStartsAt: string; status: string;

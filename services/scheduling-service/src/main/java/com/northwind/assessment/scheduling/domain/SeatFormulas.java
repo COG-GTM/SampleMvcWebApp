@@ -23,6 +23,14 @@ public final class SeatFormulas {
     }
 
     /**
+     * Accommodation (ET25/ET50) seats still free: {@code AccommodationCapacity - accommodation seats used}, never below 0
+     * (usp_BookSeat state 3 check, booking-api {@code countAccommodationSeatsUsed}).
+     */
+    public static int accommodationSeatsAvailable(int accommodationCapacity, int accommodationSeatsUsed) {
+        return Math.max(0, accommodationCapacity - accommodationSeatsUsed);
+    }
+
+    /**
      * Formula A (procs, seed 049, seat-drift check): {@code Capacity - (BOOKED + ATTENDED)}, never below 0.
      * Accommodation seats are part of capacity.
      */

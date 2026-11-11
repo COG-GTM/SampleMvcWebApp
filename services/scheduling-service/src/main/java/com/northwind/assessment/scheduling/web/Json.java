@@ -26,12 +26,15 @@ public final class Json {
 
     public record Session(int sessionId, String examCode, String examTitle, String centerCode, String centerName,
                           String roomName, String startsAt, int capacity, int accommodationCapacity, int seatsAvailable,
-                          String status, Integer bookedSeats, int accommodationUsed, int waitlistCount) {
+                          String status, Integer bookedSeats, int accommodationUsed, int accommodationSeatsAvailable,
+                          int waitlistCount) {
         static Session of(Views.SessionView v) {
             return new Session(v.sessionId(), v.examCode(), v.examTitle(), v.centerCode(), v.centerName(), v.roomName(),
                     fmt(v.startsAt()), v.capacity(), v.accommodationCapacity(),
                     SeatFormulas.seatsAvailable(v.capacity(), v.bookedSeats()), v.status(), v.bookedSeats(),
-                    v.accommodationUsed(), v.waitlistCount());
+                    v.accommodationUsed(),
+                    SeatFormulas.accommodationSeatsAvailable(v.accommodationCapacity(), v.accommodationUsed()),
+                    v.waitlistCount());
         }
     }
 

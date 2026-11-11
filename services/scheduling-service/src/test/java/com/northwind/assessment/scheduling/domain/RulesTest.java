@@ -28,6 +28,14 @@ class RulesTest {
     }
 
     @Test
+    void seatFormulas_accommodationSeatsAvailableIsAllocationMinusUsed_neverNegative() {
+        assertThat(SeatFormulas.accommodationSeatsAvailable(2, 1)).isEqualTo(1);
+        assertThat(SeatFormulas.accommodationSeatsAvailable(2, 2)).isZero();
+        assertThat(SeatFormulas.accommodationSeatsAvailable(1, 3)).isZero();
+        assertThat(SeatFormulas.accommodationSeatsAvailable(0, 0)).isZero();
+    }
+
+    @Test
     void bookingStatus_seatAndActiveRules() {
         assertThat(BookingStatus.BOOKED.holdsSeat()).isTrue();
         assertThat(BookingStatus.ATTENDED.holdsSeat()).isTrue();
