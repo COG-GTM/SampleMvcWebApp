@@ -15,10 +15,20 @@ class Unsupported(Exception):
     """The operation has no equivalent on this target (reported as SKIPPED, not as a match)."""
 
 
-def v2_business(op, status, body):
+# Legacy portal/admin forms rejected invalid input in the .NET service layer before any usp_* call and showed the
+# PortalException text as a page error (AdminService.ChangeCapacity "Capacity cannot be negative.", BookingService.Book
+# "Unknown accommodation code ..."); the legacy portal adapter records every such text as PORTAL_ERROR with no code
+# (normalize.portal_error_code). The modern UI receives the same rejection as 400 VALIDATION, so on the portal/admin
+# channel that is the portal's generic error. Every other code (usp_* / booking-api vocabulary) is kept as is.
+PORTAL_GENERIC_ERRORS = {"VALIDATION"}
+
+
+def v2_business(op, status, body, channel=None):
     if status >= 400:
         if isinstance(body, dict):
             error = body.get("error")
+            if channel == "PORTAL" and status == 400 and error in PORTAL_GENERIC_ERRORS and body.get("legacyCode") is None:
+                error = "PORTAL_ERROR"
             code = body.get("legacyCode")
             return {"outcome": "ERROR", "error": error, "legacyCode": code if code is not None else legacy_code(error)}
         return {"outcome": "ERROR", "error": "HTTP_%d" % status, "legacyCode": None}
@@ -47,7 +57,7 @@ class V2Adapter:
             req["json"] = json
         if params:
             req["query"] = params
-        biz = v2_business(op, r.status_code, body)
+        biz = v2_business(op, r.status_code, body, self.channel)
         biz.pop("bumped", None)
         result = {"request": req, "response": {"status": r.status_code, "body": body}, "business": biz}
         if op in ("book", "reschedule") and r.status_code < 400 and isinstance(body, dict):
@@ -66,7 +76,7 @@ class V2Adapter:
 
     def reschedule(self, booking, new_session):
         return self._call("reschedule", "POST", "/api/v2/bookings/%d/reschedule" % booking,
-                          json={"newSessionId": new_session})
+                          json={"newSessionId": new_session, "channel": self.channel})
 
     def capacity(self, session, new_capacity):
         return self._call("capacity", "PUT", "/api/v2/sessions/%d/capacity" % session,

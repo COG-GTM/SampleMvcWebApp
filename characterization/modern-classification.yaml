@@ -91,36 +91,21 @@ adr_divergences:
     reason: >-
       Formula A everywhere; capacity-sync no longer rewrites seats with formula B, so the sync run reports no drift (and section 1 removes the partner drift it used to heal).
     fields: ["business.driftSessions", "business.totalDrift"]
-
-mismatch_root_causes:
-  - transcript: cancel_on_delivered_session_portal
-    root_cause: &cancel >-
-      Blank cancel reason: scheduling-service stores DEFAULT_CANCEL_REASON "Cancelled"
-      (SchedulingService.DEFAULT_CANCEL_REASON); the legacy portal (usp_CancelBooking @Reason NULL) stored NULL.
-      Not recorded in ADR 0002; booking status, seats and waitlist match.
-  - transcript: cancel_other_candidates_booking_portal
-    root_cause: *cancel
-  - transcript: cancel_then_new_booker_gets_seat_portal
-    root_cause: *cancel
-  - transcript: reschedule_same_exam_portal
-    root_cause: >-
-      The modern reschedule copies the original booking's ExternalRef onto the replacement booking; the legacy
-      portal path (usp_RescheduleBooking) inserted the new booking without one. Not recorded in ADR 0002.
-  - transcript: accommodation_unknown_code_portal
-    root_cause: >-
-      Both estates reject the unknown code and book nothing; the legacy portal showed a generic error page
-      (PORTAL_ERROR, no code), the modern API answers 400 VALIDATION. Error vocabulary only, not recorded in ADR 0002.
-  - transcript: capacity_negative_admin
-    root_cause: >-
-      Both estates reject capacity -1 and change nothing; the legacy portal showed a generic error (PORTAL_ERROR),
-      the modern API answers 400 VALIDATION with legacyCode 50005 (usp_ChangeCapacity's state for an invalid
-      capacity). Error vocabulary only, not recorded in ADR 0002.
   - transcript: mixed_traffic_then_capacity_sync
-    root_cause: >-
-      Consequence of ADR sections 1 and 3: in the legacy run the partner double decrement made sessions 154/157
-      look full, so later bookings were waitlisted and capacity-sync reported drift (112 sessions); on the modern
-      stack those bookings are seated, nothing is waitlisted and there is no drift. Booking/waitlist state differs,
-      which the ADR does not list for this transcript, so it stays a MISMATCH.
+    adr: "section 7 (transcript listed)"
+    reason: >-
+      Mixed portal/partner traffic then a capacity-sync run: on legacy the partner double decrement (HB-01) made
+      sessions 154/157 look full, so their last bookings were waitlisted, and formula B (HB-03) left drift
+      (reports/drift-before-after.md: 112 before, 0 after). On modern those bookings are seated, nothing is
+      waitlisted and seat-drift.sql reports 0. Only booking status in 154/157, their waitlists, seat counters and
+      the drift counters may differ.
+    fields: ["step3.business.driftSessions", "step3.business.totalDrift", "step5.business.driftSessions",
+             "step5.business.totalDrift", "business.driftSessions", "business.totalDrift",
+             "db_state.bookings.154[[]*].status", "db_state.bookings.157[[]*].status",
+             "db_state.waitlist.154", "db_state.waitlist.157", "db_state.examSession.*.SeatsAvailable"]
+
+# mismatch_root_causes: root cause of every remaining MISMATCH (printed in the report). None on this head.
+mismatch_root_causes: []
 
 not_replayable:
   - transcript: book_passed_candidate_proc_db

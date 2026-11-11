@@ -7,26 +7,26 @@
 
 **Overall: 86/86 MATCH**
 
-Status counts: MATCH 86, MISMATCH 0, KNOWN-DEFECT 0, SKIPPED 0, ERROR 0
+Status counts: MATCH 86, ADR-APPROVED DIVERGENCE 0, KNOWN_ONCALL_DEFECT (#57) 0, MISMATCH 0, NOT REPLAYABLE (retired legacy surface) 0, SKIPPED (unexplained) 0, ERROR 0
 
-KNOWN-DEFECT = differs from the legacy transcript for a reason listed in `characterization/known-defects.yaml`; counted separately (never as MATCH, never hidden).
+KNOWN_ONCALL_DEFECT (#57) = differs from the legacy transcript for a reason listed in `characterization/known-defects.yaml`; ADR-APPROVED DIVERGENCE = a difference ADR 0002 records (entry in `characterization/modern-classification.yaml`, section cited); NOT REPLAYABLE = the legacy entry point was retired and has no modern equivalent (reason and modern coverage stated). All counted separately, never as MATCH, never hidden.
 
 ## Totals per scenario group
 
-| Group | Result | Mismatch | Known defect | Skipped | Error |
-|---|---|---|---|---|---|
-| booking | 9/9 MATCH | 0 | 0 | 0 | 0 |
-| full_session | 2/2 MATCH | 0 | 0 | 0 | 0 |
-| duplicate_closed | 6/6 MATCH | 0 | 0 | 0 | 0 |
-| cancellation | 9/9 MATCH | 0 | 0 | 0 | 0 |
-| reschedule | 10/10 MATCH | 0 | 0 | 0 | 0 |
-| capacity_increase | 3/3 MATCH | 0 | 0 | 0 | 0 |
-| capacity_decrease | 8/8 MATCH | 0 | 0 | 0 | 0 |
-| retake_eligibility_portal | 10/10 MATCH | 0 | 0 | 0 | 0 |
-| retake_eligibility_partner | 10/10 MATCH | 0 | 0 | 0 | 0 |
-| accommodation | 11/11 MATCH | 0 | 0 | 0 | 0 |
-| mixed_traffic | 4/4 MATCH | 0 | 0 | 0 | 0 |
-| contracts | 4/4 MATCH | 0 | 0 | 0 | 0 |
+| Group | Result | ADR-approved | Known defect #57 | Mismatch | Not replayable | Skipped | Error |
+|---|---|---|---|---|---|---|---|
+| booking | 9/9 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
+| full_session | 2/2 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
+| duplicate_closed | 6/6 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
+| cancellation | 9/9 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
+| reschedule | 10/10 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
+| capacity_increase | 3/3 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
+| capacity_decrease | 8/8 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
+| retake_eligibility_portal | 10/10 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
+| retake_eligibility_partner | 10/10 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
+| accommodation | 11/11 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
+| mixed_traffic | 4/4 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
+| contracts | 4/4 MATCH | 0 | 0 | 0 | 0 | 0 | 0 |
 
 ## Per scenario
 
