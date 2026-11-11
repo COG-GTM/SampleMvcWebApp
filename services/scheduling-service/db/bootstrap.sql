@@ -16,7 +16,8 @@ USE Scheduling;
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'ad_app')
     CREATE USER ad_app FOR LOGIN ad_app;
-ALTER ROLE db_owner ADD MEMBER ad_app;
+IF IS_ROLEMEMBER('db_owner', 'ad_app') = 0
+    ALTER ROLE db_owner ADD MEMBER ad_app;
 GO
 USE AssessmentDelivery;
 GO

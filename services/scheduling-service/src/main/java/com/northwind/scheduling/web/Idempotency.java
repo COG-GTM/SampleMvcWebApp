@@ -48,9 +48,17 @@ public class Idempotency {
         }
         String who = client == null || client.isBlank() ? "anonymous" : client;
         String hash = sha256(request);
-        List<Map<String, Object>> prior = jdbc.queryForList("SELECT RequestHash, StatusCode, Body FROM dbo.IdempotencyKey "
-                + "WHERE IdemKey = ? AND Client = ? AND CreatedAt > DATEADD(DAY, -?, GETDATE())", key, who, retentionDays);
-        if (!prior.isEmpty()) {
+        // Reserve the key first (StatusCode 0 = in progress) so overlapping retries never run the command twice.
+        jdbc.update("DELETE FROM dbo.IdempotencyKey WHERE IdemKey = ? AND Client = ? AND CreatedAt <= DATEADD(DAY, -?, GETDATE())",
+                key, who, retentionDays);
+        try {
+            jdbc.update("INSERT INTO dbo.IdempotencyKey (IdemKey, Client, RequestHash, StatusCode) VALUES (?, ?, ?, 0)", key, who, hash);
+        } catch (DuplicateKeyException taken) {
+            List<Map<String, Object>> prior = jdbc.queryForList("SELECT RequestHash, StatusCode, Body FROM dbo.IdempotencyKey "
+                    + "WHERE IdemKey = ? AND Client = ?", key, who);
+            if (prior.isEmpty()) {
+                return execute(key, client, request, command);
+            }
             return replay(prior.get(0), hash);
         }
         ResponseEntity<?> response;
@@ -58,21 +66,25 @@ public class Idempotency {
             response = command.get();
         } catch (ApiException e) {
             response = ResponseEntity.status(e.status()).body(new ApiError(e.error(), e.getMessage(), e.legacyState(), null));
+        } catch (RuntimeException e) {
+            release(key, who);
+            throw e;
         }
         if (response.getStatusCode().is5xxServerError()) {
+            release(key, who);
             return response;
         }
         try {
-            jdbc.update("DELETE FROM dbo.IdempotencyKey WHERE IdemKey = ? AND Client = ? AND CreatedAt <= DATEADD(DAY, -?, GETDATE())",
-                    key, who, retentionDays);
-            jdbc.update("INSERT INTO dbo.IdempotencyKey (IdemKey, Client, RequestHash, StatusCode, Body) VALUES (?, ?, ?, ?, ?)",
-                    key, who, hash, response.getStatusCode().value(), mapper.writeValueAsString(response.getBody()));
-        } catch (DuplicateKeyException race) {
-            // a concurrent request with the same key won; this one already executed, return its own result
+            jdbc.update("UPDATE dbo.IdempotencyKey SET StatusCode = ?, Body = ? WHERE IdemKey = ? AND Client = ?",
+                    response.getStatusCode().value(), mapper.writeValueAsString(response.getBody()), key, who);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(e);
         }
         return response;
+    }
+
+    private void release(String key, String who) {
+        jdbc.update("DELETE FROM dbo.IdempotencyKey WHERE IdemKey = ? AND Client = ? AND StatusCode = 0", key, who);
     }
 
     private ResponseEntity<?> replay(Map<String, Object> prior, String hash) {
@@ -80,7 +92,12 @@ public class Idempotency {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(new ApiError("IDEMPOTENCY_KEY_REUSED",
                     "Idempotency-Key was already used for a different request", null, null));
         }
-        return ResponseEntity.status(((Number) prior.get("StatusCode")).intValue())
+        int status = ((Number) prior.get("StatusCode")).intValue();
+        if (status == 0) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError("IDEMPOTENCY_IN_PROGRESS",
+                    "A request with this Idempotency-Key is still being processed; retry later", null, null));
+        }
+        return ResponseEntity.status(status)
                 .header("Idempotent-Replayed", "true")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body((String) prior.get("Body"));

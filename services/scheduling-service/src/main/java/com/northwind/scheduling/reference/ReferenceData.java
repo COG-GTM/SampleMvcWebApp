@@ -269,6 +269,14 @@ public class ReferenceData {
                     count++;
                 }
             }
+            // rows deleted at source while the change window was lost: tombstone them
+            java.util.Set<Integer> present = new java.util.HashSet<>();
+            rows.forEach(r -> present.add(((Number) r.get(e.key)).intValue()));
+            for (Integer id : jdbc.queryForList("SELECT " + e.key + " FROM dbo." + e.replicaTable + " WHERE Deleted = 0", Integer.class)) {
+                if (!present.contains(id) && apply(e, id, new Upsert(version, true, null), true)) {
+                    count++;
+                }
+            }
             return count;
         });
         touch(e, version, true);

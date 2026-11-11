@@ -136,6 +136,9 @@ public class SessionController {
         if (v == null) {
             return "";
         }
+        if (!v.isEmpty() && "=+-@\t\r".indexOf(v.charAt(0)) >= 0) {
+            v = "'" + v; // neutralise spreadsheet formulas (CSV injection)
+        }
         return v.contains(",") || v.contains("\"") || v.contains("\n") ? "\"" + v.replace("\"", "\"\"") + "\"" : v;
     }
 

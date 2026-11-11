@@ -80,8 +80,10 @@ public class SchedulingCommands {
             try {
                 return tx.execute(s -> bookInTx(sessionId, candidateId, accommodationCode, channel, externalRef, actor));
             } catch (UnknownCandidate again) {
-                throw ApiException.notFound("CANDIDATE_NOT_FOUND", "Candidate " + candidateId + " not found. "
-                        + "(legacy: INSERT conflicted with the FOREIGN KEY constraint \"FK_Booking_Candidate\")");
+                // usp_BookSeat's CATCH re-raised the FK violation as Msg 50000 with its state (0) and message.
+                throw ApiException.legacy(HttpStatus.NOT_FOUND, "CANDIDATE_NOT_FOUND", 0,
+                        "The INSERT statement conflicted with the FOREIGN KEY constraint \"FK_Booking_Candidate\". "
+                                + "The conflict occurred in database \"AssessmentDelivery\", table \"dbo.Candidate\", column 'CandidateId'.");
             }
         }
     }
