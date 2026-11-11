@@ -124,9 +124,11 @@ if ((Invoke-Ps (Join-Path $root 'scripts\run-modern.ps1') $modernArgs (Join-Path
 Wait-Http "$routing/api/v1/sessions?from=2099-01-01" 60
 Invoke-Ps (Join-Path $root 'scripts\mixed-traffic.ps1') @('-RoutingUrl', $routing, '-BookingApiUrl', $routing) (Join-Path $work 'after-mixed-traffic.log') | Out-Null
 $afterSync = (Invoke-WebRequest "$routing/sync/run" -Method Post -UseBasicParsing -TimeoutSec 120).Content
-$java = Get-ChildItem "$env:ProgramFiles\Eclipse Adoptium" -Directory | Where-Object { $_.Name -match '^jdk-?21' } |
-    Sort-Object Name -Descending | Select-Object -First 1
-if ($env:JAVA21_HOME) { $javaExe = "$env:JAVA21_HOME\bin\java.exe" } else { $javaExe = Join-Path $java.FullName 'bin\java.exe' }
+if ($env:JAVA21_HOME) { $javaExe = "$env:JAVA21_HOME\bin\java.exe" } else {
+    $java = Get-ChildItem "$env:ProgramFiles\Eclipse Adoptium" -Directory | Where-Object { $_.Name -match '^jdk-?21' } |
+        Sort-Object Name -Descending | Select-Object -First 1
+    $javaExe = Join-Path $java.FullName 'bin\java.exe'
+}
 $env:SCHEDULING_DB_PASSWORD = $SaPassword
 $env:RECONCILIATION_REPORT_DIR = Join-Path $root 'reports'
 $reconcileLog = Join-Path $work 'after-reconcile.log'
