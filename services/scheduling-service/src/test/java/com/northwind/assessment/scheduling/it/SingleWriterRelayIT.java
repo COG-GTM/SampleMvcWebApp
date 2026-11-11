@@ -106,12 +106,13 @@ class SingleWriterRelayIT extends SqlServerTestBase {
 
     @Test
     void bookCancelCapacityUpAndDown_legacyEqualsSchedulingExactly_triggerSideEffectsSkipped() throws SQLException {
-        int sessionId = openSession("s.capacity - (SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id "
-                + "AND b.status IN ('BOOKED','ATTENDED')) BETWEEN 3 AND 10");
+        // no accommodation allocation: with one, the accommodation floor (PR #57) forbids reductions that would bump
+        int sessionId = openSession("s.accommodation_capacity = 0 AND s.capacity - (SELECT COUNT(*) FROM booking b "
+                + "WHERE b.session_id = s.session_id AND b.status IN ('BOOKED','ATTENDED')) BETWEEN 3 AND 10");
         List<String> candidates = eligibleCandidates(sessionId, 2);
 
         // PARTNER booking: trg_Booking_SeatSync would decrement SeatsAvailable a second time
-        ResponseEntity<Map<String, Object>> booked = book(sessionId, candidates.get(0), "ET25", "PARTNER");
+        ResponseEntity<Map<String, Object>> booked = book(sessionId, candidates.get(0), "SR", "PARTNER");
         assertThat(booked.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         long modernId = ((Number) booked.getBody().get("bookingId")).longValue();
         assertThat(lastEvent()).containsEntry("event_type", "BookingCreated");
@@ -120,7 +121,7 @@ class SingleWriterRelayIT extends SqlServerTestBase {
         Integer legacyId = db.queryForObject("SELECT legacy_booking_id FROM booking WHERE booking_id = ?", Integer.class, modernId);
         assertThat(legacyId).isNotNull().isLessThan(50_000_000);
         assertThat(legacyRow("SELECT SessionId, Status, AccommodationCode, Channel FROM dbo.Booking WHERE BookingId = " + legacyId))
-                .containsExactly(String.valueOf(sessionId), "BOOKED", "ET25", "PARTNER");
+                .containsExactly(String.valueOf(sessionId), "BOOKED", "SR", "PARTNER");
         assertSessionMatches(sessionId);
         assertThat(((Number) get("/api/v2/bookings/" + legacyId).get("bookingId")).longValue()).isEqualTo(modernId);
 
@@ -274,7 +275,7 @@ class SingleWriterRelayIT extends SqlServerTestBase {
 
     private int openSession(String condition) {
         return db.queryForObject("SELECT TOP 1 s.session_id FROM exam_session s WHERE s.status = 'OPEN' AND s.locally_modified = 0 "
-                + "AND s.accommodation_capacity > 0 AND s.starts_at > '2026-11-20' AND " + condition + " ORDER BY s.session_id DESC",
+                + "AND s.starts_at > '2026-11-20' AND " + condition + " ORDER BY s.session_id DESC",
                 Integer.class);
     }
 
