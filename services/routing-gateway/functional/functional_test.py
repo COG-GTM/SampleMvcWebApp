@@ -177,7 +177,7 @@ def main():
     direct = write_sequence(LEGACY, s_bos, s_nyc)
     reset_db()
     via_gw = write_sequence(GW, s_bos, s_nyc)
-    wdiffs = [f"{a[0]} {a[1]}: direct={a[2]} {a[4][:150]!r} gateway={b[2]} {b[4][:150]!r}"
+    wdiffs = [f"{a[0]} {a[1]}: direct={a[2]} {mask_wall_clock(a[4])!r} gateway={b[2]} {mask_wall_clock(b[4])!r}"
               for a, b in zip(direct, via_gw)
               if (a[2], a[3], mask_wall_clock(a[4])) != (b[2], b[3], mask_wall_clock(b[4]))]
     check(f"transparency: {len(direct)} write requests (book/duplicate/not-open/validation/malformed/reschedule/cancel/404) "
