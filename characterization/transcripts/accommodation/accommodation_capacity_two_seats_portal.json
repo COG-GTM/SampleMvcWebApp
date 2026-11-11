@@ -1,0 +1,376 @@
+{
+  "channel": "PORTAL",
+  "description": "Session 198 has AccommodationCapacity 2; two extra-time bookings succeed, the third fails (N=2).",
+  "expected": {
+    "business_fields": {
+      "error": "NO_ACCOMMODATION_SEAT",
+      "legacyCode": 50003,
+      "outcome": "ERROR",
+      "seatsAvailable": 13,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=198 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#1"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=198 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#2"
+        }
+      ],
+      "bookings.198": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T18:26:00",
+          "bookingId": 1836,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000662",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T03:57:00",
+          "bookingId": 1837,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000190",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T13:28:00",
+          "bookingId": 1838,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000599",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019803",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T21:19:00",
+          "bookingId": 1839,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000127",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019804",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T11:50:00",
+          "bookingId": 1840,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000536",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T21:21:00",
+          "bookingId": 1841,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000064",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-198-6",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:52:00",
+          "bookingId": 1842,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000473",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-30T14:10:00",
+          "bookingId": 3435,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000790",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": "ET25",
+          "bookedAt": "<now>",
+          "bookingId": "new#1",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000901",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": "ET50",
+          "bookedAt": "<now>",
+          "bookingId": "new#2",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000902",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.198": {
+        "AccommodationCapacity": 2,
+        "Capacity": 23,
+        "SeatsAvailable": 13,
+        "Status": "OPEN"
+      },
+      "waitlist.198": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.198": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T18:26:00",
+          "bookingId": 1836,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000662",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T03:57:00",
+          "bookingId": 1837,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000190",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T13:28:00",
+          "bookingId": 1838,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000599",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019803",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T21:19:00",
+          "bookingId": 1839,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000127",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019804",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T11:50:00",
+          "bookingId": 1840,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000536",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T21:21:00",
+          "bookingId": 1841,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000064",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-198-6",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:52:00",
+          "bookingId": 1842,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000473",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-30T14:10:00",
+          "bookingId": 3435,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000790",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.198": {
+        "AccommodationCapacity": 2,
+        "Capacity": 23,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.198": []
+    },
+    "status": 200
+  },
+  "finding": [
+    "HB-08"
+  ],
+  "format": 1,
+  "group": "accommodation",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "accommodation_capacity_two_seats_portal",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PORTAL",
+      "expected": {
+        "business_fields": {
+          "bookingId": "new#1",
+          "error": null,
+          "legacyCode": null,
+          "outcome": "BOOKED",
+          "seatsAvailable": 14,
+          "waitlistPosition": null
+        },
+        "response": {
+          "location": "/Booking/MyBookings?candidateNumber=NW00000901",
+          "message": "Booking new#1 confirmed.",
+          "status": 302
+        },
+        "status": 302
+      },
+      "op": "book",
+      "request": {
+        "form": {
+          "AccommodationCode": "ET25",
+          "CandidateNumber": "NW00000901",
+          "SessionId": "198"
+        },
+        "method": "POST",
+        "path": "/Booking/Book"
+      },
+      "source": {
+        "accommodation": "ET25",
+        "candidate": "NW00000901",
+        "op": "book",
+        "session": 198
+      }
+    },
+    {
+      "channel": "PORTAL",
+      "expected": {
+        "business_fields": {
+          "bookingId": "new#2",
+          "error": null,
+          "legacyCode": null,
+          "outcome": "BOOKED",
+          "seatsAvailable": 13,
+          "waitlistPosition": null
+        },
+        "response": {
+          "location": "/Booking/MyBookings?candidateNumber=NW00000902",
+          "message": "Booking new#2 confirmed.",
+          "status": 302
+        },
+        "status": 302
+      },
+      "op": "book",
+      "request": {
+        "form": {
+          "AccommodationCode": "ET50",
+          "CandidateNumber": "NW00000902",
+          "SessionId": "198"
+        },
+        "method": "POST",
+        "path": "/Booking/Book"
+      },
+      "source": {
+        "accommodation": "ET50",
+        "candidate": "NW00000902",
+        "op": "book",
+        "session": 198
+      }
+    },
+    {
+      "channel": "PORTAL",
+      "expected": {
+        "business_fields": {
+          "error": "NO_ACCOMMODATION_SEAT",
+          "legacyCode": 50003,
+          "outcome": "ERROR",
+          "seatsAvailable": 13,
+          "waitlistPosition": null
+        },
+        "response": {
+          "errors": [
+            "No accommodation seat available on session 198."
+          ],
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "book",
+      "request": {
+        "form": {
+          "AccommodationCode": "ET25",
+          "CandidateNumber": "NW00000904",
+          "SessionId": "198"
+        },
+        "method": "POST",
+        "path": "/Booking/Book"
+      },
+      "source": {
+        "accommodation": "ET25",
+        "candidate": "NW00000904",
+        "op": "book",
+        "session": 198
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-13"
+  ]
+}

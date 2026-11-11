@@ -1,0 +1,34 @@
+group: mixed_traffic
+scenarios:
+  - name: mixed_traffic_then_capacity_sync
+    channel: SYSTEM
+    finding: [HB-03, HB-01]
+    tests: [CT-10, CT-11, CT-37]
+    oddity: true
+    oddity_note: Mixed portal/partner traffic leaves seat drift (partner double decrement); capacity-sync rewrites SeatsAvailable with a formula the drift check disagrees with.
+    modern_expected_mismatch: Not replayable against scheduling-service directly (no capacity-sync); needs the gateway for v1 + portal.
+    description: scripts/mixed-traffic on a fresh seed (20 portal, 20 partner, 3 cancels, 4 sessions), then seat-drift.sql, POST /sync/run, seat-drift.sql.
+    tags: [double-decrement, drift, capacity-sync]
+    sessions: [152, 154, 155, 157]
+    steps:
+      - {op: drift}
+      - {op: mixed_traffic, env: {PORTAL_BOOKINGS: 20, PARTNER_BOOKINGS: 20, CANCELS: 3, SESSIONS: 4}}
+      - {op: drift}
+      - {op: sync}
+      - {op: drift}
+  - name: capacity_sync_with_accommodation_bookings
+    channel: SYSTEM
+    finding: [HB-03]
+    tests: [CT-11]
+    oddity: true
+    oddity_note: capacity-sync subtracts AccommodationCapacity and counts only non-ET bookings, so a correct session drifts after the nightly sync.
+    description: Two ET25/ET50 bookings plus one standard booking on session 198 (AccommodationCapacity 2), then drift check, sync, drift check.
+    tags: [drift, capacity-sync, accommodation]
+    sessions: [198]
+    steps:
+      - {op: book, channel: PORTAL, session: 198, candidate: NW00000901, accommodation: ET25}
+      - {op: book, channel: PORTAL, session: 198, candidate: NW00000902, accommodation: ET50}
+      - {op: book, channel: PORTAL, session: 198, candidate: NW00000904}
+      - {op: drift}
+      - {op: sync}
+      - {op: drift}

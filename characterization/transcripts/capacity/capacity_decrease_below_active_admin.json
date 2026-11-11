@@ -1,0 +1,383 @@
+{
+  "channel": "ADMIN",
+  "description": "Admin lowers session 191 from 12 to 4 with 6 active bookings; the trigger bumps the 2 newest bookings to the waitlist.",
+  "expected": {
+    "business_fields": {
+      "bumped": [
+        "new#3",
+        "new#4"
+      ],
+      "error": null,
+      "legacyCode": null,
+      "outcome": "UPDATED",
+      "seatsAvailable": 0
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=191 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#1"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=191 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#2"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=191 status=BOOKED channel=PARTNER ref=NAN-REF-0010",
+          "entity": "Booking",
+          "entityId": "new#3"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=191 status=BOOKED channel=PARTNER ref=NAN-REF-0011",
+          "entity": "Booking",
+          "entityId": "new#4"
+        },
+        {
+          "action": "CAPACITY",
+          "actor": "portal-admin",
+          "detail": "12 -> 4",
+          "entity": "ExamSession",
+          "entityId": 191
+        }
+      ],
+      "bookings.191": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T17:39:00",
+          "bookingId": 1802,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000370",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-191-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:30:00",
+          "bookingId": 1803,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000779",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#1",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000901",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#2",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000902",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#3",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000904",
+          "channel": "PARTNER",
+          "externalRef": "NAN-REF-0010",
+          "status": "WAITLISTED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#4",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000905",
+          "channel": "PARTNER",
+          "externalRef": "NAN-REF-0011",
+          "status": "WAITLISTED"
+        }
+      ],
+      "examSession.191": {
+        "AccommodationCapacity": 0,
+        "Capacity": 4,
+        "SeatsAvailable": 0,
+        "Status": "OPEN"
+      },
+      "waitlist.191": [
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#3",
+          "candidate": "NW00000904",
+          "position": 1
+        },
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#4",
+          "candidate": "NW00000905",
+          "position": 2
+        }
+      ]
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.191": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T17:39:00",
+          "bookingId": 1802,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000370",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-191-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:30:00",
+          "bookingId": 1803,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000779",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.191": {
+        "AccommodationCapacity": 0,
+        "Capacity": 12,
+        "SeatsAvailable": 10,
+        "Status": "OPEN"
+      },
+      "waitlist.191": []
+    },
+    "status": 302
+  },
+  "finding": [
+    "HB-05"
+  ],
+  "format": 1,
+  "group": "capacity",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": "ADR 0002 section 1 - seat count is derived, no partner double decrement (setup partner bookings leave one more seat).",
+  "oddity": true,
+  "oddity_note": "Lowering capacity below active bookings silently moves the newest BOOKED rows to WAITLISTED (trg_ExamSession_Update), not usp_ChangeCapacity.",
+  "scenario": "capacity_decrease_below_active_admin",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PORTAL",
+      "expected": {
+        "business_fields": {
+          "bookingId": "new#1",
+          "error": null,
+          "legacyCode": null,
+          "outcome": "BOOKED",
+          "seatsAvailable": 9,
+          "waitlistPosition": null
+        },
+        "response": {
+          "location": "/Booking/MyBookings?candidateNumber=NW00000901",
+          "message": "Booking new#1 confirmed.",
+          "status": 302
+        },
+        "status": 302
+      },
+      "op": "book",
+      "request": {
+        "form": {
+          "AccommodationCode": "",
+          "CandidateNumber": "NW00000901",
+          "SessionId": "191"
+        },
+        "method": "POST",
+        "path": "/Booking/Book"
+      },
+      "source": {
+        "candidate": "NW00000901",
+        "channel": "PORTAL",
+        "op": "book",
+        "session": 191
+      }
+    },
+    {
+      "channel": "PORTAL",
+      "expected": {
+        "business_fields": {
+          "bookingId": "new#2",
+          "error": null,
+          "legacyCode": null,
+          "outcome": "BOOKED",
+          "seatsAvailable": 8,
+          "waitlistPosition": null
+        },
+        "response": {
+          "location": "/Booking/MyBookings?candidateNumber=NW00000902",
+          "message": "Booking new#2 confirmed.",
+          "status": 302
+        },
+        "status": 302
+      },
+      "op": "book",
+      "request": {
+        "form": {
+          "AccommodationCode": "",
+          "CandidateNumber": "NW00000902",
+          "SessionId": "191"
+        },
+        "method": "POST",
+        "path": "/Booking/Book"
+      },
+      "source": {
+        "candidate": "NW00000902",
+        "channel": "PORTAL",
+        "op": "book",
+        "session": 191
+      }
+    },
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "bookingId": "new#3",
+          "error": null,
+          "legacyCode": null,
+          "outcome": "BOOKED",
+          "seatsAvailable": 6,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "bookingId": "new#3",
+            "status": "BOOKED"
+          },
+          "status": 201
+        },
+        "status": 201
+      },
+      "op": "book",
+      "request": {
+        "json": {
+          "accommodationCode": null,
+          "candidateNumber": "NW00000904",
+          "externalRef": "NAN-REF-0010",
+          "sessionId": 191
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings"
+      },
+      "source": {
+        "candidate": "NW00000904",
+        "channel": "PARTNER",
+        "externalRef": "NAN-REF-0010",
+        "op": "book",
+        "session": 191
+      }
+    },
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "bookingId": "new#4",
+          "error": null,
+          "legacyCode": null,
+          "outcome": "BOOKED",
+          "seatsAvailable": 4,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "bookingId": "new#4",
+            "status": "BOOKED"
+          },
+          "status": 201
+        },
+        "status": 201
+      },
+      "op": "book",
+      "request": {
+        "json": {
+          "accommodationCode": null,
+          "candidateNumber": "NW00000905",
+          "externalRef": "NAN-REF-0011",
+          "sessionId": 191
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings"
+      },
+      "source": {
+        "candidate": "NW00000905",
+        "channel": "PARTNER",
+        "externalRef": "NAN-REF-0011",
+        "op": "book",
+        "session": 191
+      }
+    },
+    {
+      "channel": "ADMIN",
+      "expected": {
+        "business_fields": {
+          "bumped": [
+            "new#3",
+            "new#4"
+          ],
+          "error": null,
+          "legacyCode": null,
+          "outcome": "UPDATED",
+          "seatsAvailable": 0
+        },
+        "response": {
+          "location": "/Admin/Sessions/Capacity/191",
+          "message": "Capacity updated",
+          "status": 302
+        },
+        "status": 302
+      },
+      "op": "capacity",
+      "request": {
+        "form": {
+          "NewCapacity": "4"
+        },
+        "method": "POST",
+        "path": "/Admin/Sessions/Capacity/191"
+      },
+      "source": {
+        "newCapacity": 4,
+        "op": "capacity",
+        "session": 191
+      }
+    }
+  ],
+  "tags": [
+    "decrease",
+    "bump"
+  ],
+  "tests": [
+    "CT-18"
+  ]
+}

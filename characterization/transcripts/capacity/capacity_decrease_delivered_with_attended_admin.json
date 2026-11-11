@@ -1,0 +1,346 @@
+{
+  "channel": "ADMIN",
+  "description": "",
+  "expected": {
+    "business_fields": {
+      "bumped": [],
+      "error": null,
+      "legacyCode": null,
+      "outcome": "UPDATED",
+      "seatsAvailable": 0
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "CAPACITY",
+          "actor": "portal-admin",
+          "detail": "11 -> 8",
+          "entity": "ExamSession",
+          "entityId": 147
+        }
+      ],
+      "bookings.147": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-05T11:15:00",
+          "bookingId": 1528,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000141",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0014701",
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-05T20:46:00",
+          "bookingId": 1529,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000550",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T06:17:00",
+          "bookingId": 1530,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000078",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T20:48:00",
+          "bookingId": 1531,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000487",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T04:39:00",
+          "bookingId": 1532,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000015",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T14:10:00",
+          "bookingId": 1533,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000424",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0014706",
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T23:41:00",
+          "bookingId": 1534,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000833",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T12:32:00",
+          "bookingId": 1535,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000361",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-147-8",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T22:03:00",
+          "bookingId": 1536,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000770",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-09-26T17:30:00",
+          "bookingId": 3318,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000240",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-09-26T13:42:00",
+          "bookingId": 3319,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000492",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.147": {
+        "AccommodationCapacity": 0,
+        "Capacity": 8,
+        "SeatsAvailable": 0,
+        "Status": "DELIVERED"
+      },
+      "waitlist.147": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.147": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-05T11:15:00",
+          "bookingId": 1528,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000141",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0014701",
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-05T20:46:00",
+          "bookingId": 1529,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000550",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T06:17:00",
+          "bookingId": 1530,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000078",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T20:48:00",
+          "bookingId": 1531,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000487",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T04:39:00",
+          "bookingId": 1532,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000015",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T14:10:00",
+          "bookingId": 1533,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000424",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0014706",
+          "status": "ATTENDED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T23:41:00",
+          "bookingId": 1534,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000833",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T12:32:00",
+          "bookingId": 1535,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000361",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-147-8",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T22:03:00",
+          "bookingId": 1536,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000770",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-09-26T17:30:00",
+          "bookingId": 3318,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000240",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-09-26T13:42:00",
+          "bookingId": 3319,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000492",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.147": {
+        "AccommodationCapacity": 0,
+        "Capacity": 11,
+        "SeatsAvailable": 0,
+        "Status": "DELIVERED"
+      },
+      "waitlist.147": []
+    },
+    "status": 302
+  },
+  "finding": [
+    "HB-05",
+    "HB-16",
+    "HB-03"
+  ],
+  "format": 1,
+  "group": "capacity",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": true,
+  "oddity_note": "Capacity of DELIVERED session 147 (6 ATTENDED + 5 BOOKED) can still be lowered to 8; nobody is bumped because only BOOKED rows count, SeatsAvailable floors at 0.",
+  "scenario": "capacity_decrease_delivered_with_attended_admin",
+  "setup_sql": [
+    "UPDATE dbo.Booking SET Status = 'ATTENDED' WHERE SessionId = 147 AND BookingId IN (SELECT TOP 6 BookingId FROM dbo.Booking WHERE SessionId = 147 ORDER BY BookingId)"
+  ],
+  "steps": [
+    {
+      "channel": "ADMIN",
+      "expected": {
+        "business_fields": {
+          "bumped": [],
+          "error": null,
+          "legacyCode": null,
+          "outcome": "UPDATED",
+          "seatsAvailable": 0
+        },
+        "response": {
+          "location": "/Admin/Sessions/Capacity/147",
+          "message": "Capacity updated",
+          "status": 302
+        },
+        "status": 302
+      },
+      "op": "capacity",
+      "request": {
+        "form": {
+          "NewCapacity": "8"
+        },
+        "method": "POST",
+        "path": "/Admin/Sessions/Capacity/147"
+      },
+      "source": {
+        "newCapacity": 8,
+        "op": "capacity",
+        "session": 147
+      }
+    }
+  ],
+  "tags": [
+    "decrease"
+  ],
+  "tests": [
+    "CT-20",
+    "CT-21"
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "channel": "PORTAL",
+  "description": "Check Thu 2026-12-10: portal allows, partner still refuses (working-day boundary is 2026-12-11).",
+  "expected": {
+    "business_fields": {
+      "earliestRetakeDate": "2026-11-29",
+      "eligible": true,
+      "reason": "RETAKE_ALLOWED"
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "results": [
+        {
+          "candidate": "NW00000953",
+          "examCode": "CTA-NET1",
+          "passed": false,
+          "score": 512,
+          "sessionId": 463,
+          "sessionStartsAt": "2026-10-30T09:00:00"
+        }
+      ]
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "results": [
+        {
+          "candidate": "NW00000953",
+          "examCode": "CTA-NET1",
+          "passed": false,
+          "score": 512,
+          "sessionId": 463,
+          "sessionStartsAt": "2026-10-30T09:00:00"
+        }
+      ]
+    },
+    "status": 200
+  },
+  "finding": [
+    "HB-04"
+  ],
+  "format": 1,
+  "group": "retake_eligibility",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": "ADR 0002 - one retake rule for both channels; the losing channel mismatches.",
+  "oddity": true,
+  "oddity_note": "Retake wait: portal counts 30 calendar days (RetakeRules), booking-api 30 working days (DateUtils.addWorkingDays); channels disagree on this date.",
+  "scenario": "retake_weekend_span_between_rules_portal",
+  "setup_sql": [
+    "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000953');\nINSERT dbo.ExamSession (ExamId, TestCenterId, RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10, 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel, BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY, 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  ],
+  "steps": [
+    {
+      "channel": "PORTAL",
+      "expected": {
+        "business_fields": {
+          "earliestRetakeDate": "2026-11-29",
+          "eligible": true,
+          "reason": "RETAKE_ALLOWED"
+        },
+        "response": {
+          "errors": [],
+          "rendered": {
+            "Candidate": "NW00000953",
+            "Earliest retake date": "29 Nov 2026",
+            "Eligible": "YES",
+            "Exam": "CTA-NET1",
+            "Proposed date": "10 Dec 2026",
+            "Reason": "Retake wait period has elapsed"
+          },
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "eligibility",
+      "request": {
+        "method": "GET",
+        "path": "/Eligibility",
+        "query": {
+          "candidateNumber": "NW00000953",
+          "date": "2026-12-10",
+          "examCode": "CTA-NET1"
+        }
+      },
+      "source": {
+        "candidate": "NW00000953",
+        "date": "2026-12-10",
+        "examCode": "CTA-NET1",
+        "op": "eligibility"
+      }
+    }
+  ],
+  "tags": [
+    "channel-disagreement",
+    "working-days"
+  ],
+  "tests": [
+    "CT-30"
+  ]
+}

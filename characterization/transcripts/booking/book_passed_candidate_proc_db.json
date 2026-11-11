@@ -1,0 +1,218 @@
+{
+  "channel": "DB",
+  "description": "",
+  "expected": {
+    "business_fields": {
+      "rows": [
+        {
+          "BookingId": "new#1",
+          "Status": "BOOKED"
+        }
+      ]
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "BOOK",
+          "actor": "sa",
+          "detail": "session=398 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#1"
+        }
+      ],
+      "bookings.398": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T12:46:00",
+          "bookingId": 2894,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000469",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T22:17:00",
+          "bookingId": 2895,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000878",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0039802",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T11:08:00",
+          "bookingId": 2896,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000406",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0039803",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T20:39:00",
+          "bookingId": 2897,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000815",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": "ET50",
+          "bookedAt": "2026-11-10T06:10:00",
+          "bookingId": 2898,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000343",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-398-5",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#1",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000002",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.398": {
+        "AccommodationCapacity": 1,
+        "Capacity": 11,
+        "SeatsAvailable": 5,
+        "Status": "OPEN"
+      },
+      "waitlist.398": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.398": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T12:46:00",
+          "bookingId": 2894,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000469",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T22:17:00",
+          "bookingId": 2895,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000878",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0039802",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T11:08:00",
+          "bookingId": 2896,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000406",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0039803",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T20:39:00",
+          "bookingId": 2897,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000815",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": "ET50",
+          "bookedAt": "2026-11-10T06:10:00",
+          "bookingId": 2898,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000343",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-398-5",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.398": {
+        "AccommodationCapacity": 1,
+        "Capacity": 11,
+        "SeatsAvailable": 6,
+        "Status": "OPEN"
+      },
+      "waitlist.398": []
+    },
+    "status": null
+  },
+  "finding": [
+    "HB-09"
+  ],
+  "format": 1,
+  "group": "booking",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": true,
+  "oddity_note": "usp_BookSeat alone books a candidate who already passed the exam - retake rules live only in the apps.",
+  "scenario": "book_passed_candidate_proc_db",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "DB",
+      "expected": {
+        "business_fields": {
+          "rows": [
+            {
+              "BookingId": "new#1",
+              "Status": "BOOKED"
+            }
+          ]
+        },
+        "response": {
+          "rows": [
+            {
+              "BookingId": "new#1",
+              "Status": "BOOKED"
+            }
+          ]
+        },
+        "status": null
+      },
+      "op": "sql",
+      "request": {
+        "sql": "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000002'), @b INT, @s VARCHAR(12); EXEC dbo.usp_BookSeat @SessionId = 398, @CandidateId = @c, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT @b AS BookingId, @s AS Status"
+      },
+      "source": {
+        "op": "sql",
+        "sql": "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000002'), @b INT, @s VARCHAR(12); EXEC dbo.usp_BookSeat @SessionId = 398, @CandidateId = @c, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT @b AS BookingId, @s AS Status"
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-29"
+  ]
+}

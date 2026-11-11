@@ -1,0 +1,448 @@
+# Retake eligibility (Exam CTA-NET1, RetakeWaitDays = 30). Setup inserts a DELIVERED BOS01 session, an ATTENDED
+# booking and a Result row for the candidate; each date is checked through both channels.
+group: retake_eligibility
+scenarios:
+- name: retake_inside_window_portal
+  channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Fail on Fri 2026-10-30; check 2026-11-20 (21 days later): both channels refuse.'
+  candidates:
+  - NW00000950
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000950
+    examCode: CTA-NET1
+    date: '2026-11-20'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000950');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: Channels agree on eligible but disagree on earliestRetakeDate (portal attempt + 30 calendar days, booking-api attempt + 30 working
+    days).
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
+- name: retake_inside_window_partner
+  channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Fail on Fri 2026-10-30; check 2026-11-20 (21 days later): both channels refuse.'
+  candidates:
+  - NW00000950
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000950
+    examCode: CTA-NET1
+    date: '2026-11-20'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000950');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: Channels agree on eligible but disagree on earliestRetakeDate (portal attempt + 30 calendar days, booking-api attempt + 30 working
+    days).
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
+- name: retake_day_before_calendar_boundary_portal
+  channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Check Sat 2026-11-28, day 29: both channels refuse.'
+  candidates:
+  - NW00000951
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000951
+    examCode: CTA-NET1
+    date: '2026-11-28'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000951');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: Channels agree on eligible but disagree on earliestRetakeDate (portal attempt + 30 calendar days, booking-api attempt + 30 working
+    days).
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
+- name: retake_day_before_calendar_boundary_partner
+  channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Check Sat 2026-11-28, day 29: both channels refuse.'
+  candidates:
+  - NW00000951
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000951
+    examCode: CTA-NET1
+    date: '2026-11-28'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000951');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: Channels agree on eligible but disagree on earliestRetakeDate (portal attempt + 30 calendar days, booking-api attempt + 30 working
+    days).
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
+- name: retake_calendar_boundary_portal
+  channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Check Sun 2026-11-29 = attempt + 30 calendar days: portal allows, partner (30 working days) refuses.'
+  candidates:
+  - NW00000952
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000952
+    examCode: CTA-NET1
+    date: '2026-11-29'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000952');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: 'Retake wait: portal counts 30 calendar days (RetakeRules), booking-api 30 working days (DateUtils.addWorkingDays); channels disagree
+    on this date.'
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
+- name: retake_calendar_boundary_partner
+  channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Check Sun 2026-11-29 = attempt + 30 calendar days: portal allows, partner (30 working days) refuses.'
+  candidates:
+  - NW00000952
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000952
+    examCode: CTA-NET1
+    date: '2026-11-29'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000952');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: 'Retake wait: portal counts 30 calendar days (RetakeRules), booking-api 30 working days (DateUtils.addWorkingDays); channels disagree
+    on this date.'
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
+- name: retake_weekend_span_between_rules_portal
+  channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Check Thu 2026-12-10: portal allows, partner still refuses (working-day boundary is 2026-12-11).'
+  candidates:
+  - NW00000953
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000953
+    examCode: CTA-NET1
+    date: '2026-12-10'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000953');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: 'Retake wait: portal counts 30 calendar days (RetakeRules), booking-api 30 working days (DateUtils.addWorkingDays); channels disagree
+    on this date.'
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
+- name: retake_weekend_span_between_rules_partner
+  channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Check Thu 2026-12-10: portal allows, partner still refuses (working-day boundary is 2026-12-11).'
+  candidates:
+  - NW00000953
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000953
+    examCode: CTA-NET1
+    date: '2026-12-10'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000953');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: 'Retake wait: portal counts 30 calendar days (RetakeRules), booking-api 30 working days (DateUtils.addWorkingDays); channels disagree
+    on this date.'
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
+- name: retake_working_day_boundary_portal
+  channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Check Fri 2026-12-11 = attempt + 30 working days: both allow.'
+  candidates:
+  - NW00000954
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000954
+    examCode: CTA-NET1
+    date: '2026-12-11'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000954');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: Channels agree on eligible but disagree on earliestRetakeDate (portal attempt + 30 calendar days, booking-api attempt + 30 working
+    days).
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
+- name: retake_working_day_boundary_partner
+  channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Check Fri 2026-12-11 = attempt + 30 working days: both allow.'
+  candidates:
+  - NW00000954
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000954
+    examCode: CTA-NET1
+    date: '2026-12-11'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000954');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: Channels agree on eligible but disagree on earliestRetakeDate (portal attempt + 30 calendar days, booking-api attempt + 30 working
+    days).
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
+- name: retake_outside_window_portal
+  channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Check 2027-01-15, well outside the window: both allow.'
+  candidates:
+  - NW00000955
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000955
+    examCode: CTA-NET1
+    date: '2027-01-15'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000955');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: Channels agree on eligible but disagree on earliestRetakeDate (portal attempt + 30 calendar days, booking-api attempt + 30 working
+    days).
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
+- name: retake_outside_window_partner
+  channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Check 2027-01-15, well outside the window: both allow.'
+  candidates:
+  - NW00000955
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000955
+    examCode: CTA-NET1
+    date: '2027-01-15'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000955');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  oddity: true
+  oddity_note: Channels agree on eligible but disagree on earliestRetakeDate (portal attempt + 30 calendar days, booking-api attempt + 30 working
+    days).
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
+- name: retake_month_end_boundary_portal
+  channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Fail on Thu 2026-10-01; check Sat 2026-10-31 (month end, +30 calendar days): portal allows, partner refuses until 2026-11-12.'
+  candidates:
+  - NW00000956
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000956
+    examCode: CTA-NET1
+    date: '2026-10-31'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000956');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-01T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-01T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-01T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-01T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-01T09:00:00'));"
+  oddity: true
+  oddity_note: 'Retake wait: portal counts 30 calendar days (RetakeRules), booking-api 30 working days (DateUtils.addWorkingDays); channels disagree
+    on this date.'
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
+- name: retake_month_end_boundary_partner
+  channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
+  description: 'Fail on Thu 2026-10-01; check Sat 2026-10-31 (month end, +30 calendar days): portal allows, partner refuses until 2026-11-12.'
+  candidates:
+  - NW00000956
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000956
+    examCode: CTA-NET1
+    date: '2026-10-31'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000956');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-01T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-01T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-01T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY,\
+    \ 3, '2026-10-01T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-01T09:00:00'));"
+  oddity: true
+  oddity_note: 'Retake wait: portal counts 30 calendar days (RetakeRules), booking-api 30 working days (DateUtils.addWorkingDays); channels disagree
+    on this date.'
+  tags:
+  - channel-disagreement
+  - working-days
+  modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
+- name: retake_already_passed_portal
+  channel: PORTAL
+  finding: [HB-04, HB-09]
+  tests: [CT-29]
+  description: 'Candidate passed on 2026-10-30: both channels refuse with ALREADY_PASSED.'
+  candidates:
+  - NW00000957
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000957
+    examCode: CTA-NET1
+    date: '2026-11-20'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000957');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 712, 1, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+- name: retake_already_passed_partner
+  channel: PARTNER
+  finding: [HB-04, HB-09]
+  tests: [CT-29]
+  description: 'Candidate passed on 2026-10-30: both channels refuse with ALREADY_PASSED.'
+  candidates:
+  - NW00000957
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000957
+    examCode: CTA-NET1
+    date: '2026-11-20'
+  setup_sql:
+  - "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000957');\nINSERT dbo.ExamSession (ExamId, TestCenterId,\
+    \ RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10,\
+    \ 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel,\
+    \ BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId,\
+    \ CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 712, 1, DATEADD(DAY,\
+    \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+- name: retake_first_attempt_portal
+  channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-28]
+  description: 'Candidate with no prior result: both channels allow (FIRST_ATTEMPT).'
+  candidates:
+  - NW00000958
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000958
+    examCode: CTA-NET1
+    date: '2026-11-20'
+- name: retake_first_attempt_partner
+  channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-28]
+  description: 'Candidate with no prior result: both channels allow (FIRST_ATTEMPT).'
+  candidates:
+  - NW00000958
+  sessions: []
+  steps:
+  - op: eligibility
+    candidate: NW00000958
+    examCode: CTA-NET1
+    date: '2026-11-20'

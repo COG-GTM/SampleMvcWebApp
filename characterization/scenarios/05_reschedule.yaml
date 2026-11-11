@@ -1,0 +1,61 @@
+group: reschedule
+scenarios:
+  - name: reschedule_same_exam_portal
+    channel: PORTAL
+    finding: [HB-06]
+    tests: [CT-22]
+    description: Portal moves seed booking 3586 (CTA-SEC2, session 462) to CTA-SEC2 session 258 (usp_RescheduleBooking).
+    sessions: [462, 258]
+    steps:
+      - {op: reschedule, booking: 3586, newSession: 258}
+  - name: reschedule_same_exam_partner
+    channel: PARTNER
+    finding: [HB-06, HB-01]
+    tests: [CT-23]
+    oddity: true
+    oddity_note: Partner reschedule cancels via usp_CancelBooking then rebooks via the partner path, so the new session loses two seats.
+    modern_expected_mismatch: ADR 0002 - derived seat count, no double decrement on the rebooking.
+    description: booking-api POST /api/v1/bookings/3586/reschedule to session 258.
+    tags: [double-decrement]
+    sessions: [462, 258]
+    steps:
+      - {op: reschedule, booking: 3586, newSession: 258}
+  - name: reschedule_different_exam_portal
+    channel: PORTAL
+    finding: [HB-06, HB-11]
+    tests: [CT-26]
+    description: Portal posts NewSessionId of a CTA-NET1 session (191) for a CTA-SEC2 booking; usp_RescheduleBooking raises 50006.
+    sessions: [462, 191]
+    steps:
+      - {op: reschedule, booking: 3586, newSession: 191}
+  - name: reschedule_different_exam_partner
+    channel: PARTNER
+    finding: [HB-06, HB-11]
+    tests: [CT-26]
+    description: booking-api reschedule of the same booking to session 191 -> DIFFERENT_EXAM.
+    sessions: [462, 191]
+    steps:
+      - {op: reschedule, booking: 3586, newSession: 191}
+  - name: reschedule_same_session_portal
+    channel: PORTAL
+    finding: [HB-06]
+    tests: [CT-24]
+    oddity: true
+    oddity_note: Portal reschedule to the booking's own session is not rejected - usp_RescheduleBooking cancels and re-books the same seat; booking-api returns 409 SAME_SESSION.
+    modern_expected_mismatch: ADR 0002 section 6b - every channel rejects with 409 SAME_SESSION.
+    description: Portal posts NewSessionId = 462 for seed booking 3586, which is already on session 462.
+    tags: [channel-disagreement]
+    sessions: [462]
+    steps:
+      - {op: reschedule, booking: 3586, newSession: 462}
+  - name: reschedule_same_session_partner
+    channel: PARTNER
+    finding: [HB-06]
+    tests: [CT-24]
+    oddity: true
+    oddity_note: booking-api rejects a reschedule to the same session (409 SAME_SESSION) while the portal cancels and re-books.
+    description: booking-api POST /api/v1/bookings/3586/reschedule to its own session 462.
+    tags: [channel-disagreement]
+    sessions: [462]
+    steps:
+      - {op: reschedule, booking: 3586, newSession: 462}

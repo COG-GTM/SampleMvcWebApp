@@ -1,0 +1,158 @@
+{
+  "channel": "PORTAL",
+  "description": "AKL01 session 219 has Status CANCELLED; usp_BookSeat raises 50001.",
+  "expected": {
+    "business_fields": {
+      "error": "SESSION_NOT_OPEN",
+      "legacyCode": 50001,
+      "outcome": "ERROR",
+      "seatsAvailable": 11,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.219": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T10:27:00",
+          "bookingId": 1935,
+          "cancelReason": "Session cancelled by centre",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000157",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T19:58:00",
+          "bookingId": 1936,
+          "cancelReason": "Session cancelled by centre",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000566",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0021902",
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T05:29:00",
+          "bookingId": 1937,
+          "cancelReason": "Session cancelled by centre",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000094",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0021903",
+          "status": "CANCELLED"
+        }
+      ],
+      "examSession.219": {
+        "AccommodationCapacity": 1,
+        "Capacity": 11,
+        "SeatsAvailable": 11,
+        "Status": "CANCELLED"
+      },
+      "waitlist.219": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.219": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T10:27:00",
+          "bookingId": 1935,
+          "cancelReason": "Session cancelled by centre",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000157",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T19:58:00",
+          "bookingId": 1936,
+          "cancelReason": "Session cancelled by centre",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000566",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0021902",
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T05:29:00",
+          "bookingId": 1937,
+          "cancelReason": "Session cancelled by centre",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000094",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0021903",
+          "status": "CANCELLED"
+        }
+      ],
+      "examSession.219": {
+        "AccommodationCapacity": 1,
+        "Capacity": 11,
+        "SeatsAvailable": 11,
+        "Status": "CANCELLED"
+      },
+      "waitlist.219": []
+    },
+    "status": 200
+  },
+  "finding": [
+    "HB-11"
+  ],
+  "format": 1,
+  "group": "duplicate_closed",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "book_cancelled_session_portal",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PORTAL",
+      "expected": {
+        "business_fields": {
+          "error": "SESSION_NOT_OPEN",
+          "legacyCode": 50001,
+          "outcome": "ERROR",
+          "seatsAvailable": 11,
+          "waitlistPosition": null
+        },
+        "response": {
+          "errors": [
+            "Session 219 is not open for booking."
+          ],
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "book",
+      "request": {
+        "form": {
+          "AccommodationCode": "",
+          "CandidateNumber": "NW00000901",
+          "SessionId": "219"
+        },
+        "method": "POST",
+        "path": "/Booking/Book"
+      },
+      "source": {
+        "candidate": "NW00000901",
+        "op": "book",
+        "session": 219
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-06"
+  ]
+}

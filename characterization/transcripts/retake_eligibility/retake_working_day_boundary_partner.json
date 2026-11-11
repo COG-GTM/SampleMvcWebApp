@@ -1,0 +1,97 @@
+{
+  "channel": "PARTNER",
+  "description": "Check Fri 2026-12-11 = attempt + 30 working days: both allow.",
+  "expected": {
+    "business_fields": {
+      "earliestRetakeDate": "2026-12-11",
+      "eligible": true,
+      "reason": "RETAKE_ALLOWED"
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "results": [
+        {
+          "candidate": "NW00000954",
+          "examCode": "CTA-NET1",
+          "passed": false,
+          "score": 512,
+          "sessionId": 463,
+          "sessionStartsAt": "2026-10-30T09:00:00"
+        }
+      ]
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "results": [
+        {
+          "candidate": "NW00000954",
+          "examCode": "CTA-NET1",
+          "passed": false,
+          "score": 512,
+          "sessionId": 463,
+          "sessionStartsAt": "2026-10-30T09:00:00"
+        }
+      ]
+    },
+    "status": 200
+  },
+  "finding": [
+    "HB-04"
+  ],
+  "format": 1,
+  "group": "retake_eligibility",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": "ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.",
+  "oddity": true,
+  "oddity_note": "Channels agree on eligible but disagree on earliestRetakeDate (portal attempt + 30 calendar days, booking-api attempt + 30 working days).",
+  "scenario": "retake_working_day_boundary_partner",
+  "setup_sql": [
+    "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000954');\nINSERT dbo.ExamSession (ExamId, TestCenterId, RoomId, StartsAt, Capacity, AccommodationCapacity, SeatsAvailable, Status, LastModified)\n  VALUES (7, 1, 1, '2026-10-30T09:00:00', 10, 0, 9, 'DELIVERED', '2026-10-30T09:00:00');\nDECLARE @s INT = SCOPE_IDENTITY();\nINSERT dbo.Booking (SessionId, CandidateId, Status, Channel, BookedAt, LastModified)\n  VALUES (@s, @c, 'ATTENDED', 'PORTAL', '2026-09-01T10:00:00', '2026-10-30T09:00:00');\nINSERT dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)\n  VALUES (SCOPE_IDENTITY(), @c, 7, @s, 512, 0, DATEADD(DAY, 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
+  ],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "earliestRetakeDate": "2026-12-11",
+          "eligible": true,
+          "reason": "RETAKE_ALLOWED"
+        },
+        "response": {
+          "body": {
+            "earliestRetakeDate": "2026-12-11",
+            "eligible": true,
+            "reason": "RETAKE_ALLOWED"
+          },
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "eligibility",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/candidates/NW00000954/eligibility",
+        "query": {
+          "date": "2026-12-11",
+          "examCode": "CTA-NET1"
+        }
+      },
+      "source": {
+        "candidate": "NW00000954",
+        "date": "2026-12-11",
+        "examCode": "CTA-NET1",
+        "op": "eligibility"
+      }
+    }
+  ],
+  "tags": [
+    "channel-disagreement",
+    "working-days"
+  ],
+  "tests": [
+    "CT-30"
+  ]
+}

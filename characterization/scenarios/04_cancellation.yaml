@@ -1,0 +1,40 @@
+group: cancellation
+scenarios:
+  - name: cancel_booked_on_full_session_portal
+    channel: PORTAL
+    finding: [HB-07, HB-01]
+    tests: [CT-03, CT-04]
+    oddity: true
+    oddity_note: Cancelling a BOOKED seat on a full session releases the seat but nobody is promoted from the waitlist.
+    description: Portal cancels the newest BOOKED row on full session 153; seat released, waitlist untouched.
+    tags: [no-auto-promotion]
+    sessions: [153]
+    steps:
+      - {op: cancel, booking: "@sql:SELECT MAX(BookingId) FROM dbo.Booking WHERE SessionId = 153 AND Status = 'BOOKED'", reason: Candidate request}
+  - name: cancel_booked_on_full_session_partner
+    channel: PARTNER
+    finding: [HB-07, HB-01]
+    tests: [CT-03, CT-04]
+    oddity: true
+    oddity_note: Cancelling a BOOKED seat on a full session releases the seat but nobody is promoted from the waitlist.
+    description: booking-api DELETE /api/v1/bookings/{id} on the same BOOKED row; seat released, no promotion.
+    tags: [no-auto-promotion]
+    sessions: [153]
+    steps:
+      - {op: cancel, booking: "@sql:SELECT MAX(BookingId) FROM dbo.Booking WHERE SessionId = 153 AND Status = 'BOOKED'", reason: Partner request}
+  - name: cancel_waitlisted_portal
+    channel: PORTAL
+    finding: [HB-07]
+    tests: [CT-03]
+    description: Portal cancels the waitlist position-1 booking on session 153; Waitlist row deleted, no seat released, positions not renumbered.
+    sessions: [153]
+    steps:
+      - {op: cancel, booking: "@sql:SELECT TOP 1 BookingId FROM dbo.Waitlist WHERE SessionId = 153 ORDER BY Position", reason: Candidate request}
+  - name: cancel_waitlisted_partner
+    channel: PARTNER
+    finding: [HB-07]
+    tests: [CT-03]
+    description: booking-api cancels the same waitlisted booking.
+    sessions: [153]
+    steps:
+      - {op: cancel, booking: "@sql:SELECT TOP 1 BookingId FROM dbo.Waitlist WHERE SessionId = 153 ORDER BY Position", reason: Partner request}

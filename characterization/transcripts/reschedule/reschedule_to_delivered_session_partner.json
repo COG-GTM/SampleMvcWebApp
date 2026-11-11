@@ -1,0 +1,154 @@
+{
+  "channel": "PARTNER",
+  "description": "",
+  "expected": {
+    "business_fields": {
+      "error": "SESSION_NOT_OPEN",
+      "legacyCode": 50001,
+      "outcome": "ERROR",
+      "seatsAvailable": 11,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.458": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-14T07:01:00",
+          "bookingId": 3584,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000895",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00629",
+          "status": "ATTENDED"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.458": {
+        "AccommodationCapacity": 0,
+        "Capacity": 12,
+        "SeatsAvailable": 11,
+        "Status": "DELIVERED"
+      },
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.458": [],
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.458": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-14T07:01:00",
+          "bookingId": 3584,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000895",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00629",
+          "status": "ATTENDED"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.458": {
+        "AccommodationCapacity": 0,
+        "Capacity": 12,
+        "SeatsAvailable": 11,
+        "Status": "DELIVERED"
+      },
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.458": [],
+      "waitlist.462": []
+    },
+    "status": 409
+  },
+  "finding": [
+    "HB-06",
+    "HB-11"
+  ],
+  "format": 1,
+  "group": "reschedule",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "reschedule_to_delivered_session_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "error": "SESSION_NOT_OPEN",
+          "legacyCode": 50001,
+          "outcome": "ERROR",
+          "seatsAvailable": 11,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "error": "SESSION_NOT_OPEN",
+            "message": "Session 458 is not open for booking"
+          },
+          "status": 409
+        },
+        "status": 409
+      },
+      "op": "reschedule",
+      "request": {
+        "json": {
+          "newSessionId": 458
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings/3586/reschedule"
+      },
+      "source": {
+        "booking": 3586,
+        "newSession": 458,
+        "op": "reschedule"
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-26"
+  ]
+}

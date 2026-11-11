@@ -1,0 +1,176 @@
+{
+  "channel": "PORTAL",
+  "description": "Portal posts NewSessionId of a CTA-NET1 session (191) for a CTA-SEC2 booking; usp_RescheduleBooking raises 50006.",
+  "expected": {
+    "business_fields": {
+      "error": "DIFFERENT_EXAM",
+      "legacyCode": 50006,
+      "outcome": "ERROR",
+      "seatsAvailable": 10,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.191": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T17:39:00",
+          "bookingId": 1802,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000370",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-191-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:30:00",
+          "bookingId": 1803,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000779",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.191": {
+        "AccommodationCapacity": 0,
+        "Capacity": 12,
+        "SeatsAvailable": 10,
+        "Status": "OPEN"
+      },
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.191": [],
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.191": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T17:39:00",
+          "bookingId": 1802,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000370",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-191-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:30:00",
+          "bookingId": 1803,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000779",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.191": {
+        "AccommodationCapacity": 0,
+        "Capacity": 12,
+        "SeatsAvailable": 10,
+        "Status": "OPEN"
+      },
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.191": [],
+      "waitlist.462": []
+    },
+    "status": 200
+  },
+  "finding": [
+    "HB-06",
+    "HB-11"
+  ],
+  "format": 1,
+  "group": "reschedule",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "reschedule_different_exam_portal",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PORTAL",
+      "expected": {
+        "business_fields": {
+          "error": "DIFFERENT_EXAM",
+          "legacyCode": 50006,
+          "outcome": "ERROR",
+          "seatsAvailable": 10,
+          "waitlistPosition": null
+        },
+        "response": {
+          "errors": [
+            "Booking 3586 cannot be moved to session 191."
+          ],
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "reschedule",
+      "request": {
+        "form": {
+          "CandidateNumber": "",
+          "NewSessionId": "191"
+        },
+        "method": "POST",
+        "path": "/Booking/Reschedule/3586"
+      },
+      "source": {
+        "booking": 3586,
+        "newSession": 191,
+        "op": "reschedule"
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-26"
+  ]
+}

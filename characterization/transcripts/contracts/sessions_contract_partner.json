@@ -1,0 +1,190 @@
+{
+  "channel": "PARTNER",
+  "description": "GET /api/v1/sessions lists every status ordered by StartsAt; GET /api/v1/sessions/{id} includes the live booked count.",
+  "expected": {
+    "business_fields": {
+      "bookedSeats": 1,
+      "capacity": 16,
+      "seatsAvailable": 15,
+      "sessionId": 462,
+      "status": "OPEN"
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "status": 200
+  },
+  "finding": [
+    "HB-14"
+  ],
+  "format": 1,
+  "group": "contracts",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "sessions_contract_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "count": 20,
+          "orderedByStartsAt": true,
+          "sessionIds": [
+            453,
+            32,
+            38,
+            46,
+            51,
+            88,
+            96,
+            457,
+            108,
+            135,
+            458,
+            147,
+            153,
+            462,
+            191,
+            198,
+            208,
+            213,
+            252,
+            258
+          ],
+          "statuses": [
+            "DELIVERED",
+            "OPEN"
+          ]
+        },
+        "response": {
+          "first": [
+            {
+              "accommodationCapacity": 0,
+              "bookedSeats": null,
+              "capacity": 12,
+              "centerCode": "BOS01",
+              "centerName": "Harborview Testing Centre",
+              "examCode": "CTA-SEC2",
+              "examTitle": "Security Operations Associate",
+              "roomName": "Room A",
+              "seatsAvailable": 10,
+              "sessionId": 453,
+              "startsAt": "2026-09-15T16:00:00",
+              "status": "DELIVERED"
+            }
+          ],
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "sessions",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/sessions",
+        "query": {
+          "centerCode": "BOS01",
+          "from": "2026-09-01",
+          "to": "2026-12-31"
+        }
+      },
+      "source": {
+        "centerCode": "BOS01",
+        "from": "2026-09-01",
+        "op": "sessions",
+        "to": "2026-12-31"
+      }
+    },
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "bookedSeats": 1,
+          "capacity": 16,
+          "seatsAvailable": 15,
+          "sessionId": 462,
+          "status": "OPEN"
+        },
+        "response": {
+          "body": {
+            "accommodationCapacity": 1,
+            "bookedSeats": 1,
+            "capacity": 16,
+            "centerCode": "BOS01",
+            "centerName": "Harborview Testing Centre",
+            "examCode": "CTA-SEC2",
+            "examTitle": "Security Operations Associate",
+            "roomName": "Room A",
+            "seatsAvailable": 15,
+            "sessionId": 462,
+            "startsAt": "<now>",
+            "status": "OPEN"
+          },
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "session",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/sessions/462"
+      },
+      "source": {
+        "op": "session",
+        "session": 462
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-34"
+  ]
+}

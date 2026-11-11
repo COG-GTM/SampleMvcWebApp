@@ -1,0 +1,135 @@
+{
+  "channel": "PORTAL",
+  "description": "Portal books a free seat on OPEN BOS01 session 462 (usp_BookSeat); one seat is consumed.",
+  "expected": {
+    "business_fields": {
+      "bookingId": "new#1",
+      "error": null,
+      "legacyCode": null,
+      "outcome": "BOOKED",
+      "seatsAvailable": 14,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=462 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#1"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#1",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000901",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 14,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "status": 302
+  },
+  "finding": [
+    "HB-01"
+  ],
+  "format": 1,
+  "group": "booking",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "book_open_session_portal",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PORTAL",
+      "expected": {
+        "business_fields": {
+          "bookingId": "new#1",
+          "error": null,
+          "legacyCode": null,
+          "outcome": "BOOKED",
+          "seatsAvailable": 14,
+          "waitlistPosition": null
+        },
+        "response": {
+          "location": "/Booking/MyBookings?candidateNumber=NW00000901",
+          "message": "Booking new#1 confirmed.",
+          "status": 302
+        },
+        "status": 302
+      },
+      "op": "book",
+      "request": {
+        "form": {
+          "AccommodationCode": "",
+          "CandidateNumber": "NW00000901",
+          "SessionId": "462"
+        },
+        "method": "POST",
+        "path": "/Booking/Book"
+      },
+      "source": {
+        "candidate": "NW00000901",
+        "op": "book",
+        "session": 462
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-01",
+    "CT-37"
+  ]
+}

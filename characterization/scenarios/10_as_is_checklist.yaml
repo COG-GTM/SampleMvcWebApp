@@ -1,0 +1,338 @@
+# Scenarios added for the docs/as-is checklist (docs/as-is/migration-risks.md section 2, CT-01..CT-38).
+group: contracts
+scenarios:
+  - name: cancel_then_new_booker_gets_seat_portal
+    group: cancellation
+    channel: PORTAL
+    finding: [HB-07]
+    tests: [CT-04]
+    oddity: true
+    oddity_note: A seat freed on a session with a waitlist goes to the next new booker, not to waitlist position 1.
+    sessions: [153]
+    steps:
+      - {op: cancel, booking: "@sql:SELECT MAX(BookingId) FROM dbo.Booking WHERE SessionId = 153 AND Status = 'BOOKED'"}
+      - {op: book, session: 153, candidate: NW00000901}
+  - name: cancel_then_new_booker_gets_seat_partner
+    group: cancellation
+    channel: PARTNER
+    finding: [HB-07, HB-01]
+    tests: [CT-04]
+    oddity: true
+    oddity_note: Partner cancel frees a seat that the next partner booking takes (and double-decrements); nobody on the waitlist is promoted.
+    tags: [double-decrement]
+    sessions: [153]
+    steps:
+      - {op: cancel, booking: "@sql:SELECT MAX(BookingId) FROM dbo.Booking WHERE SessionId = 153 AND Status = 'BOOKED'"}
+      - {op: book, session: 153, candidate: NW00000901, externalRef: NAN-REF-0040}
+  - name: last_seat_portal
+    group: booking
+    channel: PORTAL
+    finding: [HB-02]
+    tests: [CT-05, CT-08]
+    description: Session 235 (AKL01) has one seat left; two portal bookings -> BOOKED then WAITLISTED, counter stops at 0.
+    sessions: [235]
+    steps:
+      - {op: book, session: 235, candidate: NW00000901}
+      - {op: book, session: 235, candidate: NW00000902}
+  - name: last_seat_negative_counter_partner
+    group: booking
+    channel: PARTNER
+    finding: [HB-01, HB-02]
+    tests: [CT-02, CT-08]
+    oddity: true
+    oddity_note: A partner booking of the last seat drives SeatsAvailable to -1 (Java decrement + trigger); sequential stand-in for the CT-08 race.
+    tags: [double-decrement]
+    sessions: [235]
+    steps:
+      - {op: book, session: 235, candidate: NW00000901, externalRef: NAN-REF-0041}
+      - {op: book, session: 235, candidate: NW00000902, externalRef: NAN-REF-0042}
+  - name: capacity_sync_fresh_seed_system
+    group: mixed_traffic
+    channel: SYSTEM
+    finding: [HB-03]
+    tests: [CT-10, CT-37]
+    oddity: true
+    oddity_note: seat-drift.sql is clean on a fresh seed; one capacity-sync run makes every OPEN session with accommodation seats drift.
+    steps:
+      - {op: drift}
+      - {op: sync}
+      - {op: drift}
+  - name: direct_sql_cancel_and_import_db
+    group: contracts
+    channel: DB
+    finding: [HB-15]
+    tests: [CT-12]
+    oddity: true
+    oddity_note: A direct UPDATE to CANCELLED leaves SeatsAvailable unchanged; a direct multi-row IMPORT insert decrements per BOOKED row with no capacity, duplicate or waitlist checks.
+    sessions: [462]
+    steps:
+      - {op: sql, sql: "UPDATE dbo.Booking SET Status = 'CANCELLED', LastModified = GETDATE() WHERE BookingId = 3586; SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = 462"}
+      - {op: sql, sql: "INSERT dbo.Booking (SessionId, CandidateId, Status, Channel, ExternalRef, BookedAt, LastModified) SELECT 462, CandidateId, 'BOOKED', 'IMPORT', 'NAN-IMP-' + CandidateNumber, GETDATE(), GETDATE() FROM dbo.Candidate WHERE CandidateNumber IN ('NW00000900', 'NW00000901', 'NW00000902'); SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = 462"}
+  - name: accommodation_unknown_code_portal
+    group: accommodation
+    channel: PORTAL
+    finding: [HB-08]
+    tests: [CT-14]
+    sessions: [462]
+    steps:
+      - {op: book, session: 462, candidate: NW00000901, accommodation: XX}
+  - name: accommodation_unknown_code_partner
+    group: accommodation
+    channel: PARTNER
+    finding: [HB-08]
+    tests: [CT-14]
+    sessions: [462]
+    steps:
+      - {op: book, session: 462, candidate: NW00000901, accommodation: XX, externalRef: NAN-REF-0044}
+  - name: accommodation_pool_not_held_back_portal
+    group: accommodation
+    channel: PORTAL
+    finding: [HB-08, HB-03]
+    tests: [CT-16]
+    oddity: true
+    oddity_note: Standard bookings filled full session 153 including its 2 accommodation seats, so an ET50 candidate is waitlisted.
+    sessions: [153]
+    steps:
+      - {op: book, session: 153, candidate: NW00000903, accommodation: ET50}
+  - name: accommodation_pool_not_held_back_partner
+    group: accommodation
+    channel: PARTNER
+    finding: [HB-08, HB-03]
+    tests: [CT-16]
+    oddity: true
+    oddity_note: booking-api also waitlists an ET50 candidate on a session whose accommodation seats were taken by standard bookings.
+    sessions: [153]
+    steps:
+      - {op: book, session: 153, candidate: NW00000903, accommodation: ET50, externalRef: NAN-REF-0043}
+  - name: capacity_negative_admin
+    group: capacity
+    channel: ADMIN
+    finding: [HB-05, HB-18]
+    tests: [CT-17]
+    tags: [decrease]
+    sessions: [191]
+    steps:
+      - {op: capacity, session: 191, newCapacity: -1}
+  - name: capacity_9999_admin
+    group: capacity
+    channel: ADMIN
+    finding: [HB-18]
+    tests: [CT-38]
+    oddity: true
+    oddity_note: A hand-posted capacity of 9999 is accepted (Range(0, 500) on the form model does not stop it server-side); -1 is rejected.
+    tags: [increase]
+    sessions: [191]
+    steps:
+      - {op: capacity, session: 191, newCapacity: 9999}
+  - name: capacity_direct_update_decrease_db
+    group: capacity
+    channel: DB
+    finding: [HB-05, HB-15]
+    tests: [CT-19]
+    oddity: true
+    oddity_note: A plain UPDATE of ExamSession.Capacity (no proc, no app) still demotes the newest BOOKED rows - the trigger does it.
+    tags: [decrease, bump]
+    sessions: [153]
+    steps:
+      - {op: sql, sql: "UPDATE dbo.ExamSession SET Capacity = 20 WHERE SessionId = 153; SELECT Capacity, SeatsAvailable FROM dbo.ExamSession WHERE SessionId = 153"}
+  - name: capacity_direct_update_increase_db
+    group: capacity
+    channel: DB
+    finding: [HB-05, HB-15]
+    tests: [CT-19]
+    oddity: true
+    oddity_note: A plain UPDATE raising Capacity leaves SeatsAvailable unchanged (only usp_ChangeCapacity adds the delta) and promotes nobody.
+    tags: [increase]
+    sessions: [153]
+    steps:
+      - {op: sql, sql: "UPDATE dbo.ExamSession SET Capacity = 25 WHERE SessionId = 153; SELECT Capacity, SeatsAvailable FROM dbo.ExamSession WHERE SessionId = 153"}
+  - name: capacity_decrease_delivered_with_attended_admin
+    group: capacity
+    channel: ADMIN
+    finding: [HB-05, HB-16, HB-03]
+    tests: [CT-20, CT-21]
+    oddity: true
+    oddity_note: Capacity of DELIVERED session 147 (6 ATTENDED + 5 BOOKED) can still be lowered to 8; nobody is bumped because only BOOKED rows count, SeatsAvailable floors at 0.
+    tags: [decrease]
+    sessions: [147]
+    setup_sql:
+      - "UPDATE dbo.Booking SET Status = 'ATTENDED' WHERE SessionId = 147 AND BookingId IN (SELECT TOP 6 BookingId FROM dbo.Booking WHERE SessionId = 147 ORDER BY BookingId)"
+    steps:
+      - {op: capacity, session: 147, newCapacity: 8}
+  - name: cancel_on_delivered_session_portal
+    group: cancellation
+    channel: PORTAL
+    finding: [HB-16]
+    tests: [CT-21]
+    oddity: true
+    oddity_note: A booking on DELIVERED (past) session 147 can still be cancelled through the portal and its seat is released.
+    sessions: [147]
+    steps:
+      - {op: cancel, booking: 3319}
+  - name: cancel_on_delivered_session_partner
+    group: cancellation
+    channel: PARTNER
+    finding: [HB-16]
+    tests: [CT-21]
+    oddity: true
+    oddity_note: booking-api also cancels a booking on a DELIVERED (past) session.
+    sessions: [147]
+    steps:
+      - {op: cancel, booking: 3319}
+  - name: cancel_other_candidates_booking_portal
+    group: cancellation
+    channel: PORTAL
+    finding: [HB-18]
+    tests: [CT-38]
+    oddity: true
+    oddity_note: Portal cancel has no ownership check - NW00000901 cancels NW00000900's booking 3586.
+    sessions: [462]
+    steps:
+      - {op: cancel, booking: 3586, candidate: NW00000901}
+  - name: reschedule_to_full_session_portal
+    group: reschedule
+    channel: PORTAL
+    finding: [HB-06]
+    tests: [CT-25]
+    sessions: [278, 153]
+    steps:
+      - {op: reschedule, booking: 2286, newSession: 153}
+  - name: reschedule_to_full_session_partner
+    group: reschedule
+    channel: PARTNER
+    finding: [HB-06, HB-01]
+    tests: [CT-25]
+    sessions: [398, 153]
+    steps:
+      - {op: reschedule, booking: 2895, newSession: 153}
+  - name: reschedule_to_delivered_session_portal
+    group: reschedule
+    channel: PORTAL
+    finding: [HB-06, HB-11]
+    tests: [CT-26]
+    sessions: [462, 458]
+    steps:
+      - {op: reschedule, booking: 3586, newSession: 458}
+  - name: reschedule_to_delivered_session_partner
+    group: reschedule
+    channel: PARTNER
+    finding: [HB-06, HB-11]
+    tests: [CT-26]
+    sessions: [462, 458]
+    steps:
+      - {op: reschedule, booking: 3586, newSession: 458}
+  - name: book_passed_candidate_proc_db
+    group: booking
+    channel: DB
+    finding: [HB-09]
+    tests: [CT-29]
+    oddity: true
+    oddity_note: usp_BookSeat alone books a candidate who already passed the exam - retake rules live only in the apps.
+    sessions: [398]
+    steps:
+      - {op: sql, sql: "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000002'), @b INT, @s VARCHAR(12); EXEC dbo.usp_BookSeat @SessionId = 398, @CandidateId = @c, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT @b AS BookingId, @s AS Status"}
+  - name: book_passed_candidate_portal
+    group: booking
+    channel: PORTAL
+    finding: [HB-09, HB-04]
+    tests: [CT-29]
+    sessions: [398]
+    steps:
+      - {op: book, session: 398, candidate: NW00000002}
+  - name: book_passed_candidate_partner
+    group: booking
+    channel: PARTNER
+    finding: [HB-09, HB-04]
+    tests: [CT-29]
+    sessions: [398]
+    steps:
+      - {op: book, session: 398, candidate: NW00000002, externalRef: NAN-REF-0045}
+  - name: retake_no_show_not_counted_portal
+    group: retake_eligibility
+    channel: PORTAL
+    finding: [HB-09]
+    tests: [CT-31]
+    candidates: [NW00000910]
+    setup_sql:
+      - "INSERT dbo.Booking (SessionId, CandidateId, Status, Channel, BookedAt, LastModified) SELECT 147, CandidateId, 'ATTENDED', 'PORTAL', '2026-11-01', '2026-11-01' FROM dbo.Candidate WHERE CandidateNumber = 'NW00000910'"
+    steps:
+      - {op: eligibility, candidate: NW00000910, examCode: HPI-ACC1, date: "2026-11-20"}
+  - name: retake_no_show_not_counted_partner
+    group: retake_eligibility
+    channel: PARTNER
+    finding: [HB-09]
+    tests: [CT-31]
+    candidates: [NW00000910]
+    setup_sql:
+      - "INSERT dbo.Booking (SessionId, CandidateId, Status, Channel, BookedAt, LastModified) SELECT 147, CandidateId, 'ATTENDED', 'PORTAL', '2026-11-01', '2026-11-01' FROM dbo.Candidate WHERE CandidateNumber = 'NW00000910'"
+    steps:
+      - {op: eligibility, candidate: NW00000910, examCode: HPI-ACC1, date: "2026-11-20"}
+  - name: proc_error_contract_db
+    group: contracts
+    channel: DB
+    finding: [HB-11]
+    tests: [CT-33, CT-06, CT-07, CT-13, CT-17, CT-26]
+    description: Each usp_* error raised directly - error number, severity, state and message text.
+    sessions: [462, 198, 281]
+    steps:
+      - {op: sql, sql: "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000901'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 281, @CandidateId = @c, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"}
+      - {op: sql, sql: "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000900'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 462, @CandidateId = @c, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"}
+      - {op: sql, sql: "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000903'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 462, @CandidateId = @c, @AccommodationCode = 'ET50', @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"}
+      - {op: sql, sql: "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000963'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 462, @CandidateId = @c, @AccommodationCode = 'ET25', @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"}
+      - {op: sql, sql: "BEGIN TRY EXEC dbo.usp_ChangeCapacity @SessionId = 198, @NewCapacity = 1; SELECT 0 AS number END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"}
+      - {op: sql, sql: "DECLARE @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_RescheduleBooking @BookingId = 3586, @NewSessionId = 191, @NewBookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"}
+  - name: sessions_contract_partner
+    group: contracts
+    channel: PARTNER
+    finding: [HB-14]
+    tests: [CT-34]
+    description: GET /api/v1/sessions lists every status ordered by StartsAt; GET /api/v1/sessions/{id} includes the live booked count.
+    sessions: [462]
+    steps:
+      - {op: sessions, centerCode: BOS01, from: "2026-09-01", to: "2026-12-31"}
+      - {op: session, session: 462}
+  - name: session_search_portal
+    group: contracts
+    channel: PORTAL
+    finding: [HB-10, HB-14]
+    tests: [CT-35]
+    description: Portal search lists OPEN sessions only (462 listed; delivered 147 and closed 281 not) and only active centres in the filter.
+    steps:
+      - {op: search, centerCode: BOS01, probe: [462, 147, 281]}
+  - name: book_inactive_center_portal
+    group: booking
+    channel: PORTAL
+    finding: [HB-10]
+    tests: [CT-35]
+    oddity: true
+    oddity_note: With SEA01 marked inactive it disappears from the portal's centre filter, yet its session 205 is still bookable.
+    sessions: [205]
+    setup_sql:
+      - "UPDATE dbo.TestCenter SET IsActive = 0 WHERE TestCenterId = 7"
+    steps:
+      - {op: search, centerCode: SEA01, probe: [205]}
+      - {op: book, session: 205, candidate: NW00000901}
+  - name: book_inactive_center_partner
+    group: booking
+    channel: PARTNER
+    finding: [HB-10, HB-01]
+    tests: [CT-35]
+    oddity: true
+    oddity_note: booking-api books session 205 of inactive centre SEA01 (and double-decrements).
+    sessions: [205]
+    setup_sql:
+      - "UPDATE dbo.TestCenter SET IsActive = 0 WHERE TestCenterId = 7"
+    steps:
+      - {op: book, session: 205, candidate: NW00000901, externalRef: NAN-REF-0046}
+  - name: result_ingest_marks_attended_system
+    group: mixed_traffic
+    channel: SYSTEM
+    finding: [HB-12, HB-03]
+    tests: [CT-36]
+    oddity: true
+    oddity_note: Ingesting a result flips booking 3319 to ATTENDED as a side effect without touching SeatsAvailable; seat-drift stays clean because it counts ATTENDED as held.
+    sessions: [147]
+    candidates: [NW00000492]
+    steps:
+      - {op: result, booking: 3319, score: 72}
+      - {op: drift}

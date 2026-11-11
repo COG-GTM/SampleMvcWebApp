@@ -1,0 +1,176 @@
+{
+  "channel": "PARTNER",
+  "description": "Same two bookings through booking-api; the second returns NO_ACCOMMODATION_SEAT.",
+  "expected": {
+    "business_fields": {
+      "error": "NO_ACCOMMODATION_SEAT",
+      "legacyCode": 50003,
+      "outcome": "ERROR",
+      "seatsAvailable": 13,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=462 status=BOOKED channel=PARTNER",
+          "entity": "Booking",
+          "entityId": "new#1"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": "ET25",
+          "bookedAt": "<now>",
+          "bookingId": "new#1",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000901",
+          "channel": "PARTNER",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 13,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "status": 409
+  },
+  "finding": [
+    "HB-08"
+  ],
+  "format": 1,
+  "group": "accommodation",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": "ADR 0002 - derived seat count, no double decrement.",
+  "oddity": true,
+  "oddity_note": "Every partner booking (ET25, SR, RB alike) takes two seats from SeatsAvailable (double decrement); the portal takes one.",
+  "scenario": "accommodation_capacity_exhausted_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "bookingId": "new#1",
+          "error": null,
+          "legacyCode": null,
+          "outcome": "BOOKED",
+          "seatsAvailable": 13,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "bookingId": "new#1",
+            "status": "BOOKED"
+          },
+          "status": 201
+        },
+        "status": 201
+      },
+      "op": "book",
+      "request": {
+        "json": {
+          "accommodationCode": "ET25",
+          "candidateNumber": "NW00000901",
+          "externalRef": null,
+          "sessionId": 462
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings"
+      },
+      "source": {
+        "accommodation": "ET25",
+        "candidate": "NW00000901",
+        "op": "book",
+        "session": 462
+      }
+    },
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "error": "NO_ACCOMMODATION_SEAT",
+          "legacyCode": 50003,
+          "outcome": "ERROR",
+          "seatsAvailable": 13,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "error": "NO_ACCOMMODATION_SEAT",
+            "message": "No accommodation seat available on session 462"
+          },
+          "status": 409
+        },
+        "status": 409
+      },
+      "op": "book",
+      "request": {
+        "json": {
+          "accommodationCode": "ET50",
+          "candidateNumber": "NW00000902",
+          "externalRef": null,
+          "sessionId": 462
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings"
+      },
+      "source": {
+        "accommodation": "ET50",
+        "candidate": "NW00000902",
+        "op": "book",
+        "session": 462
+      }
+    }
+  ],
+  "tags": [
+    "double-decrement"
+  ],
+  "tests": [
+    "CT-13"
+  ]
+}

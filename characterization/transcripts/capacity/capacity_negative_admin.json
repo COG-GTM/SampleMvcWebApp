@@ -1,0 +1,137 @@
+{
+  "channel": "ADMIN",
+  "description": "",
+  "expected": {
+    "business_fields": {
+      "bumped": [],
+      "error": "PORTAL_ERROR",
+      "legacyCode": null,
+      "outcome": "ERROR",
+      "seatsAvailable": 10
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.191": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T17:39:00",
+          "bookingId": 1802,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000370",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-191-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:30:00",
+          "bookingId": 1803,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000779",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.191": {
+        "AccommodationCapacity": 0,
+        "Capacity": 12,
+        "SeatsAvailable": 10,
+        "Status": "OPEN"
+      },
+      "waitlist.191": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.191": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T17:39:00",
+          "bookingId": 1802,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000370",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-191-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:30:00",
+          "bookingId": 1803,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000779",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.191": {
+        "AccommodationCapacity": 0,
+        "Capacity": 12,
+        "SeatsAvailable": 10,
+        "Status": "OPEN"
+      },
+      "waitlist.191": []
+    },
+    "status": 200
+  },
+  "finding": [
+    "HB-05",
+    "HB-18"
+  ],
+  "format": 1,
+  "group": "capacity",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "capacity_negative_admin",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "ADMIN",
+      "expected": {
+        "business_fields": {
+          "bumped": [],
+          "error": "PORTAL_ERROR",
+          "legacyCode": null,
+          "outcome": "ERROR",
+          "seatsAvailable": 10
+        },
+        "response": {
+          "errors": [
+            "Capacity cannot be negative."
+          ],
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "capacity",
+      "request": {
+        "form": {
+          "NewCapacity": "-1"
+        },
+        "method": "POST",
+        "path": "/Admin/Sessions/Capacity/191"
+      },
+      "source": {
+        "newCapacity": -1,
+        "op": "capacity",
+        "session": 191
+      }
+    }
+  ],
+  "tags": [
+    "decrease"
+  ],
+  "tests": [
+    "CT-17"
+  ]
+}

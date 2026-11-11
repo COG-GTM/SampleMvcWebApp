@@ -1,0 +1,6 @@
+#!/bin/bash
+# Usage: characterization/capture [options]   (see characterization/README.md)
+set -euo pipefail
+cd "$(dirname "$0")"
+PY="${PYTHON:-$(command -v python || command -v python3)}"
+PYTHONUTF8=1 exec "$PY" -m chartool.cli capture "$@"

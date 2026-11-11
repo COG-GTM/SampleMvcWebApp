@@ -1,0 +1,116 @@
+{
+  "channel": "PORTAL",
+  "description": "",
+  "expected": {
+    "business_fields": {
+      "error": null,
+      "legacyCode": null,
+      "outcome": "CANCELLED"
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "CANCEL",
+          "actor": "portal",
+          "detail": null,
+          "entity": "Booking",
+          "entityId": 3586
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": "<now>",
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "CANCELLED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 16,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "status": 302
+  },
+  "finding": [
+    "HB-18"
+  ],
+  "format": 1,
+  "group": "cancellation",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": true,
+  "oddity_note": "Portal cancel has no ownership check - NW00000901 cancels NW00000900's booking 3586.",
+  "scenario": "cancel_other_candidates_booking_portal",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PORTAL",
+      "expected": {
+        "business_fields": {
+          "error": null,
+          "legacyCode": null,
+          "outcome": "CANCELLED"
+        },
+        "response": {
+          "location": "/Booking/MyBookings?candidateNumber=NW00000901",
+          "message": "Booking 3586 cancelled.",
+          "status": 302
+        },
+        "status": 302
+      },
+      "op": "cancel",
+      "request": {
+        "form": {
+          "CandidateNumber": "NW00000901",
+          "Reason": ""
+        },
+        "method": "POST",
+        "path": "/Booking/Cancel/3586"
+      },
+      "source": {
+        "booking": 3586,
+        "candidate": "NW00000901",
+        "op": "cancel"
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-38"
+  ]
+}

@@ -1,0 +1,85 @@
+group: capacity
+# Session 191 (BOS01, CTA-NET1): Capacity 12, AccommodationCapacity 0, 2 BOOKED seed rows, SeatsAvailable 10.
+# Each scenario first books two portal and two partner seats so that the session has 6 active bookings.
+scenarios:
+  - name: capacity_increase_admin
+    modern_expected_mismatch: ADR 0002 section 1 - seat count is derived, no partner double decrement (setup partner bookings leave one more seat).
+    channel: ADMIN
+    finding: [HB-05]
+    tests: [CT-17, CT-37]
+    description: Admin raises session 191 from 12 to 14 via /Admin/Sessions/Capacity/191 (usp_ChangeCapacity).
+    tags: [increase]
+    sessions: [191]
+    steps:
+      - {op: book, channel: PORTAL, session: 191, candidate: NW00000901}
+      - {op: book, channel: PORTAL, session: 191, candidate: NW00000902}
+      - {op: book, channel: PARTNER, session: 191, candidate: NW00000904, externalRef: NAN-REF-0010}
+      - {op: book, channel: PARTNER, session: 191, candidate: NW00000905, externalRef: NAN-REF-0011}
+      - {op: capacity, session: 191, newCapacity: 14}
+  - name: capacity_decrease_above_active_admin
+    modern_expected_mismatch: ADR 0002 section 1 - seat count is derived, no partner double decrement (setup partner bookings leave one more seat).
+    channel: ADMIN
+    finding: [HB-05]
+    tests: [CT-17]
+    description: Admin lowers session 191 from 12 to 8 (still above the 6 active bookings); nobody is bumped.
+    tags: [decrease]
+    sessions: [191]
+    steps:
+      - {op: book, channel: PORTAL, session: 191, candidate: NW00000901}
+      - {op: book, channel: PORTAL, session: 191, candidate: NW00000902}
+      - {op: book, channel: PARTNER, session: 191, candidate: NW00000904, externalRef: NAN-REF-0010}
+      - {op: book, channel: PARTNER, session: 191, candidate: NW00000905, externalRef: NAN-REF-0011}
+      - {op: capacity, session: 191, newCapacity: 8}
+  - name: capacity_decrease_below_active_admin
+    modern_expected_mismatch: ADR 0002 section 1 - seat count is derived, no partner double decrement (setup partner bookings leave one more seat).
+    channel: ADMIN
+    finding: [HB-05]
+    tests: [CT-18]
+    oddity: true
+    oddity_note: Lowering capacity below active bookings silently moves the newest BOOKED rows to WAITLISTED (trg_ExamSession_Update), not usp_ChangeCapacity.
+    description: Admin lowers session 191 from 12 to 4 with 6 active bookings; the trigger bumps the 2 newest bookings to the waitlist.
+    tags: [decrease, bump]
+    sessions: [191]
+    steps:
+      - {op: book, channel: PORTAL, session: 191, candidate: NW00000901}
+      - {op: book, channel: PORTAL, session: 191, candidate: NW00000902}
+      - {op: book, channel: PARTNER, session: 191, candidate: NW00000904, externalRef: NAN-REF-0010}
+      - {op: book, channel: PARTNER, session: 191, candidate: NW00000905, externalRef: NAN-REF-0011}
+      - {op: capacity, session: 191, newCapacity: 4}
+  - name: capacity_raise_then_lower_admin
+    modern_expected_mismatch: ADR 0002 section 1 - seat count is derived, no partner double decrement (setup partner bookings leave one more seat).
+    channel: ADMIN
+    finding: [HB-05]
+    tests: [CT-17, CT-19]
+    oddity: true
+    oddity_note: Raise then lower below active bookings; bumped candidates stay WAITLISTED when capacity is raised again (no re-promotion).
+    description: Admin raises 191 to 14, lowers to 3 (bumps 3), then raises back to 12 (bumped rows stay WAITLISTED).
+    tags: [decrease, bump]
+    sessions: [191]
+    steps:
+      - {op: book, channel: PORTAL, session: 191, candidate: NW00000901}
+      - {op: book, channel: PARTNER, session: 191, candidate: NW00000904, externalRef: NAN-REF-0010}
+      - {op: capacity, session: 191, newCapacity: 14}
+      - {op: capacity, session: 191, newCapacity: 3}
+      - {op: capacity, session: 191, newCapacity: 12}
+  - name: capacity_decrease_full_session_with_waitlist_admin
+    channel: ADMIN
+    finding: [HB-05]
+    tests: [CT-18]
+    oddity: true
+    oddity_note: Bumped bookings are appended after the existing waitlist of full session 153; SeatsAvailable is recomputed from BOOKED only.
+    description: Admin lowers full session 153 (22 booked, 3 waitlisted) from 22 to 20.
+    tags: [decrease, bump]
+    sessions: [153]
+    steps:
+      - {op: capacity, session: 153, newCapacity: 20}
+  - name: capacity_below_accommodation_floor_admin
+    channel: ADMIN
+    finding: [HB-05, HB-11]
+    tests: [CT-17]
+    description: Session 198 has AccommodationCapacity 2; lowering capacity to 1 is rejected by usp_ChangeCapacity with 50005 (baseline rule, before PR 51).
+    modern_expected_mismatch: ADR 0002 may relax the floor to booked ET seats (PR 51 rule).
+    tags: [decrease, accommodation-floor]
+    sessions: [198]
+    steps:
+      - {op: capacity, session: 198, newCapacity: 1}

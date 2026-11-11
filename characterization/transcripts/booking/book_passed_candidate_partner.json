@@ -1,0 +1,206 @@
+{
+  "channel": "PARTNER",
+  "description": "",
+  "expected": {
+    "business_fields": {
+      "error": "NOT_ELIGIBLE",
+      "legacyCode": null,
+      "outcome": "ERROR",
+      "seatsAvailable": 6,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.398": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T12:46:00",
+          "bookingId": 2894,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000469",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T22:17:00",
+          "bookingId": 2895,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000878",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0039802",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T11:08:00",
+          "bookingId": 2896,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000406",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0039803",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T20:39:00",
+          "bookingId": 2897,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000815",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": "ET50",
+          "bookedAt": "2026-11-10T06:10:00",
+          "bookingId": 2898,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000343",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-398-5",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.398": {
+        "AccommodationCapacity": 1,
+        "Capacity": 11,
+        "SeatsAvailable": 6,
+        "Status": "OPEN"
+      },
+      "waitlist.398": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.398": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T12:46:00",
+          "bookingId": 2894,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000469",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T22:17:00",
+          "bookingId": 2895,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000878",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0039802",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T11:08:00",
+          "bookingId": 2896,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000406",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0039803",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T20:39:00",
+          "bookingId": 2897,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000815",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": "ET50",
+          "bookedAt": "2026-11-10T06:10:00",
+          "bookingId": 2898,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000343",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-398-5",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.398": {
+        "AccommodationCapacity": 1,
+        "Capacity": 11,
+        "SeatsAvailable": 6,
+        "Status": "OPEN"
+      },
+      "waitlist.398": []
+    },
+    "status": 409
+  },
+  "finding": [
+    "HB-09",
+    "HB-04"
+  ],
+  "format": 1,
+  "group": "booking",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "book_passed_candidate_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "error": "NOT_ELIGIBLE",
+          "legacyCode": null,
+          "outcome": "ERROR",
+          "seatsAvailable": 6,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "error": "NOT_ELIGIBLE",
+            "message": "Candidate NW00000002 is not eligible to book BCB-AGL (ALREADY_PASSED)"
+          },
+          "status": 409
+        },
+        "status": 409
+      },
+      "op": "book",
+      "request": {
+        "json": {
+          "accommodationCode": null,
+          "candidateNumber": "NW00000002",
+          "externalRef": "NAN-REF-0045",
+          "sessionId": 398
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings"
+      },
+      "source": {
+        "candidate": "NW00000002",
+        "externalRef": "NAN-REF-0045",
+        "op": "book",
+        "session": 398
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-29"
+  ]
+}
