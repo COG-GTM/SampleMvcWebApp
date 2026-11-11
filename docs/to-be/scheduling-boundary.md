@@ -93,7 +93,7 @@ All writes run inside `BookingService` `@Transactional` methods (`BA/service/Boo
 
 | ID | File:line | SQL | Tables | Op | Tx | Replacement |
 |---|---|---|---|---|---|---|
-| X-01 | `scripts/mixed-traffic.sh:52-54` | `SELECT TOP (n) SessionId FROM ExamSession WHERE Status='OPEN' AND StartsAt>GETDATE() AND SeatsAvailable>=5` | ExamSession | R | none | API `GET /sessions?status=OPEN&from=now&minSeats=5` (Session 6) |
+| X-01 | `scripts/mixed-traffic.sh:52-54` | `SELECT TOP (n) SessionId FROM ExamSession WHERE Status='OPEN' AND StartsAt>GETDATE() AND SeatsAvailable>=5` | ExamSession | R | none | API `GET /sessions?status=OPEN&startsAfter={now}&minSeatsAvailable=5` (Session 6) |
 | X-02 | `scripts/mixed-traffic.sh:58-61` | `SELECT TOP (n) CandidateId, CandidateNumber FROM Candidate WHERE CandidateNumber >= ...` | Candidate | R | none | Ref-local |
 | X-03 | `scripts/mixed-traffic.sh:75,79,124` | `SELECT TOP 1 BookingId FROM Booking ...`; `EXEC dbo.usp_BookSeat ...`; `EXEC dbo.usp_CancelBooking ... @Actor='portal'` | Booking (+procs) | R, I/U via procs | proc tx | API `POST /bookings`, `POST /bookings/{id}/cancel` |
 | X-04 | `scripts/mixed-traffic.sh:135-137` | seat report `SELECT ... Capacity, SeatsAvailable, (SELECT COUNT(*) FROM Booking WHERE Status IN ('BOOKED','ATTENDED'))` | ExamSession, Booking | R | none | API `GET /sessions/{id}` + seat-drift check on the service DB |
