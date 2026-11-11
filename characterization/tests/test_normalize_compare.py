@@ -59,3 +59,13 @@ def test_compare_checks_setup_responses_in_both_modes():
     a = {"setup": [{"name": "book", "status": 409}], "steps": []}
     for include_db in (True, False):
         assert compare_transcripts(g, a, include_db=include_db) == ["$.setup[0].status: 200 -> 409"]
+
+
+def test_apply_seed_refuses_a_database_db_apply_does_not_build():
+    import types
+    import pytest
+    from harness.db import Db, SqlError
+    db = Db.__new__(Db)
+    db.t = types.SimpleNamespace(database="ParityTest")
+    with pytest.raises(SqlError, match="only rebuilds AssessmentDelivery"):
+        db.apply_seed()

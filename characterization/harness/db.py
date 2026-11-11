@@ -63,6 +63,9 @@ class Db:
     # ---- reseeding -------------------------------------------------------------------------
     def apply_seed(self):
         """Rebuild AssessmentDelivery from db/ (schema, procs, triggers, deterministic seed 040-049)."""
+        if self.t.database != "AssessmentDelivery":
+            raise SqlError(f"db/apply only rebuilds AssessmentDelivery, not --database {self.t.database}; "
+                           "use --reseed command --reseed-cmd ... to reseed another database")
         env = dict(os.environ, AD_SA_PASSWORD=self.t.sql_password, AD_SQL_SERVER=self.t.sql_server,
                    AD_SQL_USER=self.t.sql_user, SQLCMD=self.t.sqlcmd)
         if os.name == "nt":
