@@ -1,0 +1,52 @@
+
+$ seat-drift.sql row count before
+DriftRows
+---------
+5
+
+SessionId Capacity AccCap SeatsAvailable SeatHolding ExpectedPerSeatDriftSql
+--------- -------- ------ -------------- ----------- -----------------------
+154 20 2 11 9 11
+
+
+$ curl -X POST http://localhost:8083/sync/run
+{
+  "status" : "COMPLETED",
+  "trigger" : "MANUAL",
+  "startedAt" : "2026-11-11T16:55:47",
+  "finishedAt" : "2026-11-11T16:55:48",
+  "sessionsChecked" : 285,
+  "sessionsUpdated" : 116,
+  "message" : null
+}
+HTTP 200
+
+$ seat-drift.sql row count after
+DriftRows
+---------
+112
+
+SessionId Capacity AccCap SeatsAvailable SeatHolding ExpectedPerSeatDriftSql
+--------- -------- ------ -------------- ----------- -----------------------
+154 20 2 9 9 11
+
+Status DriftRows
+------ ---------
+OPEN 112
+
+EntityName EntityId Action Detail Actor
+---------- -------- ------ ------ -----
+ExamSession 0 CAPACITY_SYNC trigger=MANUAL status=COMPLETED checked=285 updated=116 capacity-sync
+
+
+$ curl -X POST http://localhost:8083/sync/run
+{
+  "status" : "COMPLETED",
+  "trigger" : "MANUAL",
+  "startedAt" : "2026-11-11T16:55:48",
+  "finishedAt" : "2026-11-11T16:55:48",
+  "sessionsChecked" : 285,
+  "sessionsUpdated" : 0,
+  "message" : null
+}
+HTTP 200

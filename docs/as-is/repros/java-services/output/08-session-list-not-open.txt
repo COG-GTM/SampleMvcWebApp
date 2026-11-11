@@ -1,0 +1,17 @@
+
+$ curl http://localhost:8081/api/v1/sessions | count by status
+     18   "status" : "CANCELLED",
+      8   "status" : "CLOSED",
+    151   "status" : "DELIVERED",
+    285   "status" : "OPEN",
+
+$ curl 'http://localhost:8081/api/v1/sessions?from=2026-09-01&to=2026-09-30' | count by status
+      2   "status" : "CANCELLED",
+     63   "status" : "DELIVERED",
+Status Sessions
+------ --------
+CANCELLED 18
+CLOSED 8
+DELIVERED 151
+OPEN 285
+

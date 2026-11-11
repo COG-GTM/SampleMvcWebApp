@@ -1,0 +1,32 @@
+CandidateNumber ExamCode LastAttempt Passed RetakeWaitDays CalendarRuleEarliest
+--------------- -------- ----------- ------ -------------- --------------------
+NW00000113 HPI-ACC1 2026-10-02 09:00:00.000 0 30 2026-11-01
+NW00000113 HPI-ACC1 2026-11-07 13:30:00.000 0 30 2026-12-07
+
+
+$ curl -X GET http://localhost:8081/api/v1/candidates/NW00000113/eligibility?examCode=HPI-ACC1&date=2026-12-07
+{
+  "eligible" : false,
+  "reason" : "RETAKE_WAIT_NOT_ELAPSED",
+  "earliestRetakeDate" : "2026-12-18"
+}
+HTTP 200
+
+$ curl -X GET http://localhost:8081/api/v1/candidates/NW00000113/eligibility?examCode=HPI-ACC1&date=2026-12-18
+{
+  "eligible" : true,
+  "reason" : "RETAKE_ALLOWED",
+  "earliestRetakeDate" : "2026-12-18"
+}
+HTTP 200
+SessionId StartsAt SeatsAvailable
+--------- -------- --------------
+206 2026-12-07 09:00:00.000 8
+
+
+$ curl -X POST http://localhost:8081/api/v1/bookings -d '{"sessionId":206,"candidateNumber":"NW00000113"}'
+{
+  "error" : "NOT_ELIGIBLE",
+  "message" : "Candidate NW00000113 is not eligible to book HPI-ACC1 (RETAKE_WAIT_NOT_ELAPSED), earliest retake date 2026-12-18"
+}
+HTTP 409
