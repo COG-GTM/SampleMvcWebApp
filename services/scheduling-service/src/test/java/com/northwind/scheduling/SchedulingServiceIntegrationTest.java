@@ -66,6 +66,12 @@ class SchedulingServiceIntegrationTest {
     @Autowired
     JdbcTemplate jdbc;
 
+    @Autowired
+    com.northwind.scheduling.core.Audit audit;
+
+    @Autowired
+    com.northwind.scheduling.reference.LegacyImporter importer;
+
     static int examId;
     static int centerId;
     static int roomId;
@@ -277,6 +283,46 @@ class SchedulingServiceIntegrationTest {
         assertThat(seats(s)).isEqualTo(3);
         List<JsonNode> runs = List.of(get("/api/v1/reconciler/runs").elements().next());
         assertThat(runs).isNotEmpty();
+        assertThat(runs.get(0).get("actor").asText()).isEqualTo("capacity-sync");
+    }
+
+    @Test
+    void reconcilerWithoutLegacyAccountingConvergesToZeroSeatDrift() throws Exception {
+        int s1 = session(5, 1);
+        int s2 = session(3, 0);
+        book(s1, candidate(), "PORTAL", null);
+        book(s1, candidate(), "PORTAL", "ET25");
+        book(s2, candidate(), "PORTAL", null);
+        jdbc.update("UPDATE dbo.ExamSession SET SeatsAvailable = 0 WHERE SessionId = ?", s1);
+        jdbc.update("UPDATE dbo.ExamSession SET SeatsAvailable = 9, Status = 'CLOSED' WHERE SessionId = ?", s2);
+        new com.northwind.scheduling.reconciler.SeatReconciler(jdbc, audit, "test", false).run("MANUAL", null, null);
+        String check = java.nio.file.Files.readString(java.nio.file.Path.of("db/checks/seat-drift.sql"));
+        String select = check.substring(check.indexOf("SELECT s.SessionId"), check.lastIndexOf("GO"));
+        assertThat(jdbc.queryForList(select)).isEmpty();
+        assertThat(seats(s1)).isEqualTo(3);
+        assertThat(seats(s2)).isEqualTo(2);
+    }
+
+    @Test
+    void importSeedsReconcilerRunsFromLegacyCapacitySyncAudit() {
+        jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor, LoggedAt) VALUES "
+                + "('ExamSession', 0, 'CAPACITY_SYNC', 'trigger=SCHEDULED status=COMPLETED checked=4242 updated=7', "
+                + "'capacity-sync-legacy', '2026-11-01T02:00:00')");
+        post("/api/v1/reconciler/runs?sessionIds=" + session(1, 0), null, null);
+        assertThat(importer.seedReconcilerRuns(jdbc)).isPositive();
+        assertThat(importer.seedReconcilerRuns(jdbc)).isZero();
+        JsonNode runs = get("/api/v1/reconciler/runs?from=2026-11-01T00:00:00&to=2026-11-02T00:00:00");
+        JsonNode seeded = null;
+        for (JsonNode r : runs) {
+            if (r.get("checked").asInt() == 4242) {
+                seeded = r;
+            }
+        }
+        assertThat(seeded).isNotNull();
+        assertThat(seeded.get("trigger").asText()).isEqualTo("SCHEDULED");
+        assertThat(seeded.get("status").asText()).isEqualTo("OK");
+        assertThat(seeded.get("updated").asInt()).isEqualTo(7);
+        assertThat(seeded.get("actor").asText()).isEqualTo("capacity-sync-legacy");
     }
 
     @Test
