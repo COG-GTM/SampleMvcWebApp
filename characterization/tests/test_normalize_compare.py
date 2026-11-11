@@ -79,3 +79,16 @@ def test_missing_sqlcmd_is_a_sql_error():
                                   sql_password="x", database="AssessmentDelivery"))
     with pytest.raises(SqlError, match="cannot run sqlcmd"):
         db.run("SELECT 1")
+
+
+def test_apply_seed_accepts_assessmentdelivery_in_any_case(monkeypatch):
+    import subprocess
+    import types
+    from harness import db as dbmod
+    calls = []
+    monkeypatch.setattr(dbmod.subprocess, "run",
+                        lambda cmd, **kw: calls.append(cmd) or subprocess.CompletedProcess(cmd, 0, "", ""))
+    db = dbmod.Db(types.SimpleNamespace(sqlcmd="sqlcmd", sql_server="localhost", sql_user="sa", sql_password="x",
+                                        database="assessmentdelivery"))
+    db.apply_seed()
+    assert len(calls) == 1
