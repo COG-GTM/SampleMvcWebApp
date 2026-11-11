@@ -74,7 +74,7 @@ public class CapacitySyncServiceTest {
         row.put("StandardBooked", 5);
         rows.add(row);
         when(jdbc.queryForList(anyString())).thenReturn(rows);
-        when(jdbc.update(org.mockito.Matchers.startsWith("UPDATE dbo.ExamSession"), anyVararg())).thenReturn(1);
+        when(jdbc.update(org.mockito.Matchers.startsWith("UPDATE dbo.ExamSession"), (Object[]) anyVararg())).thenReturn(1);
 
         SyncRun run = service(jdbc, true).runSync("MANUAL");
 
@@ -82,6 +82,6 @@ public class CapacitySyncServiceTest {
         assertEquals(1, run.getSessionsChecked());
         assertEquals(1, run.getSessionsUpdated());
         verify(jdbc).update("UPDATE dbo.ExamSession SET SeatsAvailable = ?, LastModified = GETDATE() "
-                + "WHERE SessionId = ? AND Status = 'OPEN' AND SeatsAvailable = ?", 13, 7, 10);
+                + "WHERE SessionId = ? AND Status = 'OPEN' AND SeatsAvailable = ?", new Object[] {13, 7, 10});
     }
 }
