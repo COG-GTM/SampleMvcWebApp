@@ -13,7 +13,7 @@ namespace AssessmentDelivery.Services.Admin
 {
     /// <summary>
     /// Admin screens. Session rows, capacity changes, capacity audit and rosters come from scheduling-service
-    /// (owner of ExamSession/Booking/Waitlist); centres, rooms and capacity-sync audit rows stay local.
+    /// (owner of ExamSession/Booking/Waitlist); seat re-sync runs come from its reconciler; centres and rooms stay local.
     /// </summary>
     public class AdminService : IAdminService
     {
@@ -124,28 +124,27 @@ namespace AssessmentDelivery.Services.Admin
             return new CapacityAuditResult { Rows = rows, TotalRows = page.TotalRows };
         }
 
+        /// <summary>
+        /// Seat re-sync runs from the scheduling-service reconciler (capacity-sync is retired into it). Rows keep the
+        /// legacy CAPACITY_SYNC audit shape: status COMPLETED/FAILED, actor capacity-sync, detail 'trigger= status= checked= updated='.
+        /// </summary>
         public IList<CapacitySyncRunRow> ListCapacitySyncRuns(DateTime from, DateTime toExclusive, int max)
         {
-            var raw = _db.AuditLogs.AsNoTracking()
-                .Where(a => a.EntityName == "ExamSession" && a.Action == "CAPACITY_SYNC"
-                            && a.LoggedAt >= from && a.LoggedAt < toExclusive)
-                .OrderByDescending(a => a.LoggedAt).ThenByDescending(a => a.AuditId)
-                .Take(max)
-                .ToList();
-
-            return raw.Select(a =>
+            var runs = BookingService.Call(() => _scheduling.ListReconcilerRuns(from, toExclusive, max))
+                       ?? new List<ApiReconcilerRun>();
+            return runs.Select(r =>
             {
-                var d = CapacitySyncDetail.Parse(a.Detail);
+                var status = r.Status == "OK" ? "COMPLETED" : r.Status;
                 return new CapacitySyncRunRow
                 {
-                    AuditId = a.AuditId,
-                    LoggedAt = a.LoggedAt,
-                    Actor = a.Actor,
-                    Detail = a.Detail,
-                    Trigger = d.Trigger,
-                    Status = d.Status,
-                    SessionsChecked = d.Checked,
-                    SessionsUpdated = d.Updated
+                    AuditId = r.RunId,
+                    LoggedAt = r.FinishedAt ?? r.StartedAt,
+                    Actor = string.IsNullOrEmpty(r.Actor) ? "capacity-sync" : r.Actor,
+                    Detail = "trigger=" + r.Trigger + " status=" + status + " checked=" + r.Checked + " updated=" + r.Updated,
+                    Trigger = r.Trigger,
+                    Status = status,
+                    SessionsChecked = r.Checked,
+                    SessionsUpdated = r.Updated
                 };
             }).ToList();
         }

@@ -101,6 +101,15 @@ namespace AssessmentDelivery.Services.Scheduling
             return GetOrNull<ApiRoster>("/sessions/" + sessionId + "/roster?format=json");
         }
 
+        public IList<ApiReconcilerRun> ListReconcilerRuns(DateTime from, DateTime toExclusive, int max)
+        {
+            var qs = new QueryString()
+                .Add("from", from.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture))
+                .Add("to", toExclusive.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture))
+                .Add("max", max);
+            return Send<List<ApiReconcilerRun>>("GET", "/reconciler/runs" + qs, null, null, null);
+        }
+
         //------------------------------------------------- bookings
 
         public IList<ApiBooking> SearchBookings(int candidateId, string sort)

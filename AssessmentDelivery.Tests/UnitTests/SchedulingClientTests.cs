@@ -91,6 +91,16 @@ namespace AssessmentDelivery.Tests.UnitTests
         }
 
         [Test]
+        public void ReconcilerRunsSendsTheDateTimeRange()
+        {
+            RespondOnce(200, "[]");
+            new SchedulingClient(_baseUrl).ListReconcilerRuns(new DateTime(2026, 10, 12), new DateTime(2026, 11, 12), 51);
+
+            Assert.AreEqual("GET", _method);
+            Assert.AreEqual("/api/v1/reconciler/runs?from=2026-10-12T00%3A00%3A00&to=2026-11-12T00%3A00%3A00&max=51", _path);
+        }
+
+        [Test]
         public void CapacityAuditSendsIsoDatesWithAnInclusiveToDay()
         {
             RespondOnce(200, "{\"rows\":[],\"total\":0}");
