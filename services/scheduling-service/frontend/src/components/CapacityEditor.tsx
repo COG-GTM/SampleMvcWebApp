@@ -63,8 +63,8 @@ export default function CapacityEditor({ session, onChanged, compact = false }: 
       {error && <span className="field-error" data-testid="capacity-error">{error}</span>}
       <Modal open={confirming} onClose={() => setConfirming(false)} title="Change capacity?"
         footer={<>
-          <button className="btn-secondary" onClick={() => setConfirming(false)}>Back</button>
-          <button className={willBump > 0 ? 'btn-danger' : 'btn-primary'} onClick={apply} disabled={saving} data-testid="capacity-confirm">
+          <button type="button" className="btn-secondary" onClick={() => setConfirming(false)}>Back</button>
+          <button type="button" className={willBump > 0 ? 'btn-danger' : 'btn-primary'} onClick={apply} disabled={saving} data-testid="capacity-confirm">
             {saving ? 'Saving...' : `Set capacity to ${next}`}
           </button>
         </>}>
