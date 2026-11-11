@@ -102,16 +102,17 @@ if (-not $SkipBuild) {
 }
 
 $iis = Get-IISExpress
+# a previous run of this script - IIS Express listens through http.sys, so the port owner shows as pid 4
+Get-CimInstance Win32_Process -Filter "Name='iisexpress.exe'" |
+    Where-Object { $_.CommandLine -match "/port:$Port\b" } |
+    ForEach-Object {
+        Write-Host "Stopping previous IIS Express on port $Port (pid $($_.ProcessId))"
+        Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+    }
 $existing = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
 if ($existing) {
-    $owner = Get-Process -Id $existing[0].OwningProcess -ErrorAction SilentlyContinue
-    if ($owner -and $owner.ProcessName -eq 'iisexpress') {
-        Write-Host "Stopping previous IIS Express on port $Port (pid $($owner.Id))"
-        Stop-Process -Id $owner.Id -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Seconds 2
-    } else {
-        throw "Port $Port is in use by another process (pid $($existing[0].OwningProcess)); stop it or pass -Port"
-    }
+    throw "Port $Port is in use by another process (pid $($existing[0].OwningProcess)); stop it or pass -Port"
 }
 
 $logDir = Join-Path $root 'logs'
