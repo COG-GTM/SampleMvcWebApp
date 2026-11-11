@@ -31,7 +31,9 @@ class MSession:
 
 
 class Model:
-    def __init__(self):
+    def __init__(self, partner_seats=2):
+        # 2 = HB-01 kept (legacy estate, scheduling.legacy-seat-accounting=true); 1 = HB-01 removed (single writer)
+        self.partner_seats = partner_seats
         self.sessions = {}
         self.bookings = {}  # id -> dict(session, cand, status, acc, channel, order)
         self._order = 0
@@ -62,7 +64,7 @@ class Model:
         self._order += 1
         if s.seats > 0:
             status = 'BOOKED'
-            s.seats -= 2 if channel == 'PARTNER' else 1
+            s.seats -= self.partner_seats if channel == 'PARTNER' else 1
         else:
             status = 'WAITLISTED'
             s.waitlist.append([bid, max([p for _, p in s.waitlist] or [0]) + 1])

@@ -40,7 +40,8 @@ class Sampler(threading.Thread):
         where = ('s.SessionId IN (%s)' % ','.join(map(str, self.ids))) if self.ids else (
             "s.SeatsAvailable <> s.Capacity - ISNULL(b.Active, 0) OR ISNULL(w.Dup, 0) > 0")
         rows = self.t.state.rows(DRIFT_SQL.format(es=self.t.es, bk=self.t.bk, wl=self.t.wl, where=where))
-        per = {int(r[0]): (int(r[1]), int(r[2]), int(r[3])) for r in rows}
+        k = getattr(self.t, 'partner_seats', 2) - 1  # extra seats per partner BOOKED insert: 1 with HB-01, 0 without
+        per = {int(r[0]): (int(r[1]), int(r[2]) * k, int(r[3])) for r in rows}
         self.samples.append({'t': round(time.time() - self.t0, 2),
                              'raw': max([abs(v[0]) for v in per.values()] or [0]),
                              'unexplained': max([abs(v[0] - v[1]) for v in per.values()] or [0]),
@@ -134,7 +135,7 @@ def cat_drift(c):
     print('  load: %d ops / %d workers in %ss, %d samples, stats=%s' % (ops, workers, summ['seconds'], summ['samples'], json.dumps(stats)))
     c.rec.check('drift sampled continuously during load (>= 10 samples)', summ['samples'] >= 10, summ['samples'])
     c.rec.check('no transport / 5xx failures under load', stats['transport'] == 0, stats['rejected'])
-    c.rec.check('unexplained seat drift 0 at every sample (max raw %d, all HB-01 partner inserts)' % summ['maxRawDrift'],
+    c.rec.check('unexplained seat drift 0 at every sample (max raw %d; raw drift allowed only as HB-01 partner inserts when HB-01 is kept)' % summ['maxRawDrift'],
                 summ['maxUnexplainedDrift'] == 0, [x for x in sampler.samples if x['unexplained']][:3])
     full = Sampler(c.t, None)
     full.sample()

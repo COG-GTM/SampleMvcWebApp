@@ -52,7 +52,8 @@ class Recorder:
 
 class Ctx:
     def __init__(self, target, rec):
-        self.t, self.rec, self.model = target, rec, Model()
+        self.t, self.rec = target, rec
+        self.model = Model()
         self._hour = 0
         cands = target.ref.rows("""SELECT c.CandidateId, c.CandidateNumber, c.DefaultAccommodationCode FROM dbo.Candidate c
             WHERE NOT EXISTS (SELECT 1 FROM dbo.Result r WHERE r.CandidateId = c.CandidateId) ORDER BY c.CandidateNumber""")
@@ -61,6 +62,24 @@ class Ctx:
         self._next = 0
         self.ext = 0
         self.center = int(target.ref.scalar('SELECT TestCenterId FROM dbo.Room WHERE RoomId = %d' % ROOM))
+        self.model.partner_seats = self.probe_partner_seats()
+        target.partner_seats = self.model.partner_seats
+        rec.extra['hb01'] = {'partnerSeatsPerBooking': self.model.partner_seats,
+                             'status': 'kept (double decrement)' if self.model.partner_seats == 2 else 'removed (single writer)'}
+        print('[e2e] HB-01 partner seats per BOOKED booking: %d' % self.model.partner_seats, flush=True)
+
+    def probe_partner_seats(self):
+        """HB-01 is a deployment property (legacy: booking-api + trg_Booking_SeatSync; migrated: scheduling.legacy-seat-
+        accounting). Observe it once on a throwaway session instead of assuming it: one partner booking, read the seat delta."""
+        self._hour += 1
+        sid = self.session(1, 4, 0, _probe=True)
+        cid, num = self.plain[-1]
+        o = self.t.partner.book(sid, num, None, 'E2E-PROBE')
+        if not o.ok:
+            raise RuntimeError('HB-01 probe booking failed: %r' % o)
+        seats = 4 - self.t.session(sid)['seats']
+        self.t.partner.cancel(o.booking_id, 'probe')
+        return seats
 
     def candidates(self, n):
         """Candidates with no Result rows (always retake-eligible). Pool is reused across categories: duplicate checks
@@ -71,7 +90,7 @@ class Ctx:
             self._next += 1
         return out
 
-    def session(self, exam, capacity, acc_cap=0, status='OPEN', starts=None):
+    def session(self, exam, capacity, acc_cap=0, status='OPEN', starts=None, _probe=False):
         """Self-contained fixture session, dated off the pinned clock (E2E_AS_OF + 45 days + n hours)."""
         self._hour += 1
         starts = starts or (datetime.datetime.fromisoformat(AS_OF) + datetime.timedelta(days=45, hours=self._hour))
@@ -89,7 +108,8 @@ class Ctx:
                 "AccommodationCapacity, SeatsAvailable, Status) OUTPUT INSERTED.SessionId INTO @t "
                 "VALUES (%d, %d, %d, '%s', %d, %d, %d, '%s'); SELECT id FROM @t"
                 % (exam, self.center, ROOM, stamp, capacity, acc_cap, capacity, status)))
-        self.model.add_session(sid, exam, capacity, acc_cap, status)
+        if not _probe:
+            self.model.add_session(sid, exam, capacity, acc_cap, status)
         return sid
 
     # ---- channel operations: each is applied to the model and the outcome/row checked against it

@@ -38,8 +38,9 @@ def cat_parity(c):
     # error outcomes (duplicate) must be identical; seat-driven differences only where seats already differed before
     errors_equal = all(a['outcome'] == b['outcome'] for a, b in zip(trace['PORTAL'], trace['PARTNER'])
                        if a['outcome'] not in ('BOOKED', 'WAITLISTED'))
-    c.rec.check('portal vs partner: non-seat outcomes identical, differences confined to HB-01/HB-02 seat accounting',
-                errors_equal and trace['PORTAL'][0]['drift'] == 0 and trace['PARTNER'][0]['drift'] == 1,
+    c.rec.check('portal vs partner: non-seat outcomes identical, differences confined to HB-01/HB-02 seat accounting (none when HB-01 is removed)',
+                errors_equal and trace['PORTAL'][0]['drift'] == 0 and trace['PARTNER'][0]['drift'] == c.model.partner_seats - 1
+                and (c.model.partner_seats == 2 or not any(r['differs'] for r in table)),
                 [r for r in table if r['differs']])
 
 
