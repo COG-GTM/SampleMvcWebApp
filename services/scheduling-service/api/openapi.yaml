@@ -1138,6 +1138,9 @@ components:
           type: integer
           format: int32
           example: 5
+        notifiedCandidates:
+          type: integer
+          format: int32
         oldCapacity:
           type: integer
           format: int32
@@ -1147,6 +1150,7 @@ components:
       required:
       - demotedBookingIds
       - newCapacity
+      - notifiedCandidates
       - oldCapacity
       - session
     CenterDto:

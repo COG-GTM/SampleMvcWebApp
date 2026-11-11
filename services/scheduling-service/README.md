@@ -7,3 +7,5 @@ with `JAVA_HOME=<JDK 21> ./mvnw -B verify` (Testcontainers SQL Server needs Dock
 - Operations: health/readiness probes, Prometheus metrics, JSON logs and on-call scenarios are in the
   [runbook](../../docs/runbooks/scheduling-service.md).
 - Ported rule decisions: [ADR 0002](../../docs/adr/0002-ported-rule-decisions.md).
+- Outbox events, incl. the `CandidateCapacityImpactNotified` candidate notification and its stub
+  (`GET /internal/notifications`): [docs/events.md](docs/events.md).

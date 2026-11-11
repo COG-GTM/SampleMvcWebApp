@@ -131,6 +131,13 @@
             <version>${openapi-diff.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- MBA-3831: docs/schemas/*.schema.json validated against emitted outbox payloads -->
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+            <version>1.5.9</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

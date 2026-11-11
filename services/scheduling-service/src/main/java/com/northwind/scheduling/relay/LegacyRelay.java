@@ -36,8 +36,11 @@ public class LegacyRelay {
         this.tx = new TransactionTemplate(new DataSourceTransactionManager(legacyJdbc.getDataSource()));
     }
 
-    /** @return true if applied now, false if the checkpoint shows it was applied before */
+    /** @return true if applied now, false if the checkpoint shows it was applied before or it has no legacy projection */
     public boolean apply(OutboxEvent e) {
+        if (!e.type().projectsToLegacy()) {
+            return false;
+        }
         Boolean applied = tx.execute(status -> {
             jdbc.execute("EXEC sp_set_session_context @key = N'writer', @value = N'" + WRITER + "'");
             Integer done = jdbc.queryForObject("SELECT COUNT(*) FROM dbo.RelayCheckpoint WITH (UPDLOCK, HOLDLOCK) "

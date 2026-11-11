@@ -76,7 +76,9 @@ public final class Dtos {
         }
     }
 
-    public record CapacityResultDto(SessionDto session, int oldCapacity, int newCapacity, List<Integer> demotedBookingIds) {
+    /** notifiedCandidates: CandidateCapacityImpactNotified events emitted for this change (MBA-3831) */
+    public record CapacityResultDto(SessionDto session, int oldCapacity, int newCapacity, List<Integer> demotedBookingIds,
+                                    int notifiedCandidates) {
     }
 
     public record CapacityChangeDto(int id, int oldCapacity, int newCapacity, int demotedBookings, String reason,

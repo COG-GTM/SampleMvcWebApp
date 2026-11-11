@@ -1,4 +1,4 @@
-description: UI admin capacity change (api.changeCapacity); newest bookings above the new capacity are demoted (ODD-02).
+description: UI admin capacity change (api.changeCapacity); newest bookings above the new capacity are demoted (ODD-02); the demoted and the 8 remaining BOOKED candidates are notified (MBA-3831).
 name: ui changes capacity
 request:
   method: PUT
@@ -16,6 +16,7 @@ response:
     oldCapacity: 20
     newCapacity: 8
     demotedBookingIds: [9]
+    notifiedCandidates: 9
     session:
       sessionId: 154
       capacity: 8

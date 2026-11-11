@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://northwind.example/scheduling/events/candidate-capacity-impact-notified.schema.json",
+  "title": "CandidateCapacityImpactNotified",
+  "description": "One candidate affected by PUT /api/v2/sessions/{sessionId}/capacity (MBA-3831). Carried in outbox_event.payload.notification; see docs/events.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "sessionId", "centerCode", "examCode", "startsAt", "oldCapacity", "newCapacity",
+    "candidateNumber", "bookingId", "previousStatus", "newStatus", "impact"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid", "description": "= outbox_event.event_id; idempotency key for NotificationPort" },
+    "sessionId": { "type": "integer", "minimum": 1 },
+    "centerCode": { "type": "string", "minLength": 1 },
+    "examCode": { "type": "string", "minLength": 1 },
+    "startsAt": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$", "description": "Session start, ISO-8601 local date-time in the centre's time zone (no offset), as ExamSession.StartsAt" },
+    "oldCapacity": { "type": "integer", "minimum": 0 },
+    "newCapacity": { "type": "integer", "minimum": 0 },
+    "candidateNumber": { "type": "string", "pattern": "^NW\\d{8}$" },
+    "bookingId": { "type": "integer", "minimum": 1 },
+    "previousStatus": { "$ref": "#/$defs/bookingStatus" },
+    "newStatus": { "$ref": "#/$defs/bookingStatus" },
+    "impact": { "enum": ["STATUS_CHANGED", "SEAT_CONFIRMED"], "description": "STATUS_CHANGED: previousStatus != newStatus. SEAT_CONFIRMED: capacity reduced, booking stays BOOKED" }
+  },
+  "$defs": {
+    "bookingStatus": { "enum": ["BOOKED", "WAITLISTED", "CANCELLED", "ATTENDED"] }
+  }
+}

@@ -17,7 +17,7 @@ export interface BookingResult { bookingId: number; status: string; waitlistPosi
 export interface WaitlistEntry { position: number; bookingId: number; candidateNumber: string; candidateName: string; accommodationCode: string | null; addedAt: string }
 export interface Candidate { candidateNumber: string; firstName: string; lastName: string; email: string; defaultAccommodationCode: string | null }
 export interface Eligibility { eligible: boolean; reason: string; message: string; earliestRetakeDate: string | null; dayCounting: string }
-export interface CapacityResult { session: Session; oldCapacity: number; newCapacity: number; demotedBookingIds: number[] }
+export interface CapacityResult { session: Session; oldCapacity: number; newCapacity: number; demotedBookingIds: number[]; notifiedCandidates: number }
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public legacyCode?: number | null) {

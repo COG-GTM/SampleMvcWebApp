@@ -96,7 +96,7 @@ public class SchedulingApiController {
         SchedulingService.CapacityOutcome out = service.changeCapacity(sessionId, req == null ? null : req.capacity(),
                 req == null ? null : req.reason());
         return new CapacityResultDto(SessionDto.of(out.session()), out.plan().oldCapacity(), out.plan().newCapacity(),
-                out.plan().demotions().stream().map(CapacityChange.Demotion::bookingId).toList());
+                out.plan().demotions().stream().map(CapacityChange.Demotion::bookingId).toList(), out.notified().size());
     }
 
     @PostMapping("/bookings")

@@ -17,13 +17,16 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import com.northwind.scheduling.notification.NotificationDelivery;
 import com.northwind.scheduling.outbox.OutboxEvent;
 import com.northwind.scheduling.outbox.OutboxRepository;
 
 /**
  * Polls outbox_event in event_seq order and hands each pending event to {@link LegacyRelay} (MBA-3823). An event is
  * marked relayed in Scheduling only after its legacy transaction committed; a crash in between leaves it pending and
- * the replay is a checkpointed no-op. A failing event stops the batch so later events never overtake it.
+ * the replay is a checkpointed no-op. CandidateCapacityImpactNotified events are delivered to the
+ * NotificationPort instead (MBA-3831); a retried delivery is deduplicated there on the event id.
+ * A failing event stops the batch so later events never overtake it.
  */
 @Component
 @ConditionalOnProperty(name = "scheduling.relay.enabled", havingValue = "true")
@@ -33,17 +36,19 @@ public class RelayWorker {
 
     private final OutboxRepository outbox;
     private final LegacyRelay relay;
+    private final NotificationDelivery notifications;
     private final int batchSize;
     private final AtomicLong applied = new AtomicLong();
     private final AtomicLong skipped = new AtomicLong();
     private final AtomicLong pending = new AtomicLong();
     private final AtomicLong lagMillis = new AtomicLong();
 
-    public RelayWorker(OutboxRepository outbox, LegacyRelay relay,
+    public RelayWorker(OutboxRepository outbox, LegacyRelay relay, NotificationDelivery notifications,
                        @Value("${scheduling.relay.batch-size:200}") int batchSize,
                        ObjectProvider<MeterRegistry> meters) {
         this.outbox = outbox;
         this.relay = relay;
+        this.notifications = notifications;
         this.batchSize = batchSize;
         meters.ifAvailable(r -> {
             Gauge.builder("scheduling.outbox.pending", pending, AtomicLong::get)
@@ -68,7 +73,7 @@ public class RelayWorker {
         int processed = 0;
         for (OutboxEvent e : outbox.pending(batchSize)) {
             try {
-                if (relay.apply(e)) {
+                if (e.type().projectsToLegacy() ? relay.apply(e) : notifications.deliver(e)) {
                     applied.incrementAndGet();
                 } else {
                     skipped.incrementAndGet();

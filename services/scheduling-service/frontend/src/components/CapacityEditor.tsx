@@ -5,7 +5,8 @@ import { useToast } from './Toast';
 
 /**
  * Inline capacity edit with a confirmation step. Lowering below the booked count demotes the newest
- * bookings to the waitlist (ADR 0002, ODD-02); the floor is the accommodation allocation (ODD-08).
+ * bookings to the waitlist (ADR 0002, ODD-02); the floor is the accommodation allocation (ODD-08). Affected
+ * candidates get a CandidateCapacityImpactNotified event (MBA-3831, docs/events.md).
  */
 export default function CapacityEditor({ session, onChanged }: { session: Session; onChanged: (r: CapacityResult) => void }) {
   const toast = useToast();
@@ -25,8 +26,11 @@ export default function CapacityEditor({ session, onChanged }: { session: Sessio
     try {
       const r = await api.changeCapacity(session.sessionId, n, 'Changed in admin UI');
       onChanged(r);
-      toast('success', `Session #${session.sessionId}: capacity ${r.oldCapacity} → ${r.newCapacity}`,
-        r.demotedBookingIds.length ? `${r.demotedBookingIds.length} booking(s) moved to the waitlist` : undefined);
+      const detail = [
+        r.demotedBookingIds.length ? `${r.demotedBookingIds.length} booking(s) moved to the waitlist` : '',
+        r.notifiedCandidates ? `${r.notifiedCandidates} candidate(s) notified` : '',
+      ].filter(Boolean).join('; ');
+      toast('success', `Session #${session.sessionId}: capacity ${r.oldCapacity} → ${r.newCapacity}`, detail || undefined);
       setEditing(false);
     } catch (e) {
       const ae = e as ApiError;
@@ -59,6 +63,7 @@ export default function CapacityEditor({ session, onChanged }: { session: Sessio
       <Modal open={confirming} title="Confirm capacity change" onClose={() => setConfirming(false)}>
         <p className="text-sm text-slate-600">Change session #{session.sessionId} from <b>{session.capacity}</b> to <b>{n}</b> seats?</p>
         {demotions > 0 && <p className="mt-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{demotions} active booking(s) exceed the new capacity; the newest will be moved to the waitlist.</p>}
+        {n < session.capacity && session.bookedSeats > 0 && <p className="mt-2 text-xs text-slate-500" data-testid="capacity-notify-hint">Affected candidates will be notified (MBA-3831).</p>}
         <div className="mt-5 flex justify-end gap-2">
           <button className="btn-secondary" onClick={() => setConfirming(false)}>Back</button>
           <button className="btn-primary" disabled={busy} onClick={apply} data-testid="confirm-capacity">{busy ? 'Saving…' : 'Confirm'}</button>
