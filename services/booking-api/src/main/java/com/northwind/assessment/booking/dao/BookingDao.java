@@ -33,8 +33,11 @@ public class BookingDao {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    /** By legacy BookingId, or by scheduling-service id once the relay has mapped it (dbo.RelayBookingMap). */
     public BookingInfo findById(int bookingId) {
-        List<BookingInfo> list = jdbcTemplate.query(SELECT_BOOKING + "WHERE b.BookingId = ?", BOOKING_MAPPER, bookingId);
+        List<BookingInfo> list = jdbcTemplate.query(SELECT_BOOKING + "WHERE b.BookingId = COALESCE("
+                + "(SELECT m.LegacyBookingId FROM dbo.RelayBookingMap m WHERE m.ModernBookingId = ?), ?)",
+                BOOKING_MAPPER, bookingId, bookingId);
         return list.isEmpty() ? null : list.get(0);
     }
 
