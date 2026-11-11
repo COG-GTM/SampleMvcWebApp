@@ -138,7 +138,7 @@ sql "SELECT s.SessionId, s.Capacity, s.SeatsAvailable,
 
 CHECK="$ROOT/db/checks/seat-drift.sql"
 if [ -f "$CHECK" ]; then
-    rows="$( { echo "SET NOCOUNT ON;"; cat "$CHECK"; } | sqlq | grep -cv '^\s*$' || true)"
+    rows="$( { echo "SET NOCOUNT ON;"; cat "$CHECK"; } | sqlq | grep -v -e '^\s*$' -e '^Changed database context' | grep -c . || true)"
     log "db/checks/seat-drift.sql: $rows row(s)"
 else
     log "db/checks/seat-drift.sql not found, skipping the seat check"

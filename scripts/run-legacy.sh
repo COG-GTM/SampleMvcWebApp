@@ -89,7 +89,7 @@ apply_db() {
     fi
     if [ -x "$ROOT/db/apply.sh" ] || [ -f "$ROOT/db/apply.sh" ]; then
         log "re-creating database via db/apply.sh (existing data is dropped; SKIP_DB=1 to keep it)"
-        bash "$ROOT/db/apply.sh"
+        AD_SA_PASSWORD="$MSSQL_SA_PASSWORD" bash "$ROOT/db/apply.sh"
     else
         log "db/apply.sh not found, re-creating database from db/schema + db/procs (existing data is dropped; SKIP_DB=1 to keep it)"
         local f
