@@ -1,5 +1,6 @@
 package com.northwind.assessment.scheduling.observability;
 
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -49,11 +50,22 @@ public class SqlProbeHealthIndicator implements HealthIndicator {
             return down("no answer within " + timeout.toMillis() + " ms");
         } catch (ExecutionException e) {
             Throwable cause = NestedExceptionUtils.getMostSpecificCause(e.getCause() == null ? e : e.getCause());
-            return down(cause.getClass().getSimpleName() + ": " + cause.getMessage());
+            return down(describe(cause));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return down("interrupted");
         }
+    }
+
+    /** Readiness is unauthenticated: never echo driver messages (user, host); only our own probe checks' messages. */
+    static String describe(Throwable cause) {
+        if (cause instanceof SQLException sql) {
+            return sql.getClass().getSimpleName() + " (SQLState " + sql.getSQLState() + ", error " + sql.getErrorCode() + ")";
+        }
+        if (cause instanceof IllegalStateException) {
+            return cause.getMessage();
+        }
+        return cause.getClass().getSimpleName();
     }
 
     private Health down(String error) {

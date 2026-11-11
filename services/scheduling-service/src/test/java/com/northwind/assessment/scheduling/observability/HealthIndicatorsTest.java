@@ -32,7 +32,7 @@ class HealthIndicatorsTest {
 
     private static DataSource unreachable() throws SQLException {
         DataSource ds = mock(DataSource.class);
-        when(ds.getConnection()).thenThrow(new SQLException("Connection refused"));
+        when(ds.getConnection()).thenThrow(new SQLException("Login failed for user 'sched_app' at db.internal:1433", "28000", 18456));
         return ds;
     }
 
@@ -89,7 +89,9 @@ class HealthIndicatorsTest {
         JdbcTemplate jdbc = ObservabilityConfig.probeTemplate(unreachable(), TIMEOUT);
         Health h = indicator(() -> ObservabilityConfig.schedulingProbe(jdbc, "flyway_schema_history", () -> "2")).health();
         assertThat(h.getStatus()).isEqualTo(Status.DOWN);
-        assertThat(h.getDetails().get("error")).asString().contains("Connection refused");
+        assertThat(h.getDetails().get("error")).asString()
+                .isEqualTo("SQLException (SQLState 28000, error 18456)")
+                .doesNotContain("sched_app").doesNotContain("db.internal");
     }
 
     @Test
