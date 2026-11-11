@@ -25,14 +25,12 @@ public class ConfigFileWatcher implements SchedulingConfigurer {
     private final AllowListHolder allowList;
     private final Path file;
     private final java.time.Duration interval;
-    private volatile String lastContent;
 
     public ConfigFileWatcher(AllowListHolder allowList, RoutingProperties props) {
         this.allowList = allowList;
         this.file = Paths.get(props.getConfigFile()).toAbsolutePath();
         this.interval = props.getWatchInterval();
-        this.lastContent = read();
-        log.info("watching {} for allow-list changes ({})", file, lastContent == null ? "absent" : "present");
+        log.info("watching {} for allow-list changes ({})", file, Files.exists(file) ? "present" : "absent");
     }
 
     @Override
@@ -41,20 +39,18 @@ public class ConfigFileWatcher implements SchedulingConfigurer {
     }
 
     public void poll() {
-        String now = read();
-        if (!java.util.Objects.equals(now, lastContent)) {
-            lastContent = now;
-            boolean applied = allowList.reload();
-            log.info("{} changed, allow-list {}", file, applied ? "reloaded" : "rejected (previous list kept)");
-        }
-    }
-
-    private String read() {
+        // compare with what the holder last loaded (not what this watcher last saw), so a refresh in between
+        // cannot mask a later edit that restores the earlier content
+        String now;
         try {
-            return Files.exists(file) ? Files.readString(file) : null;
+            now = Files.exists(file) ? Files.readString(file) : null;
         } catch (IOException e) {
             log.warn("cannot read {}: {}", file, e.getMessage());
-            return lastContent;
+            return;
+        }
+        if (!java.util.Objects.equals(now, allowList.getLoadedFileContent())) {
+            boolean applied = allowList.reload();
+            log.info("{} changed, allow-list {}", file, applied ? "reloaded" : "rejected (previous list kept)");
         }
     }
 }

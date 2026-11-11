@@ -36,6 +36,7 @@ public class AllowListHolder {
     private final java.nio.file.Path file;
     private final AtomicReference<AllowList> current = new AtomicReference<>();
     private volatile String lastRejection;
+    private volatile String loadedFileContent;
 
     public AllowListHolder(Environment environment, RoutingProperties props) {
         this.environment = environment;
@@ -53,6 +54,11 @@ public class AllowListHolder {
 
     public AllowList get() {
         return current.get();
+    }
+
+    /** Raw content of the allow-list file as last read by a load/reload (null when absent). */
+    public String getLoadedFileContent() {
+        return loadedFileContent;
     }
 
     public String getLastRejection() {
@@ -117,13 +123,16 @@ public class AllowListHolder {
 
     private java.util.Properties readFile() {
         java.util.Properties p = new java.util.Properties();
+        String content = null;
         if (java.nio.file.Files.isRegularFile(file)) {
-            try (java.io.Reader r = java.nio.file.Files.newBufferedReader(file)) {
-                p.load(r);
+            try {
+                content = java.nio.file.Files.readString(file);
+                p.load(new java.io.StringReader(content));
             } catch (java.io.IOException e) {
                 throw new IllegalStateException("cannot read allow-list file " + file + ": " + e.getMessage(), e);
             }
         }
+        loadedFileContent = content;
         return p;
     }
 
