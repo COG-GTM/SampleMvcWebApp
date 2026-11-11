@@ -78,6 +78,9 @@ export ROUTING_URL="http://localhost:8090"
 bash "$ROOT/scripts/run-legacy.sh" start > "$WORK/after-run-legacy.log" 2>&1 || die "start failed, see $WORK/after-run-legacy.log"
 SKIP_BUILD="${SKIP_BUILD:-0}" bash "$ROOT/scripts/run-scheduling-service.sh" start > "$WORK/after-scheduling.log" 2>&1 \
     || die "scheduling-service start failed, see $WORK/after-scheduling.log"
+# the bootstrap import runs after the web server is up; bookings before it finishes are refused
+for _ in $(seq 1 120); do grep -q 'Import finished' "$ROOT/.run/scheduling-service.log" && break; sleep 1; done
+grep -q 'Import finished' "$ROOT/.run/scheduling-service.log" || die "scheduling-service bootstrap import did not finish"
 if [ "$GATEWAY" = 1 ]; then
     bash "$ROOT/scripts/run-routing-gateway.sh" start > "$WORK/after-gateway.log" 2>&1 || die "gateway start failed, see $WORK/after-gateway.log"
     wait_http http://localhost:8000/actuator/health 90
@@ -97,6 +100,10 @@ AFTER_ROWS="$(drift "$WORK/after-seat-drift.txt")"
 log "AFTER: seat-drift rows = $AFTER_ROWS, reconcile mismatches = ${MISMATCHES:-?} (exit $RECONCILE_EXIT)"
 RECON_REPORT="$(echo "$RECONCILE_LINE" | grep -o 'report=.*' | cut -d= -f2-)"
 
+booked() {  # booked <mixed-traffic log> -> "<portal ok>+<partner ok>"
+    echo "$(grep -o 'portal : [0-9]* ok' "$1" | grep -o '[0-9]*')+$(grep -o 'partner: [0-9]* ok' "$1" | grep -o '[0-9]*')"
+}
+BEFORE_BOOKED="$(booked "$WORK/before-mixed-traffic.log")"; AFTER_BOOKED="$(booked "$WORK/after-mixed-traffic.log")"
 summary() { sed -n '/session summary/,$p' "$1" | grep -v 'seat-drift.sql:' | grep -v '\] done'; }
 {
     echo "# Seat drift before/after MBA-3823 (single writer + outbox relay)"
@@ -105,10 +112,10 @@ summary() { sed -n '/session summary/,$p' "$1" | grep -v 'seat-drift.sql:' | gre
     echo "\`scripts/mixed-traffic.sh\` (20 portal + 20 partner bookings, 3 cancels per channel, fresh seed) followed by a"
     echo "capacity-sync run (\`POST :8083/sync/run\`)."
     echo
-    echo "| | Code | Commit | seat-drift.sql rows | reconcile mismatches |"
-    echo "|---|---|---|---|---|"
-    echo "| Before | \`$BEFORE_REF\` | \`$BEFORE_SHA\` | **$BEFORE_ROWS** | n/a (no scheduling-service) |"
-    echo "| After | \`$(git -C "$ROOT" rev-parse --abbrev-ref HEAD)\`$DIRTY | \`$AFTER_SHA\` | **$AFTER_ROWS** | **${MISMATCHES:-?}** (reconcile exit $RECONCILE_EXIT) |"
+    echo "| | Code | Commit | bookings accepted (portal+partner) | seat-drift.sql rows | reconcile mismatches |"
+    echo "|---|---|---|---|---|---|"
+    echo "| Before | \`$BEFORE_REF\` | \`$BEFORE_SHA\` | $BEFORE_BOOKED | **$BEFORE_ROWS** | n/a (no scheduling-service) |"
+    echo "| After | \`$(git -C "$ROOT" rev-parse --abbrev-ref HEAD)\`$DIRTY | \`$AFTER_SHA\` | $AFTER_BOOKED | **$AFTER_ROWS** | **${MISMATCHES:-?}** (reconcile exit $RECONCILE_EXIT) |"
     echo
     echo "After-run write path: portal channel \`POST/DELETE $ROUTING_URL/api/v2/bookings\`, partner channel booking-api"
     echo "\`:8081\` -> \`$ROUTING_URL\` -> scheduling-service -> outbox -> relay (\`ad_sched_relay\`) -> AssessmentDelivery."
@@ -124,4 +131,6 @@ summary() { sed -n '/session summary/,$p' "$1" | grep -v 'seat-drift.sql:' | gre
     [ -n "$RECON_REPORT" ] && { echo; echo "Reconciliation report: \`${RECON_REPORT#$ROOT/}\`"; }
 } > "$REPORT"
 log "wrote ${REPORT#$ROOT/}"
+# a run where the workload booked nothing proves nothing
+[ "$AFTER_BOOKED" != "0+0" ] && [ "$AFTER_BOOKED" != "+" ] || die "the after workload booked nothing, see $WORK/after-mixed-traffic.log"
 [ "$BEFORE_ROWS" -gt 0 ] && [ "$AFTER_ROWS" = 0 ] && [ "${MISMATCHES:-1}" = 0 ]
