@@ -1,0 +1,15 @@
+CandidateNumber DefaultAccommodationCode
+--------------- ------------------------
+NW00000903 ET50
+
+
+$ curl -X POST http://localhost:8081/api/v1/bookings -d '{"sessionId":165,"candidateNumber":"NW00000903"}'
+{
+  "bookingId" : 3598,
+  "status" : "BOOKED"
+}
+HTTP 201
+BookingId Status AccommodationCode Channel
+--------- ------ ----------------- -------
+3598 BOOKED NULL PARTNER
+
