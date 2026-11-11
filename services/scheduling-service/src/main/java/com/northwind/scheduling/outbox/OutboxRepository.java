@@ -16,6 +16,7 @@ import org.springframework.stereotype.Repository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.northwind.scheduling.notification.CandidateCapacityImpactNotified;
 
 /**
  * Transactional outbox (MBA-3823, V2__outbox.sql). {@link #append} runs inside the caller's transaction on the
@@ -49,6 +50,26 @@ public class OutboxRepository {
         Long seq = jdbc.queryForObject("SET NOCOUNT ON; INSERT INTO outbox_event (event_type, aggregate_type, aggregate_id, "
                 + "payload, actor) VALUES (?, ?, ?, ?, ?); SELECT CAST(SCOPE_IDENTITY() AS BIGINT);", Long.class,
                 type.name(), type.aggregateType(), aggregateId, body, actor);
+        return seq == null ? -1 : seq;
+    }
+
+    /**
+     * MBA-3831: one CandidateCapacityImpactNotified event; the outbox event_id is the notification's eventId, so the
+     * NotificationPort can deduplicate relay retries on it.
+     */
+    public long appendNotification(CandidateCapacityImpactNotified n, String actor) {
+        OutboxEventType type = OutboxEventType.CandidateCapacityImpactNotified;
+        OutboxPayload payload = new OutboxPayload(type.name(), n.impact() + " " + n.previousStatus() + "->" + n.newStatus(),
+                List.of(), List.of(), n);
+        String body;
+        try {
+            body = json.writeValueAsString(payload);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("outbox payload for " + type, e);
+        }
+        Long seq = jdbc.queryForObject("SET NOCOUNT ON; INSERT INTO outbox_event (event_id, event_type, aggregate_type, "
+                + "aggregate_id, payload, actor) VALUES (?, ?, ?, ?, ?, ?); SELECT CAST(SCOPE_IDENTITY() AS BIGINT);",
+                Long.class, n.eventId().toString(), type.name(), type.aggregateType(), n.bookingId(), body, actor);
         return seq == null ? -1 : seq;
     }
 

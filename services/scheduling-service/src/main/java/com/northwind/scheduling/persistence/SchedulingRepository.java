@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import com.northwind.scheduling.domain.BookingStatus;
 import com.northwind.scheduling.domain.CapacityChange;
+import com.northwind.scheduling.domain.CapacityImpact;
 import com.northwind.scheduling.domain.ExamAttempt;
 import com.northwind.scheduling.domain.SessionStatus;
 
@@ -212,6 +213,16 @@ public class SchedulingRepository {
         return db.sql("SELECT booking_id, booked_at FROM booking WHERE session_id = ? AND status = 'BOOKED'")
                 .param(sessionId)
                 .query((rs, i) -> new CapacityChange.BookedSeat(rs.getInt(1), rs.getTimestamp(2).toLocalDateTime()))
+                .list();
+    }
+
+    /** MBA-3831: every booking of the session with its candidate and status (CapacityImpact before/after). */
+    public List<CapacityImpact.BookingState> bookingStates(int sessionId) {
+        return db.sql("SELECT b.booking_id, c.candidate_number, b.status FROM booking b "
+                        + "JOIN candidate_snapshot c ON c.candidate_id = b.candidate_id WHERE b.session_id = ?")
+                .param(sessionId)
+                .query((rs, i) -> new CapacityImpact.BookingState(rs.getInt(1), rs.getString(2),
+                        BookingStatus.valueOf(rs.getString(3))))
                 .list();
     }
 

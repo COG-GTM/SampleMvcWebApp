@@ -145,6 +145,16 @@ event id in `dbo.RelayCheckpoint` ([ADR 0003](../adr/0003-single-writer-outbox-r
 - While lag is high, legacy readers (portal pages, booking-api `GET`, results) show stale availability. Writes are not
   affected (scheduling-service is the only writer).
 
+### Candidate notifications (MBA-3831)
+
+Capacity changes emit one `CandidateCapacityImpactNotified` outbox event per affected candidate
+(`services/scheduling-service/docs/events.md`). The relay delivers them to the notification stub instead of legacy, in
+the same `event_seq` order, so they count towards outbox pending/lag like any other event and never touch
+`AssessmentDelivery` or reconciliation. Check what a candidate was told:
+`curl -s 'localhost:8090/internal/notifications?candidateNumber=NW00000909'` (direct to :8090; the gateway returns 404),
+or search the logs for `"event":"CandidateCapacityImpactNotified"`. The stub keeps them in memory only (lost on restart);
+there is no email/SMS yet.
+
 ### Waitlist offers stuck or not made (MBA-3829)
 
 A seat freed in an `OPEN` session is offered to the next eligible waitlist entry and held while the offer is

@@ -70,9 +70,12 @@ class SchedulingApiIT extends SqlServerTestBase {
     }
 
     @Test
-    void flywayCreatesSchedulingDbAndImporterLoadsSnapshots() {
+    void flywayCreatesSchedulingDbAndImporterLoadsSnapshots() throws java.io.IOException {
         assertThat(jdbc.queryForObject("SELECT DB_NAME()", String.class)).isEqualTo("Scheduling");
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1", Integer.class)).isEqualTo(3);
+        try (var migrations = java.nio.file.Files.list(java.nio.file.Path.of("src/main/resources/db/migration"))) {
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1", Integer.class))
+                    .isEqualTo((int) migrations.filter(f -> f.getFileName().toString().matches("V\\d+__.*\\.sql")).count());
+        }
         List<Map<String, Object>> centers = http.exchange("/api/v2/centers", HttpMethod.GET, null, LIST).getBody();
         assertThat(centers).extracting(c -> c.get("centerCode")).containsExactly("AMS01", "SFO01");
         List<Map<String, Object>> sessions = http.exchange("/api/v2/centers/SFO01/sessions?examCode=MHL-RN1&from=2026-11-12&to=2026-11-20",

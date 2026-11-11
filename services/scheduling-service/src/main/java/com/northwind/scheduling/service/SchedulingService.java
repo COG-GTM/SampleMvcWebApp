@@ -9,6 +9,9 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,12 +22,14 @@ import com.northwind.scheduling.domain.AccommodationFloorPolicy;
 import com.northwind.scheduling.domain.BookingRules;
 import com.northwind.scheduling.domain.BookingStatus;
 import com.northwind.scheduling.domain.CapacityChange;
+import com.northwind.scheduling.domain.CapacityImpact;
 import com.northwind.scheduling.domain.EligibilityDecision;
 import com.northwind.scheduling.domain.ErrorCode;
 import com.northwind.scheduling.domain.OfferStatus;
 import com.northwind.scheduling.domain.ReschedulePolicy;
 import com.northwind.scheduling.domain.RetakeEligibilityPolicy;
 import com.northwind.scheduling.domain.SchedulingException;
+import com.northwind.scheduling.notification.CandidateCapacityImpactNotified;
 import com.northwind.scheduling.persistence.Rows;
 import com.northwind.scheduling.persistence.SchedulingRepository;
 
@@ -39,7 +44,9 @@ public class SchedulingService {
     public record BookingOutcome(int bookingId, BookingStatus status, Integer waitlistPosition, int sessionId) {
     }
 
-    public record CapacityOutcome(CapacityChange.Plan plan, Rows.Session session) {
+    /** notified = CandidateCapacityImpactNotified events written for this change (MBA-3831) */
+    public record CapacityOutcome(CapacityChange.Plan plan, Rows.Session session,
+                                  List<CapacityImpact.Affected> notified) {
     }
 
     private final SchedulingRepository repo;
@@ -88,6 +95,10 @@ public class SchedulingService {
 
     public List<Rows.Session> sessions(String centerCode, String examCode, LocalDate from, LocalDate to) {
         return repo.sessions(centerCode, examCode, from, to);
+    }
+
+    private Set<Integer> pendingOfferBookings(int sessionId) {
+        return repo.pendingOffers(sessionId).stream().map(Rows.Offer::bookingId).collect(Collectors.toUnmodifiableSet());
     }
 
     public Rows.Session session(int sessionId) {
@@ -356,6 +367,8 @@ public class SchedulingService {
             throw new SchedulingException(ErrorCode.SESSION_NOT_FOUND, "Session " + sessionId + " not found");
         }
         Rows.Session s = session(sessionId);
+        List<CapacityImpact.BookingState> before = repo.bookingStates(sessionId);
+        Set<Integer> offeredBefore = pendingOfferBookings(sessionId);
         CapacityChange.Plan plan = CapacityChange.plan(sessionId, newCapacity, s.seats(), repo.bookedSeats(sessionId),
                 repo.maxWaitlistPosition(sessionId), floorPolicy);
         LocalDateTime now = now();
@@ -371,6 +384,13 @@ public class SchedulingService {
                         + (reason == null ? "" : " reason=" + reason));
         offers.withdrawExcess(sessionId, "capacity reduced to " + plan.newCapacity());
         offers.offerFreedSeats(sessionId, "capacity=" + plan.newCapacity());
-        return new CapacityOutcome(plan, session(sessionId));
+        List<CapacityImpact.Affected> affected = CapacityImpact.affected(plan.oldCapacity(), plan.newCapacity(), before,
+                repo.bookingStates(sessionId), offeredBefore, pendingOfferBookings(sessionId));
+        for (CapacityImpact.Affected a : affected) {
+            outbox.appendNotification(new CandidateCapacityImpactNotified(UUID.randomUUID(), sessionId, s.centerCode(),
+                    s.examCode(), s.startsAt(), plan.oldCapacity(), plan.newCapacity(), a.candidateNumber(),
+                    a.bookingId(), a.previousStatus().name(), a.newStatus().name(), a.kind()), actor);
+        }
+        return new CapacityOutcome(plan, session(sessionId), affected);
     }
 }
