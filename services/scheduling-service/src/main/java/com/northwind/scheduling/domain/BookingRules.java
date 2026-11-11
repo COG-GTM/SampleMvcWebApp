@@ -24,7 +24,7 @@ public final class BookingRules {
             throw new SchedulingException(ErrorCode.DUPLICATE_BOOKING,
                     "Candidate " + candidateNumber + " already has an active booking on session " + sessionId);
         }
-        if (AccommodationCodes.isExtraTime(accommodationCode) && seats.accommodationExhausted()) {
+        if (!seats.hasSeatFor(accommodationCode)) {
             throw new SchedulingException(ErrorCode.NO_ACCOMMODATION_SEAT,
                     "No accommodation seat available on session " + sessionId);
         }
