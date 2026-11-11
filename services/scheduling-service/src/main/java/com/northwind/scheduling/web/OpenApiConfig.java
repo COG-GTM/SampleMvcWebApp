@@ -245,7 +245,8 @@ public class OpenApiConfig {
                 .pattern(LOCAL_DATE_TIME_PATTERN)
                 .description(SESSION_TIMES.contains(p)
                         ? "Session start in the test centre's wall-clock time (see the centre's timeZone), ISO-8601 without offset"
-                        : "Recorded with the scheduling-service host clock (not centre-local; docs/as-is/smoke-test.md, MR-06), "
+                        : "Server-local clock of the system that recorded it: the scheduling service for new writes, the legacy "
+                                + "estate for imported rows (not centre-local; docs/as-is/smoke-test.md, HB-25, MR-06), "
                                 + "ISO-8601 without offset") : ps);
         if (name.endsWith("Dto")) {
             // Jackson default-property-inclusion: always -> every response property is always present
