@@ -1,0 +1,111 @@
+{
+  "channel": "PARTNER",
+  "description": "Same duplicate through booking-api -> DUPLICATE_BOOKING.",
+  "expected": {
+    "business_fields": {
+      "error": "DUPLICATE_BOOKING",
+      "legacyCode": 50002,
+      "outcome": "ERROR",
+      "seatsAvailable": 15,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "status": 409
+  },
+  "format": 1,
+  "group": "duplicate_closed",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "book_duplicate_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "error": "DUPLICATE_BOOKING",
+          "legacyCode": 50002,
+          "outcome": "ERROR",
+          "seatsAvailable": 15,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "error": "DUPLICATE_BOOKING",
+            "message": "Candidate NW00000900 already has an active booking on session 462"
+          },
+          "status": 409
+        },
+        "status": 409
+      },
+      "op": "book",
+      "request": {
+        "json": {
+          "accommodationCode": null,
+          "candidateNumber": "NW00000900",
+          "externalRef": "NAN-REF-0003",
+          "sessionId": 462
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings"
+      },
+      "source": {
+        "candidate": "NW00000900",
+        "externalRef": "NAN-REF-0003",
+        "op": "book",
+        "session": 462
+      }
+    }
+  ],
+  "tags": []
+}

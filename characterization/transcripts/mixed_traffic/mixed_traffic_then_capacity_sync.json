@@ -1,0 +1,3064 @@
+{
+  "channel": "SYSTEM",
+  "description": "scripts/mixed-traffic on a fresh seed (20 portal, 20 partner, 3 cancels, 4 sessions), then seat-drift.sql, POST /sync/run, seat-drift.sql.",
+  "expected": {
+    "business_fields": {
+      "driftSessions": 112,
+      "totalDrift": 177
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=152 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#1"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0001",
+          "entity": "Booking",
+          "entityId": "new#2"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=155 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#3"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=157 status=BOOKED channel=PARTNER ref=MT-0002",
+          "entity": "Booking",
+          "entityId": "new#4"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=152 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#5"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0003",
+          "entity": "Booking",
+          "entityId": "new#6"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=155 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#7"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=157 status=BOOKED channel=PARTNER ref=MT-0004",
+          "entity": "Booking",
+          "entityId": "new#8"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=152 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#9"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0005",
+          "entity": "Booking",
+          "entityId": "new#10"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=155 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#11"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=157 status=BOOKED channel=PARTNER ref=MT-0006",
+          "entity": "Booking",
+          "entityId": "new#12"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=152 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#13"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0007",
+          "entity": "Booking",
+          "entityId": "new#14"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=155 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#15"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0008",
+          "entity": "Booking",
+          "entityId": "new#16"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=152 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#17"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0009",
+          "entity": "Booking",
+          "entityId": "new#18"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=155 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#19"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0010",
+          "entity": "Booking",
+          "entityId": "new#20"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=152 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#21"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0011",
+          "entity": "Booking",
+          "entityId": "new#22"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=155 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#23"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0012",
+          "entity": "Booking",
+          "entityId": "new#24"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=152 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#25"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=154 status=WAITLISTED channel=PARTNER ref=MT-0013",
+          "entity": "Booking",
+          "entityId": "new#26"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=155 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#27"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0014",
+          "entity": "Booking",
+          "entityId": "new#28"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=152 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#29"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=154 status=WAITLISTED channel=PARTNER ref=MT-0015",
+          "entity": "Booking",
+          "entityId": "new#30"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=155 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#31"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0016",
+          "entity": "Booking",
+          "entityId": "new#32"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=152 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#33"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=154 status=WAITLISTED channel=PARTNER ref=MT-0017",
+          "entity": "Booking",
+          "entityId": "new#34"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=155 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#35"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0018",
+          "entity": "Booking",
+          "entityId": "new#36"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=152 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#37"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=154 status=WAITLISTED channel=PARTNER ref=MT-0019",
+          "entity": "Booking",
+          "entityId": "new#38"
+        },
+        {
+          "action": "BOOK",
+          "actor": "ad_app",
+          "detail": "session=155 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#39"
+        },
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0020",
+          "entity": "Booking",
+          "entityId": "new#40"
+        },
+        {
+          "action": "CANCEL",
+          "actor": "portal",
+          "detail": "mixed-traffic",
+          "entity": "Booking",
+          "entityId": "new#1"
+        },
+        {
+          "action": "CANCEL",
+          "actor": "portal",
+          "detail": "mixed-traffic",
+          "entity": "Booking",
+          "entityId": "new#3"
+        },
+        {
+          "action": "CANCEL",
+          "actor": "portal",
+          "detail": "mixed-traffic",
+          "entity": "Booking",
+          "entityId": "new#5"
+        },
+        {
+          "action": "CANCEL",
+          "actor": "booking-api",
+          "detail": "mixed-traffic",
+          "entity": "Booking",
+          "entityId": "new#2"
+        },
+        {
+          "action": "CANCEL",
+          "actor": "booking-api",
+          "detail": "mixed-traffic",
+          "entity": "Booking",
+          "entityId": "new#4"
+        },
+        {
+          "action": "CANCEL",
+          "actor": "booking-api",
+          "detail": "mixed-traffic",
+          "entity": "Booking",
+          "entityId": "new#6"
+        },
+        {
+          "action": "CAPACITY_SYNC",
+          "actor": "capacity-sync",
+          "detail": "trigger=MANUAL status=COMPLETED checked=285 updated=113",
+          "entity": "ExamSession",
+          "entityId": 0
+        }
+      ],
+      "bookings.152": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-05T01:30:00",
+          "bookingId": 1568,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000056",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-152-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-05T11:01:00",
+          "bookingId": 1569,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000465",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-05T18:52:00",
+          "bookingId": 1570,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000874",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015203",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T09:23:00",
+          "bookingId": 1571,
+          "cancelReason": "Candidate request",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000402",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015204",
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T18:54:00",
+          "bookingId": 1572,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000811",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T04:25:00",
+          "bookingId": 1573,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000339",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-152-6",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T12:16:00",
+          "bookingId": 1574,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000748",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T21:47:00",
+          "bookingId": 1575,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000276",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T07:18:00",
+          "bookingId": 1576,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000685",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T20:09:00",
+          "bookingId": 1577,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000213",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T05:40:00",
+          "bookingId": 1578,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000622",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015211",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T15:11:00",
+          "bookingId": 1579,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000150",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015212",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T00:42:00",
+          "bookingId": 1580,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000559",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#1",
+          "cancelReason": "mixed-traffic",
+          "cancelledAt": "<now>",
+          "candidate": "NW00000901",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#5",
+          "cancelReason": "mixed-traffic",
+          "cancelledAt": "<now>",
+          "candidate": "NW00000906",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#9",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000910",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#13",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000914",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#17",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000918",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#21",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000922",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#25",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000926",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#29",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000930",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#33",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000934",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#37",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000938",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.154": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T09:42:00",
+          "bookingId": 1606,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000118",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015401",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T22:33:00",
+          "bookingId": 1607,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000527",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-154-2",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T08:04:00",
+          "bookingId": 1608,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000055",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-154-3",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T17:35:00",
+          "bookingId": 1609,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000464",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T03:06:00",
+          "bookingId": 1610,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000873",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015405",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T15:57:00",
+          "bookingId": 1611,
+          "cancelReason": "Candidate request",
+          "cancelledAt": "2026-11-10T15:57:00",
+          "candidate": "NW00000401",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T01:28:00",
+          "bookingId": 1612,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000810",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-154-7",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T10:59:00",
+          "bookingId": 1613,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000338",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015408",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T20:30:00",
+          "bookingId": 1614,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000747",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T04:21:00",
+          "bookingId": 1615,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000275",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#2",
+          "cancelReason": "mixed-traffic",
+          "cancelledAt": "<now>",
+          "candidate": "NW00000902",
+          "channel": "PARTNER",
+          "externalRef": "MT-0001",
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#6",
+          "cancelReason": "mixed-traffic",
+          "cancelledAt": "<now>",
+          "candidate": "NW00000907",
+          "channel": "PARTNER",
+          "externalRef": "MT-0003",
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#10",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000911",
+          "channel": "PARTNER",
+          "externalRef": "MT-0005",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#14",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000915",
+          "channel": "PARTNER",
+          "externalRef": "MT-0007",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#18",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000919",
+          "channel": "PARTNER",
+          "externalRef": "MT-0009",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#22",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000923",
+          "channel": "PARTNER",
+          "externalRef": "MT-0011",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#26",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000927",
+          "channel": "PARTNER",
+          "externalRef": "MT-0013",
+          "status": "WAITLISTED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#30",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000931",
+          "channel": "PARTNER",
+          "externalRef": "MT-0015",
+          "status": "WAITLISTED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#34",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000935",
+          "channel": "PARTNER",
+          "externalRef": "MT-0017",
+          "status": "WAITLISTED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#38",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000939",
+          "channel": "PARTNER",
+          "externalRef": "MT-0019",
+          "status": "WAITLISTED"
+        }
+      ],
+      "bookings.155": [
+        {
+          "accommodation": "SR",
+          "bookedAt": "2026-11-09T09:03:00",
+          "bookingId": 1616,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000763",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-155-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T21:54:00",
+          "bookingId": 1617,
+          "cancelReason": "Partner cancellation",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000291",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015502",
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T07:25:00",
+          "bookingId": 1618,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000700",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-09-26T15:40:00",
+          "bookingId": 3334,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000610",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#3",
+          "cancelReason": "mixed-traffic",
+          "cancelledAt": "<now>",
+          "candidate": "NW00000904",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#7",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000908",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#11",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000912",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#15",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000916",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#19",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000920",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#23",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000924",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#27",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000928",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#31",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000932",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#35",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000936",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#39",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000940",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.157": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T05:45:00",
+          "bookingId": 1636,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000824",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015701",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T13:36:00",
+          "bookingId": 1637,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000352",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015702",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T23:07:00",
+          "bookingId": 1638,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000761",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T08:38:00",
+          "bookingId": 1639,
+          "cancelReason": "Candidate request",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000289",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-157-4",
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T21:29:00",
+          "bookingId": 1640,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000698",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T07:00:00",
+          "bookingId": 1641,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000226",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-09-30T10:14:00",
+          "bookingId": 3335,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000074",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-01T15:07:00",
+          "bookingId": 3336,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000577",
+          "channel": "PARTNER",
+          "externalRef": "PTR-R157577",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-09T14:35:00",
+          "bookingId": 3337,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000545",
+          "channel": "PARTNER",
+          "externalRef": "PTR-R157545",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-09T13:45:00",
+          "bookingId": 3338,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000765",
+          "channel": "PARTNER",
+          "externalRef": "PTR-R157765",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-12T16:48:00",
+          "bookingId": 3339,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000198",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-13T13:31:00",
+          "bookingId": 3340,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000481",
+          "channel": "PARTNER",
+          "externalRef": "PTR-R157481",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#4",
+          "cancelReason": "mixed-traffic",
+          "cancelledAt": "<now>",
+          "candidate": "NW00000905",
+          "channel": "PARTNER",
+          "externalRef": "MT-0002",
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#8",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000909",
+          "channel": "PARTNER",
+          "externalRef": "MT-0004",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#12",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000913",
+          "channel": "PARTNER",
+          "externalRef": "MT-0006",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#16",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000917",
+          "channel": "PARTNER",
+          "externalRef": "MT-0008",
+          "status": "WAITLISTED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#20",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000921",
+          "channel": "PARTNER",
+          "externalRef": "MT-0010",
+          "status": "WAITLISTED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#24",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000925",
+          "channel": "PARTNER",
+          "externalRef": "MT-0012",
+          "status": "WAITLISTED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#28",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000929",
+          "channel": "PARTNER",
+          "externalRef": "MT-0014",
+          "status": "WAITLISTED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#32",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000933",
+          "channel": "PARTNER",
+          "externalRef": "MT-0016",
+          "status": "WAITLISTED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#36",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000937",
+          "channel": "PARTNER",
+          "externalRef": "MT-0018",
+          "status": "WAITLISTED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#40",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000941",
+          "channel": "PARTNER",
+          "externalRef": "MT-0020",
+          "status": "WAITLISTED"
+        }
+      ],
+      "examSession.152": {
+        "AccommodationCapacity": 2,
+        "Capacity": 28,
+        "SeatsAvailable": 6,
+        "Status": "OPEN"
+      },
+      "examSession.154": {
+        "AccommodationCapacity": 2,
+        "Capacity": 20,
+        "SeatsAvailable": 5,
+        "Status": "OPEN"
+      },
+      "examSession.155": {
+        "AccommodationCapacity": 0,
+        "Capacity": 16,
+        "SeatsAvailable": 4,
+        "Status": "OPEN"
+      },
+      "examSession.157": {
+        "AccommodationCapacity": 0,
+        "Capacity": 16,
+        "SeatsAvailable": 3,
+        "Status": "OPEN"
+      },
+      "waitlist.152": [],
+      "waitlist.154": [
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#26",
+          "candidate": "NW00000927",
+          "position": 1
+        },
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#30",
+          "candidate": "NW00000931",
+          "position": 2
+        },
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#34",
+          "candidate": "NW00000935",
+          "position": 3
+        },
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#38",
+          "candidate": "NW00000939",
+          "position": 4
+        }
+      ],
+      "waitlist.155": [],
+      "waitlist.157": [
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#16",
+          "candidate": "NW00000917",
+          "position": 1
+        },
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#20",
+          "candidate": "NW00000921",
+          "position": 2
+        },
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#24",
+          "candidate": "NW00000925",
+          "position": 3
+        },
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#28",
+          "candidate": "NW00000929",
+          "position": 4
+        },
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#32",
+          "candidate": "NW00000933",
+          "position": 5
+        },
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#36",
+          "candidate": "NW00000937",
+          "position": 6
+        },
+        {
+          "addedAt": "<now>",
+          "bookingId": "new#40",
+          "candidate": "NW00000941",
+          "position": 7
+        }
+      ]
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.152": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-05T01:30:00",
+          "bookingId": 1568,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000056",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-152-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-05T11:01:00",
+          "bookingId": 1569,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000465",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-05T18:52:00",
+          "bookingId": 1570,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000874",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015203",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T09:23:00",
+          "bookingId": 1571,
+          "cancelReason": "Candidate request",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000402",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015204",
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T18:54:00",
+          "bookingId": 1572,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000811",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T04:25:00",
+          "bookingId": 1573,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000339",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-152-6",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T12:16:00",
+          "bookingId": 1574,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000748",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T21:47:00",
+          "bookingId": 1575,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000276",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T07:18:00",
+          "bookingId": 1576,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000685",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T20:09:00",
+          "bookingId": 1577,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000213",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T05:40:00",
+          "bookingId": 1578,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000622",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015211",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T15:11:00",
+          "bookingId": 1579,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000150",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015212",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T00:42:00",
+          "bookingId": 1580,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000559",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.154": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T09:42:00",
+          "bookingId": 1606,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000118",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015401",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-06T22:33:00",
+          "bookingId": 1607,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000527",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-154-2",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T08:04:00",
+          "bookingId": 1608,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000055",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-154-3",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T17:35:00",
+          "bookingId": 1609,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000464",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T03:06:00",
+          "bookingId": 1610,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000873",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015405",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T15:57:00",
+          "bookingId": 1611,
+          "cancelReason": "Candidate request",
+          "cancelledAt": "2026-11-10T15:57:00",
+          "candidate": "NW00000401",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T01:28:00",
+          "bookingId": 1612,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000810",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-154-7",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T10:59:00",
+          "bookingId": 1613,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000338",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015408",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T20:30:00",
+          "bookingId": 1614,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000747",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T04:21:00",
+          "bookingId": 1615,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000275",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.155": [
+        {
+          "accommodation": "SR",
+          "bookedAt": "2026-11-09T09:03:00",
+          "bookingId": 1616,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000763",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-155-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T21:54:00",
+          "bookingId": 1617,
+          "cancelReason": "Partner cancellation",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000291",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015502",
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T07:25:00",
+          "bookingId": 1618,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000700",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-09-26T15:40:00",
+          "bookingId": 3334,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000610",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.157": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T05:45:00",
+          "bookingId": 1636,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000824",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015701",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T13:36:00",
+          "bookingId": 1637,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000352",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0015702",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T23:07:00",
+          "bookingId": 1638,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000761",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T08:38:00",
+          "bookingId": 1639,
+          "cancelReason": "Candidate request",
+          "cancelledAt": "2026-11-10T18:00:00",
+          "candidate": "NW00000289",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-157-4",
+          "status": "CANCELLED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T21:29:00",
+          "bookingId": 1640,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000698",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T07:00:00",
+          "bookingId": 1641,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000226",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-09-30T10:14:00",
+          "bookingId": 3335,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000074",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-01T15:07:00",
+          "bookingId": 3336,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000577",
+          "channel": "PARTNER",
+          "externalRef": "PTR-R157577",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-09T14:35:00",
+          "bookingId": 3337,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000545",
+          "channel": "PARTNER",
+          "externalRef": "PTR-R157545",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-09T13:45:00",
+          "bookingId": 3338,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000765",
+          "channel": "PARTNER",
+          "externalRef": "PTR-R157765",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-12T16:48:00",
+          "bookingId": 3339,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000198",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-13T13:31:00",
+          "bookingId": 3340,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000481",
+          "channel": "PARTNER",
+          "externalRef": "PTR-R157481",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.152": {
+        "AccommodationCapacity": 2,
+        "Capacity": 28,
+        "SeatsAvailable": 16,
+        "Status": "OPEN"
+      },
+      "examSession.154": {
+        "AccommodationCapacity": 2,
+        "Capacity": 20,
+        "SeatsAvailable": 11,
+        "Status": "OPEN"
+      },
+      "examSession.155": {
+        "AccommodationCapacity": 0,
+        "Capacity": 16,
+        "SeatsAvailable": 13,
+        "Status": "OPEN"
+      },
+      "examSession.157": {
+        "AccommodationCapacity": 0,
+        "Capacity": 16,
+        "SeatsAvailable": 5,
+        "Status": "OPEN"
+      },
+      "waitlist.152": [],
+      "waitlist.154": [],
+      "waitlist.155": [],
+      "waitlist.157": []
+    },
+    "status": null
+  },
+  "format": 1,
+  "group": "mixed_traffic",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": "Not replayable against scheduling-service directly (no capacity-sync); needs the gateway for v1 + portal.",
+  "oddity": true,
+  "oddity_note": "Mixed portal/partner traffic leaves seat drift (partner double decrement); capacity-sync rewrites SeatsAvailable with a formula the drift check disagrees with.",
+  "scenario": "mixed_traffic_then_capacity_sync",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "SYSTEM",
+      "expected": {
+        "business_fields": {
+          "driftSessions": 0,
+          "totalDrift": 0
+        },
+        "response": {
+          "rows": []
+        },
+        "status": null
+      },
+      "op": "drift",
+      "request": {
+        "sql": "db/checks/seat-drift.sql"
+      },
+      "source": {
+        "op": "drift"
+      }
+    },
+    {
+      "channel": "SYSTEM",
+      "expected": {
+        "business_fields": {
+          "outcome": "OK"
+        },
+        "response": {
+          "exitCode": 0,
+          "summary": [
+            "[mixed-traffic] portal : 20 ok, 0 failed",
+            "[mixed-traffic] partner: 20 ok, 0 failed",
+            "[mixed-traffic] cancelled: 3 portal, 3 partner"
+          ]
+        },
+        "status": 0
+      },
+      "op": "mixed_traffic",
+      "request": {
+        "command": "scripts/mixed-traffic",
+        "env": {
+          "CANCELS": "3",
+          "PARTNER_BOOKINGS": "20",
+          "PORTAL_BOOKINGS": "20",
+          "SESSIONS": "4"
+        }
+      },
+      "source": {
+        "env": {
+          "CANCELS": 3,
+          "PARTNER_BOOKINGS": 20,
+          "PORTAL_BOOKINGS": 20,
+          "SESSIONS": 4
+        },
+        "op": "mixed_traffic"
+      }
+    },
+    {
+      "channel": "SYSTEM",
+      "expected": {
+        "business_fields": {
+          "driftSessions": 2,
+          "totalDrift": 9
+        },
+        "response": {
+          "rows": [
+            {
+              "ActiveBookings": 13,
+              "Capacity": 20,
+              "CenterCode": "SFO01",
+              "Drift": 6,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 1,
+              "SessionId": 154,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 13,
+              "Capacity": 16,
+              "CenterCode": "AMS01",
+              "Drift": 3,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 0,
+              "SessionId": 157,
+              "StartsAt": "<now>"
+            }
+          ]
+        },
+        "status": null
+      },
+      "op": "drift",
+      "request": {
+        "sql": "db/checks/seat-drift.sql"
+      },
+      "source": {
+        "op": "drift"
+      }
+    },
+    {
+      "channel": "SYSTEM",
+      "expected": {
+        "business_fields": {
+          "outcome": "OK"
+        },
+        "response": {
+          "body": {
+            "status": "COMPLETED"
+          },
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "sync",
+      "request": {
+        "method": "POST",
+        "path": "/sync/run"
+      },
+      "source": {
+        "op": "sync"
+      }
+    },
+    {
+      "channel": "SYSTEM",
+      "expected": {
+        "business_fields": {
+          "driftSessions": 112,
+          "totalDrift": 177
+        },
+        "response": {
+          "rows": [
+            {
+              "ActiveBookings": 20,
+              "Capacity": 28,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 6,
+              "SessionId": 152,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 13,
+              "Capacity": 20,
+              "CenterCode": "SFO01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 5,
+              "SessionId": 154,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 11,
+              "Capacity": 14,
+              "CenterCode": "LDS01",
+              "Drift": 2,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 1,
+              "SessionId": 160,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 8,
+              "CenterCode": "LDN01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 4,
+              "SessionId": 163,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 27,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 16,
+              "SessionId": 165,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 16,
+              "CenterCode": "LDN01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 14,
+              "SessionId": 460,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 18,
+              "CenterCode": "MAN01",
+              "Drift": 1,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 9,
+              "SessionId": 172,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 24,
+              "CenterCode": "LDN01",
+              "Drift": 3,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 19,
+              "SessionId": 176,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 18,
+              "CenterCode": "SYD01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 16,
+              "SessionId": 461,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 8,
+              "CenterCode": "LDN01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 6,
+              "SessionId": 179,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 16,
+              "CenterCode": "BOS01",
+              "Drift": 1,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 14,
+              "SessionId": 462,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 11,
+              "Capacity": 21,
+              "CenterCode": "SYD01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 8,
+              "SessionId": 182,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 17,
+              "CenterCode": "MEL01",
+              "Drift": 1,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 9,
+              "SessionId": 185,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 4,
+              "SessionId": 187,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 22,
+              "CenterCode": "SIN01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 13,
+              "SessionId": 189,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 10,
+              "CenterCode": "DUB01",
+              "Drift": 2,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 5,
+              "SessionId": 190,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 18,
+              "CenterCode": "FRA01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 13,
+              "SessionId": 194,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 22,
+              "Capacity": 24,
+              "CenterCode": "SYD01",
+              "Drift": 2,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 0,
+              "SessionId": 197,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 23,
+              "CenterCode": "BOS01",
+              "Drift": 2,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 13,
+              "SessionId": 198,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 16,
+              "Capacity": 29,
+              "CenterCode": "NYC02",
+              "Drift": 3,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 10,
+              "SessionId": 200,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 16,
+              "CenterCode": "NYC02",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 13,
+              "SessionId": 204,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 11,
+              "Capacity": 13,
+              "CenterCode": "SEA01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 1,
+              "SessionId": 205,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 9,
+              "CenterCode": "SIN01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 8,
+              "SessionId": 209,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 12,
+              "Capacity": 28,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 14,
+              "SessionId": 210,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 12,
+              "Capacity": 22,
+              "CenterCode": "BOS01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 8,
+              "SessionId": 213,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 20,
+              "CenterCode": "SFO01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 13,
+              "SessionId": 214,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 11,
+              "Capacity": 15,
+              "CenterCode": "DEN01",
+              "Drift": 1,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 3,
+              "SessionId": 215,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 13,
+              "Capacity": 17,
+              "CenterCode": "PHL01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 3,
+              "SessionId": 220,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 11,
+              "CenterCode": "ATL01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 1,
+              "SessionId": 223,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 27,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 16,
+              "SessionId": 227,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 10,
+              "Capacity": 18,
+              "CenterCode": "MAN01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 7,
+              "SessionId": 233,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 14,
+              "CenterCode": "LDS01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 4,
+              "SessionId": 234,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 24,
+              "CenterCode": "LDN01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 17,
+              "SessionId": 237,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 15,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 6,
+              "SessionId": 244,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 6,
+              "SessionId": 249,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 21,
+              "CenterCode": "SYD01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 12,
+              "SessionId": 251,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 10,
+              "CenterCode": "DUB01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 5,
+              "SessionId": 254,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 8,
+              "CenterCode": "NYC02",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 5,
+              "SessionId": 255,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 18,
+              "CenterCode": "FRA01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 12,
+              "SessionId": 257,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 12,
+              "Capacity": 23,
+              "CenterCode": "BOS01",
+              "Drift": 2,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 9,
+              "SessionId": 258,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 13,
+              "CenterCode": "AMS01",
+              "Drift": 1,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 10,
+              "SessionId": 262,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 12,
+              "CenterCode": "ATL01",
+              "Drift": 2,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 3,
+              "SessionId": 268,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 28,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 17,
+              "SessionId": 269,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 22,
+              "CenterCode": "BOS01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 15,
+              "SessionId": 272,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 10,
+              "Capacity": 20,
+              "CenterCode": "SFO01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 8,
+              "SessionId": 273,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 13,
+              "CenterCode": "SEA01",
+              "Drift": 1,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 11,
+              "SessionId": 278,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 11,
+              "CenterCode": "AKL01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 9,
+              "SessionId": 280,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 11,
+              "CenterCode": "ATL01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 5,
+              "SessionId": 282,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 8,
+              "CenterCode": "LDN01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 7,
+              "SessionId": 283,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 16,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 10,
+              "SessionId": 287,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 18,
+              "CenterCode": "MAN01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 9,
+              "SessionId": 292,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 10,
+              "Capacity": 25,
+              "CenterCode": "LDN01",
+              "Drift": 2,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 13,
+              "SessionId": 294,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 15,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 12,
+              "SessionId": 301,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 21,
+              "CenterCode": "SYD01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 12,
+              "SessionId": 302,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 6,
+              "Capacity": 13,
+              "CenterCode": "DEN01",
+              "Drift": 1,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 6,
+              "SessionId": 304,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 4,
+              "SessionId": 307,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 24,
+              "CenterCode": "LDN01",
+              "Drift": 3,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 17,
+              "SessionId": 308,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 14,
+              "CenterCode": "AMS01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 11,
+              "SessionId": 311,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 10,
+              "CenterCode": "DUB01",
+              "Drift": 2,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 7,
+              "SessionId": 314,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 6,
+              "Capacity": 18,
+              "CenterCode": "FRA01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 10,
+              "SessionId": 315,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 8,
+              "CenterCode": "NYC02",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 6,
+              "SessionId": 316,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 6,
+              "Capacity": 23,
+              "CenterCode": "BOS01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 15,
+              "SessionId": 318,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 13,
+              "CenterCode": "AMS01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 12,
+              "SessionId": 321,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 6,
+              "Capacity": 12,
+              "CenterCode": "LDS01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 4,
+              "SessionId": 324,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 12,
+              "CenterCode": "ATL01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 8,
+              "SessionId": 326,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 28,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 22,
+              "SessionId": 329,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 6,
+              "Capacity": 20,
+              "CenterCode": "SFO01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 13,
+              "SessionId": 333,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 13,
+              "CenterCode": "SEA01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 8,
+              "SessionId": 338,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 8,
+              "CenterCode": "LDN01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 5,
+              "SessionId": 341,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 14,
+              "CenterCode": "NYC02",
+              "Drift": 1,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 10,
+              "SessionId": 343,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 16,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 11,
+              "SessionId": 344,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 27,
+              "CenterCode": "NYC02",
+              "Drift": 3,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 15,
+              "SessionId": 348,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 18,
+              "CenterCode": "MAN01",
+              "Drift": 1,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 9,
+              "SessionId": 350,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 17,
+              "CenterCode": "PHL01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 15,
+              "SessionId": 352,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 25,
+              "CenterCode": "LDN01",
+              "Drift": 3,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 13,
+              "SessionId": 353,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 11,
+              "CenterCode": "ATL01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 4,
+              "SessionId": 355,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 19,
+              "CenterCode": "FRA01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 9,
+              "SessionId": 360,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 15,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 11,
+              "SessionId": 362,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 21,
+              "CenterCode": "SYD01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 10,
+              "SessionId": 363,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 13,
+              "CenterCode": "DEN01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 10,
+              "SessionId": 364,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 14,
+              "CenterCode": "AMS01",
+              "Drift": 1,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 6,
+              "SessionId": 365,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 9,
+              "SessionId": 367,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 10,
+              "Capacity": 23,
+              "CenterCode": "BOS01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 12,
+              "SessionId": 378,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 13,
+              "CenterCode": "AMS01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 5,
+              "SessionId": 380,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 12,
+              "CenterCode": "LDS01",
+              "Drift": 2,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 6,
+              "SessionId": 381,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 12,
+              "CenterCode": "AKL01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 9,
+              "SessionId": 382,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 10,
+              "CenterCode": "DUB01",
+              "Drift": 2,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 7,
+              "SessionId": 385,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 12,
+              "CenterCode": "ATL01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 6,
+              "SessionId": 386,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 9,
+              "CenterCode": "SIN01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 5,
+              "SessionId": 389,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 15,
+              "CenterCode": "MEL01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 14,
+              "SessionId": 390,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 28,
+              "CenterCode": "TOR01",
+              "Drift": 1,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 18,
+              "SessionId": 391,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 18,
+              "CenterCode": "PHL01",
+              "Drift": 1,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 10,
+              "SessionId": 399,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 20,
+              "CenterCode": "SIN01",
+              "Drift": 2,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 15,
+              "SessionId": 400,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 8,
+              "CenterCode": "NYC02",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 3,
+              "SessionId": 401,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 16,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 13,
+              "SessionId": 403,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 15,
+              "Capacity": 27,
+              "CenterCode": "NYC02",
+              "Drift": 3,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 9,
+              "SessionId": 408,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 7,
+              "SessionId": 409,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 17,
+              "CenterCode": "PHL01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 12,
+              "SessionId": 412,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 13,
+              "Capacity": 25,
+              "CenterCode": "LDN01",
+              "Drift": 3,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 9,
+              "SessionId": 413,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 14,
+              "CenterCode": "NYC02",
+              "Drift": 1,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 11,
+              "SessionId": 415,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 19,
+              "CenterCode": "FRA01",
+              "Drift": 2,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 16,
+              "SessionId": 418,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 13,
+              "CenterCode": "DEN01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 9,
+              "SessionId": 422,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 7,
+              "SessionId": 425,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 9,
+              "CenterCode": "SIN01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 6,
+              "SessionId": 432,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 23,
+              "CenterCode": "BOS01",
+              "Drift": 1,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 18,
+              "SessionId": 433,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 20,
+              "CenterCode": "MAN01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 11,
+              "SessionId": 437,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 12,
+              "CenterCode": "LDS01",
+              "Drift": 2,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 6,
+              "SessionId": 440,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 10,
+              "CenterCode": "DUB01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 5,
+              "SessionId": 442,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 12,
+              "CenterCode": "AKL01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 10,
+              "SessionId": 443,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 9,
+              "CenterCode": "SIN01",
+              "Drift": 1,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 6,
+              "SessionId": 445,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 15,
+              "CenterCode": "NYC02",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 6,
+              "SessionId": 446,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 15,
+              "CenterCode": "MEL01",
+              "Drift": 1,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 7,
+              "SessionId": 449,
+              "StartsAt": "<now>"
+            }
+          ]
+        },
+        "status": null
+      },
+      "op": "drift",
+      "request": {
+        "sql": "db/checks/seat-drift.sql"
+      },
+      "source": {
+        "op": "drift"
+      }
+    }
+  ],
+  "tags": [
+    "double-decrement",
+    "drift",
+    "capacity-sync"
+  ]
+}

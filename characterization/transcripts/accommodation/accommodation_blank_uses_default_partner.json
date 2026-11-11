@@ -1,0 +1,135 @@
+{
+  "channel": "PARTNER",
+  "description": "NW00000903 (default ET50) books session 462 with accommodationCode null via booking-api.",
+  "expected": {
+    "business_fields": {
+      "bookingId": "new#1",
+      "error": null,
+      "legacyCode": null,
+      "outcome": "BOOKED",
+      "seatsAvailable": 13,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=462 status=BOOKED channel=PARTNER ref=NAN-REF-0030",
+          "entity": "Booking",
+          "entityId": "new#1"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#1",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000903",
+          "channel": "PARTNER",
+          "externalRef": "NAN-REF-0030",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 13,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "status": 201
+  },
+  "format": 1,
+  "group": "accommodation",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": true,
+  "oddity_note": "booking-api books a blank accommodation as none even when the candidate has a DefaultAccommodationCode; the portal substitutes the default (and the double decrement applies).",
+  "scenario": "accommodation_blank_uses_default_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "bookingId": "new#1",
+          "error": null,
+          "legacyCode": null,
+          "outcome": "BOOKED",
+          "seatsAvailable": 13,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "bookingId": "new#1",
+            "status": "BOOKED"
+          },
+          "status": 201
+        },
+        "status": 201
+      },
+      "op": "book",
+      "request": {
+        "json": {
+          "accommodationCode": null,
+          "candidateNumber": "NW00000903",
+          "externalRef": "NAN-REF-0030",
+          "sessionId": 462
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings"
+      },
+      "source": {
+        "candidate": "NW00000903",
+        "externalRef": "NAN-REF-0030",
+        "op": "book",
+        "session": 462
+      }
+    }
+  ],
+  "tags": [
+    "channel-disagreement",
+    "double-decrement"
+  ]
+}

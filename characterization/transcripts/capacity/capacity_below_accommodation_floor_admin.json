@@ -1,0 +1,263 @@
+{
+  "channel": "ADMIN",
+  "description": "Session 198 has AccommodationCapacity 2; lowering capacity to 1 is rejected by usp_ChangeCapacity with 50005 (baseline rule, before PR 51).",
+  "expected": {
+    "business_fields": {
+      "bumped": [],
+      "error": "INVALID_CAPACITY",
+      "legacyCode": 50005,
+      "outcome": "ERROR",
+      "seatsAvailable": 15
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.198": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T18:26:00",
+          "bookingId": 1836,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000662",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T03:57:00",
+          "bookingId": 1837,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000190",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T13:28:00",
+          "bookingId": 1838,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000599",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019803",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T21:19:00",
+          "bookingId": 1839,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000127",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019804",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T11:50:00",
+          "bookingId": 1840,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000536",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T21:21:00",
+          "bookingId": 1841,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000064",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-198-6",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:52:00",
+          "bookingId": 1842,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000473",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-30T14:10:00",
+          "bookingId": 3435,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000790",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.198": {
+        "AccommodationCapacity": 2,
+        "Capacity": 23,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.198": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.198": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T18:26:00",
+          "bookingId": 1836,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000662",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T03:57:00",
+          "bookingId": 1837,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000190",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T13:28:00",
+          "bookingId": 1838,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000599",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019803",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T21:19:00",
+          "bookingId": 1839,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000127",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019804",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T11:50:00",
+          "bookingId": 1840,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000536",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T21:21:00",
+          "bookingId": 1841,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000064",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-198-6",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:52:00",
+          "bookingId": 1842,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000473",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-30T14:10:00",
+          "bookingId": 3435,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000790",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.198": {
+        "AccommodationCapacity": 2,
+        "Capacity": 23,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.198": []
+    },
+    "status": 200
+  },
+  "format": 1,
+  "group": "capacity",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": "ADR 0002 may relax the floor to booked ET seats (PR 51 rule).",
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "capacity_below_accommodation_floor_admin",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "ADMIN",
+      "expected": {
+        "business_fields": {
+          "bumped": [],
+          "error": "INVALID_CAPACITY",
+          "legacyCode": 50005,
+          "outcome": "ERROR",
+          "seatsAvailable": 15
+        },
+        "response": {
+          "errors": [
+            "Invalid capacity 1 for session 198."
+          ],
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "capacity",
+      "request": {
+        "form": {
+          "NewCapacity": "1"
+        },
+        "method": "POST",
+        "path": "/Admin/Sessions/Capacity/198"
+      },
+      "source": {
+        "newCapacity": 1,
+        "op": "capacity",
+        "session": 198
+      }
+    }
+  ],
+  "tags": [
+    "decrease",
+    "accommodation-floor"
+  ]
+}

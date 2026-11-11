@@ -1,0 +1,111 @@
+{
+  "channel": "PARTNER",
+  "description": "Same CLOSED session through booking-api -> SESSION_NOT_OPEN.",
+  "expected": {
+    "business_fields": {
+      "error": "SESSION_NOT_OPEN",
+      "legacyCode": 50001,
+      "outcome": "ERROR",
+      "seatsAvailable": 16,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.281": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:49:00",
+          "bookingId": 2292,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000575",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.281": {
+        "AccommodationCapacity": 1,
+        "Capacity": 17,
+        "SeatsAvailable": 16,
+        "Status": "CLOSED"
+      },
+      "waitlist.281": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.281": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:49:00",
+          "bookingId": 2292,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000575",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.281": {
+        "AccommodationCapacity": 1,
+        "Capacity": 17,
+        "SeatsAvailable": 16,
+        "Status": "CLOSED"
+      },
+      "waitlist.281": []
+    },
+    "status": 409
+  },
+  "format": 1,
+  "group": "duplicate_closed",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "book_closed_session_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "error": "SESSION_NOT_OPEN",
+          "legacyCode": 50001,
+          "outcome": "ERROR",
+          "seatsAvailable": 16,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "error": "SESSION_NOT_OPEN",
+            "message": "Session 281 is not open for booking"
+          },
+          "status": 409
+        },
+        "status": 409
+      },
+      "op": "book",
+      "request": {
+        "json": {
+          "accommodationCode": null,
+          "candidateNumber": "NW00000901",
+          "externalRef": "NAN-REF-0004",
+          "sessionId": 281
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings"
+      },
+      "source": {
+        "candidate": "NW00000901",
+        "externalRef": "NAN-REF-0004",
+        "op": "book",
+        "session": 281
+      }
+    }
+  ],
+  "tags": []
+}

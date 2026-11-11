@@ -1,0 +1,169 @@
+{
+  "channel": "PARTNER",
+  "description": "booking-api reschedule of the same booking to session 191 -> DIFFERENT_EXAM.",
+  "expected": {
+    "business_fields": {
+      "error": "DIFFERENT_EXAM",
+      "legacyCode": 50006,
+      "outcome": "ERROR",
+      "seatsAvailable": 10,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.191": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T17:39:00",
+          "bookingId": 1802,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000370",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-191-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:30:00",
+          "bookingId": 1803,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000779",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.191": {
+        "AccommodationCapacity": 0,
+        "Capacity": 12,
+        "SeatsAvailable": 10,
+        "Status": "OPEN"
+      },
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.191": [],
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.191": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T17:39:00",
+          "bookingId": 1802,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000370",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-191-1",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:30:00",
+          "bookingId": 1803,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000779",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.191": {
+        "AccommodationCapacity": 0,
+        "Capacity": 12,
+        "SeatsAvailable": 10,
+        "Status": "OPEN"
+      },
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.191": [],
+      "waitlist.462": []
+    },
+    "status": 409
+  },
+  "format": 1,
+  "group": "reschedule",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "reschedule_different_exam_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "error": "DIFFERENT_EXAM",
+          "legacyCode": 50006,
+          "outcome": "ERROR",
+          "seatsAvailable": 10,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "error": "DIFFERENT_EXAM",
+            "message": "Booking 3586 cannot be moved to session 191 (different exam)"
+          },
+          "status": 409
+        },
+        "status": 409
+      },
+      "op": "reschedule",
+      "request": {
+        "json": {
+          "newSessionId": 191
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings/3586/reschedule"
+      },
+      "source": {
+        "booking": 3586,
+        "newSession": 191,
+        "op": "reschedule"
+      }
+    }
+  ],
+  "tags": []
+}

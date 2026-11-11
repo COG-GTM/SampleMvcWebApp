@@ -1,0 +1,134 @@
+{
+  "channel": "PARTNER",
+  "description": "booking-api POST /api/v1/bookings on the same session; Channel PARTNER.",
+  "expected": {
+    "business_fields": {
+      "bookingId": "new#1",
+      "error": null,
+      "legacyCode": null,
+      "outcome": "BOOKED",
+      "seatsAvailable": 13,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "BOOK",
+          "actor": "booking-api",
+          "detail": "session=462 status=BOOKED channel=PARTNER ref=NAN-REF-0001",
+          "entity": "Booking",
+          "entityId": "new#1"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "<now>",
+          "bookingId": "new#1",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000901",
+          "channel": "PARTNER",
+          "externalRef": "NAN-REF-0001",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 13,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "status": 201
+  },
+  "format": 1,
+  "group": "booking",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": "ADR 0002 - seat count is derived (Capacity - active bookings); no double decrement.",
+  "oddity": true,
+  "oddity_note": "Partner booking decrements ExamSession.SeatsAvailable twice (BookingService.book + trg_Booking_SeatSync).",
+  "scenario": "book_open_session_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "bookingId": "new#1",
+          "error": null,
+          "legacyCode": null,
+          "outcome": "BOOKED",
+          "seatsAvailable": 13,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "bookingId": "new#1",
+            "status": "BOOKED"
+          },
+          "status": 201
+        },
+        "status": 201
+      },
+      "op": "book",
+      "request": {
+        "json": {
+          "accommodationCode": null,
+          "candidateNumber": "NW00000901",
+          "externalRef": "NAN-REF-0001",
+          "sessionId": 462
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings"
+      },
+      "source": {
+        "candidate": "NW00000901",
+        "externalRef": "NAN-REF-0001",
+        "op": "book",
+        "session": 462
+      }
+    }
+  ],
+  "tags": [
+    "double-decrement"
+  ]
+}

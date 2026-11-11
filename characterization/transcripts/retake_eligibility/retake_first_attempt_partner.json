@@ -1,0 +1,66 @@
+{
+  "channel": "PARTNER",
+  "description": "Candidate with no prior result: both channels allow (FIRST_ATTEMPT).",
+  "expected": {
+    "business_fields": {
+      "earliestRetakeDate": null,
+      "eligible": true,
+      "reason": "FIRST_ATTEMPT"
+    },
+    "db_state": {
+      "auditLog.new": []
+    },
+    "db_state_before": {
+      "auditLog.new": []
+    },
+    "status": 200
+  },
+  "format": 1,
+  "group": "retake_eligibility",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "retake_first_attempt_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "earliestRetakeDate": null,
+          "eligible": true,
+          "reason": "FIRST_ATTEMPT"
+        },
+        "response": {
+          "body": {
+            "earliestRetakeDate": null,
+            "eligible": true,
+            "reason": "FIRST_ATTEMPT"
+          },
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "eligibility",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/candidates/NW00000958/eligibility",
+        "query": {
+          "date": "2026-11-20",
+          "examCode": "CTA-NET1"
+        }
+      },
+      "source": {
+        "candidate": "NW00000958",
+        "date": "2026-11-20",
+        "examCode": "CTA-NET1",
+        "op": "eligibility"
+      }
+    }
+  ],
+  "tags": []
+}

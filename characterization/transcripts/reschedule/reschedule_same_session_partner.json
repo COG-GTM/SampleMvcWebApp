@@ -1,0 +1,109 @@
+{
+  "channel": "PARTNER",
+  "description": "booking-api POST /api/v1/bookings/3586/reschedule to its own session 462.",
+  "expected": {
+    "business_fields": {
+      "error": "SAME_SESSION",
+      "legacyCode": null,
+      "outcome": "ERROR",
+      "seatsAvailable": 15,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "status": 409
+  },
+  "format": 1,
+  "group": "reschedule",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": true,
+  "oddity_note": "booking-api rejects a reschedule to the same session (409 SAME_SESSION) while the portal cancels and re-books.",
+  "scenario": "reschedule_same_session_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "error": "SAME_SESSION",
+          "legacyCode": null,
+          "outcome": "ERROR",
+          "seatsAvailable": 15,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "error": "SAME_SESSION",
+            "message": "Booking 3586 is already on session 462"
+          },
+          "status": 409
+        },
+        "status": 409
+      },
+      "op": "reschedule",
+      "request": {
+        "json": {
+          "newSessionId": 462
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings/3586/reschedule"
+      },
+      "source": {
+        "booking": 3586,
+        "newSession": 462,
+        "op": "reschedule"
+      }
+    }
+  ],
+  "tags": [
+    "channel-disagreement"
+  ]
+}

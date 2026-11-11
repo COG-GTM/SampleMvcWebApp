@@ -1,0 +1,14 @@
+group: full_session
+scenarios:
+  - name: book_full_session_portal
+    channel: PORTAL
+    description: Portal books BOS01 session 153 (SeatsAvailable 0, 3 already waitlisted); usp_BookSeat returns WAITLISTED.
+    sessions: [153]
+    steps:
+      - {op: book, session: 153, candidate: NW00000901}
+  - name: book_full_session_partner
+    channel: PARTNER
+    description: booking-api books the same full session; the partner path also waitlists (SeatsAvailable stays 0).
+    sessions: [153]
+    steps:
+      - {op: book, session: 153, candidate: NW00000901, externalRef: NAN-REF-0002}

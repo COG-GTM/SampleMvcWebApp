@@ -1,0 +1,38 @@
+group: duplicate_closed
+scenarios:
+  - name: book_duplicate_portal
+    channel: PORTAL
+    description: NW00000900 already holds BOOKED seed booking 3586 on session 462; booking again raises usp_BookSeat 50002.
+    sessions: [462]
+    steps:
+      - {op: book, session: 462, candidate: NW00000900}
+  - name: book_duplicate_partner
+    channel: PARTNER
+    description: Same duplicate through booking-api -> DUPLICATE_BOOKING.
+    sessions: [462]
+    steps:
+      - {op: book, session: 462, candidate: NW00000900, externalRef: NAN-REF-0003}
+  - name: book_closed_session_portal
+    channel: PORTAL
+    description: Session 281 (CTA-SEC2) has Status CLOSED; usp_BookSeat raises 50001.
+    sessions: [281]
+    steps:
+      - {op: book, session: 281, candidate: NW00000901}
+  - name: book_closed_session_partner
+    channel: PARTNER
+    description: Same CLOSED session through booking-api -> SESSION_NOT_OPEN.
+    sessions: [281]
+    steps:
+      - {op: book, session: 281, candidate: NW00000901, externalRef: NAN-REF-0004}
+  - name: book_cancelled_session_portal
+    channel: PORTAL
+    description: AKL01 session 219 has Status CANCELLED; usp_BookSeat raises 50001.
+    sessions: [219]
+    steps:
+      - {op: book, session: 219, candidate: NW00000901}
+  - name: book_cancelled_session_partner
+    channel: PARTNER
+    description: Same CANCELLED session through booking-api.
+    sessions: [219]
+    steps:
+      - {op: book, session: 219, candidate: NW00000901, externalRef: NAN-REF-0005}
