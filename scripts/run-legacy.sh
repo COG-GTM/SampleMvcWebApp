@@ -22,6 +22,7 @@ MSSQL_IMAGE="${MSSQL_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}"
 export MSSQL_SA_PASSWORD="${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}"
 # capacity-sync (:8083) is retired: its seat reconciler lives in scheduling-service (services/capacity-sync/README.md)
 SERVICES="booking-api:8081 results-service:8082"
+RETIRED_SERVICES="capacity-sync"   # still stopped by cmd_stop if an older estate left it running
 
 log() { echo "[run-legacy] $*"; }
 die() { echo "[run-legacy] ERROR: $*" >&2; exit 1; }
@@ -182,7 +183,7 @@ cmd_status() {
 
 cmd_stop() {
     local entry name pid
-    for entry in $SERVICES; do
+    for entry in $SERVICES $RETIRED_SERVICES; do
         name="${entry%%:*}"
         if pid_alive "$RUN_DIR/$name.pid"; then
             pid="$(cat "$RUN_DIR/$name.pid")"

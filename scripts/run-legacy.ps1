@@ -405,7 +405,8 @@ function Start-Portal {
 
 # ---------------------------------------------------------------- stop / status
 function Stop-Estate {
-    foreach ($s in $services) {
+    # capacity-sync is retired, but an estate started before the retirement may still run it
+    foreach ($s in ($services + @(@{ Name = 'capacity-sync'; Port = 8083 }))) {
         $ids = @()
         $id = Get-RunningPid $s.Name
         if ($id) { $ids += $id }
