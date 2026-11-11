@@ -48,7 +48,8 @@ paths:
         - {name: minSeatsAvailable, in: query, schema: {type: integer}}
         - {name: include, in: query, schema: {type: array, items: {type: string, enum: [counts]}}, style: form, explode: false, description: 'adds bookedSeats and waitlistCount (portal admin Load)'}
         - {name: sort, in: query, schema: {type: string, enum: ['startsAt,sessionId', 'startsAt,centerCode'], default: 'startsAt,sessionId'}}
-        - {name: limit, in: query, schema: {type: integer, default: 500, maximum: 500}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1}, description: 'optional; omitted = every match (portal and admin listings). booking-api passes 500, its SessionDao TOP 500 cap'}
+        - {name: offset, in: query, schema: {type: integer, minimum: 0, default: 0}, description: 'rows to skip in sort order, for paging with limit'}
       responses:
         '200':
           description: Sessions
