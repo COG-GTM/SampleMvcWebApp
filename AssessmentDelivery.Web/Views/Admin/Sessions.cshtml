@@ -8,7 +8,7 @@
     <span class="nw-sub">@Model.Sessions.Count session(s) &middot; times shown are centre-local (@Model.Center.TimeZone)</span>
 </div>
 <div class="nw-panel">
-    <div class="nw-panel-heading">Exam sessions</div>
+    <div class="nw-panel-heading">Exam sessions <span class="pull-right"><a href="@Url.RouteUrl("AdminCapacityAudit", new { id = Model.Center.TestCenterId })">Capacity audit</a></span></div>
     <table class="table table-condensed table-striped nw-grid">
         <thead>
             <tr>
@@ -41,7 +41,7 @@
                     <td class="num">@s.Booked</td>
                     <td class="num">@s.WaitlistCount</td>
                     <td>@Html.StatusPill(s.Status)</td>
-                    <td class="nw-actions"><a href="@Url.RouteUrl("AdminCapacity", new { id = s.SessionId })">Capacity</a> <a href="@Url.RouteUrl("AdminRoster", new { id = s.SessionId, format = "csv" })" title="Download roster">Roster (CSV)</a></td>
+                    <td class="nw-actions"><a href="@Url.RouteUrl("AdminCapacity", new { id = s.SessionId })">Capacity</a> | <a href="@Url.RouteUrl("AdminCapacityAudit", new { id = s.TestCenterId, sessionId = s.SessionId })">Audit</a> | <a href="@Url.RouteUrl("AdminRoster", new { id = s.SessionId, format = "csv" })" title="Download roster">Roster (CSV)</a></td>
                 </tr>
             }
             @if (Model.Sessions.Count == 0)

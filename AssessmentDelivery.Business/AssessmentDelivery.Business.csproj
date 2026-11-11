@@ -56,6 +56,7 @@
     <Compile Include="Roster\RosterCsv.cs" />
     <Compile Include="Roster\RosterLine.cs" />
     <Compile Include="Rules\AccommodationCodes.cs" />
+    <Compile Include="Rules\CapacityAuditDetail.cs" />
     <Compile Include="Rules\IRetakeRules.cs" />
     <Compile Include="Rules\PriorAttempt.cs" />
     <Compile Include="Rules\RetakeDecision.cs" />
