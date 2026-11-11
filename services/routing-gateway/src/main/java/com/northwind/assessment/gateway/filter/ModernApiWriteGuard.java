@@ -45,15 +45,21 @@ public class ModernApiWriteGuard implements GatewayFilter {
         if (HttpMethod.POST.equals(method) && path.equals("/api/v2/bookings")) {
             return BookingApiStranglerFilter.withBody(exchange, (ex, body) -> {
                 JsonNode req = BookingApiStranglerFilter.parseOrNull(body);
-                if (req == null || !req.hasNonNull("sessionId") || !req.get("sessionId").canConvertToLong()) {
-                    return chain.filter(ex); // scheduling-service answers the validation error
+                if (req == null || !req.hasNonNull("sessionId")) {
+                    return chain.filter(ex); // no session, nothing to book: scheduling-service answers the validation error
                 }
-                return guard(ex, chain, ResolveKey.session(req.get("sessionId").asLong()), null);
+                Long sessionId = Ids.sessionId(req);
+                if (sessionId == null) {
+                    RouteAttributes.set(ex, RouteDecision.legacy(null, "v2-write-rejected"));
+                    return Responses.json(ex, HttpStatus.FORBIDDEN,
+                            error("CENTER_NOT_MODERN", "Cannot resolve the center of sessionId " + req.get("sessionId")));
+                }
+                return guard(ex, chain, ResolveKey.session(sessionId), null);
             });
         }
         if ((m = BOOKING.matcher(path)).matches()
                 && (HttpMethod.DELETE.equals(method) || (HttpMethod.POST.equals(method) && m.group(2) != null))) {
-            return guard(exchange, chain, ResolveKey.booking(m.group(1)), Long.valueOf(m.group(1)));
+            return guard(exchange, chain, ResolveKey.booking(m.group(1)), Ids.parseLong(m.group(1)));
         }
         if (HttpMethod.PUT.equals(method) && (m = CAPACITY.matcher(path)).matches()) {
             return guard(exchange, chain, ResolveKey.session(m.group(1)), null);

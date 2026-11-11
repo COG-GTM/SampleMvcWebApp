@@ -78,7 +78,7 @@ public class BookingApiStranglerFilter implements GatewayFilter {
         }
         if ((m = BOOKING.matcher(path)).matches() && (HttpMethod.GET.equals(method) || HttpMethod.DELETE.equals(method))) {
             String id = m.group(1);
-            Long bookingId = parseLong(id);
+            Long bookingId = Ids.parseLong(id);
             if (HttpMethod.GET.equals(method)) {
                 return route(exchange, chain, ResolveKey.booking(id), bookingId, false,
                         () -> call(HttpMethod.GET, "/api/v2/bookings/" + id, null), Shape.BOOKING, false);
@@ -93,16 +93,17 @@ public class BookingApiStranglerFilter implements GatewayFilter {
         if (HttpMethod.POST.equals(method) && path.equals("/api/v1/bookings")) {
             return withBody(exchange, (ex, body) -> {
                 JsonNode req = parseOrNull(body);
-                if (req == null || !req.hasNonNull("sessionId") || !req.get("sessionId").canConvertToLong()) {
+                Long sessionId = Ids.sessionId(req);
+                if (sessionId == null) {
                     return chain.filter(ex);
                 }
                 ObjectNode v2 = JsonNodeFactory.instance.objectNode();
-                v2.set("sessionId", req.get("sessionId"));
+                v2.put("sessionId", sessionId);
                 for (String f : new String[] {"candidateNumber", "accommodationCode", "externalRef"}) {
                     v2.set(f, req.hasNonNull(f) ? req.get(f) : JsonNodeFactory.instance.nullNode());
                 }
                 v2.put("channel", PARTNER_CHANNEL);
-                return route(ex, chain, ResolveKey.session(req.get("sessionId").asLong()), null, true,
+                return route(ex, chain, ResolveKey.session(sessionId), null, true,
                         () -> call(HttpMethod.POST, "/api/v2/bookings", V1Shapes.write(v2)), Shape.BOOKING_RESPONSE, false);
             });
         }
@@ -114,7 +115,7 @@ public class BookingApiStranglerFilter implements GatewayFilter {
                 v2.set("newSessionId", req != null && req.has("newSessionId") ? req.get("newSessionId")
                         : JsonNodeFactory.instance.nullNode());
                 // v1 reschedule answers 200 (plain @RequestMapping), v2 answers 201
-                return route(ex, chain, ResolveKey.booking(id), parseLong(id), true,
+                return route(ex, chain, ResolveKey.booking(id), Ids.parseLong(id), true,
                         () -> call(HttpMethod.POST, "/api/v2/bookings/" + id + "/reschedule", V1Shapes.write(v2)),
                         Shape.BOOKING_RESPONSE, true);
             });
@@ -192,14 +193,6 @@ public class BookingApiStranglerFilter implements GatewayFilter {
         try {
             return V1Shapes.parse(body);
         } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static Long parseLong(String s) {
-        try {
-            return Long.valueOf(s);
-        } catch (NumberFormatException e) {
             return null;
         }
     }

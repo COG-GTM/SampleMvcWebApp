@@ -346,6 +346,21 @@ class GatewayIntegrationTest {
     }
 
     @Test
+    void numericStringSessionIdOnV1BookingIsRoutedByItsCenter() throws Exception {
+        scheduling.stubFor(post("/api/v2/bookings").willReturn(aResponse().withStatus(201)
+                .withHeader("Content-Type", "application/json").withBody("{\"bookingId\":50000009,\"status\":\"BOOKED\"}")));
+        setAllowList("BOS01");
+        client.post().uri("/api/v1/bookings").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"sessionId\":\"100\",\"candidateNumber\":\"NW00000901\"}").exchange()
+                .expectStatus().isCreated().expectHeader().valueEquals("X-Route", "modern");
+        scheduling.verify(postRequestedFor(urlEqualTo("/api/v2/bookings"))
+                .withRequestBody(matchingJsonPath("$.sessionId", equalTo("100"))));
+        bookingApi.verify(0, postRequestedFor(urlEqualTo("/api/v1/bookings")));
+        client.delete().uri("/api/v1/bookings/99999999999999999999").exchange()
+                .expectHeader().valueEquals("X-Route", "legacy");
+    }
+
+    @Test
     void directV2WritesAreOnlyForwardedForModernCentersOrModernBookings() throws Exception {
         scheduling.stubFor(any(urlPathMatching("/api/v2/.*")).willReturn(okJson("{}")));
         setAllowList("BOS01");
@@ -353,8 +368,16 @@ class GatewayIntegrationTest {
                 .bodyValue("{\"sessionId\":200,\"candidateNumber\":\"NW00000901\"}").exchange()
                 .expectStatus().isForbidden().expectHeader().valueEquals("X-Route", "legacy")
                 .expectBody(String.class).value(b -> assertThat(b).contains("CENTER_NOT_MODERN"));
+        client.post().uri("/api/v2/bookings").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"sessionId\":\"200\",\"candidateNumber\":\"NW00000901\"}").exchange()
+                .expectStatus().isForbidden();
+        client.post().uri("/api/v2/bookings").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"sessionId\":\"abc\",\"candidateNumber\":\"NW00000901\"}").exchange()
+                .expectStatus().isForbidden();
         client.put().uri("/api/v2/sessions/200/capacity").contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"newCapacity\":5}").exchange().expectStatus().isForbidden();
+        client.delete().uri("/api/v2/bookings/99999999999999999999").exchange().expectStatus().isForbidden()
+                .expectHeader().valueEquals("X-Route", "legacy");
         scheduling.verify(0, anyRequestedFor(urlPathMatching("/api/v2/.*")));
 
         client.post().uri("/api/v2/bookings").contentType(MediaType.APPLICATION_JSON)

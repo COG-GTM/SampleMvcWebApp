@@ -91,12 +91,12 @@ public class PortalStranglerFilter implements GatewayFilter {
         }
         if ((m = CANCEL.matcher(path)).matches()) {
             String id = m.group(1);
-            return route(exchange, chain, ResolveKey.booking(id), Long.valueOf(id), post,
+            return route(exchange, chain, ResolveKey.booking(id), Ids.parseLong(id), post,
                     d -> withCandidate(link("/app/my-bookings"), p));
         }
         if ((m = RESCHEDULE.matcher(path)).matches()) {
             String id = m.group(1);
-            return route(exchange, chain, ResolveKey.booking(id), Long.valueOf(id), post,
+            return route(exchange, chain, ResolveKey.booking(id), Ids.parseLong(id), post,
                     d -> withCandidate(link("/app/reschedule/" + id), p));
         }
         if ((m = CAPACITY.matcher(path)).matches()) {
