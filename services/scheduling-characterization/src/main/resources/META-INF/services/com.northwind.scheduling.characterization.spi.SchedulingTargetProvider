@@ -1,1 +1,2 @@
 com.northwind.scheduling.characterization.legacy.LegacyProcTargetProvider
+com.northwind.scheduling.characterization.service.SchedulingServiceTargetProvider
