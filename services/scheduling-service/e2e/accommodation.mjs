@@ -69,7 +69,8 @@ async function pickScenario() {
         if (await canBook(n, s)) fillers.push(n);
       }
       if (fillers.length < s.accommodationSeatsAvailable - 1) continue;
-      return { center, s, r, first, second, fillers };
+      const secondDefault = profiles.find((c) => c.candidateNumber === second).defaultAccommodationCode;
+      return { center, s, r, first, second, secondDefault, fillers };
     }
   }
   throw new Error('No session with free accommodation seats and suitable extra-time candidates found');
@@ -140,10 +141,17 @@ try {
   await step('2 ET25 candidate books the last accommodation seat in /app', async () => {
     await card().getByTestId('book-link').click();
     await page.getByTestId('booking-form').waitFor();
-    expect(await page.getByTestId('accommodation-select').inputValue() === 'ET25', 'Book carries ET25 over');
     expect(await page.getByTestId('candidate-input').inputValue() === sc.first, 'Book carries the candidate over');
     await page.getByTestId('eligibility').waitFor();
+    expect(await page.getByTestId('accommodation-select').inputValue() === 'ET25', 'Book pre-fills the ET25 default');
     await shot('a5-02-et25-book-form-prefilled');
+    await page.getByTestId('candidate-input').fill(sc.second);
+    await page.getByTestId('eligibility').waitFor();
+    const switched = await page.getByTestId('accommodation-select').inputValue();
+    expect(switched === sc.secondDefault, `switching candidate in Book applies their default (${switched})`);
+    await page.getByTestId('candidate-input').fill(sc.first);
+    await page.waitForFunction(() => document.querySelector('[data-testid=accommodation-select]')?.value === 'ET25');
+    await page.getByTestId('eligibility').waitFor();
     await page.getByTestId('book-submit').click();
     await page.getByTestId('booking-confirmation').waitFor();
     const left = await page.getByTestId('summary-accommodation-left').innerText();

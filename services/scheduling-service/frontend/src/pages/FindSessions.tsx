@@ -46,7 +46,8 @@ export default function FindSessions() {
 
   const bookQuery = new URLSearchParams();
   if (profile) bookQuery.set('candidateNumber', profile.candidateNumber);
-  if (explicitAcc || profile) bookQuery.set('acc', accommodationParam(accommodation));
+  // Only an explicit choice travels as ?acc=; a profile default is re-derived by Book for whichever candidate is entered.
+  if (explicitAcc) bookQuery.set('acc', accommodationParam(accommodation));
 
   const byDay = useMemo(() => {
     const groups = new Map<string, Session[]>();
