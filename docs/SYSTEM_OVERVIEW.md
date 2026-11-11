@@ -95,7 +95,10 @@ starts SQL Server in Docker plus all three services.
 | GET | `/api/v1/results/candidate/{candidateNumber}` | |
 
 Ingesting a result inserts a `Result` row (Passed = score >= Exam.PassingScore) and
-sets the booking to ATTENDED.
+sets the booking to ATTENDED. Ingestion is idempotent per booking: an identical replay is a
+200 `DUPLICATE` no-op, a different score is a 409 `DUPLICATE_RESULT` plus an `AuditLog`
+`DUPLICATE_REJECTED` row, and a re-uploaded score file (same SHA-256, `dbo.ResultUpload`)
+inserts nothing. Details in `services/README.md`.
 
 **capacity-sync :8083** re-syncs `SeatsAvailable` nightly (02:00). `POST /sync/run`
 starts a run by hand and `GET /sync/last` shows the last run.
