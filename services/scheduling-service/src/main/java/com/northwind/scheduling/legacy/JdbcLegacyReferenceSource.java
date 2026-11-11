@@ -36,14 +36,10 @@ public class JdbcLegacyReferenceSource implements LegacyReferenceSource {
         return t == null ? null : t.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
     }
 
+    /** Connectivity plus SELECT permission on the session inventory (catches a revoked ad_sched_import grant). */
     @Override
     public void ping() {
-        jdbc.execute((org.springframework.jdbc.core.ConnectionCallback<Boolean>) c -> {
-            if (!c.isValid(3)) {
-                throw new IllegalStateException("legacy connection is not valid");
-            }
-            return true;
-        });
+        jdbc.query("SELECT TOP (1) ExamSessionId FROM dbo.ExamSession", rs -> null);
     }
 
     @Override
