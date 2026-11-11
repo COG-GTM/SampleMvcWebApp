@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using AssessmentDelivery.Services.Admin;
@@ -31,7 +32,7 @@ namespace AssessmentDelivery.Tests.UnitTests
             public ApiCapacityAuditPage GetCapacityAudit(int testCenterId, DateTime from, DateTime to, int? sessionId, int page, int pageSize) { throw new NotImplementedException(); }
             public ApiRoster GetRoster(int sessionId) { throw new NotImplementedException(); }
             public List<ApiReconcilerRun> Runs;
-            public IList<ApiReconcilerRun> ListReconcilerRuns(DateTime from, DateTime toExclusive, int max) { return Runs; }
+            public IList<ApiReconcilerRun> ListReconcilerRuns(DateTime from, DateTime toExclusive, int max) { return Runs.Take(max).ToList(); }
             public IList<ApiBooking> SearchBookings(int candidateId, string sort) { throw new NotImplementedException(); }
             public ApiBooking GetBooking(int bookingId) { throw new NotImplementedException(); }
             public ApiBookingResult Book(ApiBookRequest request, string actor) { throw new NotImplementedException(); }
@@ -48,12 +49,17 @@ namespace AssessmentDelivery.Tests.UnitTests
                 {
                     new ApiReconcilerRun { RunId = 4, Trigger = "SCHEDULED", Status = "OK", StartedAt = new DateTime(2026, 11, 11, 2, 0, 0),
                         FinishedAt = new DateTime(2026, 11, 11, 2, 0, 3), Checked = 285, Updated = 112 },
-                    new ApiReconcilerRun { RunId = 3, Trigger = "MANUAL", Status = "FAILED", StartedAt = new DateTime(2026, 11, 10, 9, 0, 0), Actor = "ops" }
+                    new ApiReconcilerRun { RunId = 3, Trigger = "MANUAL", Status = "FAILED", StartedAt = new DateTime(2026, 11, 10, 9, 0, 0), Actor = "ops" },
+                    new ApiReconcilerRun { RunId = 2, Trigger = "SCHEDULED", Status = "OK", StartedAt = new DateTime(2026, 10, 31, 23, 59, 58),
+                        FinishedAt = new DateTime(2026, 11, 1, 0, 0, 2) },
+                    new ApiReconcilerRun { RunId = 1, Trigger = "SCHEDULED", Status = "OK", StartedAt = new DateTime(2026, 10, 31, 2, 0, 0),
+                        FinishedAt = new DateTime(2026, 10, 31, 2, 0, 4) }
                 }
             };
             var rows = new AdminService(null, client).ListCapacitySyncRuns(new DateTime(2026, 11, 1), new DateTime(2026, 11, 12), 51);
 
-            Assert.AreEqual(2, rows.Count);
+            Assert.AreEqual(3, rows.Count, "the run that finished after 'from' is in; the one that finished before is out");
+            Assert.AreEqual(new DateTime(2026, 11, 1, 0, 0, 2), rows[2].LoggedAt);
             Assert.AreEqual("COMPLETED", rows[0].Status);
             Assert.AreEqual("capacity-sync", rows[0].Actor);
             Assert.AreEqual(new DateTime(2026, 11, 11, 2, 0, 3), rows[0].LoggedAt);
@@ -92,6 +98,28 @@ namespace AssessmentDelivery.Tests.UnitTests
             new AdminService(null, client).ChangeCapacity(7, 30, null);
             Assert.AreEqual(1, client.Calls);
             Assert.AreEqual("portal-admin", client.Actor);
+        }
+
+        [Test]
+        public void ListCapacitySyncRuns_RunCrossingRangeEnd_DoesNotCostAnInRangeRow()
+        {
+            var client = new CapacityOnlyClient
+            {
+                Runs = new List<ApiReconcilerRun>
+                {
+                    new ApiReconcilerRun { RunId = 4, Trigger = "SCHEDULED", Status = "OK", StartedAt = new DateTime(2026, 11, 11, 23, 59, 58),
+                        FinishedAt = new DateTime(2026, 11, 12, 0, 0, 3) },
+                    new ApiReconcilerRun { RunId = 3, Trigger = "SCHEDULED", Status = "OK", StartedAt = new DateTime(2026, 11, 10, 2, 0, 0),
+                        FinishedAt = new DateTime(2026, 11, 10, 2, 0, 4) },
+                    new ApiReconcilerRun { RunId = 2, Trigger = "SCHEDULED", Status = "OK", StartedAt = new DateTime(2026, 11, 9, 2, 0, 0),
+                        FinishedAt = new DateTime(2026, 11, 9, 2, 0, 4) }
+                }
+            };
+
+            var rows = new AdminService(null, client).ListCapacitySyncRuns(new DateTime(2026, 11, 1), new DateTime(2026, 11, 12), 2);
+
+            Assert.AreEqual(2, rows.Count);
+            Assert.AreEqual(new DateTime(2026, 11, 10, 2, 0, 4), rows[0].LoggedAt);
         }
     }
 }
