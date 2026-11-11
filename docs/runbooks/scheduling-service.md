@@ -212,7 +212,9 @@ Rollback to legacy writes (all centres at once):
 4. Hand the modern-owned ids back: the gateway routes any `BookingId >= routing.modern-booking-id-floor` to
    scheduling-service regardless of the allow-list, so raise the floor above every id in use (e.g.
    `routing.modern-booking-id-floor=9223372036854775807`); those bookings are then served by legacy, which already holds
-   them from the relay. Verify `GET :8000/api/v1/bookings/<a 5000xxxx id>` answers with `X-Route: legacy`.
+   them from the relay. The floor is read at gateway startup (only `routing.modern-centers` hot-reloads), so restart
+   the gateway after editing it. Verify `GET :8000/api/v1/bookings/<a 5000xxxx id>` answers with `X-Route: legacy`.
 5. Only now stop scheduling-service and, if seat recomputation is wanted again, set `capacity.sync.enabled=true` in
    capacity-sync. Legacy drift (HB-01..HB-05) returns with the legacy writers.
-6. Before routing writes to modern again, repeat the cutover from step 2: `Scheduling` must be re-imported.
+6. Before routing writes to modern again, restore `routing.modern-booking-id-floor=50000000` (gateway restart) and
+   repeat the cutover from step 2: `Scheduling` must be re-imported.
