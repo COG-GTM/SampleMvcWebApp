@@ -71,6 +71,8 @@ class ReadinessIT {
 
     @Autowired
     TestRestTemplate http;
+    @Autowired
+    com.zaxxer.hikari.HikariDataSource dataSource;
 
     private ResponseEntity<Map<String, Object>> probe(String group) {
         return http.exchange("/actuator/health/" + group, HttpMethod.GET, null, MAP);
@@ -89,6 +91,7 @@ class ReadinessIT {
     @Test
     @SuppressWarnings("unchecked")
     void readinessFollowsTheSchedulingDbWhileLivenessStaysUp() throws Exception {
+        assertThat(dataSource.getConnectionTimeout()).as("spring.datasource.hikari.* is bound").isEqualTo(2000);
         assertThat(probe("readiness").getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(probe("liveness").getStatusCode()).isEqualTo(HttpStatus.OK);
 
