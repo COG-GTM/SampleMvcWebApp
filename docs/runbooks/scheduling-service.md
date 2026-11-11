@@ -202,11 +202,17 @@ because the importer only copies bookings when the `Scheduling` DB has no sessio
 
 Rollback to legacy writes (all centres at once):
 
-1. Set `routing.modern-centers=` (empty) in the gateway so no new writes reach scheduling-service; wait for
-   `GET /internal/relay` `pending` = 0 so every modern change is in `AssessmentDelivery`.
+1. Set `routing.modern-centers=` (empty) in the gateway so no new centre-routed writes reach scheduling-service; wait
+   for `GET /internal/relay` `pending` = 0 so every modern change is in `AssessmentDelivery` (same `BookingId`s).
 2. Revoke the denial: for each legacy login, `REVOKE INSERT, UPDATE, DELETE ON dbo.Booking / dbo.Waitlist`,
    `REVOKE UPDATE ON dbo.ExamSession (Capacity, SeatsAvailable, AccommodationCapacity)` and
    `REVOKE EXECUTE` on the four booking procedures (the inverse of `040_single_writer.sql`).
-3. Stop scheduling-service (or `SCHEDULING_RELAY_ENABLED=false`) and, if seat recomputation is wanted again,
-   `capacity.sync.enabled=true` in capacity-sync. Legacy drift (HB-01..HB-05) returns with the legacy writers.
-4. Before routing writes to modern again, repeat the cutover from step 2: `Scheduling` must be re-imported.
+3. Hand attendance back: set `results.scheduling.base-url=` (empty) in results-service and restart it, so
+   `AttendanceRecorder` uses the legacy direct `UPDATE` again (it needs step 2).
+4. Hand the modern-owned ids back: the gateway routes any `BookingId >= routing.modern-booking-id-floor` to
+   scheduling-service regardless of the allow-list, so raise the floor above every id in use (e.g.
+   `routing.modern-booking-id-floor=9223372036854775807`); those bookings are then served by legacy, which already holds
+   them from the relay. Verify `GET :8000/api/v1/bookings/<a 5000xxxx id>` answers with `X-Route: legacy`.
+5. Only now stop scheduling-service and, if seat recomputation is wanted again, set `capacity.sync.enabled=true` in
+   capacity-sync. Legacy drift (HB-01..HB-05) returns with the legacy writers.
+6. Before routing writes to modern again, repeat the cutover from step 2: `Scheduling` must be re-imported.
