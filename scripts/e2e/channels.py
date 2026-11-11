@@ -4,6 +4,7 @@ stack: Phase 2 rewires what is behind them, not their HTTP surface."""
 import html
 import http.cookiejar
 import re
+import urllib.parse
 import urllib.request
 
 from adlib import http, multipart
@@ -111,7 +112,7 @@ class Partner:
         return self._outcome(http('POST', self.url + '/api/v1/bookings', body=body))
 
     def cancel(self, booking_id, reason='e2e'):
-        o = self._outcome(http('DELETE', '%s/api/v1/bookings/%s?reason=%s' % (self.url, booking_id, reason)))
+        o = self._outcome(http('DELETE', '%s/api/v1/bookings/%s?%s' % (self.url, booking_id, urllib.parse.urlencode({'reason': reason}))))
         if o.ok:
             o.booking_id, o.status = booking_id, 'CANCELLED'
         return o
