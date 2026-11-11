@@ -17,11 +17,8 @@ public final class ReconcileCommand {
     }
 
     public static int run(Class<?> app, String[] args) {
-        String[] rest = Arrays.copyOfRange(args, 1, args.length);
         try (ConfigurableApplicationContext ctx = new SpringApplicationBuilder(app).web(WebApplicationType.NONE)
-                .properties("scheduling.relay.enabled=false", "scheduling.import.on-startup=false",
-                        "spring.main.banner-mode=off")
-                .run(rest)) {
+                .run(commandLine(args))) {
             Reconciliation r = ctx.getBean(ReconciliationService.class).reconcile(true);
             System.out.printf("reconcile: sessions=%d bookings=%d mismatches=%d (session fields %d, bookings %d) "
                             + "seat-drift rows=%d report=%s%n", r.sessionsCompared(), r.bookingsCompared(),
@@ -29,5 +26,14 @@ public final class ReconcileCommand {
                     r.reportFile());
             return r.mismatches() == 0 && r.seatDrift().isEmpty() ? 0 : 1;
         }
+    }
+
+    /** Read-only overrides go on the command line: default properties would lose to application.yml. */
+    static String[] commandLine(String[] args) {
+        String[] fixed = {"--scheduling.relay.enabled=false", "--scheduling.import.on-startup=false",
+                "--spring.main.banner-mode=off"};
+        String[] out = Arrays.copyOf(fixed, fixed.length + args.length - 1);
+        System.arraycopy(args, 1, out, fixed.length, args.length - 1);
+        return out;
     }
 }
