@@ -82,6 +82,28 @@ public class AttendanceAfterCommitTest extends AbstractResultsIT {
 
     @Test
     @SuppressWarnings("rawtypes")
+    public void resendAfterCancellationRemovesTheUnconfirmedResult() {
+        Fixture f = newBooking();
+        Fixture other = newBooking();
+        LegacyDbSchedulingStub.attendFailure = "503";
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, post(f.bookingId, 700).getStatusCode());
+        LegacyDbSchedulingStub.attendFailure = null;
+        assertEquals(HttpStatus.CONFLICT, post(f.bookingId, 650).getStatusCode());
+        Integer resultId = (Integer) result(f.bookingId).get("ResultId");
+        assertEquals(1, auditCount(resultId, "DUPLICATE_REJECTED"));
+        jdbc.update("UPDATE dbo.Booking SET Status = 'CANCELLED' WHERE BookingId = ?", f.bookingId);
+
+        ResponseEntity<Map> r = post(f.bookingId, 700);
+
+        assertEquals(HttpStatus.CONFLICT, r.getStatusCode());
+        assertEquals("BOOKING_NOT_ACTIVE", r.getBody().get("error"));
+        assertEquals(0, resultCount(f.bookingId));
+        assertEquals(0, auditCount(resultId));
+        assertEquals(HttpStatus.CREATED, post(other.bookingId, 700).getStatusCode());
+    }
+
+    @Test
+    @SuppressWarnings("rawtypes")
     public void scoreFileRowsCommitOneByOneAndResendCompletesAttendance() {
         Fixture a = newBooking();
         Fixture b = newBooking();

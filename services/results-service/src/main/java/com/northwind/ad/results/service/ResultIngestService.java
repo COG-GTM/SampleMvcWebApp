@@ -43,9 +43,10 @@ public class ResultIngestService {
      * Records one result, then marks the booking ATTENDED through scheduling-service (POST /bookings/{id}/attendance)
      * only after the Result has committed, so a rollback can never leave an ATTENDED booking behind.
      * If the attendance call is rejected (404/409: the booking changed after our read) the committed Result and its
-     * INGEST audit row are deleted again and the error is returned: nothing is recorded, as before.
+     * audit rows are deleted again and the error is returned: nothing is recorded, as before.
      * If scheduling-service does not answer (503 SCHEDULING_UNAVAILABLE) the Result stays committed and the booking
-     * stays BOOKED; resending the same result (REST or score file) is a DUPLICATE that completes the attendance call.
+     * stays BOOKED; resending the same result (REST or score file) is a DUPLICATE that completes the attendance call,
+     * or, if the booking was cancelled meanwhile, removes the unconfirmed Result and returns 409 BOOKING_NOT_ACTIVE.
      * Idempotent per booking (UQ_Result_Booking): resubmitting the stored score is a DUPLICATE no-op, a different score
      * is a CONFLICT that leaves the stored row as is and writes a DUPLICATE_REJECTED audit row.
      * @param scoredAt null for REST posts without scoredAt: stored as now, and a replay matches on score alone
@@ -70,6 +71,12 @@ public class ResultIngestService {
         }
         String status = b.getStatus();
         if (!"BOOKED".equals(status) && !"ATTENDED".equals(status)) {
+            Map<String, Object> pending = findStored(bookingId);
+            if (pending != null) {
+                // only a Result whose attendance call got a 503 can sit on a booking that was cancelled meanwhile
+                LOG.warn("Booking {} is {}: removing its unconfirmed result {}", bookingId, status, pending.get("ResultId"));
+                removeResult(((Number) pending.get("ResultId")).intValue());
+            }
             throw new ApiException(HttpStatus.CONFLICT, "BOOKING_NOT_ACTIVE",
                     "Booking " + bookingId + " is " + status + ", cannot record a result");
         }
@@ -149,16 +156,20 @@ public class ResultIngestService {
                                 + "confirm attendance; resend the same result to complete it");
             }
             LOG.warn("Attendance for booking {} rejected ({}), removing result {}", bookingId, e.getError(), resultId);
-            tx().execute(new TransactionCallbackWithoutResult() {
-                @Override
-                protected void doInTransactionWithoutResult(TransactionStatus txStatus) {
-                    jdbc.update("DELETE FROM dbo.AuditLog WHERE EntityName = 'Result' AND EntityId = ? AND Action = 'INGEST'",
-                            resultId);
-                    jdbc.update("DELETE FROM dbo.Result WHERE ResultId = ?", resultId);
-                }
-            });
+            removeResult(resultId);
             throw e;
         }
+    }
+
+    /** Compensates an unconfirmed Result: deletes it with every audit row that references it (INGEST, DUPLICATE_REJECTED). */
+    private void removeResult(final int resultId) {
+        tx().execute(new TransactionCallbackWithoutResult() {
+            @Override
+            protected void doInTransactionWithoutResult(TransactionStatus txStatus) {
+                jdbc.update("DELETE FROM dbo.AuditLog WHERE EntityName = 'Result' AND EntityId = ?", resultId);
+                jdbc.update("DELETE FROM dbo.Result WHERE ResultId = ?", resultId);
+            }
+        });
     }
 
     private TransactionTemplate tx() {
