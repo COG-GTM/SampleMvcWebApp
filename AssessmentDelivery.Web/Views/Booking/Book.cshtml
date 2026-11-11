@@ -1,0 +1,58 @@
+@model AssessmentDelivery.Web.Models.BookViewModel
+@{
+    ViewBag.Title = "Book Session";
+    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Index") + "\">Find sessions</a> &raquo; Book session #" + Model.SessionId;
+}
+<div class="nw-page-head"><h2>Book a seat <small>Session #@Model.SessionId</small></h2></div>
+<div class="row">
+    <div class="col-md-5">
+        <div class="nw-panel">
+            <div class="nw-panel-heading">Session</div>
+            <table class="table table-condensed nw-detail">
+                <tr><th>Exam</th><td><strong>@Model.Session.ExamCode</strong> &ndash; @Model.Session.ExamTitle</td></tr>
+                <tr><th>Centre</th><td>@Model.Session.CenterName (@Model.Session.CenterCode)</td></tr>
+                <tr><th>Room</th><td>@Model.Session.RoomName</td></tr>
+                <tr><th>Start</th><td>@Model.Session.StartsAt.ToString("dddd dd MMM yyyy HH:mm")</td></tr>
+                <tr><th>Duration</th><td>@Model.Session.DurationMinutes minutes</td></tr>
+                <tr><th>Seats available</th><td>@Model.Session.SeatsAvailable of @Model.Session.Capacity (accommodation capacity @Model.Session.AccommodationCapacity)</td></tr>
+                <tr><th>Status</th><td>@Html.StatusPill(Model.Session.Status)</td></tr>
+            </table>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="nw-panel">
+            <div class="nw-panel-heading">Booking details</div>
+            <div class="nw-panel-body">
+                @using (Html.BeginForm("Book", "Booking", FormMethod.Post, new { @class = "form-horizontal nw-form" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(false, "", new { @class = "alert alert-danger nw-alert" })
+                    @Html.HiddenFor(m => m.SessionId)
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.CandidateNumber, new { @class = "col-sm-4 control-label" })
+                        <div class="col-sm-5">@Html.TextBoxFor(m => m.CandidateNumber, new { @class = "form-control input-sm", placeholder = "NW00000000" })</div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.AccommodationCode, new { @class = "col-sm-4 control-label" })
+                        <div class="col-sm-5">
+                            <select id="AccommodationCode" name="AccommodationCode" class="form-control input-sm">
+                                <option value="">(candidate default)</option>
+                                <option value="ET25" @(Model.AccommodationCode == "ET25" ? "selected" : "")>ET25 - 25% extra time</option>
+                                <option value="ET50" @(Model.AccommodationCode == "ET50" ? "selected" : "")>ET50 - 50% extra time</option>
+                                <option value="SR" @(Model.AccommodationCode == "SR" ? "selected" : "")>SR - separate room</option>
+                                <option value="RB" @(Model.AccommodationCode == "RB" ? "selected" : "")>RB - rest breaks</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-sm-offset-4 col-sm-8">
+                            <button type="submit" class="btn btn-primary btn-sm">Confirm booking</button>
+                            @Html.ActionLink("Back", "Index", null, new { @class = "btn btn-default btn-sm" })
+                            <p class="help-block small">Leave the accommodation blank to use the code on the candidate profile. If the session is full the candidate is added to the waitlist.</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

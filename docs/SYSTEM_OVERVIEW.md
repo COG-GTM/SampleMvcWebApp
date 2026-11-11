@@ -106,3 +106,4 @@ starts a run by hand and `GET /sync/last` shows the last run.
 | Results | `/Results?candidateNumber=` |
 
 There is no sign-in: a candidate is selected by candidate number (kiosk-era design).
+Build, run (`scripts/run-portal.ps1`) and test instructions: `AssessmentDelivery.Web/README.md`.

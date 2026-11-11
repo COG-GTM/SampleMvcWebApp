@@ -1,0 +1,78 @@
+@model AssessmentDelivery.Web.Models.MyBookingsViewModel
+@{
+    ViewBag.Title = "My Bookings";
+}
+<div class="nw-page-head">
+    <h2>My bookings</h2>
+    <span class="nw-sub">All bookings for the candidate across portal, partner and import channels.</span>
+</div>
+<div class="nw-panel">
+    <div class="nw-panel-heading">Candidate</div>
+    <div class="nw-panel-body">
+        <form method="get" action="@Url.Action("MyBookings")" class="form-inline nw-form">
+            <div class="form-group">
+                <label for="candidateNumber">Candidate number</label>
+                <input type="text" id="candidateNumber" name="candidateNumber" value="@Model.CandidateNumber" class="form-control input-sm" placeholder="NW00000000" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Show bookings</button>
+        </form>
+        @Html.ValidationSummary(false, "", new { @class = "alert alert-danger nw-alert" })
+        @if (Model.Candidate != null)
+        {
+            <table class="table table-condensed nw-detail nw-candidate">
+                <tr>
+                    <th>Name</th><td>@Model.Candidate.FullName</td>
+                    <th>Candidate no.</th><td>@Model.Candidate.CandidateNumber</td>
+                    <th>Email</th><td>@Model.Candidate.Email</td>
+                    <th>Default accommodation</th><td>@(Model.Candidate.DefaultAccommodationCode ?? "none")</td>
+                </tr>
+            </table>
+        }
+    </div>
+</div>
+@if (Model.Bookings != null)
+{
+    <div class="nw-panel">
+        <div class="nw-panel-heading">Bookings <span class="badge">@Model.Bookings.Count</span>
+            <span class="pull-right">@Html.ActionLink("Book another session", "Index", new { candidateNumber = Model.Candidate.CandidateNumber })</span>
+        </div>
+        <table class="table table-condensed table-striped nw-grid">
+            <thead>
+                <tr>
+                    <th>Booking</th><th>Exam</th><th>Title</th><th>Centre</th><th>Session start</th><th>Status</th>
+                    <th>Acc.</th><th>Channel</th><th>Partner ref</th><th>Booked</th><th>Cancelled</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var b in Model.Bookings)
+                {
+                    <tr>
+                        <td class="nw-muted">@b.BookingId</td>
+                        <td><strong>@b.ExamCode</strong></td>
+                        <td>@b.ExamTitle</td>
+                        <td>@b.CenterName</td>
+                        <td class="nowrap">@b.StartsAt.ToString("dd MMM yyyy HH:mm")</td>
+                        <td>@Html.StatusPill(b.Status)</td>
+                        <td>@b.AccommodationCode</td>
+                        <td><span class="nw-channel">@b.Channel</span></td>
+                        <td class="nw-muted">@b.ExternalRef</td>
+                        <td class="nowrap nw-muted">@b.BookedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="nowrap nw-muted" title="@b.CancelReason">@(b.CancelledAt.HasValue ? b.CancelledAt.Value.ToString("dd/MM/yyyy HH:mm") : "")</td>
+                        <td class="nw-actions nowrap">
+                            @if (b.CanChange)
+                            {
+                                @Html.ActionLink("Reschedule", "Reschedule", new { id = b.BookingId, candidateNumber = Model.Candidate.CandidateNumber }, new { @class = "btn btn-xs btn-default" })
+                                @Html.Raw(" ")
+                                @Html.ActionLink("Cancel", "Cancel", new { id = b.BookingId, candidateNumber = Model.Candidate.CandidateNumber }, new { @class = "btn btn-xs btn-danger" })
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Model.Bookings.Count == 0)
+                {
+                    <tr><td colspan="12" class="nw-empty">No bookings on file.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

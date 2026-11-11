@@ -1,0 +1,88 @@
+@model AssessmentDelivery.Web.Models.FindSessionsViewModel
+@{
+    ViewBag.Title = "Find Sessions";
+}
+<div class="nw-page-head">
+    <h2>Candidate booking <small>Find an open session</small></h2>
+    <span class="nw-sub">Sessions with status OPEN only. Seats available is the live counter.</span>
+</div>
+<div class="nw-panel">
+    <div class="nw-panel-heading">Search criteria</div>
+    <div class="nw-panel-body">
+        <form method="get" action="@Url.Action("Index")" class="form-inline nw-form nw-search">
+            <div class="form-group">
+                <label for="ExamCode">Exam</label>
+                <select id="ExamCode" name="ExamCode" class="form-control input-sm">
+                    <option value="">(any exam)</option>
+                    @foreach (var e in Model.Exams)
+                    {
+                        <option value="@e.ExamCode" @(e.ExamCode == Model.ExamCode ? "selected" : "")>@e.ExamCode - @e.Title</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="CenterCode">Centre</label>
+                <select id="CenterCode" name="CenterCode" class="form-control input-sm">
+                    <option value="">(any centre)</option>
+                    @foreach (var c in Model.Centers)
+                    {
+                        <option value="@c.CenterCode" @(c.CenterCode == Model.CenterCode ? "selected" : "")>@c.CenterCode - @c.City</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="From">From</label>
+                <input type="date" id="From" name="From" class="form-control input-sm" value="@(Model.From.HasValue ? Model.From.Value.ToString("yyyy-MM-dd") : "")" />
+            </div>
+            <div class="form-group">
+                <label for="To">To</label>
+                <input type="date" id="To" name="To" class="form-control input-sm" value="@(Model.To.HasValue ? Model.To.Value.ToString("yyyy-MM-dd") : "")" />
+            </div>
+            <div class="form-group">
+                <label for="CandidateNumber">Candidate no.</label>
+                <input type="text" id="CandidateNumber" name="CandidateNumber" class="form-control input-sm" value="@Model.CandidateNumber" placeholder="optional" style="width:110px" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><span class="glyphicon glyphicon-search"></span> Search</button>
+            @Html.ActionLink("Clear", "Index", null, new { @class = "btn btn-default btn-sm" })
+        </form>
+    </div>
+</div>
+@if (Model.Searched)
+{
+    <div class="nw-panel">
+        <div class="nw-panel-heading">Open sessions <span class="badge">@Model.Results.Count</span></div>
+        <table class="table table-condensed table-striped nw-grid">
+            <thead>
+                <tr>
+                    <th>Session</th><th>Exam</th><th>Title</th><th>Centre</th><th>City</th><th>Room</th><th>Start</th>
+                    <th class="num">Mins</th><th class="num">Capacity</th><th class="num">Seats avail.</th><th>Status</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.Results)
+                {
+                    <tr>
+                        <td class="nw-muted">#@s.SessionId</td>
+                        <td><strong>@s.ExamCode</strong></td>
+                        <td>@s.ExamTitle</td>
+                        <td>@s.CenterCode</td>
+                        <td>@s.City</td>
+                        <td>@s.RoomName</td>
+                        <td class="nowrap">@s.StartsAt.ToString("dd MMM yyyy HH:mm")</td>
+                        <td class="num">@s.DurationMinutes</td>
+                        <td class="num">@s.Capacity</td>
+                        <td class="num @(s.SeatsAvailable == 0 ? "nw-zero" : "")">@s.SeatsAvailable</td>
+                        <td>@Html.StatusPill(s.Status)</td>
+                        <td class="nw-actions">
+                            @Html.ActionLink(s.SeatsAvailable > 0 ? "Book" : "Join waitlist", "Book", new { sessionId = s.SessionId, candidateNumber = Model.CandidateNumber }, new { @class = "btn btn-xs btn-primary" })
+                        </td>
+                    </tr>
+                }
+                @if (Model.Results.Count == 0)
+                {
+                    <tr><td colspan="12" class="nw-empty">No open sessions match the criteria.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
