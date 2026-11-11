@@ -52,8 +52,3 @@ export function waitlistOfferLabel(w: { offerState: string; offerExpiresAt: stri
   if (w.offerState === 'SKIPPED') return `Skipped: needs ${w.accommodationCode ?? 'accommodation'}`;
   return null;
 }
-
-/** True once the offer's expiry has passed: the server rejects accept/decline from then on. */
-export function offerExpired(expiresAt: string, now: Date = new Date()): boolean {
-  return new Date(expiresAt).getTime() <= now.getTime();
-}

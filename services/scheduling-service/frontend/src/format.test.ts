@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { needsAccommodationSeat, offerExpired, seatTone, validateCandidateNumber, validateCapacity, waitlistOfferLabel } from './format';
+import { needsAccommodationSeat, seatTone, validateCandidateNumber, validateCapacity, waitlistOfferLabel } from './format';
 
 describe('validateCandidateNumber', () => {
   it('requires a value', () => expect(validateCandidateNumber('  ')).toMatch(/required/));
@@ -42,13 +42,4 @@ describe('waitlistOfferLabel', () => {
     expect(waitlistOfferLabel({ offerState: 'SKIPPED', offerExpiresAt: null, accommodationCode: 'ET25' })).toBe('Skipped: needs ET25'));
   it('shows nothing for a waiting position', () =>
     expect(waitlistOfferLabel({ offerState: 'WAITING', offerExpiresAt: null, accommodationCode: 'ET50' })).toBeNull());
-});
-
-describe('offerExpired', () => {
-  const now = new Date('2026-11-11T12:00:00');
-  it('is false before expiresAt', () => expect(offerExpired('2026-11-11T12:00:01', now)).toBe(false));
-  it('is true from expiresAt on', () => {
-    expect(offerExpired('2026-11-11T12:00:00', now)).toBe(true);
-    expect(offerExpired('2026-11-10T12:00:00', now)).toBe(true);
-  });
 });

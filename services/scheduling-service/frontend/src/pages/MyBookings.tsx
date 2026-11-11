@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api, Booking, Offer } from '../api';
 import { Empty, ErrorBox, Modal, PageHeader, Spinner, StatusBadge } from '../components/ui';
-import { formatDateTime, offerExpired, validateCandidateNumber } from '../format';
+import { formatDateTime, validateCandidateNumber } from '../format';
 import { rememberCandidate, rememberedCandidate, toastError, useLoad } from '../hooks';
 
 export default function MyBookings() {
@@ -119,7 +119,6 @@ export default function MyBookings() {
 }
 
 function OfferCard({ b, offer, busy, onDecide }: { b: Booking; offer: Offer; busy: boolean; onDecide: (o: Offer, accept: boolean) => void }) {
-  const expired = offerExpired(offer.expiresAt);
   return (
     <article className="card flex flex-wrap items-center gap-4 border-emerald-300 bg-emerald-50/60 p-4" data-testid="offer-card"
       data-offer-id={offer.offerId} data-booking-id={b.bookingId}>
@@ -133,11 +132,10 @@ function OfferCard({ b, offer, busy, onDecide }: { b: Booking; offer: Offer; bus
           A seat freed up on {formatDateTime(b.sessionStartsAt)} (session {b.sessionId}). It is held for you until{' '}
           <strong data-testid="offer-expires">{formatDateTime(offer.expiresAt)}</strong>.
         </p>
-        {expired && <p className="text-xs text-rose-600">This offer has expired.</p>}
       </div>
       <div className="flex gap-2">
-        <button className="btn-secondary" disabled={busy || expired} onClick={() => onDecide(offer, false)} data-testid="offer-decline">Decline</button>
-        <button className="btn-primary" disabled={busy || expired} onClick={() => onDecide(offer, true)} data-testid="offer-accept">Accept seat</button>
+        <button className="btn-secondary" disabled={busy} onClick={() => onDecide(offer, false)} data-testid="offer-decline">Decline</button>
+        <button className="btn-primary" disabled={busy} onClick={() => onDecide(offer, true)} data-testid="offer-accept">Accept seat</button>
       </div>
     </article>
   );
