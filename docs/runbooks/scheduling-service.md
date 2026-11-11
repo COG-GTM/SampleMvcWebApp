@@ -157,6 +157,11 @@ Which backend serves a centre is decided by the routing allow-list `scheduling.r
 (env `SCHEDULING_ROUTING_MODERN_CENTERS`, comma-separated centre codes, `*` = all; everything else goes to
 `SCHEDULING_ROUTING_DEFAULT_TARGET`, default `legacy`). The M3 routing layer consults it per request.
 
+> The allow-list only takes traffic away from this service where the M3 routing layer is deployed in front of it:
+> scheduling-service's own `/api/v1` and `/api/v2` controllers do not check it and keep accepting bookings from any
+> caller that reaches them directly. Before relying on these steps, confirm that portal/partner traffic for the centre
+> goes through the gateway (and that nothing calls :8090 directly); otherwise also stop or re-point those callers.
+
 1. Check current routing: `curl -s 'localhost:8090/api/v2/internal/routing/resolve?centerCode=SFO01'`
    -> `{"centerCode":"SFO01","target":"modern",...}`.
 2. Remove the centre from the list (e.g. `SFO01,AMS01` -> `AMS01`; replace `*` by the explicit list minus the centre)
