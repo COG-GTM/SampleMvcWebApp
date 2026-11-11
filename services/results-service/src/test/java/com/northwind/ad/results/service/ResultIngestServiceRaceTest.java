@@ -2,6 +2,8 @@ package com.northwind.ad.results.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.anyVararg;
 import static org.mockito.Matchers.eq;
@@ -12,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +40,9 @@ public class ResultIngestServiceRaceTest {
     @Mock
     private JdbcTemplate jdbc;
 
+    @Mock
+    private SchedulingClient scheduling;
+
     @InjectMocks
     private ResultIngestService service;
 
@@ -45,15 +51,15 @@ public class ResultIngestServiceRaceTest {
     @Before
     @SuppressWarnings("unchecked")
     public void setUp() {
-        Map<String, Object> booking = new HashMap<String, Object>();
-        booking.put("BookingId", 42);
-        booking.put("CandidateId", 7);
-        booking.put("SessionId", 154);
-        booking.put("Status", "BOOKED");
-        booking.put("ExamId", 3);
-        booking.put("PassingScore", 600);
-        when(jdbc.queryForList(startsWith("SELECT b.BookingId"), eq(42)))
-                .thenReturn(Collections.singletonList(booking));
+        BookingView booking = new BookingView();
+        booking.setBookingId(42);
+        booking.setCandidateId(7);
+        booking.setSessionId(154);
+        booking.setStatus("BOOKED");
+        booking.setExamId(3);
+        booking.setSessionStartsAt("2026-11-10T09:00:00");
+        when(scheduling.getBooking(42)).thenReturn(booking);
+        when(jdbc.queryForObject(startsWith("SELECT PassingScore"), eq(Integer.class), eq(3))).thenReturn(600);
         when(jdbc.queryForObject(startsWith("SET NOCOUNT ON; INSERT INTO dbo.Result"), eq(Integer.class),
                 (Object[]) anyVararg()))
                 .thenThrow(new DuplicateKeyException("Violation of UNIQUE KEY constraint 'UQ_Result_Booking'"));
@@ -79,7 +85,7 @@ public class ResultIngestServiceRaceTest {
 
         assertEquals(IngestOutcome.Status.DUPLICATE, o.getStatus());
         assertEquals(Integer.valueOf(99), o.getResultId());
-        verify(jdbc, never()).update(startsWith("UPDATE dbo.Booking"), any(Object[].class));
+        verify(scheduling, never()).markAttended(anyInt(), anyInt(), anyInt(), anyBoolean(), any(Date.class));
         verify(jdbc, never()).update(startsWith("INSERT INTO dbo.AuditLog"), (Object[]) anyVararg());
     }
 
@@ -93,6 +99,6 @@ public class ResultIngestServiceRaceTest {
         assertEquals(Integer.valueOf(910), o.getStoredScore());
         verify(jdbc).update(startsWith("INSERT INTO dbo.AuditLog"), eq("Result"), eq(99), eq("DUPLICATE_REJECTED"),
                 anyString(), any());
-        verify(jdbc, never()).update(startsWith("UPDATE dbo.Booking"), any(Object[].class));
+        verify(scheduling, never()).markAttended(anyInt(), anyInt(), anyInt(), anyBoolean(), any(Date.class));
     }
 }

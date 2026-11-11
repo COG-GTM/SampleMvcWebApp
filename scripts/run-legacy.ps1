@@ -7,7 +7,7 @@
        (installs SQL Server 2022 Express if no instance is found, then enables TCP 1433 and mixed mode)
     2. db\apply.ps1 - drops and re-creates AssessmentDelivery with the seed data (-SkipDb keeps the data)
     3. JDK 8 (installs Temurin 8 if none is found), builds services\ with the Maven wrapper
-    4. booking-api :8081, results-service :8082, capacity-sync :8083
+    4. booking-api :8081, results-service :8082 (capacity-sync is retired into scheduling-service's reconciler)
     5. the portal on :8080 through scripts\run-portal.ps1 (IIS Express)
 
     Logs and pids go to .run\ in the repo root.
@@ -37,8 +37,7 @@ $site    = Join-Path $root 'AssessmentDelivery.Web'
 $server  = 'localhost,1433'
 $services = @(
     @{ Name = 'booking-api';     Port = 8081; Url = 'http://localhost:8081/api/v1/sessions' },
-    @{ Name = 'results-service'; Port = 8082; Url = 'http://localhost:8082/api/v1/results/candidate/NW00000001' },
-    @{ Name = 'capacity-sync';   Port = 8083; Url = 'http://localhost:8083/sync/last' }
+    @{ Name = 'results-service'; Port = 8082; Url = 'http://localhost:8082/api/v1/results/candidate/NW00000001' }
 )
 $portalPort = 8080
 
@@ -406,7 +405,8 @@ function Start-Portal {
 
 # ---------------------------------------------------------------- stop / status
 function Stop-Estate {
-    foreach ($s in $services) {
+    # capacity-sync is retired, but an estate started before the retirement may still run it
+    foreach ($s in ($services + @(@{ Name = 'capacity-sync'; Port = 8083 }))) {
         $ids = @()
         $id = Get-RunningPid $s.Name
         if ($id) { $ids += $id }
@@ -452,7 +452,6 @@ function Show-Urls {
   portal           http://localhost:$portalPort/   (Admin/Centers, Booking, Eligibility, Results)
   booking-api      http://localhost:8081/api/v1/sessions
   results-service  http://localhost:8082/api/v1/results/candidate/{candidateNumber}
-  capacity-sync    http://localhost:8083/sync/last
   SQL Server       $server  database AssessmentDelivery  login ad_app
 
   logs and pids:   .run\

@@ -34,7 +34,7 @@ class Target:
     name: str = "legacy"
     portal_url: str = "http://localhost:8080"
     api_url: str = "http://localhost:8081"
-    sync_url: str = "http://localhost:8083"
+    sync_url: str = "http://localhost:8084"   # scheduling-service reconciler (capacity-sync :8083 is retired)
     sql_server: str = field(default_factory=lambda: os.environ.get("AD_SQL_SERVER", "localhost,1433"))
     sql_user: str = field(default_factory=lambda: os.environ.get("AD_SQL_USER", "sa"))
     sql_password: str = field(default_factory=lambda: os.environ.get("AD_SA_PASSWORD", os.environ.get("SA_PASSWORD", "Str0ng!Passw0rd")))

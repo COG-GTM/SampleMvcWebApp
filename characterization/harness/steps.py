@@ -114,9 +114,9 @@ class Steps:
         resp = Client().json_call("GET", f"{self.t.api_url}{path}")
         return {"request": {"channel": "api", "method": "GET", "path": path}, "response": _api_response(resp)}
 
-    # ---- capacity-sync (:8083) and DB checks ------------------------------------------------
+    # ---- seat reconciler (scheduling-service, absorbed capacity-sync :8083) and DB checks ---
     def capacity_sync(self):
-        resp = Client(timeout=300).json_call("POST", f"{self.t.sync_url}/sync/run")
+        resp = Client(timeout=300).json_call("POST", f"{self.t.sync_url}/api/v1/reconciler/runs")
         return {"request": {"channel": "sync", "method": "POST", "path": "/sync/run"}, "response": _api_response(resp)}
 
     def seat_drift(self):

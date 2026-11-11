@@ -13,6 +13,18 @@ Replacement types used in the last column:
 
 Transaction and lock defaults: EF6 reads run outside any explicit transaction at READ COMMITTED with shared locks released per statement and no hints. Spring `@Transactional` methods run at READ COMMITTED with no lock hints (HB-29). No caller uses `UPDLOCK`/`HOLDLOCK`; only the procs do (`020:34`, `021:26`, `022:25`).
 
+## Phase 2 / S5 status
+
+Rewired or retired in S5 (rows dropped from `services/scheduling-contract-tests/src/test/resources/inventory-guard.psv`):
+
+| Rows | Now |
+|---|---|
+| RS-01, RS-03, RS-06 | results-service `SchedulingClient`: `GET /bookings/{id}`, `GET /bookings?candidateNumber&sessionId&status=BOOKED,ATTENDED&sort=bookingId,desc&limit=1` |
+| RS-02 | `POST /bookings/{id}/attendance` |
+| RS-05 | `dbo.Result.SessionStartsAt` (results-local, `db/schema/016`); `FK_Result_Booking` / `FK_Result_Session` dropped (`db/schema/017`) |
+| P-E01, BA-17, BA-18 | `GET /eligibility/retake?policy=PORTAL_CALENDAR_DAYS|PARTNER_WORKING_DAYS` (`docs/to-be/adr-001-retake-eligibility-and-attendance.md`) |
+| CS-01..CS-03 | capacity-sync retired; scheduling-service seat reconciler (`services/capacity-sync/README.md`) |
+
 ## 1. Portal (.NET 4.8, EF6): `AssessmentDelivery.*`
 
 The EF model (`AssessmentDelivery.Data/DataClasses/AssessmentDeliveryDb.cs`) maps every table as a `DbSet`, so any LINQ can reach the scheduling tables. The portal has no raw SQL except the proc calls below. `AssessmentDelivery.Web` controllers and `AssessmentDelivery.Business` contain no data access (grep for `_db.`, `SqlQuery`, `ExecuteSql`, `SqlConnection`), and `Business` only evaluates rows the services pass in (`SeatCounter`, `RetakeRules`, `RosterCsv`).
@@ -133,3 +145,11 @@ No contradiction was found in the matrix's other cells: portal R on Room/Candida
 | booking-api | partner session search (all statuses), session detail with bookedSeats, booking detail, candidate bookings, book/cancel/reschedule (PARTNER semantics) | same as portal, with `channel=PARTNER` |
 | results-service | booking lookup by id and by (candidateNumber, sessionId), mark attended | `GET /bookings/{id}`, `GET /bookings?candidateNumber&sessionId&status`, `POST /bookings/{id}/attendance` |
 | retake eligibility (both) | `Result` + `Exam` (not scheduling-owned) + `ExamSession.StartsAt` | `Result.SessionStartsAt` denormalised at ingest from the `GET /bookings/{id}` response; see contract section 7 |
+
+## 8. Phase 2 status: portal and booking-api rewired (Session 4)
+
+These rows no longer touch scheduling tables. They call scheduling-service over HTTP (portal: `AssessmentDelivery.Services/Scheduling/SchedulingClient.cs`, base URL `Scheduling.BaseUrl` in `Web.config`; booking-api: `client/SchedulingClient.java`, `scheduling.base-url`). Their tripwire rows were removed from `inventory-guard.psv` along with this change:
+
+- Portal booking: P-B01, P-B02, P-B06 to P-B13 (`BookingService.cs`). Exam, TestCenter and Candidate reads stay local reference-data reads. Retake eligibility is still checked in the portal before book/reschedule (HB-08).
+- Portal admin: P-A01, P-A03 to P-A08 (`AdminService.cs`). `ListCapacitySyncRuns` still reads the legacy AuditLog until Session 5 retires capacity-sync.
+- booking-api: BA-01, BA-02, BA-07 to BA-09, BA-11, BA-14 to BA-16 (`BookingDao.java`, `SessionDao.java`, `SeatCounter.java` deleted). See `docs/to-be/partner-booking-path-change.md`.

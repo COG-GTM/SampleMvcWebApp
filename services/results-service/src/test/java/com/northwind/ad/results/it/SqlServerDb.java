@@ -61,7 +61,8 @@ public final class SqlServerDb {
             EnvironmentTestUtils.addEnvironment(ctx,
                     "spring.datasource.url=" + jdbcUrl(),
                     "spring.datasource.username=ad_app",
-                    "spring.datasource.password=Northw1nd!Dev2011");
+                    "spring.datasource.password=Northw1nd!Dev2011",
+                    "scheduling.base-url=http://localhost:${local.server.port}" + LegacyDbSchedulingStub.BASE);
         }
     }
 }
