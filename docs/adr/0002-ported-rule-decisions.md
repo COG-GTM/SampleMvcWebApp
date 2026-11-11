@@ -204,8 +204,9 @@ waitlisted are seated, nothing is waitlisted, the sync run is a no-op and there 
 
 **What may differ in the replay** (`characterization/modern-classification.yaml` restricts the
 ADR-APPROVED DIVERGENCE to these fields only): the status of the bookings the legacy run waitlisted, the
-waitlist rows themselves, and the session seat counters. Business fields and every other table still
-have to match.
+waitlist rows themselves (sessions 154 and 157), the session seat counters, and the drift counters that
+`db/checks/seat-drift.sql` returns after the workload and after the sync run. Every other business field
+and every other table still has to match.
 
 Transcripts: `mixed_traffic_then_capacity_sync`
 
