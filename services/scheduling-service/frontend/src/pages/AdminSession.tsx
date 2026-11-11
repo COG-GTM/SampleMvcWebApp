@@ -27,7 +27,7 @@ export default function AdminSession() {
         {stat('Booked', session.bookedSeats)}
         {stat('Available', session.seatsAvailable)}
         {stat('Accommodation used / avail.', `${session.accommodationUsed} / ${session.accommodationAvailable}`)}
-        {stat('Waitlist', session.waitlistCount)}
+        {stat('Waitlist', session.heldSeats ? `${session.waitlistCount} (${session.heldSeats} seat${session.heldSeats === 1 ? '' : 's'} offered)` : session.waitlistCount)}
       </div>
       <section className="card p-4">
         <h2 className="mb-3 font-semibold">Waitlist</h2>

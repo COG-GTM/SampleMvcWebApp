@@ -157,8 +157,10 @@ class SchedulingApiIT extends SqlServerTestBase {
 
         Map<String, Object> raised = http.exchange("/api/v2/sessions/154/capacity", HttpMethod.PUT,
                 new HttpEntity<>(Map.of("capacity", 12)), MAP).getBody();
-        assertThat(((Map<?, ?>) raised.get("session")).get("seatsAvailable")).isEqualTo(6);
-        assertThat(get("/api/v2/sessions/154")).containsEntry("waitlistCount", 3); // no auto-promotion (ODD-09)
+        // MBA-3829 / ADR 0005: 6 seats free up, 3 are held by offers to the waitlisted 7, 8, 9 (legacy ODD-09 promoted nobody)
+        assertThat(((Map<?, ?>) raised.get("session")).get("seatsAvailable")).isEqualTo(3);
+        assertThat(get("/api/v2/sessions/154")).containsEntry("waitlistCount", 3).containsEntry("heldSeats", 3);
+        assertThat(get("/api/v2/bookings/7")).containsEntry("status", "WAITLISTED").containsEntry("offerStatus", "PENDING");
 
         ResponseEntity<Map<String, Object>> neg = http.exchange("/api/v2/sessions/154/capacity", HttpMethod.PUT,
                 new HttpEntity<>(Map.of("capacity", -1)), MAP);

@@ -10,7 +10,8 @@ info:
     Every 4xx is an `ApiError`: `error` is the symbolic code, `message` is human readable, and `legacyCode` is
     `50000 + RAISERROR state` of the legacy procs (ODD-11, HB-14), e.g. `NO_ACCOMMODATION_SEAT` = 50003, or
     null when the rule never existed as a proc error. Malformed input (unreadable JSON, wrong path/param type)
-    answers `BAD_REQUEST` without `legacyCode`.
+    answers `BAD_REQUEST` without `legacyCode`. The offer operations (MBA-3829) answer `OFFER_NOT_FOUND` and
+    `OFFER_NOT_PENDING` as an `OfferError` (same shape).
 
     | error | HTTP | legacyCode |
     |---|---|---|
@@ -30,6 +31,8 @@ info:
     | `DIFFERENT_EXAM` | 409 | 50006 |
     | `SAME_SESSION` | 409 | null |
     | `NOT_ELIGIBLE` | 409 | null |
+    | `OFFER_NOT_FOUND` | 404 | null |
+    | `OFFER_NOT_PENDING` | 409 | null |
   title: Northwind Scheduling API
   version: 2.0.0
 servers:
@@ -39,6 +42,7 @@ tags:
 - name: Bookings
 - name: Candidates
 - name: Capacity
+- name: Offers
 - name: Reference data
 - name: Sessions
 paths:
@@ -188,7 +192,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
           description: "Rule violation: NOT_CANCELLABLE"
-      summary: "Cancel a booking (frees the seat, nobody is promoted, ODD-09)"
+      summary: "Cancel a booking (frees the seat; it is offered to the next eligible\
+        \ waitlist entry, MBA-3829 / ADR 0005)"
       tags:
       - Bookings
     get:
@@ -641,6 +646,172 @@ paths:
       summary: List published exams
       tags:
       - Reference data
+  /api/v2/offers/{offerId}:
+    get:
+      operationId: offer
+      parameters:
+      - in: path
+        name: offerId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Failed to convert value of type 'java.lang.String' to
+                      required type 'int'
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: BAD_REQUEST"
+        "404":
+          content:
+            application/json:
+              examples:
+                OFFER_NOT_FOUND:
+                  summary: OFFER_NOT_FOUND
+                  value:
+                    error: OFFER_NOT_FOUND
+                    legacyCode: null
+                    message: Offer 99999 not found
+              schema:
+                $ref: "#/components/schemas/OfferError"
+          description: "Not found: OFFER_NOT_FOUND"
+      summary: Get a waitlist seat offer
+      tags:
+      - Offers
+  /api/v2/offers/{offerId}/accept:
+    post:
+      operationId: acceptOffer
+      parameters:
+      - in: path
+        name: offerId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferResultDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Failed to convert value of type 'java.lang.String' to
+                      required type 'int'
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: BAD_REQUEST"
+        "404":
+          content:
+            application/json:
+              examples:
+                OFFER_NOT_FOUND:
+                  summary: OFFER_NOT_FOUND
+                  value:
+                    error: OFFER_NOT_FOUND
+                    legacyCode: null
+                    message: Offer 99999 not found
+              schema:
+                $ref: "#/components/schemas/OfferError"
+          description: "Not found: OFFER_NOT_FOUND"
+        "409":
+          content:
+            application/json:
+              examples:
+                OFFER_NOT_PENDING:
+                  summary: OFFER_NOT_PENDING
+                  value:
+                    error: OFFER_NOT_PENDING
+                    legacyCode: null
+                    message: Offer 7 is EXPIRED
+              schema:
+                $ref: "#/components/schemas/OfferError"
+          description: "Rule violation: OFFER_NOT_PENDING"
+      summary: "Accept a pending seat offer (the waitlisted booking becomes BOOKED,\
+        \ later waitlist positions move up)"
+      tags:
+      - Offers
+  /api/v2/offers/{offerId}/decline:
+    post:
+      operationId: declineOffer
+      parameters:
+      - in: path
+        name: offerId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferResultDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Failed to convert value of type 'java.lang.String' to
+                      required type 'int'
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: BAD_REQUEST"
+        "404":
+          content:
+            application/json:
+              examples:
+                OFFER_NOT_FOUND:
+                  summary: OFFER_NOT_FOUND
+                  value:
+                    error: OFFER_NOT_FOUND
+                    legacyCode: null
+                    message: Offer 99999 not found
+              schema:
+                $ref: "#/components/schemas/OfferError"
+          description: "Not found: OFFER_NOT_FOUND"
+        "409":
+          content:
+            application/json:
+              examples:
+                OFFER_NOT_PENDING:
+                  summary: OFFER_NOT_PENDING
+                  value:
+                    error: OFFER_NOT_PENDING
+                    legacyCode: null
+                    message: Offer 7 is EXPIRED
+              schema:
+                $ref: "#/components/schemas/OfferError"
+          description: "Rule violation: OFFER_NOT_PENDING"
+      summary: "Decline a pending seat offer (the waitlisted booking is cancelled,\
+        \ the seat is offered to the next entry)"
+      tags:
+      - Offers
   /api/v2/sessions/{sessionId}:
     get:
       operationId: session
@@ -977,6 +1148,22 @@ components:
           type: string
           example: PX-3008
           nullable: true
+        offerExpiresAt:
+          type: string
+          description: "Server-local clock of the system that recorded it: the scheduling\
+            \ service for new writes, the legacy estate for imported rows (not centre-local;\
+            \ docs/as-is/smoke-test.md, HB-25, MR-06), ISO-8601 without offset"
+          example: 2026-11-11T09:15:00
+          nullable: true
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
+        offerId:
+          type: integer
+          format: int32
+          example: 7
+          nullable: true
+        offerStatus:
+          type: string
+          nullable: true
         rescheduledFrom:
           type: integer
           format: int32
@@ -1017,6 +1204,9 @@ components:
       - examCode
       - examTitle
       - externalRef
+      - offerExpiresAt
+      - offerId
+      - offerStatus
       - rescheduledFrom
       - sessionId
       - sessionStartsAt
@@ -1243,6 +1433,109 @@ components:
       - examCode
       - retakeWaitDays
       - title
+    OfferDto:
+      type: object
+      properties:
+        bookingId:
+          type: integer
+          format: int32
+          example: 1201
+        candidateNumber:
+          type: string
+          example: NW00000920
+        expiresAt:
+          type: string
+          description: "Server-local clock of the system that recorded it: the scheduling\
+            \ service for new writes, the legacy estate for imported rows (not centre-local;\
+            \ docs/as-is/smoke-test.md, HB-25, MR-06), ISO-8601 without offset"
+          example: 2026-11-11T09:15:00
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
+        offerId:
+          type: integer
+          format: int32
+          example: 7
+        offeredAt:
+          type: string
+          description: "Server-local clock of the system that recorded it: the scheduling\
+            \ service for new writes, the legacy estate for imported rows (not centre-local;\
+            \ docs/as-is/smoke-test.md, HB-25, MR-06), ISO-8601 without offset"
+          example: 2026-11-10T09:15:00
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
+        position:
+          type: integer
+          format: int32
+          example: 1
+        resolvedAt:
+          type: string
+          description: "Server-local clock of the system that recorded it: the scheduling\
+            \ service for new writes, the legacy estate for imported rows (not centre-local;\
+            \ docs/as-is/smoke-test.md, HB-25, MR-06), ISO-8601 without offset"
+          example: 2026-11-10T10:00:00
+          nullable: true
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
+        sessionId:
+          type: integer
+          format: int32
+          example: 154
+        status:
+          type: string
+          enum:
+          - PENDING
+          - ACCEPTED
+          - DECLINED
+          - EXPIRED
+          - WITHDRAWN
+          example: PENDING
+      required:
+      - bookingId
+      - candidateNumber
+      - expiresAt
+      - offerId
+      - offeredAt
+      - position
+      - resolvedAt
+      - sessionId
+      - status
+    OfferError:
+      type: object
+      description: 404/409 body of the waitlist offer operations (MBA-3829)
+      properties:
+        error:
+          type: string
+          description: Symbolic error code (booking-api vocabulary)
+          enum:
+          - OFFER_NOT_FOUND
+          - OFFER_NOT_PENDING
+          example: OFFER_NOT_FOUND
+        legacyCode:
+          type: integer
+          format: int32
+          description: "50000 + legacy proc RAISERROR state (ODD-11): 50001..50006,\
+            \ see the table in the API description; null when the rule had no proc\
+            \ error. Present on /api/v2 rule errors, absent for BAD_REQUEST and on\
+            \ /api/v1."
+          nullable: true
+          example: null
+        message:
+          type: string
+          description: Human-readable message
+          example: Offer 7 is EXPIRED
+      required:
+      - error
+      - message
+    OfferResultDto:
+      type: object
+      properties:
+        booking:
+          $ref: "#/components/schemas/BookingDto"
+        offer:
+          $ref: "#/components/schemas/OfferDto"
+        session:
+          $ref: "#/components/schemas/SessionDto"
+      required:
+      - booking
+      - offer
+      - session
     RescheduleRequest:
       type: object
       properties:
@@ -1310,6 +1603,10 @@ components:
         examTitle:
           type: string
           example: Registered Nurse Part 1
+        heldSeats:
+          type: integer
+          format: int32
+          example: 1
         roomName:
           type: string
           example: Room North
@@ -1347,6 +1644,7 @@ components:
       - centerName
       - examCode
       - examTitle
+      - heldSeats
       - roomName
       - seatsAvailable
       - sessionId
@@ -1377,15 +1675,35 @@ components:
         candidateNumber:
           type: string
           example: NW00000920
+        offerExpiresAt:
+          type: string
+          description: "Server-local clock of the system that recorded it: the scheduling\
+            \ service for new writes, the legacy estate for imported rows (not centre-local;\
+            \ docs/as-is/smoke-test.md, HB-25, MR-06), ISO-8601 without offset"
+          example: 2026-11-11T09:15:00
+          nullable: true
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
+        offerId:
+          type: integer
+          format: int32
+          example: 7
+          nullable: true
+        offerStatus:
+          type: string
+          nullable: true
         position:
           type: integer
           format: int32
+          example: 1
       required:
       - accommodationCode
       - addedAt
       - bookingId
       - candidateName
       - candidateNumber
+      - offerExpiresAt
+      - offerId
+      - offerStatus
       - position
   securitySchemes:
     serviceToken:

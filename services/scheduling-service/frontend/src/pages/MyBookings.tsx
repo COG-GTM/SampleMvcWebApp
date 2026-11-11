@@ -17,6 +17,7 @@ export default function MyBookings() {
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [toCancel, setToCancel] = useState<Booking | null>(null);
+  const [busyOffer, setBusyOffer] = useState<number | null>(null);
 
   const load = useCallback((n: string) => {
     if (!n) return;
@@ -47,6 +48,23 @@ export default function MyBookings() {
     }
   }
 
+  async function respond(b: Booking, accept: boolean) {
+    if (b.offerId == null) return;
+    setBusyOffer(b.offerId);
+    try {
+      const r = accept ? await api.acceptOffer(b.offerId) : await api.declineOffer(b.offerId);
+      toast('success', accept ? `Seat accepted · booking #${r.booking.bookingId} is BOOKED` : `Offer declined`,
+        accept ? `${b.examCode} on ${fmtDateTime(b.sessionStartsAt)}` : 'You have left the waitlist; the seat goes to the next candidate.');
+      load(candidate);
+    } catch (e) {
+      toast('error', accept ? 'Could not accept the offer' : 'Could not decline the offer', (e as ApiError).message);
+      load(candidate);
+    } finally {
+      setBusyOffer(null);
+    }
+  }
+
+  const pendingOffer = (b: Booking) => b.status === 'WAITLISTED' && b.offerStatus === 'PENDING' && b.offerId != null;
   const active = (b: Booking) => b.status === 'BOOKED' || b.status === 'WAITLISTED';
   return (
     <>
@@ -77,6 +95,16 @@ export default function MyBookings() {
                   <p className="text-sm text-slate-600">{b.examTitle}</p>
                   <p className="text-sm text-slate-500">{fmtDateTime(b.sessionStartsAt)} · {b.centerName} · Session #{b.sessionId} · Booking #{b.bookingId}</p>
                   {b.cancelReason && <p className="text-xs text-slate-400">{b.cancelReason}</p>}
+                  {pendingOffer(b) && (
+                    <div className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900" data-testid={`offer-${b.bookingId}`}>
+                      <p className="font-semibold">A seat is being held for you</p>
+                      <p>Accept before {b.offerExpiresAt ? fmtDateTime(b.offerExpiresAt) : 'the offer expires'} or it passes to the next candidate.</p>
+                      <div className="mt-2 flex gap-2">
+                        <button className="btn-primary" disabled={busyOffer === b.offerId} onClick={() => respond(b, true)} data-testid={`accept-offer-${b.bookingId}`}>Accept seat</button>
+                        <button className="btn-secondary" disabled={busyOffer === b.offerId} onClick={() => respond(b, false)} data-testid={`decline-offer-${b.bookingId}`}>Decline</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {active(b) && (
                   <div className="flex gap-2">
@@ -91,7 +119,7 @@ export default function MyBookings() {
       <Modal open={!!toCancel} title="Cancel this booking?" onClose={() => setToCancel(null)}>
         {toCancel && (
           <>
-            <p className="text-sm text-slate-600">Booking #{toCancel.bookingId} for {toCancel.examCode} on {fmtDateTime(toCancel.sessionStartsAt)} will be cancelled and the seat released. Waitlisted candidates are not promoted automatically.</p>
+            <p className="text-sm text-slate-600">Booking #{toCancel.bookingId} for {toCancel.examCode} on {fmtDateTime(toCancel.sessionStartsAt)} will be cancelled and the seat released. If anyone is waitlisted, the seat is offered to the next eligible candidate.</p>
             <div className="mt-5 flex justify-end gap-2">
               <button className="btn-secondary" onClick={() => setToCancel(null)}>Keep booking</button>
               <button className="btn-danger" onClick={() => cancel(toCancel)} data-testid="confirm-cancel">Yes, cancel</button>

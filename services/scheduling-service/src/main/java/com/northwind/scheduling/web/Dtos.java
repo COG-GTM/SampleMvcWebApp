@@ -27,11 +27,12 @@ public final class Dtos {
     public record SessionDto(int sessionId, String examCode, String examTitle, String centerCode, String centerName,
                              String roomName, LocalDateTime startsAt, String status, int capacity,
                              int accommodationCapacity, int bookedSeats, int seatsAvailable, int accommodationUsed,
-                             int accommodationAvailable, int waitlistCount) {
+                             int accommodationAvailable, int waitlistCount, int heldSeats) {
         static SessionDto of(Rows.Session s) {
             return new SessionDto(s.sessionId(), s.examCode(), s.examTitle(), s.centerCode(), s.centerName(), s.roomName(),
                     s.startsAt(), s.status().name(), s.capacity(), s.accommodationCapacity(), s.occupied(),
-                    s.seats().seatsAvailable(), s.accommodationUsed(), s.seats().accommodationAvailable(), s.waitlisted());
+                    s.seats().seatsAvailable(), s.accommodationUsed(), s.seats().accommodationAvailable(), s.waitlisted(),
+                    s.held());
         }
     }
 
@@ -39,13 +40,29 @@ public final class Dtos {
                              String examTitle, String centerCode, String centerName, LocalDateTime sessionStartsAt,
                              String status, String accommodationCode, String channel, String externalRef,
                              LocalDateTime bookedAt, LocalDateTime cancelledAt, String cancelReason,
-                             Integer waitlistPosition, Integer rescheduledFrom) {
+                             Integer waitlistPosition, Integer rescheduledFrom, Integer offerId, String offerStatus,
+                             LocalDateTime offerExpiresAt) {
         static BookingDto of(Rows.Booking b) {
+            Rows.OfferRef o = b.offer();
             return new BookingDto(b.bookingId(), b.sessionId(), b.candidateNumber(), b.candidateName(), b.examCode(),
                     b.examTitle(), b.centerCode(), b.centerName(), b.sessionStartsAt(), b.status().name(),
                     b.accommodationCode(), b.channel(), b.externalRef(), b.bookedAt(), b.cancelledAt(), b.cancelReason(),
-                    b.waitlistPosition(), b.rescheduledFrom());
+                    b.waitlistPosition(), b.rescheduledFrom(), o == null ? null : o.offerId(),
+                    o == null ? null : o.status(), o == null ? null : o.expiresAt());
         }
+    }
+
+    /** MBA-3829: a seat offered to a waitlisted booking (ADR 0005). */
+    public record OfferDto(int offerId, int sessionId, int bookingId, String candidateNumber, int position, String status,
+                           LocalDateTime offeredAt, LocalDateTime expiresAt, LocalDateTime resolvedAt) {
+        static OfferDto of(Rows.Offer o) {
+            return new OfferDto(o.offerId(), o.sessionId(), o.bookingId(), o.candidateNumber(), o.position(), o.status(),
+                    o.offeredAt(), o.expiresAt(), o.resolvedAt());
+        }
+    }
+
+    /** POST /offers/{offerId}/accept|decline: the resolved offer plus the live booking and session. */
+    public record OfferResultDto(OfferDto offer, BookingDto booking, SessionDto session) {
     }
 
     /** POST /bookings and /reschedule: legacy {bookingId, status} plus the live session and booking. */
@@ -69,10 +86,13 @@ public final class Dtos {
     }
 
     public record WaitlistEntryDto(int position, int bookingId, String candidateNumber, String candidateName,
-                                   String accommodationCode, LocalDateTime addedAt) {
+                                   String accommodationCode, LocalDateTime addedAt, Integer offerId, String offerStatus,
+                                   LocalDateTime offerExpiresAt) {
         static WaitlistEntryDto of(Rows.WaitlistEntry w) {
+            Rows.OfferRef o = w.offer();
             return new WaitlistEntryDto(w.position(), w.bookingId(), w.candidateNumber(), w.candidateName(),
-                    w.accommodationCode(), w.addedAt());
+                    w.accommodationCode(), w.addedAt(), o == null ? null : o.offerId(), o == null ? null : o.status(),
+                    o == null ? null : o.expiresAt());
         }
     }
 

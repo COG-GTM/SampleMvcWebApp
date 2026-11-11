@@ -19,7 +19,7 @@
     "bookingId": { "type": "integer", "minimum": 1 },
     "previousStatus": { "$ref": "#/$defs/bookingStatus" },
     "newStatus": { "$ref": "#/$defs/bookingStatus" },
-    "impact": { "enum": ["STATUS_CHANGED", "SEAT_CONFIRMED"], "description": "STATUS_CHANGED: previousStatus != newStatus. SEAT_CONFIRMED: capacity reduced, booking stays BOOKED" }
+    "impact": { "enum": ["STATUS_CHANGED", "SEAT_OFFERED", "OFFER_WITHDRAWN", "SEAT_CONFIRMED"], "description": "STATUS_CHANGED: previousStatus != newStatus. SEAT_OFFERED / OFFER_WITHDRAWN: waitlisted booking got / lost a pending seat offer (stays WAITLISTED). SEAT_CONFIRMED: capacity reduced, booking stays BOOKED" }
   },
   "$defs": {
     "bookingStatus": { "enum": ["BOOKED", "WAITLISTED", "CANCELLED", "ATTENDED"] }

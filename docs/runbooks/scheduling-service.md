@@ -155,6 +155,24 @@ the same `event_seq` order, so they count towards outbox pending/lag like any ot
 or search the logs for `"event":"CandidateCapacityImpactNotified"`. The stub keeps them in memory only (lost on restart);
 there is no email/SMS yet.
 
+### Waitlist offers stuck or not made (MBA-3829)
+
+A seat freed in an `OPEN` session is offered to the next eligible waitlist entry and held while the offer is
+`PENDING` ([ADR 0005](../adr/0005-waitlist-auto-offer.md)). Config: `scheduling.waitlist.offer-ttl`
+(`SCHEDULING_WAITLIST_OFFER_TTL`, default `PT24H`), `scheduling.waitlist.expiry-enabled` (`..._EXPIRY_ENABLED`,
+default `true`), `scheduling.waitlist.expiry-poll` (`..._EXPIRY_POLL`, default `PT1M`).
+
+- Live offers: `SELECT offer_id, session_id, booking_id, position, offered_at, expires_at FROM seat_offer WHERE status =
+  'PENDING' ORDER BY expires_at` in `Scheduling`. `GET /api/v2/sessions/{id}` shows `heldSeats`; the waitlist endpoint
+  shows `offerStatus` per entry.
+- Offers past `expires_at` still `PENDING`: the expiry job is off or failing. Check `expiry-enabled` and WARN logs
+  `offer expiry failed`. Accepting such an offer already answers `409 OFFER_NOT_PENDING`, so nobody gets an expired
+  seat; the job releases it on its next pass.
+- Seat free but nobody offered: the waitlist only holds ET25/ET50 entries and no accommodation seat is free (they are
+  skipped, by design), or the session is not `OPEN`.
+- Offers do not change legacy until accepted: the offered booking stays `WAITLISTED` in `dbo.Booking`, and
+  `SeatsAvailable` counts the held seat as free there. Reconciliation is expected to stay at 0 during offers.
+
 ### Non-zero reconciliation report
 
 `GET /internal/reconciliation` (or `java -jar target/scheduling-service-*.jar reconcile`, exit 0 only when

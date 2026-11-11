@@ -4,7 +4,7 @@ package com.northwind.routing.route;
 public record Lookup(Kind kind, String value) {
 
     public enum Kind {
-        CENTER_CODE("centerCode"), CENTER_ID("centerId"), SESSION_ID("sessionId"), BOOKING_ID("bookingId");
+        CENTER_CODE("centerCode"), CENTER_ID("centerId"), SESSION_ID("sessionId"), BOOKING_ID("bookingId"), OFFER_ID("offerId");
 
         private final String param;
 

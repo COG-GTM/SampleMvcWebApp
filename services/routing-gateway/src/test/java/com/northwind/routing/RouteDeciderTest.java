@@ -95,5 +95,10 @@ class RouteDeciderTest {
         assertThat(ApiRoutes.matchV2Write("POST", "/api/v2/bookings").orElseThrow().op()).isEqualTo(ApiRoutes.V2Op.BOOK);
         assertThat(ApiRoutes.matchV2Write("PUT", "/api/v2/sessions/154/capacity").orElseThrow().id()).isEqualTo("154");
         assertThat(ApiRoutes.matchV2Write("GET", "/api/v2/bookings/9")).isEmpty();
+        assertThat(ApiRoutes.matchV2Write("POST", "/api/v2/offers/7/accept").orElseThrow())
+                .isEqualTo(new ApiRoutes.V2Write(ApiRoutes.V2Op.OFFER, "7"));
+        assertThat(ApiRoutes.matchV2Write("POST", "/api/v2/offers/7/decline").orElseThrow().op()).isEqualTo(ApiRoutes.V2Op.OFFER);
+        assertThat(ApiRoutes.matchV2Write("POST", "/api/v2/Offers/7/Accept/").orElseThrow().id()).isEqualTo("7");
+        assertThat(ApiRoutes.matchV2Write("GET", "/api/v2/offers/7")).isEmpty();
     }
 }

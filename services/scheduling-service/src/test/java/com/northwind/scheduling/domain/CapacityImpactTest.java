@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
@@ -74,6 +75,30 @@ class CapacityImpactTest {
 
         assertThat(CapacityImpact.affected(4, 5, before, after)).containsExactly(
                 new Affected(5, "NW00000905", BookingStatus.WAITLISTED, BookingStatus.BOOKED, Kind.STATUS_CHANGED));
+    }
+
+    @Test
+    void increaseThatMakesSeatOffersNotifiesTheOfferedWaitlistedCandidatesOnly() {
+        List<BookingState> state = with(with(booked(5), 4, BookingStatus.WAITLISTED), 5, BookingStatus.WAITLISTED);
+
+        assertThat(CapacityImpact.affected(3, 5, state, state, Set.of(), Set.of(4, 5)))
+                .containsExactly(new Affected(4, "NW00000904", BookingStatus.WAITLISTED, BookingStatus.WAITLISTED, Kind.SEAT_OFFERED),
+                        new Affected(5, "NW00000905", BookingStatus.WAITLISTED, BookingStatus.WAITLISTED, Kind.SEAT_OFFERED));
+        // an offer that was already pending is not news
+        assertThat(CapacityImpact.affected(3, 4, state, state, Set.of(4), Set.of(4))).isEmpty();
+    }
+
+    @Test
+    void reductionThatWithdrawsOffersNotifiesWithdrawalsDemotionsAndConfirmations() {
+        List<BookingState> before = with(booked(4), 4, BookingStatus.WAITLISTED);
+        List<BookingState> after = with(before, 3, BookingStatus.WAITLISTED);
+
+        assertThat(CapacityImpact.affected(4, 2, before, after, Set.of(4), Set.of()))
+                .extracting(Affected::bookingId, Affected::kind)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(1, Kind.SEAT_CONFIRMED),
+                        org.assertj.core.groups.Tuple.tuple(2, Kind.SEAT_CONFIRMED),
+                        org.assertj.core.groups.Tuple.tuple(3, Kind.STATUS_CHANGED),
+                        org.assertj.core.groups.Tuple.tuple(4, Kind.OFFER_WITHDRAWN));
     }
 
     @Test

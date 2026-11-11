@@ -3,7 +3,7 @@
 // accept fails `tsc`.
 import type { components } from './generated/openapi';
 import type {
-  Booking, BookingResult, Candidate, CapacityResult, Center, Eligibility, Exam, Session, WaitlistEntry,
+  Booking, BookingResult, Candidate, CapacityResult, Center, Eligibility, Exam, Offer, OfferResult, Session, WaitlistEntry,
 } from './api';
 
 export type Schemas = components['schemas'];
@@ -21,7 +21,10 @@ export type ResponseContract = [
   Accepts<Candidate, Schemas['CandidateDto']>,
   Accepts<Eligibility, Schemas['EligibilityDto']>,
   Accepts<CapacityResult, Schemas['CapacityResultDto']>,
+  Accepts<Offer, Schemas['OfferDto']>,
+  Accepts<OfferResult, Schemas['OfferResultDto']>,
   Accepts<{ error: string; message: string; legacyCode?: number | null }, Schemas['ApiError']>,
+  Accepts<{ error: string; message: string; legacyCode?: number | null }, Schemas['OfferError']>,
 ];
 
 export type BookRequest = Schemas['BookRequest'];

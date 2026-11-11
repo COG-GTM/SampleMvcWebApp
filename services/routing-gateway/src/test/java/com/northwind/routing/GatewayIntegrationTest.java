@@ -55,8 +55,9 @@ class GatewayIntegrationTest {
         String u = c.uri();
         if (u.startsWith("/api/v2/internal/routing/resolve")) {
             String center = u.contains("sessionId=154") || u.contains("bookingId=5000000") || u.contains("centerId=1&") || u.endsWith("centerId=1")
-                    || u.contains("centerCode=BOS01") ? "BOS01"
-                    : u.contains("sessionId=200") || u.contains("bookingId=1200") || u.contains("centerCode=CHI01") ? "CHI01"
+                    || u.contains("centerCode=BOS01") || u.endsWith("offerId=7") ? "BOS01"
+                    : u.contains("sessionId=200") || u.contains("bookingId=1200") || u.contains("centerCode=CHI01")
+                    || u.endsWith("offerId=8") ? "CHI01"
                     : u.contains("centerCode=SEA01") ? "SEA01" : null;
             return center == null ? Stub.Answer.json(404, "{\"error\":\"SESSION_NOT_FOUND\"}")
                     : Stub.Answer.json(200, "{\"centerCode\":\"" + center + "\",\"target\":\"legacy\",\"reason\":\"x\"}");
@@ -71,6 +72,9 @@ class GatewayIntegrationTest {
         if (c.method().equals("DELETE") && u.startsWith("/api/v2/bookings/50000001")) {
             return Stub.Answer.json(200, "{\"bookingId\":50000001,\"sessionId\":154,\"candidateNumber\":\"NW00000901\","
                     + "\"candidateName\":\"A\",\"status\":\"CANCELLED\",\"channel\":\"PARTNER\",\"bookedAt\":\"2026-11-10T08:00:00\"}");
+        }
+        if (c.method().equals("POST") && u.startsWith("/api/v2/offers/")) {
+            return Stub.Answer.json(200, "{\"offer\":{\"offerId\":7,\"status\":\"ACCEPTED\"}}");
         }
         if (u.startsWith("/api/v2/centers/BOS01/sessions")) {
             return Stub.Answer.json(200, "[{\"sessionId\":154,\"centerCode\":\"BOS01\",\"startsAt\":\"2026-11-12T09:00:00\",\"waitlistCount\":0}]");
@@ -238,6 +242,22 @@ class GatewayIntegrationTest {
                 .expectStatus().isCreated().expectHeader().valueEquals("X-Route", "modern");
         web.put().uri("/api/v2/sessions/200/capacity").contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(Map.of("capacity", 5)).exchange().expectStatus().isForbidden();
+    }
+
+    @Test
+    void offerAcceptAndDeclineAreGuardedByTheOffersCentre() {
+        web.post().uri("/api/v2/offers/7/accept").exchange()
+                .expectStatus().isOk().expectHeader().valueEquals("X-Route", "modern")
+                .expectBody().jsonPath("$.offer.status").isEqualTo("ACCEPTED");
+        web.post().uri("/api/v2/offers/8/accept").exchange()
+                .expectStatus().isForbidden().expectBody().jsonPath("$.error").isEqualTo("CENTER_NOT_MODERN");
+        web.post().uri("/api/v2/offers/8/decline").exchange()
+                .expectStatus().isForbidden().expectBody().jsonPath("$.error").isEqualTo("CENTER_NOT_MODERN");
+        web.post().uri("/api/v2/offers/999/decline").exchange()
+                .expectStatus().isForbidden().expectBody().jsonPath("$.error").isEqualTo("CENTER_NOT_MODERN")
+                .jsonPath("$.message").value(m -> assertThat((String) m).contains("could not be resolved"));
+        assertThat(SCHEDULING.calls("POST", "/api/v2/offers/8")).isEmpty();
+        assertThat(SCHEDULING.calls("POST", "/api/v2/offers/999")).isEmpty();
     }
 
     @Test

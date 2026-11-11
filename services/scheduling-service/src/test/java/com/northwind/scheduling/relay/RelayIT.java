@@ -135,6 +135,61 @@ class RelayIT {
 
     @Test
     @Order(5)
+    void waitlistOfferCycleReachesLegacyAndReconcilesToZero() throws SQLException {
+        // MBA-3829: a full OPEN session with three waitlisted candidates; offer -> accept, decline, expire
+        Integer session = scheduling.queryForObject("""
+                SELECT TOP 1 s.session_id FROM exam_session s
+                 WHERE s.status = 'OPEN' AND s.starts_at > '2026-11-15'
+                   AND NOT EXISTS (SELECT 1 FROM booking w WHERE w.session_id = s.session_id AND w.status = 'WAITLISTED')
+                   AND (SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id AND b.status = 'BOOKED'
+                          AND b.accommodation_code IS NULL) >= 3
+                   AND (SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id AND b.status IN ('BOOKED','ATTENDED'))
+                       >= CASE WHEN s.accommodation_capacity > 2 THEN s.accommodation_capacity ELSE 2 END
+                 ORDER BY s.session_id""", Integer.class);
+        int occupied = scheduling.queryForObject("SELECT COUNT(*) FROM booking WHERE session_id = ? AND status IN ('BOOKED','ATTENDED')",
+                Integer.class, session);
+        service.changeCapacity(session, occupied, "full for offer test");
+        List<Integer> waitlisted = List.of("NW00000911", "NW00000912", "NW00000913").stream()
+                .map(c -> service.book(new SchedulingService.BookCommand(session, c, null, null, "PORTAL")).bookingId()).toList();
+        assertRelayed();
+        List<Integer> booked = scheduling.queryForList("SELECT booking_id FROM booking WHERE session_id = ? AND status = 'BOOKED' "
+                + "AND accommodation_code IS NULL ORDER BY booking_id", Integer.class, session);
+
+        service.cancel(booked.get(0), "offer test");
+        int offer = scheduling.queryForObject("SELECT offer_id FROM seat_offer WHERE booking_id = ? AND status = 'PENDING'",
+                Integer.class, waitlisted.get(0));
+        assertRelayed();
+        assertThat(legacyBooking(waitlisted.get(0))).containsEntry("Status", "WAITLISTED");
+
+        service.acceptOffer(offer);
+        assertRelayed();
+        assertThat(legacyBooking(waitlisted.get(0))).containsEntry("Status", "BOOKED");
+        assertThat(legacyInt("SELECT COUNT(*) FROM dbo.Waitlist WHERE BookingId = " + waitlisted.get(0))).isZero();
+        assertThat(legacyInt("SELECT Position FROM dbo.Waitlist WHERE BookingId = " + waitlisted.get(1))).isEqualTo(1);
+        assertThat(legacyInt("SELECT Position FROM dbo.Waitlist WHERE BookingId = " + waitlisted.get(2))).isEqualTo(2);
+
+        service.cancel(booked.get(1), "offer test");
+        service.declineOffer(scheduling.queryForObject("SELECT offer_id FROM seat_offer WHERE booking_id = ? AND status = 'PENDING'",
+                Integer.class, waitlisted.get(1)));
+        assertRelayed();
+        assertThat(legacyBooking(waitlisted.get(1))).containsEntry("Status", "CANCELLED");
+        assertThat(legacyInt("SELECT Position FROM dbo.Waitlist WHERE BookingId = " + waitlisted.get(2))).isEqualTo(1);
+
+        scheduling.update("UPDATE seat_offer SET expires_at = DATEADD(MINUTE, -1, SYSDATETIME()) WHERE status = 'PENDING'");
+        for (int id : service.dueOfferIds()) {
+            service.expireOffer(id);
+        }
+        assertRelayed();
+        assertThat(legacyBooking(waitlisted.get(2))).containsEntry("Status", "CANCELLED");
+        assertThat(legacyInt("SELECT COUNT(*) FROM dbo.Waitlist w JOIN dbo.Booking b ON b.BookingId = w.BookingId "
+                + "WHERE b.SessionId = " + session)).isZero();
+        assertThat(legacyInt("SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = " + session)).isEqualTo(1);
+        assertThat(scheduling.queryForList("SELECT DISTINCT event_type FROM outbox_event", String.class))
+                .contains("SeatOffered", "SeatOfferAccepted", "SeatOfferDeclined", "SeatOfferExpired");
+    }
+
+    @Test
+    @Order(6)
     void capacityNotificationsAreDeliveredOnceToTheStubAndNeverWrittenToLegacy() throws SQLException {
         int occupied = legacyInt("SELECT COUNT(*) FROM dbo.Booking WHERE SessionId = 154 AND Status IN ('BOOKED','ATTENDED')");
         Map<String, Integer> before = legacyCounts();

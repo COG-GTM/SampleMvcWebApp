@@ -122,6 +122,55 @@ class CapacityImpactNotificationIT extends SqlServerTestBase {
     }
 
     @Test
+    void capacityChangesNotifyOfferedAndWithdrawnCandidatesInTheSameTransactionAsTheOffers() {
+        // fixture session 163 (A4): capacity 3, BOOKED 10, 11, 12; WAITLISTED 13 at position 1; add a second waitlister
+        int w14 = (Integer) http.exchange("/api/v2/bookings", HttpMethod.POST,
+                new HttpEntity<>(Map.of("sessionId", 163, "candidateNumber", "NW00000914")), MAP).getBody().get("bookingId");
+        seqBefore = jdbc.queryForObject("SELECT MAX(event_seq) FROM outbox_event", Long.class);
+
+        Map<String, Object> up = capacity(163, 5);
+        assertThat(up).containsEntry("notifiedCandidates", 2);
+        List<OutboxEvent> upEvents = newEvents();
+        assertThat(upEvents).extracting(e -> e.type().name() + ":" + e.aggregateId()).containsExactly(
+                "CapacityChanged:163", "SeatOffered:13", "SeatOffered:" + w14,
+                "CandidateCapacityImpactNotified:13", "CandidateCapacityImpactNotified:" + w14);
+        assertThat(upEvents).filteredOn(e -> e.type() == OutboxEventType.CandidateCapacityImpactNotified)
+                .extracting(e -> e.payload().notification()).allSatisfy(n -> {
+                    assertThat(n.impact()).isEqualTo(com.northwind.scheduling.domain.CapacityImpact.Kind.SEAT_OFFERED);
+                    assertThat(n.previousStatus() + "->" + n.newStatus()).isEqualTo("WAITLISTED->WAITLISTED");
+                    assertThat(CandidateCapacityImpactSchemaTest.schema().validate(json.valueToTree(n))).isEmpty();
+                });
+        assertThat(jdbc.queryForList("SELECT booking_id FROM seat_offer WHERE session_id = 163 AND status = 'PENDING'",
+                Integer.class)).containsExactlyInAnyOrder(13, w14);
+
+        seqBefore = jdbc.queryForObject("SELECT MAX(event_seq) FROM outbox_event", Long.class);
+        Map<String, Object> down = capacity(163, 2);
+        @SuppressWarnings("unchecked")
+        List<Integer> demoted = (List<Integer>) down.get("demotedBookingIds");
+        assertThat(demoted).isNotEmpty();
+        List<Integer> stillBooked = jdbc.queryForList("SELECT booking_id FROM booking WHERE session_id = 163 AND status = 'BOOKED'",
+                Integer.class);
+        List<OutboxEvent> downEvents = newEvents();
+        assertThat(downEvents).extracting(e -> e.type().name()).first().isEqualTo("CapacityChanged");
+        assertThat(downEvents).filteredOn(e -> e.type() == OutboxEventType.SeatOfferWithdrawn)
+                .extracting(OutboxEvent::aggregateId).containsExactlyInAnyOrder(13, w14);
+        List<CandidateCapacityImpactNotified> sent = downEvents.stream()
+                .filter(e -> e.type() == OutboxEventType.CandidateCapacityImpactNotified)
+                .map(e -> e.payload().notification()).toList();
+        assertThat(down).containsEntry("notifiedCandidates", sent.size());
+        assertThat(sent).filteredOn(n -> n.impact() == com.northwind.scheduling.domain.CapacityImpact.Kind.STATUS_CHANGED)
+                .allSatisfy(n -> assertThat(n.previousStatus() + "->" + n.newStatus()).isEqualTo("BOOKED->WAITLISTED"))
+                .extracting(CandidateCapacityImpactNotified::bookingId).containsExactlyInAnyOrderElementsOf(demoted);
+        assertThat(sent).filteredOn(n -> n.impact() == com.northwind.scheduling.domain.CapacityImpact.Kind.OFFER_WITHDRAWN)
+                .extracting(CandidateCapacityImpactNotified::bookingId).containsExactlyInAnyOrder(13, w14);
+        assertThat(sent).filteredOn(n -> n.impact() == com.northwind.scheduling.domain.CapacityImpact.Kind.SEAT_CONFIRMED)
+                .extracting(CandidateCapacityImpactNotified::bookingId).containsExactlyInAnyOrderElementsOf(stillBooked);
+        assertThat(sent).hasSize(demoted.size() + 2 + stillBooked.size());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM seat_offer WHERE session_id = 163 AND status = 'PENDING'",
+                Integer.class)).isZero();
+    }
+
+    @Test
     void sameEventDeliveredTwiceIsRecordedOnce() {
         capacity(154, 7);   // 9 booked: bookings 8 and 9 demoted, 1-7 confirmed
         List<OutboxEvent> notifications = newEvents().stream()

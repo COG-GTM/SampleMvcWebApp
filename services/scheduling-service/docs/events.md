@@ -17,13 +17,15 @@ affected candidate, in the same transaction as the `CapacityChanged` event and t
 
 | impact | who | previousStatus -> newStatus |
 |---|---|---|
-| `STATUS_CHANGED` | every booking of the session whose status changed with the change: today the newest BOOKED bookings demoted to the waitlist when capacity drops below the booked seats ([HB-05](../../../docs/as-is/hidden-behaviours.md), [ODD-02](../../../characterization/ODDITIES.md)); a waitlist offer, once the A4 auto-offer exists, if it happens in this transaction | e.g. `BOOKED` -> `WAITLISTED` |
+| `STATUS_CHANGED` | every booking of the session whose status changed with the change: the newest BOOKED bookings demoted to the waitlist when capacity drops below the booked seats ([HB-05](../../../docs/as-is/hidden-behaviours.md), [ODD-02](../../../characterization/ODDITIES.md)) | e.g. `BOOKED` -> `WAITLISTED` |
+| `SEAT_OFFERED` | a waitlisted booking that the A4 auto-offer ([ADR 0005](../../../docs/adr/0005-waitlist-auto-offer.md)) offered a freed seat in this transaction, e.g. after a capacity increase; the booking stays `WAITLISTED` until the offer is accepted | `WAITLISTED` -> `WAITLISTED` |
+| `OFFER_WITHDRAWN` | a waitlisted booking whose pending offer was withdrawn because capacity dropped (`WaitlistOfferPolicy.withdrawExcess`); it keeps its waitlist place | `WAITLISTED` -> `WAITLISTED` |
 | `SEAT_CONFIRMED` | capacity reduced: every booking still `BOOKED` after the change ("capacity reduced, your seat is confirmed") | `BOOKED` -> `BOOKED` |
 
-A capacity increase changes no status (no waitlist promotion, [HB-06](../../../docs/as-is/hidden-behaviours.md),
-ODD-09), so it emits no event. Legacy never notified anyone ([MR-04](../../../docs/as-is/migration-risks.md)
+A capacity increase never promotes a waitlisted booking directly ([HB-06](../../../docs/as-is/hidden-behaviours.md),
+ODD-09); with A4 it may make seat offers (`SEAT_OFFERED`), otherwise it emits no event. Legacy never notified anyone ([MR-04](../../../docs/as-is/migration-risks.md)
 "who notifies demoted candidates?"); this event is the modern answer. `ATTENDED`, `CANCELLED` and `WAITLISTED`
-bookings whose status does not change are not notified.
+bookings whose status does not change are not notified, unless a seat offer was made or withdrawn for them.
 
 **Payload.** `outbox_event.payload` is the usual `OutboxPayload` (`type`, `detail`, `bookings: []`,
 `sessions: []`) plus `notification`, which is the event:
@@ -39,7 +41,7 @@ bookings whose status does not change are not notified.
 | `candidateNumber` | string | `NW` + 8 digits |
 | `bookingId` | int | affected booking |
 | `previousStatus` / `newStatus` | `BOOKED`, `WAITLISTED`, `CANCELLED`, `ATTENDED` | booking status before / after the change |
-| `impact` | `STATUS_CHANGED`, `SEAT_CONFIRMED` | derived from the statuses (see above) so consumers need not re-derive it |
+| `impact` | `STATUS_CHANGED`, `SEAT_OFFERED`, `OFFER_WITHDRAWN`, `SEAT_CONFIRMED` | why the candidate is notified (see above) |
 
 ```json
 {

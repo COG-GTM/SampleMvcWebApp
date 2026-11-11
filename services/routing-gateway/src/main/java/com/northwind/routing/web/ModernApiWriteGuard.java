@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * Keeps the modern side from writing seat inventory it does not own: a v2 write (book, cancel, reschedule,
- * capacity change) that reaches scheduling-service through the gateway is refused with
+ * capacity change, waitlist offer accept/decline) that reaches scheduling-service through the gateway is refused with
  * {@code 403 CENTER_NOT_MODERN} when its centre is not allow-listed. Bookings at or above the modern id floor
  * are always the modern side's own. Keys that cannot be resolved
  * (lookup outage or unknown id) are refused: the guard fails closed.
@@ -41,6 +41,7 @@ public class ModernApiWriteGuard {
             case BOOK -> denied(Lookup.of(Kind.SESSION_ID, number(body, "sessionId")));
             case CANCEL -> denied(Lookup.of(Kind.BOOKING_ID, write.id()));
             case CAPACITY -> denied(Lookup.of(Kind.SESSION_ID, write.id()));
+            case OFFER -> denied(Lookup.of(Kind.OFFER_ID, write.id()));
             case RESCHEDULE -> deniedReschedule(Lookup.of(Kind.BOOKING_ID, write.id()),
                     Lookup.of(Kind.SESSION_ID, number(body, "newSessionId")));
         };

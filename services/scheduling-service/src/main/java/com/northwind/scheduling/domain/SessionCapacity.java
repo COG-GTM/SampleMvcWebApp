@@ -10,14 +10,23 @@ package com.northwind.scheduling.domain;
  * @param accommodationUsed     BOOKED + ATTENDED bookings with ET25/ET50 (booking-api
  *                              BookingDao.countAccommodationSeatsUsed, usp_BookSeat)
  * @param waitlisted            WAITLISTED bookings
+ * @param heldSeats             seats held by PENDING waitlist offers (MBA-3829, ADR 0005)
+ * @param accommodationHeld     held seats whose offered booking is ET25/ET50 (holds an accommodation seat too)
  */
 public record SessionCapacity(int capacity, int accommodationCapacity, int occupiedSeats, int accommodationUsed,
-                              int waitlisted) {
+                              int waitlisted, int heldSeats, int accommodationHeld) {
 
     public SessionCapacity {
-        if (capacity < 0 || accommodationCapacity < 0 || occupiedSeats < 0 || accommodationUsed < 0 || waitlisted < 0) {
+        if (capacity < 0 || accommodationCapacity < 0 || occupiedSeats < 0 || accommodationUsed < 0 || waitlisted < 0
+                || heldSeats < 0 || accommodationHeld < 0) {
             throw new IllegalArgumentException("seat counts cannot be negative");
         }
+    }
+
+    /** No pending offers. */
+    public SessionCapacity(int capacity, int accommodationCapacity, int occupiedSeats, int accommodationUsed,
+                           int waitlisted) {
+        this(capacity, accommodationCapacity, occupiedSeats, accommodationUsed, waitlisted, 0, 0);
     }
 
     public int seatsAvailable() {
@@ -28,8 +37,9 @@ public record SessionCapacity(int capacity, int accommodationCapacity, int occup
         return formula.seatsAvailable(this);
     }
 
+    /** Free and not held by a pending offer: what a new booking or a new offer can take. */
     public int accommodationAvailable() {
-        return Math.max(0, accommodationCapacity - accommodationUsed);
+        return Math.max(0, accommodationCapacity - accommodationUsed - accommodationHeld);
     }
 
     public boolean isFull() {
@@ -38,7 +48,7 @@ public record SessionCapacity(int capacity, int accommodationCapacity, int occup
 
     /** True when an extra-time booking cannot get an accommodation seat (usp_BookSeat state 3). */
     public boolean accommodationExhausted() {
-        return accommodationUsed >= accommodationCapacity;
+        return accommodationUsed + accommodationHeld >= accommodationCapacity;
     }
 
     /** False only for ET25/ET50 once every accommodation seat is taken; SR, RB and no code never need one. */
