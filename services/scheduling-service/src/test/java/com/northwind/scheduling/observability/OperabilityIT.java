@@ -112,8 +112,8 @@ class OperabilityIT extends SqlServerTestBase {
         assertThat(ok.getHeaders().getFirst(RequestLoggingFilter.TRACE_HEADER)).matches("[0-9a-f]{16,32}");
         String bookingId = String.valueOf(ok.getBody().get("bookingId"));
         http.exchange("/api/v2/bookings/" + bookingId, HttpMethod.GET, null, MAP);
-        http.exchange("/api/v2/bookings/" + bookingId + "/reschedule", HttpMethod.POST,
-                new HttpEntity<>(Map.of("newSessionId", 155)), MAP);
+        assertThat(http.exchange("/api/v2/bookings/" + bookingId + "/reschedule", HttpMethod.POST,
+                new HttpEntity<>(Map.of("newSessionId", 163)), MAP).getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         List<JsonNode> lines = Arrays.stream(output.getOut().split("\\R")).filter(l -> l.startsWith("{"))
                 .map(OperabilityIT::parse).toList();
@@ -130,6 +130,7 @@ class OperabilityIT extends SqlServerTestBase {
 
         JsonNode moved = lines.stream().filter(n -> "reschedule".equals(n.path("operation").asText())
                 && bookingId.equals(n.path("bookingId").asText())).findFirst().orElseThrow();
+        assertThat(moved.path("outcome").asText()).isEqualTo("success");
         assertThat(moved.path("candidateNumber").asText()).isEqualTo("NW00000920");
 
         JsonNode post = lines.stream().filter(n -> "/api/v2/bookings".equals(n.path("path").asText())
