@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 /**
  * Cached client for scheduling-service's {@code /internal/routing/resolve}. Entries live for the response's
  * {@code Cache-Control: max-age} (contract: 60 s for center/session lookups); responses without max-age
- * (booking lookups) use {@code routing.resolve-default-ttl} (0 = not cached). 404 = "not known to modern"
+ * (booking lookups) use {@code routing.resolve-default-ttl} (0 = not cached). 404 (or 400 for an id scheduling-service cannot parse, e.g. beyond int) = "not known to modern"
  * and is never cached.
  */
 @Component
@@ -72,6 +72,7 @@ public class CenterResolver {
                     return Optional.ofNullable(entity.getBody());
                 })
                 .onErrorResume(WebClientResponseException.class, e -> e.getStatusCode() == HttpStatus.NOT_FOUND
+                                || e.getStatusCode() == HttpStatus.BAD_REQUEST
                         ? Mono.just(Optional.empty())
                         : Mono.error(new ResolveUnavailableException(key, e)))
                 .onErrorMap(e -> !(e instanceof ResolveUnavailableException), e -> new ResolveUnavailableException(key, e))

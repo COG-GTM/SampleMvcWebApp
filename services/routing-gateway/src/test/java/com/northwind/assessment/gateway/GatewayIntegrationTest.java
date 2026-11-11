@@ -286,6 +286,19 @@ class GatewayIntegrationTest {
     }
 
     @Test
+    void resolve400ForAnIdSchedulingServiceCannotParseMeansUnknownToModern() throws Exception {
+        setAllowList("BOS01");
+        scheduling.stubFor(get(urlPathEqualTo("/internal/routing/resolve")).withQueryParam("sessionId", equalTo("3000000000"))
+                .atPriority(0).willReturn(aResponse().withStatus(400).withHeader("Content-Type", "application/json")
+                        .withBody("{\"error\":\"VALIDATION\",\"message\":\"sessionId must be a number in the int range\"}")));
+        client.post().uri("/api/v1/bookings").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"sessionId\":3000000000,\"candidateNumber\":\"NW00000901\"}").exchange()
+                .expectHeader().valueEquals("X-Route", "legacy");
+        bookingApi.verify(1, postRequestedFor(urlPathEqualTo("/api/v1/bookings")));
+        client.get().uri("/api/v1/sessions/3000000000").exchange().expectHeader().valueEquals("X-Route", "legacy");
+    }
+
+    @Test
     void resolveResultsAreCachedPerCacheControl() throws Exception {
         setAllowList("BOS01");
         scheduling.stubFor(get(urlPathMatching("/api/v2/sessions/100")).willReturn(okJson("{\"sessionId\":100}")));
