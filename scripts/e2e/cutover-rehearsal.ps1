@@ -8,7 +8,7 @@
       1. legacy   : <LegacyRoot>\db\apply.ps1 builds the copy (backed up once), <LegacyRoot>\scripts\run-legacy.ps1 -SkipDb starts the legacy estate (procs + triggers);
                     cutover.py capture --target legacy
       2. migrated : restore the same copy from that backup, apply this branch's cutover migrations
-                    (db\schema\016, 017, db\seed\046), re-create Scheduling (db\bootstrap.sql), start scheduling-service
+                    (db\schema\016, 017, 018, db\seed\046), re-create Scheduling (db\bootstrap.sql), start scheduling-service
                     (initial import from the copy), then this checkout's portal / booking-api / results-service
                     (scripts\run-legacy.ps1 -SkipDb); cutover.py capture --target migrated
       3. cutover.py diff -> build\cutover\diff.json (exit 1 on any drift)
@@ -94,7 +94,7 @@ Invoke-Py @((Join-Path $PSScriptRoot 'cutover.py'), 'capture', '--target', 'lega
 # ---------------------------------------------------------------- 2. migrated
 Step 'migrated: restoring the same production copy'
 Sql @('-Q', "ALTER DATABASE AssessmentDelivery SET SINGLE_USER WITH ROLLBACK IMMEDIATE; RESTORE DATABASE AssessmentDelivery FROM DISK = N'$CopyFile' WITH REPLACE; ALTER DATABASE AssessmentDelivery SET MULTI_USER")
-foreach ($f in 'db\schema\016_result_session_starts_at.sql', 'db\schema\017_result_drop_scheduling_fks.sql', 'db\seed\046_seed_result_session_starts_at.sql') {
+foreach ($f in 'db\schema\016_result_session_starts_at.sql', 'db\schema\017_result_drop_scheduling_fks.sql', 'db\schema\018_result_attendance_pending.sql', 'db\seed\046_seed_result_session_starts_at.sql') {
     Step "cutover migration: $f"
     Sql @('-i', (Join-Path $root $f))
 }
