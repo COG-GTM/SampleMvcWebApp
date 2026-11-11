@@ -2,7 +2,7 @@
 and for scheduling-service itself. The portal and partner clients are the same for the legacy and the migrated
 stack: Phase 2 rewires what is behind them, not their HTTP surface."""
 import html
-import http.cookiejar
+from http.cookiejar import CookieJar
 import re
 import urllib.parse
 import urllib.request
@@ -40,7 +40,7 @@ class Portal:
         self.url = url.rstrip('/')
 
     def _form(self, get_path, post_path, fields):
-        jar = http.cookiejar.CookieJar()
+        jar = CookieJar()
         op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
         page = http('GET', self.url + get_path, opener=op)
         if page.status != 200:

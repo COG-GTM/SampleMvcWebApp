@@ -4,7 +4,6 @@ SQL goes through the same sqlcmd the other repo scripts use (go-sqlcmd on Window
 there is no driver to install. Output is parsed line by line with CR stripped, which is what breaks the bash
 mixed-traffic.sh on Git Bash.
 """
-import http.cookiejar
 import json
 import os
 import re
