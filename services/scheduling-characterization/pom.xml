@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Standalone Java 21 module: deliberately outside the Java 8 services/pom.xml aggregator. -->
+    <groupId>com.northwind.assessment</groupId>
+    <artifactId>scheduling-characterization</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>scheduling-characterization</name>
+    <description>Characterization suite (executable spec) for the legacy scheduling and seat-capacity procs/triggers.</description>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <junit.version>5.11.4</junit.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
+        <mssql-jdbc.version>12.8.1.jre11</mssql-jdbc.version>
+        <assertj.version>3.26.3</assertj.version>
+        <slf4j.version>2.0.16</slf4j.version>
+
+        <!-- Target under test: legacy (default). Phase 1 adds e.g. scheduling-service. -->
+        <target>legacy</target>
+        <!-- Repetitions for the concurrency scenarios. -->
+        <concurrency.iterations>25</concurrency.iterations>
+        <concurrency.threads>8</concurrency.threads>
+        <repo.root>${project.basedir}/../..</repo.root>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mssqlserver</artifactId>
+            <version>${testcontainers.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>${mssql-jdbc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <target>${target}</target>
+                        <repo.root>${repo.root}</repo.root>
+                        <concurrency.iterations>${concurrency.iterations}</concurrency.iterations>
+                        <concurrency.threads>${concurrency.threads}</concurrency.threads>
+                    </systemPropertyVariables>
+                    <trimStackTrace>false</trimStackTrace>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!-- mvn -B verify -Ptarget-legacy  ==  mvn -B verify -Dtarget=legacy -->
+        <profile>
+            <id>target-legacy</id>
+            <properties>
+                <target>legacy</target>
+            </properties>
+        </profile>
+    </profiles>
+</project>
