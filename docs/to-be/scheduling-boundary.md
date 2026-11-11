@@ -133,3 +133,11 @@ No contradiction was found in the matrix's other cells: portal R on Room/Candida
 | booking-api | partner session search (all statuses), session detail with bookedSeats, booking detail, candidate bookings, book/cancel/reschedule (PARTNER semantics) | same as portal, with `channel=PARTNER` |
 | results-service | booking lookup by id and by (candidateNumber, sessionId), mark attended | `GET /bookings/{id}`, `GET /bookings?candidateNumber&sessionId&status`, `POST /bookings/{id}/attendance` |
 | retake eligibility (both) | `Result` + `Exam` (not scheduling-owned) + `ExamSession.StartsAt` | `Result.SessionStartsAt` denormalised at ingest from the `GET /bookings/{id}` response; see contract section 7 |
+
+## 8. Phase 2 status: portal and booking-api rewired (Session 4)
+
+These rows no longer touch scheduling tables. They call scheduling-service over HTTP (portal: `AssessmentDelivery.Services/Scheduling/SchedulingClient.cs`, base URL `Scheduling.BaseUrl` in `Web.config`; booking-api: `client/SchedulingClient.java`, `scheduling.base-url`). Their tripwire rows were removed from `inventory-guard.psv` along with this change:
+
+- Portal booking: P-B01, P-B02, P-B06 to P-B13 (`BookingService.cs`). Exam, TestCenter and Candidate reads stay local reference-data reads. Retake eligibility is still checked in the portal before book/reschedule (HB-08).
+- Portal admin: P-A01, P-A03 to P-A08 (`AdminService.cs`). `ListCapacitySyncRuns` still reads the legacy AuditLog until Session 5 retires capacity-sync.
+- booking-api: BA-01, BA-02, BA-07 to BA-09, BA-11, BA-14 to BA-16 (`BookingDao.java`, `SessionDao.java`, `SeatCounter.java` deleted). See `docs/to-be/partner-booking-path-change.md`.
