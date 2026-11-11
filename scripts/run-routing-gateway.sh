@@ -30,7 +30,7 @@ build() {
 
 java_cmd() {
   local extra=()
-  read -r -a extra <<<"${GATEWAY_ARGS:-}"
+  read -r -d "" -a extra <<<"${GATEWAY_ARGS:-}" || true
   JAVA_CMD=("$JAVA21_HOME/bin/java" -jar "$MODULE/target/routing-gateway.jar"
     "--routing.config-file=${ROUTING_CONFIG_FILE:-$MODULE/config/routing.properties}" ${extra[@]+"${extra[@]}"})
 }
