@@ -39,7 +39,7 @@ public class JdbcLegacyReferenceSource implements LegacyReferenceSource {
     /** Connectivity plus SELECT permission on the session inventory (catches a revoked ad_sched_import grant). */
     @Override
     public void ping() {
-        jdbc.query("SELECT TOP (1) ExamSessionId FROM dbo.ExamSession", rs -> null);
+        jdbc.query("SELECT TOP (1) SessionId FROM dbo.ExamSession", rs -> null);
     }
 
     @Override
