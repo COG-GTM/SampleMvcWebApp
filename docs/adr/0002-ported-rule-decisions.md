@@ -153,7 +153,7 @@ this: the allocation is kept as set, and only the number of accommodation seats 
 `pr51_bookedExtraTimeFloor_allowsBelowAllocationButNotBelowBookedEtSeats`, and the integration
 test `trg_ExamSession_Update_capacityDecreaseBumpsNewestBookedToWaitlist_andFloorRejectsWith50005`.
 
-Transcripts: `capacity_below_accommodation_floor_admin` (strict rule confirmed at `legacy-baseline`: 50005), `proc_error_contract_db`; on the modern target `capacity_decrease_full_session_with_waitlist_admin` is listed in `characterization/known-defects.yaml` (on-call defect #57)
+Transcripts: `capacity_below_accommodation_floor_admin` (strict rule confirmed at `legacy-baseline`: 50005), `proc_error_contract_db`, `capacity_decrease_full_session_with_waitlist_admin`. Only `AccommodationCapacity` sets the floor: bookings held above the new capacity never raise it, they are bumped by section 2 (regression `usp_ChangeCapacity_reductionCoveringAccommodationSeats_isAcceptedAndBumpsNewestStandardBookings`, incident run-735f99397bba)
 
 ## 6. Smaller channel differences found while porting
 

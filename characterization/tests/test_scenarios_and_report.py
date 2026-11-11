@@ -126,8 +126,8 @@ def test_known_defects_reference_real_transcripts():
     from chartool.cli import load_known_defects
     names = {s["name"] for s in load_all(CHAR / "scenarios")}
     known = load_known_defects()
-    assert known and set(known) <= names
-    assert all("#57" in d["reason"] and d["signature"] for d in known.values())
+    assert set(known) <= names
+    assert all(d["reason"] and d["signature"] for d in known.values())
 
 
 def test_known_defect_is_counted_separately_not_as_match():

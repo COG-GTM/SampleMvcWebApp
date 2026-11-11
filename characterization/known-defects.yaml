@@ -2,9 +2,4 @@
 # is reported as KNOWN-DEFECT only when the actual run shows every `signature` business field (otherwise it is a
 # MISMATCH, so an unrelated regression in the same scenario is not hidden): counted separately in the X/Y report, never as MATCH, never hidden.
 # Legacy replays ignore this file (legacy must always be Y/Y).
-known_defects:
-  - transcript: capacity_decrease_full_session_with_waitlist_admin
-    reason: "on-call defect #57 - scheduling-service rejects the reduction with 409 CAPACITY_BELOW_ACCOMMODATION_FLOOR (50005); legacy accepts it and bumps the two newest bookings"
-    signature:
-      error: CAPACITY_BELOW_ACCOMMODATION_FLOOR
-      legacyCode: 50005
+known_defects: []

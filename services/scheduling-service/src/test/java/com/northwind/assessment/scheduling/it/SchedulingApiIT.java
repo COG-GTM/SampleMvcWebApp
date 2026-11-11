@@ -140,6 +140,37 @@ class SchedulingApiIT extends SqlServerTestBase {
         assertThat((List<?>) raised.getBody().get("bumpedBookingIds")).isEmpty();
     }
 
+    /** Regression (run-735f99397bba): a reduction that still covers the accommodation seats is applied and bumps. */
+    @Test
+    void usp_ChangeCapacity_reductionOnSessionWithAccommodationSeats_bumpsNewestBookedAndEmitsCapacityChanged() {
+        int sessionId = openSession("s.accommodation_capacity >= 1 AND (SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id "
+                + "AND b.status = 'BOOKED') >= s.accommodation_capacity + 3");
+        Map<String, Object> session = get("/api/v2/sessions/" + sessionId);
+        int booked = db.queryForObject("SELECT COUNT(*) FROM booking WHERE session_id = ? AND status = 'BOOKED'", Integer.class, sessionId);
+        int accommodation = ((Number) session.get("accommodationCapacity")).intValue();
+        int waitlist = ((Number) session.get("waitlistCount")).intValue();
+        int newCapacity = booked - 2;
+        assertThat(newCapacity).isGreaterThanOrEqualTo(accommodation);
+        List<Long> newest = db.queryForList("SELECT TOP 2 booking_id FROM booking WHERE session_id = ? AND status = 'BOOKED' "
+                + "ORDER BY booked_at DESC, booking_id DESC", Long.class, sessionId);
+        long outboxBefore = db.queryForObject("SELECT COUNT(*) FROM outbox_event WHERE event_type = 'CapacityChanged'", Long.class);
+
+        ResponseEntity<Map<String, Object>> r = putCapacity(sessionId, newCapacity);
+
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+        @SuppressWarnings("unchecked")
+        List<Number> bumped = (List<Number>) r.getBody().get("bumpedBookingIds");
+        assertThat(bumped.stream().map(Number::longValue).toList()).containsExactlyInAnyOrderElementsOf(newest);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> after = (Map<String, Object>) r.getBody().get("session");
+        assertThat(after).containsEntry("capacity", newCapacity).containsEntry("accommodationCapacity", accommodation)
+                .containsEntry("waitlistCount", waitlist + 2);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM outbox_event WHERE event_type = 'CapacityChanged'", Long.class))
+                .isEqualTo(outboxBefore + 1);
+
+        assertError(putCapacity(sessionId, accommodation - 1), HttpStatus.CONFLICT, "CAPACITY_BELOW_ACCOMMODATION_FLOOR", 50005);
+    }
+
     @Test
     void usp_RescheduleBooking_sameExamCancelsAndBooks_differentExamRejectedWith50006() {
         Map<String, Object> pair = db.queryForMap("SELECT TOP 1 a.session_id AS a, b.session_id AS b FROM exam_session a "
