@@ -99,6 +99,7 @@ Priority P0 = blocks the first slice; P1 = before dual-running; P2 = before deco
 | CT-34 | `GET /api/v1/sessions` returns all statuses, `TOP 500`, ordered by `StartsAt, SessionId`, `to` inclusive of the whole day; `GET /api/v1/sessions/{id}` includes live booked count | HB-14 | P1 |
 | CT-35 | Portal session search: OPEN only, `StartsAt >= today`, active centres only in the filter; inactive centre's sessions still bookable by both paths | HB-10 | P1 |
 | CT-36 | Result ingest marks BOOKED -> ATTENDED; ATTENDED still counts as a held seat in `seat-drift.sql` and capacity-sync but not in the capacity trigger | HB-12, HB-03 | P1 |
+| CT-38 | Portal cancel of a booking that belongs to another candidate -> accepted today (**bug?**); capacity 9999 via portal POST -> accepted | HB-18 | P1 |
 | CT-37 | `AuditLog` rows per operation (entity, action, actor) for book/cancel/capacity/partner/sync | data-ownership | P2 |
 
 ## 3. Risks and decisions that must precede cutover
@@ -115,6 +116,7 @@ Priority P0 = blocks the first slice; P1 = before dual-running; P2 = before deco
 | R8 | Session status transitions (OPEN -> CLOSED/DELIVERED) happen outside the repo; capacity-sync assumes a 01:00 close-out. | HB-13 | Find the job (SQL Agent / ops script) before moving `ExamSession` ownership. |
 | R9 | `LastModified` cannot drive incremental sync. | HB-17 | Use rowversion / CDC / outbox for legacy -> new replication. |
 | R10 | Time zones: `StartsAt` is centre-local without offset; Java 21 containers default to UTC. | HB-13 | Store `StartsAt` with zone or offset in the new schema; pin CT-32. |
+| R12 | No authorization anywhere in the legacy booking flows (portal has no sign-in, cancel has no ownership check). | HB-18 | New API needs an auth model from day one; partner and candidate identities must map to bookings. |
 | R11 | Legacy data already violates the intended invariants (overbooked sessions, duplicate active bookings, waitlisted rows without `Waitlist`, negative counters). | HB-02, HB-15 | Pre-migration data-quality report: `BOOKED > Capacity`, duplicates, orphan waitlist, negative `SeatsAvailable`. |
 
 ## 4. Open questions for the owning team

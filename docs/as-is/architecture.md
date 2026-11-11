@@ -241,7 +241,8 @@ flowchart TB
 | Setting | Where | Value (local) |
 |---|---|---|
 | Portal connection string | `AssessmentDelivery.Web/Web.config:12` | `localhost,1433`, `ad_app`, `MultipleActiveResultSets=True`, `Application Name=AssessmentDeliveryPortal` |
-| Portal app settings | `AssessmentDelivery.Web/Web.config:20-27` | `Portal.KioskMode=false`, `Portal.ResultsReleaseDelayHours=0`, environment name/build |
+| Portal app settings | `AssessmentDelivery.Web/Web.config:20-27` | `Portal.HostType`, `Portal.KioskMode`, `Portal.ResultsReleaseDelayHours`, region, support email - none of them change behaviour (`HostType=Azure` sets a flag nothing reads, so no SQL retry) ([HB-18](hidden-behavior.md#hb-18)) |
+| Portal auth / culture | `AssessmentDelivery.Web/Web.config:30,34` | `authentication mode="None"`, `culture="en-GB"` |
 | booking-api | `services/booking-api/src/main/resources/application.properties` | port 8081, pool 20, `booking.channel=PARTNER`, `booking.audit-actor=booking-api`, password `${AD_DB_PASSWORD:...}` |
 | results-service | `services/results-service/src/main/resources/application.properties` | port 8082, pool 20, 5 MB upload, `results.audit-actor=results-service` |
 | capacity-sync | `services/capacity-sync/src/main/resources/application.properties` | port 8083, pool 5, `capacity.sync.audit-actor=capacity-sync`; cron in code (`NightlySyncJob.java:14`, server time) |

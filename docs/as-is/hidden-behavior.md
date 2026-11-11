@@ -26,7 +26,7 @@ SYNC=http://localhost:8083  # capacity-sync
 | [HB-01](#hb-01) | Every partner booking decrements `SeatsAvailable` twice (Java + trigger) | Stacks disagree / data corruption | Critical | Confirmed (run) |
 | [HB-02](#hb-02) | Partner booking has no lock: concurrent requests overbook, drive `SeatsAvailable` negative, create duplicate active bookings for one candidate, duplicate waitlist positions | Data corruption | Critical | Confirmed (run) |
 | [HB-03](#hb-03) | Four different formulas for `SeatsAvailable`; nightly capacity-sync rewrites the counter with its own and makes `seat-drift.sql` flag every session with accommodation seats | Stacks disagree | Critical | Confirmed (run) |
-| [HB-04](#hb-04) | Retake wait is 30 **calendar** days in C#, 30 **working** days in Java | C# vs Java rule difference | High | Confirmed (run, Java) + source (C#) |
+| [HB-04](#hb-04) | Retake wait is 30 **calendar** days in C#, 30 **working** days in Java | C# vs Java rule difference | High | Confirmed (run, both stacks - portal on Windows worker) |
 | [HB-05](#hb-05) | Lowering capacity silently demotes the newest BOOKED bookings to WAITLISTED (trigger only, any `UPDATE`, no per-booking audit) | Rule only in a trigger | High | Confirmed (run) |
 | [HB-06](#hb-06) | Reschedule differs by stack: the proc rewrites partner bookings to `PORTAL`, drops `ExternalRef`, allows same-session moves; Java keeps the channel but double-decrements | C# vs Java rule difference | High | Confirmed (run) |
 | [HB-07](#hb-07) | Cancelling never promotes the waitlist; seats and waitlist coexist | Rule only in a proc | Medium | Confirmed (run) |
@@ -39,6 +39,7 @@ SYNC=http://localhost:8083  # capacity-sync
 | [HB-15](#hb-15) | `trg_Booking_SeatSync` is INSERT-only and bulk/direct writes bypass every booking rule (overbooking invisible to `seat-drift.sql`) | Rule only in a trigger | High | Confirmed (run, SQL worker) |
 | [HB-16](#hb-16) | Cancellations and capacity changes are accepted on DELIVERED (past) sessions | Missing rule | Medium | Confirmed (run, SQL worker) |
 | [HB-17](#hb-17) | Opposite-direction reschedules deadlock (inconsistent lock order); `LastModified` is not a reliable change marker | Concurrency / contract | Medium | Confirmed (run, SQL worker) |
+| [HB-18](#hb-18) | Portal-only gaps: cancel has no ownership check, capacity range only validated in the browser, en-GB date parsing drops filters, config keys never read, no Azure SQL retry | Missing rules / config | Medium | Confirmed (run, Windows portal worker) |
 | [HB-14](#hb-14) | `GET /api/v1/sessions` returns every status and silently truncates at 500 rows | Contract | Low | Confirmed (run, Java worker) |
 
 The top four (HB-01..HB-04) are the ones most likely to make a migrated scheduling service and
@@ -210,6 +211,11 @@ SQL "SELECT DATEADD(day,30,CAST('2026-11-07' AS date))"   # 2026-12-07 = what Re
 ```
 Observed: Java earliest `2026-12-18`; C# rule (`AddDays(30)`) earliest `2026-12-07`; an 11-day
 window where the two channels give opposite answers.
+
+Confirmed on the running portal by the Windows worker: `NW00000881` (failed `BCB-PM100` on
+2026-10-14) -> portal `/Eligibility` earliest 2026-11-13, booking-api 2026-11-25; the portal booked
+`NW00000884` onto session 460 (18 Nov) while booking-api refused the identical request with
+`409 NOT_ELIGIBLE`.
 
 **Migration impact.** Retake eligibility gates booking, so the scheduling service will either call
 it or absorb it. The exam owner must decide calendar vs working days; until then pin both behaviours
@@ -603,3 +609,43 @@ permissive behaviour so the change is visible.
 **Migration impact.** `LastModified` cannot be used as a CDC watermark for incremental data sync
 from legacy to the new service; use row versions or a change table. The new service needs a single
 lock order (session first) for move operations.
+
+---
+
+<a id="hb-18"></a>
+## HB-18 Portal-only gaps (found by running the portal on Windows)
+
+**What happens.**
+- **Cancel has no ownership check.** `POST /Booking/Cancel/{id}` cancels any booking id; the
+  candidate number in the form is only used for the redirect. There is no sign-in
+  (`<authentication mode="None" />`), so anyone can cancel anyone's booking, including partner bookings.
+- **Capacity range is client-side only.** `AdminModels.cs` declares `[Range(0, 500)]` but the POST
+  action takes a bare `int? newCapacity`; the server accepted 9999. `usp_ChangeCapacity` only rejects
+  negative values and values below `AccommodationCapacity`.
+- **Dates are parsed as en-GB** (`<globalization culture="en-GB">`); a search with a date the model
+  binder cannot parse silently drops the date filter and returns every session.
+- **Config that nothing reads:** `Portal.ResultsReleaseDelayHours`, `Portal.KioskMode`,
+  `Portal.DefaultRegion`, `Portal.SupportEmail`; results are visible to anyone by candidate number.
+  `Portal.HostType=Azure` only sets `DataLayerInitialise.IsAzure`, which nothing reads - no EF
+  execution strategy / transient-fault retry on Azure SQL.
+- Proc error texts reach users verbatim; the duplicate-booking message exposes the internal
+  `CandidateId`. Audit rows written by triggers carry the DB login (`ad_app`), not the operator.
+
+**Evidence**
+- `AssessmentDelivery.Web/Controllers/BookingController.cs:89-105`.
+- `AssessmentDelivery.Web/Controllers/AdminController.cs:70` vs `AssessmentDelivery.Web/Models/AdminModels.cs:20`; `db/procs/022_usp_ChangeCapacity.sql:29`.
+- `AssessmentDelivery.Web/Web.config:30,34` (authentication, globalization), `:20-27` (app settings); `AssessmentDelivery.Services/Booking/BookingService.cs:35-44`.
+- `AssessmentDelivery.Data/Startup/DataLayerInitialise.cs:8,14-16`; `AssessmentDelivery.Services/Results/ResultsService.cs:16`.
+- `db/procs/020_usp_BookSeat.sql:43` (message includes `@CandidateId`).
+
+**Reproduction (Confirmed, run - Windows portal worker)**
+```http
+POST http://localhost:8080/Booking/Cancel/<any booking id>     (form: Reason=x, CandidateNumber=<anyone>, __RequestVerificationToken)
+-> 302 to /Booking/MyBookings, booking CANCELLED
+POST http://localhost:8080/Admin/Sessions/Capacity/460          (form: newCapacity=9999)
+-> accepted; SELECT Capacity FROM ExamSession WHERE SessionId=460 -> 9999
+```
+
+**Migration impact.** The new scheduling API must add authorization on cancel/reschedule and
+server-side capacity limits; decide whether the 500 limit is a real business rule. Containerised
+Java 21 services must not inherit the "no retry" behaviour on Azure SQL.
