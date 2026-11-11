@@ -47,6 +47,7 @@ All scenarios are written against `com.northwind.scheduling.characterization.tar
 | `SeatDriftCheck` | Pluggable drift invariant. `StateDerivedSeatDriftCheck` derives it from state reads for any target. |
 | `RawStorageAccess` + `Capability.RAW_STORAGE` | Optional row-level writes that bypass the operations, as imports, booking-api, results-service and ad-hoc admin UPDATEs do. Only the trigger-032/033 storage scenarios and a few HB-01 setups need it. |
 | `Capability.LEGACY_SQL_SEMANTICS` | Optional: raw SQL message number/state (`nativeNumber`/`nativeState`) and the `SUSER_SNAME()` audit-actor default. |
+| `Capability.FRESH_DATABASE` | The run provisioned its own store (legacy: Testcontainers, not `-Dlegacy.jdbcUrl`); only then does SD-01 assert a drift-free seed baseline. |
 | `SchedulingTargetProvider` / `SchedulingTargets` | ServiceLoader SPI. `-Dtarget=<name>` (default `legacy`) picks the provider, and the JVM uses one instance. |
 
 Legacy implementation (`...characterization.legacy`): `LegacyProcTarget` EXECs `usp_BookSeat`, `usp_CancelBooking`,
