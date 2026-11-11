@@ -43,19 +43,34 @@
       <HintPath>..\packages\NUnit.3.13.3\lib\net45\nunit.framework.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers\CsvReader.cs" />
+    <Compile Include="IntegrationTests\RosterExportIntegrationTests.cs" />
+    <Compile Include="IntegrationTests\RosterFixture.cs" />
+    <Compile Include="IntegrationTests\RosterPortalTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UnitTests\AccommodationCodesTests.cs" />
+    <Compile Include="UnitTests\CapacityAuditDetailTests.cs" />
     <Compile Include="UnitTests\RetakeRulesTests.cs" />
+    <Compile Include="UnitTests\RosterCsvTests.cs" />
     <Compile Include="UnitTests\SeatCounterTests.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -66,6 +81,14 @@
     <ProjectReference Include="..\AssessmentDelivery.Business\AssessmentDelivery.Business.csproj">
       <Project>{19592A8F-7C58-4221-8124-D38ACD8F5E31}</Project>
       <Name>AssessmentDelivery.Business</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\AssessmentDelivery.Data\AssessmentDelivery.Data.csproj">
+      <Project>{264E1878-12DE-4099-B8D7-CC53A73FEA49}</Project>
+      <Name>AssessmentDelivery.Data</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\AssessmentDelivery.Services\AssessmentDelivery.Services.csproj">
+      <Project>{D2813927-0F38-43C3-B47C-AE8F00D50CAE}</Project>
+      <Name>AssessmentDelivery.Services</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -1,8 +1,8 @@
 package com.northwind.ad.results.service;
 
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,11 +30,23 @@ public class ResultIngestService {
     private String actor;
 
     /**
-     * Records one result and marks the booking ATTENDED.
+     * Records one result and marks the booking ATTENDED. Idempotent per booking (UQ_Result_Booking):
+     * resubmitting the stored score is a DUPLICATE no-op, a different score is a CONFLICT that leaves the
+     * stored row as is and writes a DUPLICATE_REJECTED audit row.
+     * @param scoredAt null for REST posts without scoredAt: stored as now, and a replay matches on score alone
      * @param sourceFile score file name, null for REST posts
      */
     @Transactional
-    public Map<String, Object> ingest(int bookingId, int score, Date scoredAt, String sourceFile) {
+    public IngestOutcome ingest(int bookingId, int score, Date scoredAt, String sourceFile) {
+        return ingest(bookingId, score, scoredAt, sourceFile, true);
+    }
+
+    /**
+     * @param insertAllowed false only re-checks a row (replayed score file): returns NOT_IMPORTED instead of
+     *                      inserting, and a conflict already audited with the same detail is not audited again
+     */
+    @Transactional
+    public IngestOutcome ingest(int bookingId, int score, Date scoredAt, String sourceFile, boolean insertAllowed) {
         if (score < 0 || score > 1000) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "score must be between 0 and 1000");
         }
@@ -51,13 +63,16 @@ public class ResultIngestService {
             throw new ApiException(HttpStatus.CONFLICT, "BOOKING_NOT_ACTIVE",
                     "Booking " + bookingId + " is " + status + ", cannot record a result");
         }
-        Integer existing = jdbc.queryForObject("SELECT COUNT(*) FROM dbo.Result WHERE BookingId = ?",
-                Integer.class, bookingId);
-        if (existing != null && existing.intValue() > 0) {
-            throw new ApiException(HttpStatus.CONFLICT, "DUPLICATE_RESULT",
-                    "A result already exists for booking " + bookingId);
+        Map<String, Object> existing = findStored(bookingId);
+        if (existing != null) {
+            return compareWithStored(existing, bookingId, score, scoredAt, sourceFile, insertAllowed);
+        }
+        if (!insertAllowed) {
+            return new IngestOutcome(IngestOutcome.Status.NOT_IMPORTED, bookingId, null, score, scoredAt,
+                    null, null, null);
         }
 
+        Date storedAt = scoredAt != null ? scoredAt : new Date();
         int passingScore = ((Number) b.get("PassingScore")).intValue();
         boolean passed = score >= passingScore;
         int resultId;
@@ -67,10 +82,16 @@ public class ResultIngestService {
                   + "INSERT INTO dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile) "
                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?); SELECT CAST(SCOPE_IDENTITY() AS INT);",
                     Integer.class, bookingId, b.get("CandidateId"), b.get("ExamId"), b.get("SessionId"), score,
-                    passed, new Timestamp(scoredAt.getTime()), sourceFile);
+                    passed, new Timestamp(storedAt.getTime()), sourceFile);
         } catch (DuplicateKeyException e) {
-            throw new ApiException(HttpStatus.CONFLICT, "DUPLICATE_RESULT",
-                    "A result already exists for booking " + bookingId);
+            // lost a race with a concurrent ingest for the same booking; its row is committed by now
+            LOG.info("Insert for booking {} lost the UQ_Result_Booking race, re-reading the stored result", bookingId);
+            existing = findStored(bookingId);
+            if (existing == null) {
+                throw new ApiException(HttpStatus.CONFLICT, "DUPLICATE_RESULT",
+                        "A result already exists for booking " + bookingId);
+            }
+            return compareWithStored(existing, bookingId, score, scoredAt, sourceFile, true);
         }
         jdbc.update("UPDATE dbo.Booking SET Status = 'ATTENDED', LastModified = GETDATE() "
                 + "WHERE BookingId = ? AND Status = 'BOOKED'", bookingId);
@@ -78,13 +99,60 @@ public class ResultIngestService {
                 "Result", resultId, "INGEST", "booking=" + bookingId + " score=" + score
                         + (sourceFile != null ? " file=" + sourceFile : ""), actor);
         LOG.info("Result {} for booking {} score {} passed={}", resultId, bookingId, score, passed);
+        return new IngestOutcome(IngestOutcome.Status.CREATED, bookingId, resultId, score, storedAt,
+                null, null, passed);
+    }
 
-        Map<String, Object> out = new LinkedHashMap<String, Object>();
-        out.put("resultId", resultId);
-        out.put("bookingId", bookingId);
-        out.put("score", score);
-        out.put("passed", passed);
-        return out;
+    // serialises concurrent replays of the same result until commit, so only one of them writes the audit row
+    private boolean lockAndCheckAudited(int resultId, String detail) {
+        Integer lock = jdbc.queryForObject("DECLARE @r INT; EXEC @r = sp_getapplock @Resource = ?, "
+                + "@LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 10000; SELECT @r",
+                Integer.class, "ResultAudit:" + resultId);
+        if (lock == null || lock < 0) {
+            throw new IllegalStateException("could not lock audit for result " + resultId + " (" + lock + ")");
+        }
+        return jdbc.queryForObject("SELECT COUNT(*) FROM dbo.AuditLog WHERE EntityName = 'Result' AND EntityId = ? "
+                + "AND Action = 'DUPLICATE_REJECTED' AND Detail = ?", Integer.class, resultId, detail) > 0;
+    }
+
+    private Map<String, Object> findStored(int bookingId) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT ResultId, Score, ScoredAt, Passed FROM dbo.Result WHERE BookingId = ?", bookingId);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    private IngestOutcome compareWithStored(Map<String, Object> stored, int bookingId, int score, Date scoredAt,
+                                            String sourceFile, boolean audit) {
+        int resultId = ((Number) stored.get("ResultId")).intValue();
+        int storedScore = ((Number) stored.get("Score")).intValue();
+        Date storedScoredAt = (Date) stored.get("ScoredAt");
+        Boolean passed = (Boolean) stored.get("Passed");
+        boolean same = storedScore == score && (scoredAt == null || sameSecond(storedScoredAt, scoredAt));
+        if (same) {
+            LOG.info("Duplicate result for booking {} (result {}) ignored", bookingId, resultId);
+            return new IngestOutcome(IngestOutcome.Status.DUPLICATE, bookingId, resultId, score, scoredAt,
+                    storedScore, storedScoredAt, passed);
+        }
+        String detail = "booking=" + bookingId
+                + " stored=" + storedScore + "@" + format(storedScoredAt)
+                + " submitted=" + score + "@" + (scoredAt != null ? format(scoredAt) : "now")
+                + (sourceFile != null ? " file=" + sourceFile : "");
+        if (audit || !lockAndCheckAudited(resultId, detail)) {
+            jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
+                    "Result", resultId, "DUPLICATE_REJECTED", detail, actor);
+        }
+        LOG.warn("Conflicting result for booking {} rejected: stored {} submitted {}", bookingId, storedScore, score);
+        return new IngestOutcome(IngestOutcome.Status.CONFLICT, bookingId, resultId, score, scoredAt,
+                storedScore, storedScoredAt, passed);
+    }
+
+    // DATETIME keeps 1/300 s; submitted times are whole seconds (CsvRowParser formats)
+    private static boolean sameSecond(Date a, Date b) {
+        return a.getTime() / 1000L == b.getTime() / 1000L;
+    }
+
+    static String format(Date d) {
+        return d == null ? null : new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(d);
     }
 
     /** Latest seat-holding booking of a candidate on a session, or null. Used by the score file import. */

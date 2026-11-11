@@ -1,0 +1,128 @@
+@model AssessmentDelivery.Web.Models.CapacityAuditViewModel
+@{
+    ViewBag.Title = "Capacity Audit - " + Model.Center.CenterCode;
+    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Centers") + "\">Test Centres</a> &raquo; <a href=\"" + Url.Action("Sessions", new { centerId = Model.Center.TestCenterId }) + "\">" + Html.Encode(Model.Center.CenterCode) + "</a> &raquo; Capacity audit";
+    var selected = Model.SessionId.HasValue ? Model.Sessions.FirstOrDefault(s => s.SessionId == Model.SessionId.Value) : null;
+    Func<int, string> pageUrl = p => Url.RouteUrl("AdminCapacityAudit", new { id = Model.Center.TestCenterId, from = Model.From.ToString("yyyy-MM-dd"), to = Model.To.ToString("yyyy-MM-dd"), sessionId = Model.SessionId, page = p });
+}
+<div class="nw-page-head">
+    <h2>Capacity audit <small>@Model.Center.Name &middot; @Model.Center.CenterCode</small></h2>
+    <span class="nw-sub">Who changed a session's capacity, when, and from what to what. Times are when the change was logged; session starts are centre-local (@Model.Center.TimeZone).</span>
+</div>
+<div class="nw-panel">
+    <div class="nw-panel-heading">Filter</div>
+    <div class="nw-panel-body">
+        <form method="get" action="@Url.RouteUrl("AdminCapacityAudit", new { id = Model.Center.TestCenterId })" class="form-inline nw-form nw-search" id="audit-filter">
+            <div class="form-group">
+                <label for="from">From</label>
+                <input type="date" id="from" name="from" class="form-control input-sm" value="@Model.From.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="form-group">
+                <label for="to">To</label>
+                <input type="date" id="to" name="to" class="form-control input-sm" value="@Model.To.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="form-group">
+                <label for="sessionId">Session</label>
+                <select id="sessionId" name="sessionId" class="form-control input-sm">
+                    <option value="">(all sessions)</option>
+                    @foreach (var s in Model.Sessions)
+                    {
+                        <option value="@s.SessionId" @(s.SessionId == Model.SessionId ? "selected" : "")>#@s.SessionId @s.ExamCode @s.StartsAt.ToString("dd MMM yyyy HH:mm")</option>
+                    }
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><span class="glyphicon glyphicon-filter"></span> Apply</button>
+            <a class="btn btn-default btn-sm" href="@Url.RouteUrl("AdminCapacityAudit", new { id = Model.Center.TestCenterId })">Last 30 days</a>
+        </form>
+        @if (selected != null)
+        {
+            <p class="help-block small" id="session-now">Session #@selected.SessionId @selected.ExamCode @selected.StartsAt.ToString("dd MMM yyyy HH:mm") now: capacity <strong>@selected.Capacity</strong>, seats available <strong>@selected.SeatsAvailable</strong>.</p>
+        }
+    </div>
+</div>
+<div class="nw-panel">
+    <div class="nw-panel-heading">Capacity changes <span class="badge" id="audit-total">@Model.TotalRows</span>
+        <span class="pull-right nw-muted">@Model.From.ToString("dd MMM yyyy") &ndash; @Model.To.ToString("dd MMM yyyy") &middot; newest first &middot; page @Model.Page of @Model.PageCount</span></div>
+    <table class="table table-condensed table-striped nw-grid" id="capacity-audit">
+        <thead>
+            <tr>
+                <th>Date/time</th>
+                <th>Session</th>
+                <th>Room</th>
+                <th class="num">Old &rarr; New</th>
+                <th class="num">Delta</th>
+                <th>Actor</th>
+                <th class="num">Capacity now</th>
+                <th class="num">Seats avail. now</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model.Rows)
+            {
+                <tr>
+                    <td class="nowrap">@r.LoggedAt.ToString("dd MMM yyyy HH:mm:ss")</td>
+                    <td class="nowrap"><a href="@Url.RouteUrl("AdminCapacity", new { id = r.SessionId })">#@r.SessionId</a> <strong>@r.ExamCode</strong> @r.SessionStartsAt.ToString("dd MMM yyyy HH:mm")</td>
+                    <td>@r.RoomName</td>
+                    @if (r.OldCapacity.HasValue && r.NewCapacity.HasValue)
+                    {
+                        <td class="num">@r.OldCapacity &rarr; @r.NewCapacity</td>
+                        <td class="num @(r.Delta < 0 ? "nw-zero" : "")">@(r.Delta > 0 ? "+" : "")@r.Delta</td>
+                    }
+                    else
+                    {
+                        <td class="num nw-muted" title="Detail is not in the '<old> -> <new>' format">@r.Detail</td>
+                        <td class="num nw-muted">&ndash;</td>
+                    }
+                    <td>@r.Actor</td>
+                    <td class="num">@r.CurrentCapacity</td>
+                    <td class="num">@r.CurrentSeatsAvailable</td>
+                </tr>
+            }
+            @if (Model.Rows.Count == 0 && Model.TotalRows == 0)
+            {
+                <tr><td colspan="8" class="nw-empty">No capacity changes in this period.</td></tr>
+            }
+            else if (Model.Rows.Count == 0)
+            {
+                <tr><td colspan="8" class="nw-empty">No rows on page @Model.Page; this period has @Model.TotalRows change(s). <a href="@pageUrl(1)">Go to page 1</a></td></tr>
+            }
+        </tbody>
+    </table>
+    @if (Model.PageCount > 1)
+    {
+        <div class="nw-panel-body" id="audit-pager">
+            @if (Model.Page > 1) { <a class="btn btn-default btn-xs" href="@pageUrl(Model.Page - 1)">&laquo; Newer</a> }
+            <span class="nw-muted">Page @Model.Page of @Model.PageCount (50 per page)</span>
+            @if (Model.Page < Model.PageCount) { <a class="btn btn-default btn-xs" href="@pageUrl(Model.Page + 1)">Older &raquo;</a> }
+        </div>
+    }
+</div>
+<div class="nw-panel">
+    <div class="nw-panel-heading">Automatic seat re-syncs <span class="pull-right nw-muted">capacity-sync runs (all centres) &ndash; they rewrite seats available, not capacity</span></div>
+    <table class="table table-condensed table-striped nw-grid" id="sync-runs">
+        <thead>
+            <tr><th>Date/time</th><th>Trigger</th><th>Status</th><th class="num">Checked</th><th class="num">Updated</th><th>Actor</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var s in Model.SyncRuns)
+            {
+                <tr>
+                    <td class="nowrap">@s.LoggedAt.ToString("dd MMM yyyy HH:mm:ss")</td>
+                    <td>@(s.Trigger ?? s.Detail)</td>
+                    <td>@s.Status</td>
+                    <td class="num">@s.SessionsChecked</td>
+                    <td class="num">@s.SessionsUpdated</td>
+                    <td>@s.Actor</td>
+                </tr>
+            }
+            @if (Model.SyncRuns.Count == 0)
+            {
+                <tr><td colspan="6" class="nw-empty">No capacity-sync runs logged in this period.</td></tr>
+            }
+        </tbody>
+    </table>
+    @if (Model.SyncRunsTruncated)
+    {
+        <div class="nw-panel-body nw-muted" id="sync-truncated">Showing the newest @Model.SyncRuns.Count runs only; narrow the date range to see older runs.</div>
+    }
+</div>

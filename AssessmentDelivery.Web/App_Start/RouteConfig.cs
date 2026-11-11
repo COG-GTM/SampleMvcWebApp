@@ -16,6 +16,21 @@ namespace AssessmentDelivery.Web
                 defaults: new { controller = "Admin", action = "Capacity" }
             );
 
+            //capacity change history for a centre (MBA-3828)
+            routes.MapRoute(
+                name: "AdminCapacityAudit",
+                url: "Admin/Centers/{id}/CapacityAudit",
+                defaults: new { controller = "Admin", action = "CapacityAudit" },
+                constraints: new { id = @"\d+" }
+            );
+
+            //exam-day roster download for proctors (CSV)
+            routes.MapRoute(
+                name: "AdminRoster",
+                url: "Admin/Sessions/Roster/{id}",
+                defaults: new { controller = "Admin", action = "Roster" }
+            );
+
             routes.MapRoute(
                 name: "Default",
                 url: "{controller}/{action}/{id}",
