@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 public class JdbcLegacyReferenceSource implements LegacyReferenceSource {
 
     private final JdbcTemplate jdbc;
+    private final JdbcTemplate pingJdbc;
 
     public JdbcLegacyReferenceSource(@Value("${scheduling.legacy.url}") String url,
                                      @Value("${scheduling.legacy.username}") String user,
@@ -33,6 +34,8 @@ public class JdbcLegacyReferenceSource implements LegacyReferenceSource {
         props.setProperty("loginTimeout", String.valueOf(loginTimeoutSeconds));
         ds.setConnectionProperties(props);
         this.jdbc = new JdbcTemplate(ds);
+        this.pingJdbc = new JdbcTemplate(ds);
+        pingJdbc.setQueryTimeout(loginTimeoutSeconds);
     }
 
     static LocalDateTime ts(ResultSet rs, String col) throws SQLException {
@@ -44,7 +47,8 @@ public class JdbcLegacyReferenceSource implements LegacyReferenceSource {
     /** Connectivity plus SELECT permission on the session inventory (catches a revoked ad_sched_import grant). */
     @Override
     public void ping() {
-        jdbc.query("SELECT TOP (1) SessionId FROM dbo.ExamSession", rs -> null);
+        // NOLOCK: a legacy writer holding ExamSession locks must not stall the probe; the query timeout bounds the rest
+        pingJdbc.query("SELECT TOP (1) SessionId FROM dbo.ExamSession WITH (NOLOCK)", rs -> null);
     }
 
     @Override
