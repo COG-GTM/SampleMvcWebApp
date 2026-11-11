@@ -304,6 +304,42 @@ class SchedulingServiceIntegrationTest {
     }
 
     @Test
+    void crossingReschedulesWithBookAndCancelNeverFailOrDrift() throws Exception {
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(16);
+        try {
+            for (int it = 0; it < 5; it++) {
+                int a = session(30, 0);
+                int b = session(30, 0);
+                List<java.util.concurrent.Callable<Integer>> work = new java.util.ArrayList<>();
+                for (int i = 0; i < 12; i++) {
+                    int from = i % 2 == 0 ? a : b;
+                    int to = from == a ? b : a;
+                    int moving = book(from, candidate(), "PORTAL", null).getBody().get("bookingId").asInt();
+                    int leaving = book(from, candidate(), "PORTAL", null).getBody().get("bookingId").asInt();
+                    int arriving = candidate();
+                    work.add(() -> post("/api/v1/bookings/" + moving + "/reschedule",
+                            Map.of("newSessionId", to, "channel", "PORTAL"), null).getStatusCode().value());
+                    work.add(() -> post("/api/v1/bookings/" + leaving + "/cancel", Map.of("reason", "load"), null)
+                            .getStatusCode().value());
+                    work.add(() -> book(to, arriving, "PORTAL", null).getStatusCode().value());
+                }
+                java.util.Collections.shuffle(work);
+                for (java.util.concurrent.Future<Integer> f : pool.invokeAll(work)) {
+                    assertThat(f.get()).isLessThan(500);
+                }
+                assertThat(jdbc.queryForObject("""
+                        SELECT COUNT(*) FROM dbo.ExamSession s WHERE s.SessionId IN (?, ?) AND s.Capacity
+                               - (SELECT COUNT(*) FROM dbo.Booking x WHERE x.SessionId = s.SessionId AND x.Status IN ('BOOKED','ATTENDED'))
+                               - s.SeatsAvailable <> 0""", Integer.class, a, b)).isZero();
+                assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM dbo.Booking WHERE SessionId IN (?, ?) AND Status = 'BOOKED'",
+                        Integer.class, a, b)).isEqualTo(24);
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
     void importApiIsDisabledByDefault() {
         assertThat(post("/api/v1/admin/import?replace=true", null, null).getStatusCode().value()).isEqualTo(403);
     }
