@@ -11,6 +11,8 @@
 #   SKIP_DB=1     keep the existing database. By default every start re-creates it from db/
 #                 (the schema script drops and recreates all tables - DEV ONLY)
 #   SKIP_BUILD=1  reuse the jars already in services/*/target
+#   WITH_SCHEDULING=1  also bootstrap the Scheduling DB and start services/scheduling-service on :8084
+#                 (Java 21: JAVA21_HOME, default /usr/lib/jvm/java-21-openjdk-amd64). Off by default.
 #
 # The .NET portal (:8080) is Windows-only - see scripts/run-portal.ps1.
 set -euo pipefail
@@ -160,6 +162,38 @@ print_urls() {
 URLS
 }
 
+# ---- opt-in: services/scheduling-service (WITH_SCHEDULING=1) ----
+SCHEDULING_PORT="${SCHEDULING_PORT:-8084}"
+
+start_scheduling() {
+    local java21="${JAVA21_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}"
+    [ -x "$java21/bin/java" ] || die "WITH_SCHEDULING=1 needs a JDK 21 (set JAVA21_HOME)"
+    log "bootstrapping the Scheduling database (services/scheduling-service/db/bootstrap.sql)"
+    sa_sql < "$ROOT/services/scheduling-service/db/bootstrap.sql" >/dev/null
+    local jar="$ROOT/services/scheduling-service/target/scheduling-service.jar"
+    if [ "${SKIP_BUILD:-0}" != "1" ]; then
+        log "building scheduling-service (JAVA_HOME=$java21)"
+        (cd "$ROOT/services/scheduling-service" && JAVA_HOME="$java21" "$ROOT/services/mvnw" -q -B -DskipTests package)
+    fi
+    [ -f "$jar" ] || die "$jar missing - run without SKIP_BUILD"
+    if pid_alive "$RUN_DIR/scheduling-service.pid"; then
+        log "scheduling-service already running (pid $(cat "$RUN_DIR/scheduling-service.pid"))"
+        return
+    fi
+    port_open "$SCHEDULING_PORT" && die "port $SCHEDULING_PORT is already in use by another process"
+    log "starting scheduling-service on :$SCHEDULING_PORT"
+    SCHEDULING_PORT="$SCHEDULING_PORT" nohup "$java21/bin/java" ${JAVA_OPTS:-} -jar "$jar" \
+        > "$RUN_DIR/scheduling-service.log" 2>&1 &
+    echo $! > "$RUN_DIR/scheduling-service.pid"
+    for _ in $(seq 1 120); do
+        port_open "$SCHEDULING_PORT" && break
+        pid_alive "$RUN_DIR/scheduling-service.pid" || die "scheduling-service exited during startup, see .run/scheduling-service.log"
+        sleep 1
+    done
+    port_open "$SCHEDULING_PORT" || die "scheduling-service did not open :$SCHEDULING_PORT, see .run/scheduling-service.log"
+    echo "  scheduling-svc   http://localhost:$SCHEDULING_PORT/api/v1/sessions   (db Scheduling)"
+}
+
 cmd_status() {
     find_sqlcmd
     if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$MSSQL_CONTAINER"; then
@@ -177,12 +211,15 @@ cmd_status() {
         fi
         printf '%-16s %s\n' "$name" "$state"
     done
+    if pid_alive "$RUN_DIR/scheduling-service.pid"; then
+        echo "scheduling-svc   running  (pid $(cat "$RUN_DIR/scheduling-service.pid"), :$SCHEDULING_PORT)"
+    fi
     echo "portal           n/a on Linux (Windows-only)"
 }
 
 cmd_stop() {
     local entry name pid
-    for entry in $SERVICES; do
+    for entry in $SERVICES scheduling-service:$SCHEDULING_PORT; do
         name="${entry%%:*}"
         if pid_alive "$RUN_DIR/$name.pid"; then
             pid="$(cat "$RUN_DIR/$name.pid")"
@@ -205,6 +242,9 @@ cmd_start() {
     start_services
     log "all services up"
     print_urls
+    if [ "${WITH_SCHEDULING:-0}" = "1" ]; then
+        start_scheduling
+    fi
 }
 
 case "${1:-start}" in

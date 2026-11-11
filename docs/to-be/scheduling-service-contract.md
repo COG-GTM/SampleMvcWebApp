@@ -110,3 +110,17 @@ Today two engines read `Result` and `Exam`, and both join `ExamSession` for `Sta
 1. Keep `legacy-seat-accounting` (HB-01/HB-02 double decrement) on through cutover? The default here is on, for parity.
 2. Serialising partner bookings removes the HB-29 duplicate waitlist positions. Accept this as the one intentional non-reproduction, since it cannot be reproduced deterministically?
 3. Reference feed via Change Tracking needs `ALTER DATABASE ... SET CHANGE_TRACKING = ON` on `AssessmentDelivery` (DBA change).
+
+## 9. Phase 1 implementation deviations (services/scheduling-service, PR #89)
+
+| Area | Deviation | Why |
+|---|---|---|
+| `POST /sessions` | Added: it creates an ExamSession, which is admin and fixture creation. | Session creation was the portal admin's direct INSERT, so the contract had no endpoint for it. The characterization target and dual-run need one. |
+| `POST /reference/sync[?full=true]` | Added: it forces a relay catch-up or a full resync. | It makes fixture rows written to AssessmentDelivery visible immediately instead of after the 30 s poll. |
+| `POST /reconciler/runs` | Optional `sessionIds` (comma list) and `trigger` query parameters. | The suite's `reconcileSeats(ids)` limits a run to its own sessions. Omitting them gives capacity-sync's every-OPEN-session run. A run already in progress returns 409 `RECONCILER_RUNNING`. |
+| `GET /audit?entityName=&entityId=` | Added: read-only AuditLog rows for an entity. | Parity checks and the Phase 3 AuditLog diff. |
+| `POST /admin/import[?replace=true]` | Added: re-runs the initial import from AssessmentDelivery. Disabled unless `scheduling.import.api-enabled=true`. | Cutover rehearsal. It is gated because `replace=true` wipes Scheduling data. |
+| `/admin/storage/*` | Added: a direct-write compatibility API (insert/patch/delete Booking, patch ExamSession, adjust seats). It applies the former trigger behaviour explicitly (HB-04/HB-05). Disabled unless `scheduling.storage-api.enabled=true`. | The suite's RAW_STORAGE scenarios, and dual-run replays of legacy direct writers. Not for clients. |
+| Unknown candidate on `POST /bookings` | 404 `CANDIDATE_NOT_FOUND` with `legacyState: 0` and the legacy FK message (`FK_Booking_Candidate`). | usp_BookSeat re-raised the FK violation as Msg 50000 with state 0 (BS-22). |
+| Roster CSV | Cells that start with `= + - @`, tab or CR get a leading `'`. | Neutralises spreadsheet formula (CSV) injection. Every other cell is unchanged. |
+| Cancel locking | Cancel takes `UPDLOCK, HOLDLOCK` on the owning ExamSession row before the Booking row. | The proc's booking-then-session window was one server round trip. Over JDBC it is wide enough for cancel-vs-book to deadlock, which the legacy suite never shows (CX-06). Crossing reschedules still deadlock and roll back as pinned (CX-08). |
