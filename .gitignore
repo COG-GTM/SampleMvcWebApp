@@ -15,8 +15,8 @@ build/
 [Bb]in/
 [Oo]bj/
 
-# Enable "build/" folder in the NuGet Packages folder since NuGet packages use it for MSBuild targets
-!packages/*/build/
+# NuGet packages are restored (scripts/run-portal.ps1), not committed
+packages/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
@@ -163,3 +163,10 @@ SampleWebApp/Properties/PublishProfiles/samplemvcwebapp - Web Deploy.pubxml
 SampleWebApp/Properties/PublishProfiles/samplemvcwebapp.net - WebWiz.pubxml
 git/.gitattributes
 git/.gitignore
+
+# portal runtime output
+logs/
+.tools/
+
+# run-legacy.ps1 / run-legacy.sh logs and pids
+.run/

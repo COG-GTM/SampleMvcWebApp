@@ -1,0 +1,53 @@
+@model AssessmentDelivery.Web.Models.SessionsViewModel
+@{
+    ViewBag.Title = "Sessions - " + Model.Center.CenterCode;
+    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Centers") + "\">Test Centres</a> &raquo; " + Html.Encode(Model.Center.CenterCode) + " &raquo; Sessions";
+}
+<div class="nw-page-head">
+    <h2>@Model.Center.Name <small>@Model.Center.CenterCode &middot; @Model.Center.City &middot; @Model.Center.Region</small></h2>
+    <span class="nw-sub">@Model.Sessions.Count session(s) &middot; times shown are centre-local (@Model.Center.TimeZone)</span>
+</div>
+<div class="nw-panel">
+    <div class="nw-panel-heading">Exam sessions</div>
+    <table class="table table-condensed table-striped nw-grid">
+        <thead>
+            <tr>
+                <th>Session</th>
+                <th>Exam</th>
+                <th>Title</th>
+                <th>Room</th>
+                <th>Start</th>
+                <th class="num">Capacity</th>
+                <th class="num">Acc. cap.</th>
+                <th class="num">Seats avail.</th>
+                <th class="num">Booked</th>
+                <th class="num">Waitlist</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in Model.Sessions)
+            {
+                <tr>
+                    <td class="nw-muted">#@s.SessionId</td>
+                    <td><strong>@s.ExamCode</strong></td>
+                    <td>@s.ExamTitle</td>
+                    <td>@s.RoomName</td>
+                    <td class="nowrap">@s.StartsAt.ToString("dd MMM yyyy HH:mm")</td>
+                    <td class="num">@s.Capacity</td>
+                    <td class="num">@s.AccommodationCapacity</td>
+                    <td class="num @(s.SeatsAvailable == 0 ? "nw-zero" : "")">@s.SeatsAvailable</td>
+                    <td class="num">@s.Booked</td>
+                    <td class="num">@s.WaitlistCount</td>
+                    <td>@Html.StatusPill(s.Status)</td>
+                    <td class="nw-actions"><a href="@Html.ModernUiUrl("/app/admin/sessions/" + s.SessionId)">Capacity</a></td>
+                </tr>
+            }
+            @if (Model.Sessions.Count == 0)
+            {
+                <tr><td colspan="12" class="nw-empty">No sessions scheduled for this centre.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>

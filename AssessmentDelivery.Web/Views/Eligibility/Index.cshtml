@@ -1,0 +1,49 @@
+@model AssessmentDelivery.Web.Models.EligibilityViewModel
+@{
+    ViewBag.Title = "Retake Eligibility";
+}
+<div class="nw-page-head">
+    <h2>Retake eligibility</h2>
+    <span class="nw-sub">Checks the candidate's previous results for the exam against the retake policy.</span>
+</div>
+<div class="nw-panel">
+    <div class="nw-panel-heading">Check</div>
+    <div class="nw-panel-body">
+        <form method="get" action="@Url.Action("Index")" class="form-inline nw-form">
+            <div class="form-group">
+                <label for="candidateNumber">Candidate number</label>
+                <input type="text" id="candidateNumber" name="candidateNumber" value="@Model.CandidateNumber" class="form-control input-sm" placeholder="NW00000000" />
+            </div>
+            <div class="form-group">
+                <label for="examCode">Exam</label>
+                <select id="examCode" name="examCode" class="form-control input-sm">
+                    <option value="">(select)</option>
+                    @foreach (var e in Model.Exams)
+                    {
+                        <option value="@e.ExamCode" @(string.Equals(e.ExamCode, Model.ExamCode, StringComparison.OrdinalIgnoreCase) ? "selected" : "")>@e.ExamCode - @e.Title</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="date">Proposed date</label>
+                <input type="date" id="date" name="date" class="form-control input-sm" value="@Model.Date.Value.ToString("yyyy-MM-dd")" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Check eligibility</button>
+        </form>
+        @Html.ValidationSummary(false, "", new { @class = "alert alert-danger nw-alert" })
+    </div>
+</div>
+@if (Model.Decision != null)
+{
+    <div class="nw-panel">
+        <div class="nw-panel-heading">Outcome</div>
+        <table class="table table-condensed nw-detail">
+            <tr><th>Candidate</th><td>@Model.CandidateNumber.ToUpper()</td></tr>
+            <tr><th>Exam</th><td>@Model.ExamCode.ToUpper()</td></tr>
+            <tr><th>Proposed date</th><td>@Model.Date.Value.ToString("dd MMM yyyy")</td></tr>
+            <tr><th>Eligible</th><td>@if (Model.Decision.Eligible) { <span class="pill pill-open">YES</span> } else { <span class="pill pill-cancelled">NO</span> }</td></tr>
+            <tr><th>Reason</th><td>@Model.Decision.Reason</td></tr>
+            <tr><th>Earliest retake date</th><td>@(Model.Decision.EarliestRetakeDate.HasValue ? Model.Decision.EarliestRetakeDate.Value.ToString("dd MMM yyyy") : "n/a")</td></tr>
+        </table>
+    </div>
+}

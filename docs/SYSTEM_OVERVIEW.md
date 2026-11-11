@@ -20,14 +20,19 @@ reads and writes one shared SQL Server database, `AssessmentDelivery`.
 | results-service (score ingestion) | Java 8, Spring Boot 1.5, JdbcTemplate | 8082 | `services/results-service` |
 | capacity-sync (scheduled seat re-sync) | Java 8, Spring Boot 1.5, `@Scheduled` | 8083 | `services/capacity-sync` |
 
-Local development credentials: SQL login `ad_app` / `Northw1nd!Dev2011`, created by
-`db/schema/000_create_database.sql` (dev only). On Azure the connection strings come
+Local development credentials: one SQL login per component (`ad_portal`, `ad_booking_api`, `ad_results`,
+`ad_capacity_sync`, `ad_sched_import`, `ad_sched_relay`), created by `db/schema/000_create_database.sql`
+(dev only; passwords in the root README). Since MBA-3823 `db/security/040_single_writer.sql` denies booking
+and seat writes to all of them except `ad_sched_relay`: scheduling-service is the single writer and its outbox
+relay projects every change back into `Booking` / `Waitlist` / `ExamSession` / `AuditLog`. On Azure the connection strings come
 from App Service settings, and the committed transforms/profiles hold only placeholders.
 
 ## Database (`db/`)
 
 Scripts are numbered and run in order: `schema/` -> `procs/` -> `triggers/` -> `seed/`.
 `db/checks/` holds read-only diagnostic queries.
+Rebuild locally with `db/apply.sh` (Linux/macOS) or `db/apply.ps1` (Windows); see `db/README.md`
+for seed volumes and the check scripts.
 
 | Table | Purpose / key columns |
 |---|---|
@@ -51,13 +56,16 @@ no seat constraint.
 failed can book again only after `Exam.RetakeWaitDays` (30) days from the date of the
 last attempt (the `StartsAt` of the session the failed result belongs to).
 
-### Stored procedures
+### Stored procedures (retired)
+
+The four booking procs below were dropped in MBA-3824 (`db/procs/090_retire_booking_procs.sql`; source in git
+history). scheduling-service is the only booking writer; the table documents the legacy contract it ported.
 
 | Procedure | Signature | Notes |
 |---|---|---|
 | `usp_BookSeat` | `@SessionId, @CandidateId, @AccommodationCode = NULL, @BookingId OUT, @ResultStatus OUT` | Portal booking. Returns BOOKED, or WAITLISTED when the session is full. Errors: 50001 not open, 50002 duplicate, 50003 no accommodation seat |
 | `usp_CancelBooking` | `@BookingId, @Reason = NULL, @Actor = NULL` | Releases the seat. No automatic waitlist promotion |
-| `usp_ChangeCapacity` | `@SessionId, @NewCapacity, @Actor = NULL` | Centre admin capacity change; SeatsAvailable shifts by the same delta, floored at 0. AccommodationCapacity is left as allocated (usable accommodation seats are capped by Capacity); error 50005 only when below the booked ET25/ET50 seats |
+| `usp_ChangeCapacity` | `@SessionId, @NewCapacity, @Actor = NULL` | Centre admin capacity change; SeatsAvailable shifts by the same delta, floored at 0 |
 | `usp_RescheduleBooking` | `@BookingId, @NewSessionId, @NewBookingId OUT, @ResultStatus OUT` | Cancel + book, same exam only |
 
 Errors are raised with `RAISERROR` at severity 16 (msg 50000; the state carries the
@@ -68,6 +76,8 @@ code above).
 Maven multi-module (`services/pom.xml`), Java 8, Spring Boot 1.5.x. Each service
 has `application.properties` (local dev) and `application-azure.properties` (Azure
 SQL placeholders, password from `AZURE_SQL_PASSWORD`).
+Build/run notes and curl examples: `services/README.md`; on Linux `scripts/run-legacy.sh`
+starts SQL Server in Docker plus all three services.
 
 **booking-api :8081**
 
@@ -100,9 +110,10 @@ starts a run by hand and `GET /sync/last` shows the last run.
 
 | Area | Routes |
 |---|---|
-| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=`, `/Admin/Sessions/Capacity/{id}` (calls usp_ChangeCapacity) |
-| Candidate booking | `/Booking` (find sessions), `/Booking/Book`, `/Booking/MyBookings?candidateNumber=`, `/Booking/Cancel/{id}`, `/Booking/Reschedule/{id}` |
+| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=` (read-only); capacity changes moved to the modern UI `/app/admin/sessions/{id}` |
+| Candidate booking | retired in MBA-3824: `/Booking`, `/Booking/Book`, `/Booking/MyBookings`, `/Booking/Cancel/{id}`, `/Booking/Reschedule/{id}` redirect to `/app/...` through the routing gateway (:8000) |
 | Retake eligibility | `/Eligibility?candidateNumber=&examCode=&date=` |
 | Results | `/Results?candidateNumber=` |
 
 There is no sign-in: a candidate is selected by candidate number (kiosk-era design).
+Build, run (`scripts/run-portal.ps1`) and test instructions: `AssessmentDelivery.Web/README.md`.

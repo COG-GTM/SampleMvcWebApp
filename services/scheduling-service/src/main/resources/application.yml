@@ -1,0 +1,58 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: scheduling-service
+  datasource:
+    # The service's OWN database. Never AssessmentDelivery.
+    url: ${SCHEDULING_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=Scheduling;encrypt=true;trustServerCertificate=true}
+    username: ${SCHEDULING_DB_USER:sa}
+    password: ${SCHEDULING_DB_PASSWORD:Str0ng!Passw0rd}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    default-property-inclusion: always
+    serialization:
+      write-dates-as-timestamps: false
+  mvc:
+    problemdetails:
+      enabled: false
+
+scheduling:
+  datasource:
+    # Create the Scheduling database (from master) before Flyway runs when it does not exist yet.
+    create-database: true
+  legacy:
+    # Read-only login (db_datareader only) created by db/security/035_sched_import_login.sql
+    url: ${LEGACY_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=AssessmentDelivery;encrypt=true;trustServerCertificate=true;applicationIntent=ReadOnly}
+    username: ${LEGACY_DB_USER:ad_sched_import}
+    password: ${LEGACY_DB_PASSWORD:Sch3d!Imp0rt2026}
+  import:
+    on-startup: ${SCHEDULING_IMPORT_ON_STARTUP:false}
+  relay:
+    # Outbox relay into AssessmentDelivery as ad_sched_relay (db/schema/000 + db/security/040_single_writer.sql)
+    enabled: ${SCHEDULING_RELAY_ENABLED:false}
+    url: ${RELAY_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=AssessmentDelivery;encrypt=true;trustServerCertificate=true}
+    username: ${RELAY_DB_USER:ad_sched_relay}
+    password: ${RELAY_DB_PASSWORD:Sch3d!Re1ay2026}
+    poll-interval-ms: ${SCHEDULING_RELAY_POLL_MS:200}
+    batch-size: 100
+  reconciliation:
+    report-dir: ${RECONCILIATION_REPORT_DIR:reports}
+  rules:
+    # calendar (portal RetakeRules.AddDays, chosen by ADR 0002) | working (booking-api DateUtils.addWorkingDays)
+    retake-days: calendar
+    # allocated (usp_ChangeCapacity on assessment-delivery-demo) | booked-extra-time (pending PR #51)
+    accommodation-floor: allocated
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.northwind.assessment.scheduling: INFO
