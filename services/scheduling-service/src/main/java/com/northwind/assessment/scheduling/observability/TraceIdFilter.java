@@ -47,12 +47,17 @@ public class TraceIdFilter extends OncePerRequestFilter {
         MDC.put(LogContext.TRACE_ID, traceId);
         response.setHeader(REQUEST_ID, requestId != null ? requestId : traceId);
         long start = System.nanoTime();
+        boolean failed = true;
         try {
             chain.doFilter(request, response);
+            failed = false;
         } finally {
             if (logged(request.getRequestURI())) {
+                // an exception escaping the chain becomes a 500 later, in the container's error handling
+                int status = failed ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : response.getStatus();
                 log.info("request completed", kv("method", request.getMethod()), kv("path", request.getRequestURI()),
-                        kv("status", response.getStatus()), kv("durationMs", (System.nanoTime() - start) / 1_000_000));
+                        kv("status", status), kv("durationMs", (System.nanoTime() - start) / 1_000_000),
+                        kv("requestId", requestId != null ? requestId : traceId));
             }
             LogContext.clearAll();
         }

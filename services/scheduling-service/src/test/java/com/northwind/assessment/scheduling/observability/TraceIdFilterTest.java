@@ -2,7 +2,14 @@ package com.northwind.assessment.scheduling.observability;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReference;
+import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
@@ -98,6 +105,33 @@ class TraceIdFilterTest {
         assertThat(MDC.get(LogContext.TRACE_ID)).isNull();
         assertThat(MDC.get(LogContext.CENTER_CODE)).isNull();
         assertThat(MDC.get(LogContext.BOOKING_ID)).isNull();
+    }
+
+    @Test
+    void completionLine_recordsEchoedRequestId_and500WhenTheChainThrows() {
+        Logger logger = (Logger) LoggerFactory.getLogger(TraceIdFilter.class);
+        ListAppender<ILoggingEvent> events = new ListAppender<>();
+        events.start();
+        logger.addAppender(events);
+        try {
+            MockHttpServletRequest req = new MockHttpServletRequest("POST", "/api/v2/bookings");
+            req.addHeader("traceparent", "00-" + TRACE + "-00f067aa0ba902b7-01");
+            req.addHeader("X-Request-Id", "gw-9");
+            assertThatThrownBy(() -> filter.doFilter(req, new MockHttpServletResponse(), new MockFilterChain() {
+                @Override
+                public void doFilter(jakarta.servlet.ServletRequest rq, jakarta.servlet.ServletResponse rs) {
+                    throw new IllegalStateException("boom");
+                }
+            })).isInstanceOf(IllegalStateException.class);
+            assertThat(events.list).hasSize(1);
+            ILoggingEvent line = events.list.get(0);
+            assertThat(line.getMDCPropertyMap()).containsEntry(LogContext.TRACE_ID, TRACE);
+            assertThat(Arrays.stream(line.getArgumentArray()).map(String::valueOf))
+                    .contains("status=500", "requestId=gw-9");
+            assertThat(MDC.getCopyOfContextMap()).isNullOrEmpty();
+        } finally {
+            logger.detachAppender(events);
+        }
     }
 
     @Test
