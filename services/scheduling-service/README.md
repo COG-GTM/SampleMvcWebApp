@@ -92,6 +92,15 @@ delete bookings). booking-api forwards v1 writes through the routing layer, resu
   backlog/lag, and writes `reports/reconciliation-<timestamp>.md`. `GET /internal/relay/status` and
   `POST /internal/relay/run` expose the relay.
 
+  What reconciliation catches on the legacy estate (`legacy-baseline`, see `reports/drift-before-after.md`) are the
+  two drift causes in `docs/as-is/hidden-behavior.md`: **HB-01** (`docs/as-is/hidden-behavior.md:51-67`), the
+  partner double decrement in booking-api (`BookingService.java:110-116`, `SessionDao.java:82-83` at
+  `legacy-baseline`) plus `db/triggers/032_trg_Booking_SeatSync.sql:12,19,23`, and **HB-03**
+  (`docs/as-is/hidden-behavior.md:148-163`), capacity-sync's seat formula
+  (`services/capacity-sync/.../CapacitySyncService.java:29-34,59-67`) disagreeing with `db/checks/seat-drift.sql:3,18,24`.
+  With a single writer, one seat formula, the trigger skip for relayed rows and `capacity.sync.enabled=false`,
+  neither can occur.
+
 **Alternative considered: CDC / Debezium.** SQL Server CDC on the `Scheduling` DB with Debezium would give the same
 guarantee (changes published only after commit, no dual write) without an outbox table, but needs Kafka + Kafka
 Connect (and CDC agent jobs) to run and operate. The outbox is one table and an in-process poller; swapping later

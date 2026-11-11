@@ -121,6 +121,32 @@ summary() { sed -n '/session summary/,$p' "$1" | grep -v 'seat-drift.sql:' | gre
     echo "\`:8081\` -> \`$ROUTING_URL\` -> scheduling-service -> outbox -> relay (\`ad_sched_relay\`) -> AssessmentDelivery."
     [ "$GATEWAY" = 1 ] || echo "services/routing-gateway is not on this branch, so ROUTING_URL points at scheduling-service directly."
     echo
+    cat <<'WHY'
+## Why the "before" drift is > 0
+
+Both causes are documented in [`docs/as-is/hidden-behavior.md`](../docs/as-is/hidden-behavior.md) (code lines at `legacy-baseline`):
+
+- **HB-01, partner double decrement** (`docs/as-is/hidden-behavior.md:51-67`): booking-api inserts the PARTNER booking
+  itself and decrements `SeatsAvailable`
+  (`services/booking-api/src/main/java/com/northwind/assessment/booking/service/BookingService.java:110-116`,
+  `services/booking-api/src/main/java/com/northwind/assessment/booking/dao/SessionDao.java:82-83`), then
+  `trg_Booking_SeatSync` decrements again for every `BOOKED` row with `Channel <> 'PORTAL'`
+  (`db/triggers/032_trg_Booking_SeatSync.sql:12,19,23`). Cancels give back one seat, so each of the 20 partner
+  bookings leaks a seat. This is the drift visible in the session summary right after the workload.
+- **HB-03, capacity-sync seat formula** (`docs/as-is/hidden-behavior.md:148-163`): the capacity-sync run rewrites
+  `SeatsAvailable` on every OPEN session as `max(0, Capacity - AccommodationCapacity - standard BOOKED/ATTENDED)`
+  (`services/capacity-sync/src/main/java/com/northwind/assessment/capacity/CapacitySyncService.java:29-34,59-67`),
+  while `db/checks/seat-drift.sql:3,18,24` expects `Capacity - (BOOKED + ATTENDED)`. Every OPEN session with
+  accommodation seats is therefore reported as drifted, and the same run hides the HB-01 leak on sessions without
+  accommodation seats; these are the rows listed below.
+
+After M4 neither cause can write: booking-api forwards to scheduling-service (single seat formula
+`max(0, Capacity - BOOKED - ATTENDED)`, no second decrement), the relay sets `SESSION_CONTEXT(N'writer')` so
+`trg_Booking_SeatSync` skips relayed rows, `capacity.sync.enabled=false` makes the sync a logged no-op, and
+`db/security/040_single_writer.sql` DENYs the legacy logins any booking/seat write.
+
+WHY
+    echo
     echo "## Before ($BEFORE_REF)"
     echo; echo '```'; summary "$WORK/before-mixed-traffic.log"; echo "capacity-sync: $BEFORE_SYNC"; echo '```'
     echo; echo "db/checks/seat-drift.sql:"; echo; echo '```'; cat "$WORK/before-seat-drift.txt"; echo '```'
