@@ -24,10 +24,13 @@ def pick(t):
         WHERE b.Status = 'BOOKED' AND s.Status = 'OPEN' AND s.StartsAt > {asof} ORDER BY b.BookingId""".format(bk=t.bk, es=t.es, asof=q(AS_OF)))
     seeded_wl = st.ints("SELECT TOP 2 BookingId FROM {bk} WHERE Status = 'WAITLISTED' ORDER BY BookingId".format(bk=t.bk))
     seeded_done = st.ints("SELECT TOP 1 BookingId FROM {bk} WHERE Status IN ('CANCELLED','ATTENDED') ORDER BY BookingId".format(bk=t.bk))
-    cands = t.ref.rows("""SELECT TOP 60 c.CandidateNumber FROM dbo.Candidate c WHERE c.DefaultAccommodationCode IS NULL
-        AND NOT EXISTS (SELECT 1 FROM dbo.Result r WHERE r.CandidateId = c.CandidateId) ORDER BY c.CandidateNumber""")
-    et_default = t.ref.scalar("""SELECT TOP 1 c.CandidateNumber FROM dbo.Candidate c WHERE c.DefaultAccommodationCode IN ('ET25','ET50')
-        AND NOT EXISTS (SELECT 1 FROM dbo.Result r WHERE r.CandidateId = c.CandidateId) ORDER BY c.CandidateNumber""")
+    # candidates with no booking anywhere and no result: every booking attempt is decided by the session alone
+    fresh = ("NOT EXISTS (SELECT 1 FROM dbo.Result r WHERE r.CandidateId = c.CandidateId) AND NOT EXISTS "
+             "(SELECT 1 FROM %s.dbo.Booking b WHERE b.CandidateId = c.CandidateId)" % t.state.database)
+    cands = t.ref.rows("SELECT TOP 60 c.CandidateNumber FROM dbo.Candidate c WHERE c.DefaultAccommodationCode IS NULL AND %s "
+                       "ORDER BY c.CandidateNumber" % fresh)
+    et_default = t.ref.scalar("SELECT TOP 1 c.CandidateNumber FROM dbo.Candidate c WHERE c.DefaultAccommodationCode IN "
+                              "('ET25','ET50') AND %s ORDER BY c.CandidateNumber" % fresh)
     return {'pairs': [(int(a), int(b)) for a, b in pairs], 'big': int(big), 'otherExam': int(other_exam), 'closed': int(closed),
             'seededBooked': seeded_booked, 'seededWaitlisted': seeded_wl, 'seededDone': seeded_done,
             'cands': [r[0] for r in cands], 'etDefault': et_default}
