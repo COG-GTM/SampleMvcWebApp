@@ -53,6 +53,10 @@ enables SQL Server Change Tracking on `AssessmentDelivery` for `Exam`, `TestCent
 | `SCHEDULING_STORAGE_API` | `false` | `/api/v1/admin/storage/*` direct-write compatibility API (tests and dual-run only) |
 | `SCHEDULING_LEGACY_SEAT_ACCOUNTING` | `false` | HB-01/HB-02 partner double decrement (parity only; the characterization target sets `true`) |
 
+## Security
+
+No authentication: the service keeps the legacy trust model (shared `ad_app`, internal network only). Expose port 8084 only on the estate network. See contract section 9, "Security posture". `/admin/import` and `/admin/storage/*` are off unless `SCHEDULING_IMPORT_API` / `SCHEDULING_STORAGE_API` are set.
+
 ## Data and reference import
 
 - **Owned tables:** `ExamSession`, `Booking`, `Waitlist`, `AuditLog`, plus `Attempt` (results, for retake eligibility),

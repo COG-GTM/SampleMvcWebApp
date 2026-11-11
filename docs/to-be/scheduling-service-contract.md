@@ -124,3 +124,9 @@ Today two engines read `Result` and `Exam`, and both join `ExamSession` for `Sta
 | Unknown candidate on `POST /bookings` | 404 `CANDIDATE_NOT_FOUND` with `legacyState: 0` and the legacy FK message (`FK_Booking_Candidate`). | usp_BookSeat re-raised the FK violation as Msg 50000 with state 0 (BS-22). |
 | Roster CSV | Cells that start with `= + - @`, tab or CR get a leading `'`. | Neutralises spreadsheet formula (CSV) injection. Every other cell is unchanged. |
 | Cancel locking | Cancel takes `UPDLOCK, HOLDLOCK` on the owning ExamSession row before the Booking row. | The proc's booking-then-session window was one server round trip. Over JDBC it is wide enough for cancel-vs-book to deadlock, which the legacy suite never shows (CX-06). Crossing reschedules still deadlock and roll back as pinned (CX-08). |
+| `GET /sessions/capacity-audit` | `testCenterId` and `sessionId` are both optional. `from` is inclusive and `to` exclusive, both `date-time` as in usp_GetCapacityAudit (a bare `yyyy-MM-dd` means midnight). | The portal page always passes `testCenterId`. Other callers can query by session. |
+
+### Security posture (Phase 1)
+
+The contract does not define authentication, so the service matches the legacy trust model. Today every caller (portal, booking-api, results-service, capacity-sync) connects to `AssessmentDelivery` as the shared `ad_app` login over the internal network, with no per-caller authorization. scheduling-service has the same posture: **no authentication on any endpoint, reachable only on the internal network** (bind it or firewall it to the estate subnet). `X-Client-Id` scopes idempotency and `X-Actor` names the audit actor. Neither is a credential. The destructive and compatibility endpoints (`/admin/import`, `/admin/storage/*`) are off by default. Adding service-to-service auth (mTLS or OAuth2 client credentials) is a follow-up for after cutover. It needs every Phase 2 client to change at once.
+
