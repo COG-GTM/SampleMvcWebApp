@@ -57,7 +57,7 @@ last attempt (the `StartsAt` of the session the failed result belongs to).
 |---|---|---|
 | `usp_BookSeat` | `@SessionId, @CandidateId, @AccommodationCode = NULL, @BookingId OUT, @ResultStatus OUT` | Portal booking. Returns BOOKED, or WAITLISTED when the session is full. Errors: 50001 not open, 50002 duplicate, 50003 no accommodation seat |
 | `usp_CancelBooking` | `@BookingId, @Reason = NULL, @Actor = NULL` | Releases the seat. No automatic waitlist promotion |
-| `usp_ChangeCapacity` | `@SessionId, @NewCapacity, @Actor = NULL` | Centre admin capacity change; SeatsAvailable shifts by the same delta, floored at 0. A reduction below AccommodationCapacity shrinks it to the new capacity; error 50005 only when below the booked ET25/ET50 seats |
+| `usp_ChangeCapacity` | `@SessionId, @NewCapacity, @Actor = NULL` | Centre admin capacity change; SeatsAvailable shifts by the same delta, floored at 0. AccommodationCapacity is left as allocated (usable accommodation seats are capped by Capacity); error 50005 only when below the booked ET25/ET50 seats |
 | `usp_RescheduleBooking` | `@BookingId, @NewSessionId, @NewBookingId OUT, @ResultStatus OUT` | Cancel + book, same exam only |
 
 Errors are raised with `RAISERROR` at severity 16 (msg 50000; the state carries the

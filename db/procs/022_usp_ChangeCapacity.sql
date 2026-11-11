@@ -1,10 +1,11 @@
 /*
     usp_ChangeCapacity - change the seat capacity of a session (centre admin).
     SeatsAvailable is adjusted by the same delta and never goes below zero.
-    AccommodationCapacity is part of Capacity: a reduction below it shrinks the
-    accommodation allocation to the new capacity, and a later increase gives it back
-    (up to the room's AccommodationSeats). Only accommodation seats that are already
-    booked (ET25/ET50, BOOKED or ATTENDED) block a reduction.
+    AccommodationCapacity is left as allocated: when Capacity drops below it, the
+    usable accommodation seats are simply capped by Capacity (no booking can exceed
+    the session's seats), and the full allocation is usable again if Capacity grows.
+    Only accommodation seats that are already booked (ET25/ET50, BOOKED or ATTENDED)
+    block a reduction.
     Errors: 50005 session not found / invalid capacity / below booked accommodation seats.
 */
 USE AssessmentDelivery;
@@ -20,15 +21,14 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE @OldCapacity INT, @AccCap INT, @AccBooked INT, @RoomAccSeats INT, @NewAccCap INT;
+    DECLARE @OldCapacity INT, @AccCap INT, @AccBooked INT;
 
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        SELECT @OldCapacity = s.Capacity, @AccCap = s.AccommodationCapacity, @RoomAccSeats = r.AccommodationSeats
-        FROM dbo.ExamSession s WITH (UPDLOCK, HOLDLOCK)
-        JOIN dbo.Room r ON r.RoomId = s.RoomId
-        WHERE s.SessionId = @SessionId;
+        SELECT @OldCapacity = Capacity, @AccCap = AccommodationCapacity
+        FROM dbo.ExamSession WITH (UPDLOCK, HOLDLOCK)
+        WHERE SessionId = @SessionId;
 
         IF @OldCapacity IS NULL OR @NewCapacity < 0
             RAISERROR('Invalid capacity %d for session %d.', 16, 5, @NewCapacity, @SessionId);
@@ -41,16 +41,8 @@ BEGIN
             RAISERROR('Capacity %d for session %d is below the %d accommodation seats already booked.',
                       16, 5, @NewCapacity, @SessionId, @AccBooked);
 
-        -- an allocation that fills the whole session was clamped by an earlier reduction
-        SET @NewAccCap = CASE
-            WHEN @NewCapacity < @AccCap THEN @NewCapacity
-            WHEN @NewCapacity > @OldCapacity AND @AccCap = @OldCapacity AND @RoomAccSeats > @AccCap
-                THEN CASE WHEN @NewCapacity < @RoomAccSeats THEN @NewCapacity ELSE @RoomAccSeats END
-            ELSE @AccCap END;
-
         UPDATE dbo.ExamSession
            SET Capacity       = @NewCapacity,
-               AccommodationCapacity = @NewAccCap,
                SeatsAvailable = CASE WHEN SeatsAvailable + (@NewCapacity - Capacity) < 0 THEN 0
                                      ELSE SeatsAvailable + (@NewCapacity - Capacity) END,
                LastModified   = GETDATE()
@@ -58,10 +50,7 @@ BEGIN
 
         INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor)
         VALUES ('ExamSession', @SessionId, 'CAPACITY',
-                CAST(@OldCapacity AS VARCHAR(12)) + ' -> ' + CAST(@NewCapacity AS VARCHAR(12))
-                + CASE WHEN @NewAccCap <> @AccCap
-                       THEN ' (accommodation ' + CAST(@AccCap AS VARCHAR(12)) + ' -> ' + CAST(@NewAccCap AS VARCHAR(12)) + ')'
-                       ELSE '' END,
+                CAST(@OldCapacity AS VARCHAR(12)) + ' -> ' + CAST(@NewCapacity AS VARCHAR(12)),
                 ISNULL(@Actor, SUSER_SNAME()));
 
         COMMIT TRANSACTION;

@@ -36,18 +36,18 @@ INSERT INTO dbo.Booking (SessionId, CandidateId, Status, AccommodationCode) VALU
 BEGIN TRY
     EXEC dbo.usp_ChangeCapacity @SessionId = @s1, @NewCapacity = 2, @Actor = 'test';
     SELECT @cap = Capacity, @acc = AccommodationCapacity, @avail = SeatsAvailable FROM dbo.ExamSession WHERE SessionId = @s1;
-    IF @cap = 2 AND @acc = 2 AND @avail = 1 PRINT 'PASS 1 reduction below unbooked accommodation seats accepted (capacity 2, accommodation 2, available 1)';
+    IF @cap = 2 AND @acc = 3 AND @avail = 1 PRINT 'PASS 1 reduction below unbooked accommodation seats accepted (capacity 2, allocation kept at 3, available 1)';
     ELSE BEGIN SET @fail += 1; PRINT CONCAT('FAIL 1 capacity=', @cap, ' accommodation=', @acc, ' available=', @avail); END
 END TRY
 BEGIN CATCH
     SET @fail += 1; PRINT 'FAIL 1 rejected: ' + ERROR_MESSAGE();
 END CATCH
 
--- 1b. raise s1 back to 12 seats: the clamped accommodation allocation comes back (room has 3)
+-- 1b. raise s1 back to 12 seats: the original accommodation allocation is unchanged
 BEGIN TRY
     EXEC dbo.usp_ChangeCapacity @SessionId = @s1, @NewCapacity = 12, @Actor = 'test';
     SELECT @cap = Capacity, @acc = AccommodationCapacity, @avail = SeatsAvailable FROM dbo.ExamSession WHERE SessionId = @s1;
-    IF @cap = 12 AND @acc = 3 AND @avail = 11 PRINT 'PASS 1b increase restores accommodation seats (capacity 12, accommodation 3, available 11)';
+    IF @cap = 12 AND @acc = 3 AND @avail = 11 PRINT 'PASS 1b increase keeps the original allocation (capacity 12, accommodation 3, available 11)';
     ELSE BEGIN SET @fail += 1; PRINT CONCAT('FAIL 1b capacity=', @cap, ' accommodation=', @acc, ' available=', @avail); END
 END TRY
 BEGIN CATCH
