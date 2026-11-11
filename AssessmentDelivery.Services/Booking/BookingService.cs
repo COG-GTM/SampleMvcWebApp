@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.Entity;
 using System.Data.SqlClient;
 using System.Linq;
 using AssessmentDelivery.Business.Rules;
@@ -9,46 +7,48 @@ using AssessmentDelivery.Data.DataClasses;
 using AssessmentDelivery.Data.DataClasses.Entities;
 using AssessmentDelivery.Services.Common;
 using AssessmentDelivery.Services.Eligibility;
+using AssessmentDelivery.Services.Scheduling;
 
 namespace AssessmentDelivery.Services.Booking
 {
+    /// <summary>
+    /// Portal booking flows. ExamSession, Booking and Waitlist are owned by scheduling-service and reached
+    /// through ISchedulingClient (docs/to-be/portal-contract-spec.md); Exam, TestCenter and Candidate stay
+    /// local reference reads. Retake eligibility stays here: the service does not check it (HB-08).
+    /// </summary>
     public class BookingService : IBookingService
     {
+        public const string Channel = "PORTAL";
+        public const string Actor = "portal";
+
         private readonly AssessmentDeliveryDb _db;
         private readonly IEligibilityService _eligibility;
+        private readonly ISchedulingClient _scheduling;
 
-        public BookingService(AssessmentDeliveryDb db, IEligibilityService eligibility)
+        public BookingService(AssessmentDeliveryDb db, IEligibilityService eligibility, ISchedulingClient scheduling)
         {
             _db = db;
             _eligibility = eligibility;
+            _scheduling = scheduling;
         }
 
         public IList<SessionListItem> FindOpenSessions(SessionSearchCriteria criteria)
         {
-            var q = _db.ExamSessions.Where(s => s.Status == "OPEN");
+            var query = new SessionQuery { Status = "OPEN", Sort = "startsAt,centerCode" };
             if (criteria != null)
             {
-                if (!string.IsNullOrWhiteSpace(criteria.ExamCode))
-                    q = q.Where(s => s.Exam.ExamCode == criteria.ExamCode);
-                if (!string.IsNullOrWhiteSpace(criteria.CenterCode))
-                    q = q.Where(s => s.TestCenter.CenterCode == criteria.CenterCode);
-                if (criteria.From.HasValue)
-                {
-                    var from = criteria.From.Value.Date;
-                    q = q.Where(s => s.StartsAt >= from);
-                }
-                if (criteria.To.HasValue)
-                {
-                    var to = criteria.To.Value.Date.AddDays(1);
-                    q = q.Where(s => s.StartsAt < to);
-                }
+                if (!string.IsNullOrWhiteSpace(criteria.ExamCode)) query.ExamCode = criteria.ExamCode;
+                if (!string.IsNullOrWhiteSpace(criteria.CenterCode)) query.CenterCode = criteria.CenterCode;
+                if (criteria.From.HasValue) query.From = criteria.From.Value.Date;
+                if (criteria.To.HasValue) query.To = criteria.To.Value.Date;
             }
-            return Project(q).OrderBy(s => s.StartsAt).ThenBy(s => s.CenterCode).ToList();
+            return _scheduling.SearchSessions(query).Select(ToSessionListItem).ToList();
         }
 
         public SessionListItem GetSession(int sessionId)
         {
-            return Project(_db.ExamSessions.Where(s => s.SessionId == sessionId)).SingleOrDefault();
+            var session = _scheduling.GetSession(sessionId);
+            return session == null ? null : ToSessionListItem(session);
         }
 
         public IList<Exam> ListExams()
@@ -73,18 +73,15 @@ namespace AssessmentDelivery.Services.Booking
             var candidate = FindCandidate(candidateNumber);
             if (candidate == null) return new List<BookingListItem>();
 
-            var list = ProjectBookings(_db.Bookings.Where(b => b.CandidateId == candidate.CandidateId))
-                .OrderByDescending(b => b.StartsAt).ThenByDescending(b => b.BookingId).ToList();
-            foreach (var item in list)
-                item.CanChange = SeatCounter.CanCancel(item.Status);
-            return list;
+            //sessionStartsAt,desc = StartsAt DESC, BookingId DESC (the old EF ordering)
+            return _scheduling.SearchBookings(candidate.CandidateId, "sessionStartsAt,desc")
+                .Select(ToBookingListItem).ToList();
         }
 
         public BookingListItem GetBooking(int bookingId)
         {
-            var item = ProjectBookings(_db.Bookings.Where(b => b.BookingId == bookingId)).SingleOrDefault();
-            if (item != null) item.CanChange = SeatCounter.CanCancel(item.Status);
-            return item;
+            var booking = _scheduling.GetBooking(bookingId);
+            return booking == null ? null : ToBookingListItem(booking);
         }
 
         public BookingOutcome Book(int sessionId, string candidateNumber, string accommodationCode)
@@ -93,143 +90,144 @@ namespace AssessmentDelivery.Services.Booking
             if (candidate == null)
                 throw new PortalException("Candidate number " + candidateNumber + " was not found.");
 
-            var session = _db.ExamSessions.Include(s => s.Exam).AsNoTracking().SingleOrDefault(s => s.SessionId == sessionId);
+            var session = _scheduling.GetSession(sessionId);
             if (session == null)
                 throw new PortalException("Session " + sessionId + " was not found.");
 
-            //blank on the form = use the candidate's default from their profile
+            //blank on the form = use the candidate's default from their profile (HB-09: the service takes it literally)
             var requested = string.IsNullOrWhiteSpace(accommodationCode) ? candidate.DefaultAccommodationCode : accommodationCode;
             string code;
             if (!AccommodationCodes.TryParse(requested, out code))
                 throw new PortalException("Unknown accommodation code '" + requested + "'.");
 
-            //retake check has to happen here, usp_BookSeat does not know about results
-            var decision = _eligibility.Check(candidate.CandidateNumber, session.Exam.ExamCode, session.StartsAt);
+            //retake check has to happen here, scheduling-service does not know about results
+            var decision = _eligibility.Check(candidate.CandidateNumber, session.ExamCode, session.StartsAt);
             if (!decision.Eligible)
-                throw new PortalException("Not eligible to book " + session.Exam.ExamCode + ": " + decision.Reason);
+                throw new PortalException("Not eligible to book " + session.ExamCode + ": " + decision.Reason);
 
-            var pBookingId = new SqlParameter("@BookingId", SqlDbType.Int) { Direction = ParameterDirection.Output };
-            var pStatus = new SqlParameter("@ResultStatus", SqlDbType.VarChar, 12) { Direction = ParameterDirection.Output };
-            try
+            var result = Call(() => _scheduling.Book(new ApiBookRequest
             {
-                _db.Database.ExecuteSqlCommand(TransactionalBehavior.DoNotEnsureTransaction,
-                    "EXEC dbo.usp_BookSeat @SessionId, @CandidateId, @AccommodationCode, @BookingId OUTPUT, @ResultStatus OUTPUT",
-                    new SqlParameter("@SessionId", sessionId),
-                    new SqlParameter("@CandidateId", candidate.CandidateId),
-                    new SqlParameter("@AccommodationCode", SqlDbType.VarChar, 10) { Value = (object)code ?? DBNull.Value },
-                    pBookingId, pStatus);
-            }
-            catch (Exception ex)
-            {
-                var pe = SqlErrorHelper.TryTranslate(ex);
-                if (pe != null) throw pe;
-                throw;
-            }
-            return new BookingOutcome { BookingId = (int)pBookingId.Value, Status = (string)pStatus.Value };
+                SessionId = sessionId,
+                CandidateId = candidate.CandidateId,
+                AccommodationCode = code,
+                Channel = Channel
+            }, LegacyLoginActor()));
+            return new BookingOutcome { BookingId = result.BookingId, Status = result.Status };
+        }
+
+        /// <summary>
+        /// Audit actor for book and reschedule. usp_BookSeat and usp_RescheduleBooking took no @Actor, so their
+        /// AuditLog rows got the column default SUSER_SNAME(): the portal's shared SQL login (ad_app). Cancel and
+        /// capacity passed @Actor explicitly ('portal', 'portal-admin') and keep doing so.
+        /// </summary>
+        private string LegacyLoginActor()
+        {
+            var login = new SqlConnectionStringBuilder(_db.Database.Connection.ConnectionString).UserID;
+            return string.IsNullOrEmpty(login) ? System.Security.Principal.WindowsIdentity.GetCurrent().Name : login;
         }
 
         public void Cancel(int bookingId, string reason)
         {
-            try
-            {
-                _db.Database.ExecuteSqlCommand(TransactionalBehavior.DoNotEnsureTransaction,
-                    "EXEC dbo.usp_CancelBooking @BookingId, @Reason, @Actor",
-                    new SqlParameter("@BookingId", bookingId),
-                    new SqlParameter("@Reason", SqlDbType.NVarChar, 200) { Value = string.IsNullOrWhiteSpace(reason) ? (object)DBNull.Value : reason },
-                    new SqlParameter("@Actor", SqlDbType.VarChar, 60) { Value = "portal" });
-            }
-            catch (Exception ex)
-            {
-                var pe = SqlErrorHelper.TryTranslate(ex);
-                if (pe != null) throw pe;
-                throw;
-            }
+            Call(() => _scheduling.Cancel(bookingId, reason, Actor));
         }
 
         public IList<SessionListItem> FindRescheduleTargets(int bookingId)
         {
-            var booking = _db.Bookings.AsNoTracking().Include(b => b.Session).SingleOrDefault(b => b.BookingId == bookingId);
+            var booking = _scheduling.GetBooking(bookingId);
             if (booking == null) return new List<SessionListItem>();
-            var examId = booking.Session.ExamId;
-            var today = DateTime.Today;
-            var q = _db.ExamSessions.Where(s => s.ExamId == examId && s.Status == "OPEN"
-                                                && s.SessionId != booking.SessionId && s.StartsAt >= today);
-            return Project(q).OrderBy(s => s.StartsAt).ToList();
+            var examId = booking.ExamId;
+            if (!examId.HasValue)
+            {
+                var current = _scheduling.GetSession(booking.SessionId);
+                if (current == null) return new List<SessionListItem>();
+                examId = current.ExamId;
+            }
+            return _scheduling.SearchSessions(new SessionQuery
+            {
+                Status = "OPEN",
+                ExamId = examId,
+                ExcludeSessionId = booking.SessionId,
+                From = DateTime.Today,
+                Sort = "startsAt,sessionId"
+            }).Select(ToSessionListItem).ToList();
         }
 
         public BookingOutcome Reschedule(int bookingId, int newSessionId)
         {
-            var booking = _db.Bookings.AsNoTracking().Include(b => b.Candidate).SingleOrDefault(b => b.BookingId == bookingId);
-            var target = _db.ExamSessions.Include(s => s.Exam).AsNoTracking().SingleOrDefault(s => s.SessionId == newSessionId);
+            var booking = _scheduling.GetBooking(bookingId);
+            var target = _scheduling.GetSession(newSessionId);
             if (booking != null && target != null)
             {
-                //same retake check as Book - the proc only checks the exam matches
-                var decision = _eligibility.Check(booking.Candidate.CandidateNumber, target.Exam.ExamCode, target.StartsAt);
+                //same retake check as Book - the service only checks the exam matches
+                var decision = _eligibility.Check(booking.CandidateNumber, target.ExamCode, target.StartsAt);
                 if (!decision.Eligible)
-                    throw new PortalException("Not eligible to book " + target.Exam.ExamCode + ": " + decision.Reason);
+                    throw new PortalException("Not eligible to book " + target.ExamCode + ": " + decision.Reason);
             }
 
-            var pNewId = new SqlParameter("@NewBookingId", SqlDbType.Int) { Direction = ParameterDirection.Output };
-            var pStatus = new SqlParameter("@ResultStatus", SqlDbType.VarChar, 12) { Direction = ParameterDirection.Output };
-            try
-            {
-                _db.Database.ExecuteSqlCommand(TransactionalBehavior.DoNotEnsureTransaction,
-                    "EXEC dbo.usp_RescheduleBooking @BookingId, @NewSessionId, @NewBookingId OUTPUT, @ResultStatus OUTPUT",
-                    new SqlParameter("@BookingId", bookingId),
-                    new SqlParameter("@NewSessionId", newSessionId),
-                    pNewId, pStatus);
-            }
-            catch (Exception ex)
-            {
-                var pe = SqlErrorHelper.TryTranslate(ex);
-                if (pe != null) throw pe;
-                throw;
-            }
-            if (pNewId.Value == DBNull.Value)
+            //channel PORTAL = usp_RescheduleBooking semantics: new booking is PORTAL with no ExternalRef (HB-10)
+            var result = Call(() => _scheduling.Reschedule(bookingId, newSessionId, Channel, LegacyLoginActor()));
+            if (result == null || result.BookingId == 0)
                 throw new PortalException("Booking " + bookingId + " could not be rescheduled.");
-            return new BookingOutcome { BookingId = (int)pNewId.Value, Status = (string)pStatus.Value };
+            return new BookingOutcome { BookingId = result.BookingId, Status = result.Status };
         }
 
         //-------------------------------------------------
 
-        internal static IQueryable<SessionListItem> Project(IQueryable<ExamSession> q)
+        /// <summary>
+        /// 4xx answers carry the legacy RAISERROR text in message (contract section 4), which is exactly what the
+        /// portal used to surface through SqlErrorHelper, so it is shown unchanged.
+        /// </summary>
+        internal static T Call<T>(Func<T> call)
         {
-            return q.Select(s => new SessionListItem
+            try
+            {
+                return call();
+            }
+            catch (SchedulingApiException ex)
+            {
+                throw new PortalException(ex.Message, ex);
+            }
+        }
+
+        internal static SessionListItem ToSessionListItem(ApiSession s)
+        {
+            return new SessionListItem
             {
                 SessionId = s.SessionId,
-                ExamCode = s.Exam.ExamCode,
-                ExamTitle = s.Exam.Title,
-                CenterCode = s.TestCenter.CenterCode,
-                CenterName = s.TestCenter.Name,
-                City = s.TestCenter.City,
-                RoomName = s.Room.RoomName,
+                ExamCode = s.ExamCode,
+                ExamTitle = s.ExamTitle,
+                CenterCode = s.CenterCode,
+                CenterName = s.CenterName,
+                City = s.City,
+                RoomName = s.RoomName,
                 StartsAt = s.StartsAt,
-                DurationMinutes = s.Exam.DurationMinutes,
+                DurationMinutes = s.DurationMinutes ?? 0,
                 Capacity = s.Capacity,
                 AccommodationCapacity = s.AccommodationCapacity,
                 SeatsAvailable = s.SeatsAvailable,
                 Status = s.Status
-            });
+            };
         }
 
-        private static IQueryable<BookingListItem> ProjectBookings(IQueryable<Data.DataClasses.Entities.Booking> q)
+        internal static BookingListItem ToBookingListItem(ApiBooking b)
         {
-            return q.Select(b => new BookingListItem
+            return new BookingListItem
             {
                 BookingId = b.BookingId,
                 SessionId = b.SessionId,
-                ExamCode = b.Session.Exam.ExamCode,
-                ExamTitle = b.Session.Exam.Title,
-                CenterName = b.Session.TestCenter.Name,
-                StartsAt = b.Session.StartsAt,
+                ExamCode = b.ExamCode,
+                ExamTitle = b.ExamTitle,
+                CenterName = b.CenterName,
+                StartsAt = b.SessionStartsAt,
                 Status = b.Status,
                 AccommodationCode = b.AccommodationCode,
                 Channel = b.Channel,
                 ExternalRef = b.ExternalRef,
                 BookedAt = b.BookedAt,
                 CancelledAt = b.CancelledAt,
-                CancelReason = b.CancelReason
-            });
+                CancelReason = b.CancelReason,
+                CanChange = SeatCounter.CanCancel(b.Status)
+            };
         }
     }
 }

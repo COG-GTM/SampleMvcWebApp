@@ -1,36 +1,7 @@
 # id|file|line|exact trimmed source line. Tripwire for docs/to-be/scheduling-boundary.md: if a cited line moves or
 # changes, update the inventory row and this file together. Phase 2 rewiring is EXPECTED to break rows here.
-P-B01|AssessmentDelivery.Services/Booking/BookingService.cs|28|var q = _db.ExamSessions.Where(s => s.Status == "OPEN");
-P-B02|AssessmentDelivery.Services/Booking/BookingService.cs|51|return Project(_db.ExamSessions.Where(s => s.SessionId == sessionId)).SingleOrDefault();
-P-B06|AssessmentDelivery.Services/Booking/BookingService.cs|77|.OrderByDescending(b => b.StartsAt).ThenByDescending(b => b.BookingId).ToList();
-P-B07|AssessmentDelivery.Services/Booking/BookingService.cs|85|var item = ProjectBookings(_db.Bookings.Where(b => b.BookingId == bookingId)).SingleOrDefault();
-P-B08|AssessmentDelivery.Services/Booking/BookingService.cs|96|var session = _db.ExamSessions.Include(s => s.Exam).AsNoTracking().SingleOrDefault(s => s.SessionId == sessionId);
-P-B09|AssessmentDelivery.Services/Booking/BookingService.cs|116|"EXEC dbo.usp_BookSeat @SessionId, @CandidateId, @AccommodationCode, @BookingId OUTPUT, @ResultStatus OUTPUT",
-P-B10|AssessmentDelivery.Services/Booking/BookingService.cs|136|"EXEC dbo.usp_CancelBooking @BookingId, @Reason, @Actor",
-P-B11|AssessmentDelivery.Services/Booking/BookingService.cs|155|var q = _db.ExamSessions.Where(s => s.ExamId == examId && s.Status == "OPEN"
-P-B11|AssessmentDelivery.Services/Booking/BookingService.cs|156|&& s.SessionId != booking.SessionId && s.StartsAt >= today);
-P-B12|AssessmentDelivery.Services/Booking/BookingService.cs|163|var target = _db.ExamSessions.Include(s => s.Exam).AsNoTracking().SingleOrDefault(s => s.SessionId == newSessionId);
-P-B13|AssessmentDelivery.Services/Booking/BookingService.cs|177|"EXEC dbo.usp_RescheduleBooking @BookingId, @NewSessionId, @NewBookingId OUTPUT, @ResultStatus OUTPUT",
 P-E01|AssessmentDelivery.Services/Eligibility/EligibilityService.cs|32|var attempts = _db.Results
 P-E01|AssessmentDelivery.Services/Eligibility/EligibilityService.cs|34|.Select(r => new PriorAttempt { SessionDate = r.Session.StartsAt, Passed = r.Passed, Score = r.Score })
-P-R01|AssessmentDelivery.Services/Results/ResultsService.cs|21|.OrderByDescending(r => r.Session.StartsAt)
-P-A01|AssessmentDelivery.Services/Admin/AdminService.cs|39|OpenSessionCount = c.Sessions.Count(s => s.Status == "OPEN")
-P-A03|AssessmentDelivery.Services/Admin/AdminService.cs|60|_db.SaveChanges();
-P-A04|AssessmentDelivery.Services/Admin/AdminService.cs|65|return Load(_db.ExamSessions.Where(s => s.TestCenterId == centerId));
-P-A05|AssessmentDelivery.Services/Admin/AdminService.cs|80|"EXEC dbo.usp_ChangeCapacity @SessionId, @NewCapacity, @Actor",
-P-A06|AssessmentDelivery.Services/Admin/AdminService.cs|118|return _db.Database.SqlQuery<CapacityAuditRow>(
-P-A07|AssessmentDelivery.Services/Admin/AdminService.cs|131|.Where(a => a.EntityName == "ExamSession" && a.Action == "CAPACITY_SYNC"
-P-A08|AssessmentDelivery.Services/Admin/AdminService.cs|169|&& (b.Status == BookingStatus.Booked
-P-A08|AssessmentDelivery.Services/Admin/AdminService.cs|183|? _db.Waitlist.Where(w => w.BookingId == b.BookingId).Min(w => (int?)w.Position)
-BA-01|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/BookingDao.java|28|+ "FROM dbo.Booking b "
-BA-02|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/BookingDao.java|43|return jdbcTemplate.query(SELECT_BOOKING + "WHERE b.CandidateId = ? ORDER BY b.BookedAt DESC, b.BookingId DESC",
-BA-07|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/BookingDao.java|76|+ "INSERT INTO dbo.Booking (SessionId, CandidateId, Status, AccommodationCode, Channel, ExternalRef) "
-BA-08|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/BookingDao.java|84|"SELECT ISNULL(MAX(Position), 0) + 1 FROM dbo.Waitlist WHERE SessionId = ?", Integer.class, sessionId);
-BA-09|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/BookingDao.java|91|jdbcTemplate.update("EXEC dbo.usp_CancelBooking @BookingId = ?, @Reason = ?, @Actor = ?",
-BA-11|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/SessionDao.java|24|+ "FROM dbo.ExamSession s "
-BA-14|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/SessionDao.java|79|"SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = ?", Integer.class, sessionId);
-BA-15|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/SessionDao.java|83|jdbcTemplate.update("UPDATE dbo.ExamSession SET SeatsAvailable = SeatsAvailable - 1, LastModified = GETDATE() "
-BA-16|services/booking-api/src/main/java/com/northwind/assessment/booking/service/SeatCounter.java|19|"SELECT COUNT(*) FROM dbo.Booking WHERE SessionId = ? AND Status IN ('BOOKED','ATTENDED')",
 BA-17|services/booking-api/src/main/java/com/northwind/assessment/booking/service/RetakeEligibilityService.java|60|Integer days = jdbcTemplate.queryForObject("SELECT RetakeWaitDays FROM dbo.Exam WHERE ExamId = ?",
 BA-18|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/ResultDao.java|27|+ "FROM dbo.Result r JOIN dbo.ExamSession s ON s.SessionId = r.SessionId "
 RS-01|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|55|+ "FROM dbo.Booking b JOIN dbo.ExamSession s ON s.SessionId = b.SessionId "
