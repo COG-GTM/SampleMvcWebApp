@@ -12,6 +12,12 @@
 #   PORTAL_BOOKINGS (20)  PARTNER_BOOKINGS (20)  CANCELS (3 per channel)  SESSIONS (4)
 #   FIRST_CANDIDATE (901)   - candidates NW00000901.. are left unbooked by the seed
 #   MSSQL_SA_PASSWORD, BOOKING_API_URL, PORTAL_URL
+#   TARGET (legacy)        - legacy: scheduling tables + procs in AssessmentDelivery; migrated: scheduling-service owns
+#                            them (Scheduling DB) and the direct portal path posts to $SCHEDULING_URL/bookings
+#   E2E=1                  - Phase 3 e2e suite: a background sampler checks the seat-drift invariant continuously
+#                            while this traffic runs, then scripts/e2e/suite.py runs every category against TARGET
+#                            (needs python3; results in build/e2e/$TARGET.json; exit 1 on any failure)
+#   E2E_AS_OF (2026-11-11T00:00:00) - pinned clock for session selection (the seed is anchored to it, HB-30)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,6 +31,16 @@ PORTAL_URL="${PORTAL_URL:-}"
 MSSQL_SA_PASSWORD="${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}"
 
 MSSQL_CONTAINER="${MSSQL_CONTAINER:-mssql}"
+TARGET="${TARGET:-${E2E_TARGET:-legacy}}"
+E2E="${E2E:-0}"
+export E2E_AS_OF="${E2E_AS_OF:-2026-11-11T00:00:00}" E2E_TARGET="$TARGET"
+SCHEDULING_URL="${SCHEDULING_URL:-http://localhost:8084}/api/v1"
+case "$TARGET" in
+    legacy) STATE_DB=AssessmentDelivery ;;
+    migrated) STATE_DB=Scheduling ;;
+    *) echo "TARGET must be legacy or migrated" >&2; exit 1 ;;
+esac
+PY="$(command -v python3 || command -v python || true)"
 
 # host sqlcmd if there is one, otherwise the one inside the SQL Server container (same as run-legacy.sh)
 if command -v sqlcmd >/dev/null 2>&1; then SQLCMD=(sqlcmd -S localhost,1433)
@@ -34,8 +50,8 @@ elif docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$MSSQL_CONTAINER"; 
     SQLCMD=(docker exec -i "$MSSQL_CONTAINER" /opt/mssql-tools18/bin/sqlcmd -S localhost)
 else echo "sqlcmd not found (install mssql-tools18 or start the $MSSQL_CONTAINER container)" >&2; exit 1; fi
 
-sqlq() {  # sqlq [sqlcmd args...]  -> bare rows, | separated
-    "${SQLCMD[@]}" -U sa -P "$MSSQL_SA_PASSWORD" -C -b -d AssessmentDelivery -h -1 -W -s '|' "$@"
+sqlq() {  # sqlq [sqlcmd args...]  -> bare rows, | separated (CR stripped: Windows sqlcmd under Git Bash)
+    "${SQLCMD[@]}" -U sa -P "$MSSQL_SA_PASSWORD" -C -b -d "${DB:-$STATE_DB}" -h -1 -W -s '|' "$@" | tr -d '\r'
 }
 
 sql() {  # sql "<tsql>"
@@ -44,18 +60,28 @@ sql() {  # sql "<tsql>"
 
 log() { echo "[mixed-traffic] $*"; }
 
+E2E_OUT="$ROOT/build/e2e"; STOP_FILE="$E2E_OUT/sampler-$TARGET.stop"; SAMPLER_PID=""
+if [ "$E2E" = "1" ]; then
+    [ -n "$PY" ] || { echo "python3 not found (needed by scripts/e2e)" >&2; exit 1; }
+    mkdir -p "$E2E_OUT"; rm -f "$STOP_FILE"
+    "$PY" "$ROOT/scripts/e2e/load.py" sample --target "$TARGET" --stop-file "$STOP_FILE" \
+        --out "$E2E_OUT/traffic-drift-$TARGET.json" --interval 0.5 < /dev/null &
+    SAMPLER_PID=$!
+    log "E2E: seat-drift sampler running (pid $SAMPLER_PID) against $STATE_DB"
+fi
+
 curl -s -o /dev/null "$BOOKING_API_URL/api/v1/sessions" || { echo "booking-api not reachable at $BOOKING_API_URL" >&2; exit 1; }
 
 TOTAL=$((PORTAL_BOOKINGS + PARTNER_BOOKINGS))
 
 # --- inputs ---------------------------------------------------------------
 mapfile -t SESSION_IDS < <(sql "SELECT TOP ($SESSIONS) s.SessionId FROM dbo.ExamSession s
-    WHERE s.Status = 'OPEN' AND s.StartsAt > GETDATE() AND s.SeatsAvailable >= 5
+    WHERE s.Status = 'OPEN' AND s.StartsAt > '$E2E_AS_OF' AND s.SeatsAvailable >= 5
     ORDER BY s.SessionId")
 [ "${#SESSION_IDS[@]}" -gt 0 ] || { echo "no OPEN future sessions with free seats - is the DB seeded?" >&2; exit 1; }
 
 # candidate rows: CandidateId|CandidateNumber, ordered upward from NW00000901
-mapfile -t CANDIDATES < <(sql "SELECT TOP ($TOTAL) c.CandidateId, c.CandidateNumber FROM dbo.Candidate c
+mapfile -t CANDIDATES < <(DB=AssessmentDelivery sql "SELECT TOP ($TOTAL) c.CandidateId, c.CandidateNumber FROM dbo.Candidate c
     WHERE c.CandidateNumber >= 'NW$(printf '%08d' "$FIRST_CANDIDATE")'
       AND (c.DefaultAccommodationCode IS NULL OR c.DefaultAccommodationCode NOT IN ('ET25','ET50'))
     ORDER BY c.CandidateNumber")
@@ -74,6 +100,9 @@ book_portal() {  # book_portal <candidateId> <candidateNumber> <sessionId>
                 --data-urlencode "SessionId=$3" --data-urlencode "CandidateNumber=$2"; then
             out="$(sql "SELECT TOP 1 BookingId FROM dbo.Booking WHERE SessionId = $3 AND CandidateId = $1 ORDER BY BookingId DESC")"
         fi
+    elif [ "$TARGET" = "migrated" ]; then  # what the rewired portal BookingService sends
+        out="$(curl -s -H 'Content-Type: application/json' -H 'X-Actor: portal' -X POST "$SCHEDULING_URL/bookings" \
+            -d "{\"sessionId\":$3,\"candidateNumber\":\"$2\",\"channel\":\"PORTAL\"}" | grep -o '"bookingId" *: *[0-9]*' | grep -o '[0-9]*$')"
     else
         out="$(sql "DECLARE @b INT, @s VARCHAR(12);
             EXEC dbo.usp_BookSeat @SessionId = $3, @CandidateId = $1, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT;
@@ -121,6 +150,11 @@ log "partner: $partner_ok ok, $partner_fail failed"
 # --- cancels: the first few bookings on each channel ---------------------
 c_portal=0; c_partner=0
 for ((k = 0; k < CANCELS && k < ${#PORTAL_IDS[@]}; k++)); do
+    if [ "$TARGET" = "migrated" ]; then
+        [ "$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -H 'X-Actor: portal' -X POST \
+            "$SCHEDULING_URL/bookings/${PORTAL_IDS[$k]}/cancel" -d '{"reason":"mixed-traffic"}')" = "200" ] && c_portal=$((c_portal + 1))
+        continue
+    fi
     sql "EXEC dbo.usp_CancelBooking @BookingId = ${PORTAL_IDS[$k]}, @Reason = N'mixed-traffic', @Actor = 'portal'" >/dev/null \
         && c_portal=$((c_portal + 1))
 done
@@ -137,10 +171,20 @@ sql "SELECT s.SessionId, s.Capacity, s.SeatsAvailable,
      FROM dbo.ExamSession s WHERE s.SessionId IN ($(IFS=,; echo "${SESSION_IDS[*]}")) ORDER BY s.SessionId" | sed 's/^/    /'
 
 CHECK="$ROOT/db/checks/seat-drift.sql"
+[ "$TARGET" = "migrated" ] && CHECK="$ROOT/services/scheduling-service/db/checks/seat-drift.sql"
 if [ -f "$CHECK" ]; then
     rows="$( { echo "SET NOCOUNT ON;"; cat "$CHECK"; } | sqlq | grep -v -e '^\s*$' -e '^Changed database context' | grep -c . || true)"
-    log "db/checks/seat-drift.sql: $rows row(s)"
+    log "$(basename "$CHECK"): $rows row(s)"
 else
-    log "db/checks/seat-drift.sql not found, skipping the seat check"
+    log "$CHECK not found, skipping the seat check"
 fi
-log "done"
+[ "$E2E" = "1" ] || { log "done"; exit 0; }
+
+# --- E2E: stop the sampler, then the full suite ----------------------------
+touch "$STOP_FILE"; wait "$SAMPLER_PID" || true
+log "E2E: drift during traffic: $("$PY" -c "import json,sys; d=json.load(open(sys.argv[1])); print('%(samples)s samples over %(seconds)ss, max raw %(maxRawDrift)s, max unexplained %(maxUnexplainedDrift)s' % d)" "$E2E_OUT/traffic-drift-$TARGET.json")"
+set +e
+"$PY" "$ROOT/scripts/e2e/suite.py" --target "$TARGET" --out "$E2E_OUT/$TARGET.json" < /dev/null
+code=$?
+log "E2E suite exit $code ($E2E_OUT/$TARGET.json)"
+exit $code

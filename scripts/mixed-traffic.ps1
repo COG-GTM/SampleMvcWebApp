@@ -15,6 +15,8 @@
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts\mixed-traffic.ps1
     powershell -ExecutionPolicy Bypass -File scripts\mixed-traffic.ps1 -PortalBookings 10 -PartnerBookings 10
+    powershell -ExecutionPolicy Bypass -File scripts\mixed-traffic.ps1 -E2E -Target legacy
+    powershell -ExecutionPolicy Bypass -File scripts\mixed-traffic.ps1 -E2E -Target migrated
 #>
 param(
     [int]$PortalBookings  = $(if ($env:PORTAL_BOOKINGS)  { [int]$env:PORTAL_BOOKINGS }  else { 20 }),
@@ -26,7 +28,11 @@ param(
     [string]$BookingApiUrl = $(if ($env:BOOKING_API_URL) { $env:BOOKING_API_URL } else { 'http://localhost:8081' }),
     [string]$Server        = $(if ($env:AD_SQL_SERVER)   { $env:AD_SQL_SERVER }   else { 'localhost,1433' }),
     [string]$SaPassword    = $(if ($env:AD_SA_PASSWORD)  { $env:AD_SA_PASSWORD }  else { 'Str0ng!Passw0rd' }),
-    [string]$Sqlcmd        = $(if ($env:SQLCMD)          { $env:SQLCMD }          else { 'sqlcmd' })
+    [string]$Sqlcmd        = $(if ($env:SQLCMD)          { $env:SQLCMD }          else { 'sqlcmd' }),
+    [switch]$E2E           = $($env:E2E -eq '1'),
+    [ValidateSet('legacy', 'migrated')]
+    [string]$Target        = $(if ($env:E2E_TARGET)      { $env:E2E_TARGET }      else { 'legacy' }),
+    [string]$AsOf          = $(if ($env:E2E_AS_OF)       { $env:E2E_AS_OF }       else { '2026-11-11T00:00:00' })
 )
 
 $ErrorActionPreference = 'Stop'
@@ -42,9 +48,26 @@ if (-not (Get-Command $Sqlcmd -ErrorAction SilentlyContinue)) {
     else { throw 'sqlcmd not found (pass -Sqlcmd or set SQLCMD)' }
 }
 
+# scheduling tables: AssessmentDelivery (legacy) or scheduling-service's own Scheduling database (migrated)
+$stateDb = if ($Target -eq 'migrated') { 'Scheduling' } else { 'AssessmentDelivery' }
+$env:SQLCMD = $Sqlcmd; $env:E2E_AS_OF = $AsOf; $env:E2E_TARGET = $Target
+$py = (Get-Command python -ErrorAction SilentlyContinue).Source
+$e2eOut = Join-Path $root 'build\e2e'
+$stopFile = Join-Path $e2eOut "sampler-$Target.stop"
+$sampler = $null
+if ($E2E) {
+    if (-not $py) { throw 'python 3 not found (needed by scripts\e2e)' }
+    New-Item -ItemType Directory -Force $e2eOut | Out-Null
+    Remove-Item $stopFile -ErrorAction SilentlyContinue
+    $sampler = Start-Process -FilePath $py -NoNewWindow -PassThru -ArgumentList @(
+        "`"$(Join-Path $root 'scripts\e2e\load.py')`"", 'sample', '--target', $Target, '--stop-file', "`"$stopFile`"",
+        '--out', "`"$(Join-Path $e2eOut "traffic-drift-$Target.json")`"", '--interval', '0.5')
+    Write-Log "E2E: seat-drift sampler running (pid $($sampler.Id)) against $stateDb"
+}
+
 # bare rows, | separated
-function Invoke-Query([string]$tsql) {
-    $out = & $Sqlcmd -S $Server -U sa -P $SaPassword -C -b -d AssessmentDelivery -h -1 -W -s '|' -Q "SET NOCOUNT ON; $tsql" 2>&1
+function Invoke-Query([string]$tsql, [string]$db = $stateDb) {
+    $out = & $Sqlcmd -S $Server -U sa -P $SaPassword -C -b -d $db -h -1 -W -s '|' -Q "SET NOCOUNT ON; $tsql" 2>&1
     if ($LASTEXITCODE -ne 0) { throw "query failed: $out" }
     return @($out | ForEach-Object { "$_".Trim() } | Where-Object { $_ -ne '' })
 }
@@ -76,14 +99,14 @@ $firstNumber = 'NW{0:D8}' -f $FirstCandidate
 
 # --- inputs ---------------------------------------------------------------
 $sessionIds = @(Invoke-Query "SELECT TOP ($Sessions) s.SessionId FROM dbo.ExamSession s
-    WHERE s.Status = 'OPEN' AND s.StartsAt > GETDATE() AND s.SeatsAvailable >= 5
+    WHERE s.Status = 'OPEN' AND s.StartsAt > '$AsOf' AND s.SeatsAvailable >= 5
     ORDER BY s.SessionId")
 if ($sessionIds.Count -eq 0) { throw 'no OPEN future sessions with free seats - is the DB seeded?' }
 
 $candidates = @(Invoke-Query "SELECT TOP ($total) c.CandidateId, c.CandidateNumber FROM dbo.Candidate c
     WHERE c.CandidateNumber >= '$firstNumber'
       AND (c.DefaultAccommodationCode IS NULL OR c.DefaultAccommodationCode NOT IN ('ET25','ET50'))
-    ORDER BY c.CandidateNumber" | ForEach-Object {
+    ORDER BY c.CandidateNumber" 'AssessmentDelivery' | ForEach-Object {
         $p = $_.Split('|'); [pscustomobject]@{ Id = [int]$p[0]; Number = $p[1] } })
 if ($candidates.Count -lt $total) { throw "need $total candidates from $firstNumber, found $($candidates.Count)" }
 
@@ -158,13 +181,23 @@ Invoke-Query "SELECT s.SessionId, s.Capacity, s.SeatsAvailable,
      FROM dbo.ExamSession s WHERE s.SessionId IN ($($sessionIds -join ',')) ORDER BY s.SessionId" |
     ForEach-Object { Write-Host "    $_" }
 
-$check = Join-Path $root 'db\checks\seat-drift.sql'
+$check = if ($Target -eq 'migrated') { Join-Path $root 'services\scheduling-service\db\checks\seat-drift.sql' } else { Join-Path $root 'db\checks\seat-drift.sql' }
 if (Test-Path $check) {
     $out = & $Sqlcmd -S $Server -U sa -P $SaPassword -C -b -h -1 -W -s '|' -i $check 2>&1
     $rows = @($out | ForEach-Object { "$_".Trim() } |
         Where-Object { $_ -ne '' -and $_ -notlike 'Changed database context*' -and $_ -notmatch 'rows? affected' })
-    Write-Log "db\checks\seat-drift.sql: $($rows.Count) row(s)"
+    Write-Log "$(Split-Path -Leaf $check): $($rows.Count) row(s)"
 } else {
-    Write-Log 'db\checks\seat-drift.sql not found, skipping the seat check'
+    Write-Log "$check not found, skipping the seat check"
 }
-Write-Log 'done'
+if (-not $E2E) { Write-Log 'done'; return }
+
+# --- E2E: stop the sampler, then the full suite ----------------------------
+New-Item -ItemType File -Force $stopFile | Out-Null
+$sampler.WaitForExit(60000) | Out-Null
+$d = Get-Content (Join-Path $e2eOut "traffic-drift-$Target.json") -Raw | ConvertFrom-Json
+Write-Log ("E2E: drift during traffic: {0} samples over {1}s, max raw {2}, max unexplained {3}" -f $d.samples, $d.seconds, $d.maxRawDrift, $d.maxUnexplainedDrift)
+& $py (Join-Path $root 'scripts\e2e\suite.py') --target $Target --out (Join-Path $e2eOut "$Target.json")
+$code = $LASTEXITCODE
+Write-Log "E2E suite exit $code ($e2eOut\$Target.json)"
+exit $code
