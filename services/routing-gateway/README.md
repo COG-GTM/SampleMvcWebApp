@@ -19,7 +19,7 @@ Build/test only: `cd services && JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./
 
 | Path | Upstream | Rule |
 |---|---|---|
-| `/app`, `/app/**`, `/api/v2/**` | scheduling-service `:8090` | modern UI + its relative API calls; v2 writes (`POST /api/v2/bookings`, `DELETE`/`reschedule` on a booking, `PUT .../capacity`) only for allow-listed centers or modern-owned bookings, else `403 CENTER_NOT_MODERN` |
+| `/app`, `/app/**`, `/api/v2/**` | scheduling-service `:8090` | modern UI + its relative API calls; v2 writes (`POST /api/v2/bookings`, `DELETE`/`reschedule`/`offer/accept|decline` on a booking, `POST /api/v2/offers/{offerId}/accept|decline` resolved via `/internal/routing/resolve?offerId=` to the offered booking's center, `PUT .../capacity`) only for allow-listed centers or modern-owned bookings, else `403 CENTER_NOT_MODERN` |
 | `/api/v1/results/**` | results-service `:8082` | unchanged |
 | `/sync/**` | capacity-sync `:8083` | unchanged |
 | `/api/v1/**` | booking-api `:8081` | strangler, see below |

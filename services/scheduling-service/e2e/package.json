@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "e2e": "node run.mjs"
+    "e2e": "node run.mjs",
+    "e2e:waitlist-offer": "node waitlist-offer.mjs"
   },
   "devDependencies": {
     "playwright": "^1.49.1"

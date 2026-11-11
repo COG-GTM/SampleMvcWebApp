@@ -37,7 +37,7 @@ describe('seat helpers', () => {
 describe('waitlistOfferLabel', () => {
   it('shows the expiry of an offered position', () =>
     expect(waitlistOfferLabel({ offerState: 'OFFERED', offerExpiresAt: '2026-11-12T09:30:00', accommodationCode: null }))
-      .toMatch(/^Offered, expires .*2026/));
+      .toMatch(/^Offered, expires .*Nov 12/));
   it('names the accommodation a skipped position needs', () =>
     expect(waitlistOfferLabel({ offerState: 'SKIPPED', offerExpiresAt: null, accommodationCode: 'ET25' })).toBe('Skipped: needs ET25'));
   it('shows nothing for a waiting position', () =>

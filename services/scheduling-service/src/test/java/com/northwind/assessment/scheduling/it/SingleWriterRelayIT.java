@@ -245,7 +245,8 @@ class SingleWriterRelayIT extends SqlServerTestBase {
         assertThat(legacy).containsExactly(String.valueOf(s.get("capacity")), String.valueOf(s.get("seatsAvailable")),
                 String.valueOf(s.get("accommodationCapacity")), String.valueOf(waitlisted));
         assertThat(legacyInt("SELECT SeatsAvailable - (Capacity - (SELECT COUNT(*) FROM dbo.Booking b WHERE b.SessionId = s.SessionId "
-                + "AND b.Status IN ('BOOKED','ATTENDED'))) FROM dbo.ExamSession s WHERE SessionId = " + sessionId)).isZero();
+                + "AND b.Status IN ('BOOKED','ATTENDED')) - (SELECT COUNT(*) FROM dbo.Waitlist w WHERE w.SessionId = s.SessionId "
+                + "AND w.OfferExpiresAt IS NOT NULL)) FROM dbo.ExamSession s WHERE SessionId = " + sessionId)).isZero();
     }
 
     private Map<String, Object> lastEvent() {
