@@ -102,9 +102,9 @@ if (-not $SkipBuild) {
 }
 
 $iis = Get-IISExpress
-# a previous run of this script - IIS Express listens through http.sys, so the port owner shows as pid 4
+# a previous run of this script for this site - IIS Express listens through http.sys, so the port owner shows as pid 4
 Get-CimInstance Win32_Process -Filter "Name='iisexpress.exe'" |
-    Where-Object { $_.CommandLine -match "/port:$Port\b" } |
+    Where-Object { $_.CommandLine -match "/port:$Port\b" -and $_.CommandLine -like "*$site*" } |
     ForEach-Object {
         Write-Host "Stopping previous IIS Express on port $Port (pid $($_.ProcessId))"
         Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
