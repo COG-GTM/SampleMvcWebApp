@@ -8,8 +8,11 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -34,6 +37,13 @@ class OpenApiCompatibilityTest {
 
     static final Path CURRENT = Path.of("api/openapi.yaml");
     static final Path BASELINES = Path.of("api/baseline");
+
+    /**
+     * SHA-256 (LF line endings) of every published baseline. Editing a baseline together with api/openapi.yaml would
+     * hide a break from the diff, so a baseline is immutable once listed here; add a new file for a new major version.
+     */
+    static final Map<String, String> PUBLISHED = Map.of(
+            "openapi-v2.0.0.yaml", "b8d9da49d7f611ecf2a183b5c2e2f9df428b71dbc45a5a45c6216a0da80cb68c");
 
     static OpenAPI parse(Path spec) throws Exception {
         ParseOptions options = new ParseOptions();
@@ -63,6 +73,17 @@ class OpenApiCompatibilityTest {
         OpenAPI changed = parse(CURRENT);
         change.accept(changed);
         return OpenApiCompare.fromSpecifications(parse(CURRENT), changed);
+    }
+
+    @Test
+    void publishedBaselinesAreUnchanged() throws Exception {
+        List<String> files = baselines().stream().map(p -> p.getFileName().toString()).toList();
+        assertThat(files).as("every baseline file is pinned in PUBLISHED").containsExactlyInAnyOrderElementsOf(PUBLISHED.keySet());
+        for (String file : files) {
+            byte[] lf = Files.readString(BASELINES.resolve(file)).replace("\r\n", "\n").getBytes(StandardCharsets.UTF_8);
+            String sha = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(lf));
+            assertThat(sha).as("published baseline " + file + " was edited; add a new baseline instead").isEqualTo(PUBLISHED.get(file));
+        }
     }
 
     @Test

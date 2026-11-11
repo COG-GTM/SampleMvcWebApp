@@ -16,8 +16,9 @@ Documentation (summaries, tags, error responses with examples, nullability, the 
    `./mvnw -B verify -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=OpenApiSpecIT -Dopenapi.write=true`
 2. `./mvnw -B clean verify`. Additive changes pass. Removing an endpoint/operation, removing a response field or adding a
    required request field fails `OpenApiCompatibilityTest` with an openapi-diff report.
-3. A deliberate breaking change is a new major version: add a new baseline file once partners have signed off.
-   Never edit an existing baseline to make the build pass.
+3. A deliberate breaking change is a new major version: add a new baseline file (and its SHA-256 in
+   `OpenApiCompatibilityTest.PUBLISHED`) once partners have signed off.
+   Never edit an existing baseline to make the build pass; `publishedBaselinesAreUnchanged` fails if you do.
 
 Use `clean verify` after editing contracts: the generated `*ContractIT` sources are only reliably recompiled from clean.
 
