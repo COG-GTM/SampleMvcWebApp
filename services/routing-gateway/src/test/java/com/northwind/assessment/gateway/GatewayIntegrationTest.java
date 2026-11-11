@@ -344,4 +344,31 @@ class GatewayIntegrationTest {
         results.verify(getRequestedFor(urlEqualTo("/api/v1/results/candidate/NW00000001")));
         capacitySync.verify(getRequestedFor(urlEqualTo("/sync/last")));
     }
+
+    @Test
+    void directV2WritesAreOnlyForwardedForModernCentersOrModernBookings() throws Exception {
+        scheduling.stubFor(any(urlPathMatching("/api/v2/.*")).willReturn(okJson("{}")));
+        setAllowList("BOS01");
+        client.post().uri("/api/v2/bookings").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"sessionId\":200,\"candidateNumber\":\"NW00000901\"}").exchange()
+                .expectStatus().isForbidden().expectHeader().valueEquals("X-Route", "legacy")
+                .expectBody(String.class).value(b -> assertThat(b).contains("CENTER_NOT_MODERN"));
+        client.put().uri("/api/v2/sessions/200/capacity").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"newCapacity\":5}").exchange().expectStatus().isForbidden();
+        scheduling.verify(0, anyRequestedFor(urlPathMatching("/api/v2/.*")));
+
+        client.post().uri("/api/v2/bookings").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"sessionId\":100,\"candidateNumber\":\"NW00000901\"}").exchange()
+                .expectStatus().isOk().expectHeader().valueEquals("X-Route", "modern");
+        scheduling.verify(postRequestedFor(urlEqualTo("/api/v2/bookings"))
+                .withRequestBody(equalToJson("{\"sessionId\":100,\"candidateNumber\":\"NW00000901\"}")));
+        client.put().uri("/api/v2/sessions/100/capacity").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"newCapacity\":5}").exchange().expectStatus().isOk();
+        setAllowList("");
+        client.delete().uri("/api/v2/bookings/50000001").exchange().expectStatus().isOk()
+                .expectHeader().valueEquals("X-Route", "modern");
+        client.post().uri("/api/v2/bookings/300/reschedule").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"newSessionId\":100}").exchange().expectStatus().isForbidden();
+        client.get().uri("/api/v2/sessions/200").exchange().expectStatus().isOk();
+    }
 }

@@ -170,12 +170,12 @@ public class BookingApiStranglerFilter implements GatewayFilter {
                 .map(b -> new V2Result(HttpStatus.valueOf(resp.statusCode().value()), b)));
     }
 
-    private interface BodyHandler {
+    interface BodyHandler {
         Mono<Void> handle(ServerWebExchange exchange, byte[] body);
     }
 
     /** Reads the request body once and keeps it replayable for the legacy route. */
-    private static Mono<Void> withBody(ServerWebExchange exchange, BodyHandler handler) {
+    static Mono<Void> withBody(ServerWebExchange exchange, BodyHandler handler) {
         return ServerWebExchangeUtils.cacheRequestBody(exchange, cachedRequest -> {
             DataBuffer buf = exchange.getAttribute(ServerWebExchangeUtils.CACHED_REQUEST_BODY_ATTR);
             byte[] bytes = buf == null ? new byte[0]
@@ -185,7 +185,7 @@ public class BookingApiStranglerFilter implements GatewayFilter {
         });
     }
 
-    private static JsonNode parseOrNull(byte[] body) {
+    static JsonNode parseOrNull(byte[] body) {
         if (body == null || body.length == 0) {
             return null;
         }
