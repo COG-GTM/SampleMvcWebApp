@@ -17,7 +17,7 @@ final class ReportFormatter {
         sb.append("| Metric | Value |\n|---|---|\n");
         sb.append("| Sessions compared | ").append(r.sessionsCompared()).append(" |\n");
         sb.append("| Bookings compared | ").append(r.bookingsCompared()).append(" |\n");
-        sb.append("| Legacy-only sessions (not imported, not compared) | ").append(r.legacyOnlySessions()).append(" |\n");
+        sb.append("| Legacy-only sessions (missing in Scheduling, counted as mismatches) | ").append(r.legacyOnlySessions()).append(" |\n");
         sb.append("| **Mismatches** | **").append(r.mismatchCount()).append("** |\n");
         sb.append("| **db/checks/seat-drift.sql rows** | **").append(r.seatDriftRows().size()).append("** |\n");
         var relay = r.relay();

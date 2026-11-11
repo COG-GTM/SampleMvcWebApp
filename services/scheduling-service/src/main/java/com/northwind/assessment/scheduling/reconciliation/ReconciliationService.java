@@ -77,7 +77,9 @@ public class ReconciliationService {
         int legacyOnly = 0;
         for (Integer id : new TreeSet<>(old.keySet())) {
             if (!modern.containsKey(id)) {
+                // bookable only through scheduling-service, so a session it does not know is a mismatch
                 legacyOnly++;
+                mismatches.add(new Mismatch(id, null, "session", "missing", "present"));
             }
         }
         for (Map.Entry<Integer, SessionCounts> e : new java.util.TreeMap<>(modern).entrySet()) {
