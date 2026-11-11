@@ -68,7 +68,7 @@ Requests without a centre key (e.g. `/Booking/MyBookings?candidateNumber=`, `/ap
 `centerCode`) stay on legacy. Portal pages without a modern equivalent (`/Admin/Centers`, `/Eligibility`,
 `/Results`, roster CSV, capacity audit) always stay on legacy.
 
-The centre is resolved through scheduling-service `GET /api/v2/internal/routing/resolve?centerCode=|centerId=|sessionId=|bookingId=`
+The centre is resolved through scheduling-service `GET /api/v2/internal/routing/resolve?centerCode=|centerId=|sessionId=|bookingId=|offerId=`
 (reads its snapshots; cached for `routing.resolve-cache-ttl`, 30 s). If the lookup fails the request goes to
 legacy (writes through the v2 guard below are refused instead). `/api/v2/internal/**` (resolver, snapshot
 import/reset) is never proxied: the gateway answers `404` for it. With an **empty allow-list no lookups are made and no request bodies are read**: the gateway is a
@@ -81,7 +81,8 @@ allow-list says, so rolling a centre back never orphans an in-flight modern book
 rule above.
 
 **Modern write guard.** v2 writes that reach scheduling-service through :8000 (`POST /api/v2/bookings`,
-`DELETE /api/v2/bookings/{id}`, `POST /api/v2/bookings/{id}/reschedule`, `PUT /api/v2/sessions/{id}/capacity`)
+`DELETE /api/v2/bookings/{id}`, `POST /api/v2/bookings/{id}/reschedule`, `PUT /api/v2/sessions/{id}/capacity`,
+`POST /api/v2/offers/{id}/accept|decline` resolved offer -> session -> centre via `resolve?offerId=`)
 are refused with `403 {"error":"CENTER_NOT_MODERN"}` when the centre is not allow-listed (modern-owned bookings
 excepted), so the modern UI cannot take seats legacy still owns. The guard fails closed: if a centre cannot be
 resolved (lookup outage, unknown id) the write is refused with the same 403. A reschedule must also land on an

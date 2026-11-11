@@ -163,6 +163,11 @@ class WaitlistOfferIT extends SqlServerTestBase {
         assertThat(post("/api/v2/offers/99999/accept").getBody()).containsEntry("error", "OFFER_NOT_FOUND");
         assertThat(http.exchange("/api/v2/offers/" + offerId, HttpMethod.GET, null, MAP).getBody())
                 .containsEntry("status", "ACCEPTED").containsEntry("bookingId", 13);
+        Object center = http.exchange("/api/v2/sessions/163", HttpMethod.GET, null, MAP).getBody().get("centerCode");
+        assertThat(http.exchange("/api/v2/internal/routing/resolve?offerId=" + offerId, HttpMethod.GET, null, MAP).getBody())
+                .containsEntry("centerCode", center);
+        assertThat(http.exchange("/api/v2/internal/routing/resolve?offerId=99999", HttpMethod.GET, null, MAP).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test

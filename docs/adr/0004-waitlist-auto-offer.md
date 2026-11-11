@@ -52,5 +52,10 @@ every legacy reader.
   and the session page counts held seats.
 * Authorisation is the same as for the other `/api/v2` candidate writes (cancel, reschedule): none beyond the gateway.
   Candidate authentication is out of scope for the scheduling slice.
+* Anyone holding an offer id can accept or decline it; this is by design for now, consistent with cancel/reschedule,
+  because the slice has no candidate login (MR-16 in `docs/as-is/migration-risks.md`).
+* The routing gateway's modern write guard covers `POST /api/v2/offers/{id}/accept|decline`: it resolves offer ->
+  session -> centre (`/api/v2/internal/routing/resolve?offerId=`) and refuses with `403 CENTER_NOT_MODERN` when that
+  centre is not on `routing.modern-centers` or cannot be resolved (fail closed).
 * Rolling back a centre to legacy (runbook section 5) leaves pending offers in Scheduling only; the legacy waitlist is
   intact, so staff promote by hand as before.
