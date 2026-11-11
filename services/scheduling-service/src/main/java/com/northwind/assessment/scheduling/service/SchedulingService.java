@@ -6,6 +6,7 @@ import com.northwind.assessment.scheduling.domain.BookingChannel;
 import com.northwind.assessment.scheduling.domain.BookingStatus;
 import com.northwind.assessment.scheduling.domain.CapacityChange;
 import com.northwind.assessment.scheduling.domain.EligibilityDecision;
+import com.northwind.assessment.scheduling.domain.PendingOffer;
 import com.northwind.assessment.scheduling.domain.Reservation;
 import com.northwind.assessment.scheduling.domain.ReschedulePolicy;
 import com.northwind.assessment.scheduling.domain.RetakeEligibilityPolicy;
@@ -26,11 +27,12 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,12 +55,14 @@ public class SchedulingService {
     private final RetakeEligibilityPolicy retakePolicy;
     private final AccommodationFloorPolicy floorPolicy;
     private final OutboxWriter outbox;
+    private final SeatOfferService offers;
     private final Clock clock;
 
     public SchedulingService(SessionRepository sessions, BookingRepository bookings, ReferenceRepository reference,
                              RetakeEligibilityPolicy retakePolicy, AccommodationFloorPolicy floorPolicy,
-                             OutboxWriter outbox, Clock clock) {
+                             OutboxWriter outbox, SeatOfferService offers, Clock clock) {
         this.outbox = outbox;
+        this.offers = offers;
         this.sessions = sessions;
         this.bookings = bookings;
         this.reference = reference;
@@ -137,20 +141,36 @@ public class SchedulingService {
         if (why != null && why.length() > MAX_REASON) {
             throw invalid("reason is limited to 200 characters");
         }
-        cancelLocked(capacity, bookingId, why);
+        LocalDateTime now = now();
+        Long withdrawnOfferId = cancelLocked(capacity, bookingId, why, now);
+        List<SeatOfferService.MadeOffer> made = offers.offerFreeSeats(capacity, now);
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("reason", why);
+        if (withdrawnOfferId != null) {
+            detail.put("withdrawnOfferId", withdrawnOfferId);
+        }
         outbox.append(OutboxEventType.BookingCancelled, sessionId, bookingId, List.of(), List.of(bookingId), "scheduling-service",
-                Collections.singletonMap("reason", why), now());
+                detail, now);
+        offers.appendOffered(sessionId, made, "cancel", now);
         return bookings.find(bookingId).orElseThrow();
     }
 
-    private void cancelLocked(SessionCapacity capacity, long bookingId, String reason) {
+    /**
+     * Cancels under the session lock. A waitlisted booking holding a pending seat offer gives it up (WITHDRAWN);
+     * the caller then offers the freed seat on ({@link SeatOfferService#offerFreeSeats}).
+     *
+     * @return the id of the withdrawn offer, if any
+     */
+    private Long cancelLocked(SessionCapacity capacity, long bookingId, String reason, LocalDateTime now) {
+        Optional<PendingOffer> pending = capacity.pendingOffer(bookingId);
         BookingStatus previous = capacity.cancel(bookingId);
-        LocalDateTime now = now();
         bookings.markCancelled(bookingId, reason, now);
         if (previous == BookingStatus.WAITLISTED) {
             bookings.deleteWaitlistEntry(bookingId);
         }
+        pending.ifPresent(o -> offers.withdraw(o, now));
         sessions.markLocallyModified(capacity.sessionId(), now);
+        return pending.map(PendingOffer::offerId).orElse(null);
     }
 
     /**
@@ -185,18 +205,21 @@ public class SchedulingService {
         SessionCapacity from = a.sessionId() == booking.sessionId() ? a : b;
         SessionCapacity to = from == a ? b : a;
 
-        cancelLocked(from, bookingId, ReschedulePolicy.CANCEL_REASON);
+        LocalDateTime now = now();
+        cancelLocked(from, bookingId, ReschedulePolicy.CANCEL_REASON, now);
         CandidateView candidate = reference.candidateByNumber(booking.candidateNumber())
                 .orElseThrow(() -> new NotFoundException("CANDIDATE_NOT_FOUND", "Candidate of booking " + bookingId + " not found"));
         String externalRef = channel == BookingChannel.PARTNER ? booking.externalRef() : null;
         BookingResult result = bookLocked(to, candidate, booking.accommodationCode(), externalRef, channel);
+        List<SeatOfferService.MadeOffer> made = offers.offerFreeSeats(from, now);
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("fromBookingId", bookingId);
         detail.put("toBookingId", result.bookingId());
         detail.put("fromSessionId", from.sessionId());
         detail.put("toSessionId", to.sessionId());
         outbox.append(OutboxEventType.BookingRescheduled, to.sessionId(), result.bookingId(), List.of(from.sessionId()),
-                List.of(bookingId, result.bookingId()), "scheduling-service", detail, now());
+                List.of(bookingId, result.bookingId()), "scheduling-service", detail, now);
+        offers.appendOffered(from.sessionId(), made, "reschedule", now);
         return result;
     }
 
@@ -227,7 +250,10 @@ public class SchedulingService {
     public record CapacityResult(SessionView session, List<Long> bumpedBookingIds) {
     }
 
-    /** usp_ChangeCapacity + trg_ExamSession_Update, as explicit domain code. */
+    /**
+     * usp_ChangeCapacity + trg_ExamSession_Update, as explicit domain code. A cut withdraws the pending seat offers
+     * it has no room for; an increase offers the new seats to the waitlist (ADR 0003).
+     */
     @Transactional
     public CapacityResult changeCapacity(int sessionId, Integer newCapacity, String actor) {
         if (newCapacity == null) {
@@ -245,12 +271,21 @@ public class SchedulingService {
             bookings.markWaitlisted(w.bookingId(), now);
             bookings.insertWaitlistEntry(sessionId, w.bookingId(), bookings.candidateIdOf(w.bookingId()), w.position(), now);
         }
+        change.withdrawnOffers().forEach(o -> offers.withdraw(o, now));
+        List<SeatOfferService.MadeOffer> made = offers.offerFreeSeats(capacity, now);
         sessions.insertCapacityChange(sessionId, change.oldCapacity(), newCapacity, change.bumpedBookingIds(), who, now);
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("oldCapacity", change.oldCapacity());
         detail.put("newCapacity", newCapacity);
         detail.put("bumpedBookingIds", change.bumpedBookingIds());
-        outbox.append(OutboxEventType.CapacityChanged, sessionId, null, List.of(), change.bumpedBookingIds(), who, detail, now);
+        List<Long> touched = new ArrayList<>(change.bumpedBookingIds());
+        if (!change.withdrawnOffers().isEmpty()) {
+            List<Long> withdrawn = change.withdrawnOffers().stream().map(PendingOffer::bookingId).toList();
+            detail.put("withdrawnOfferBookingIds", withdrawn);
+            touched.addAll(withdrawn);
+        }
+        outbox.append(OutboxEventType.CapacityChanged, sessionId, null, List.of(), touched, who, detail, now);
+        offers.appendOffered(sessionId, made, "capacity", now);
         return new CapacityResult(sessions.find(sessionId).orElseThrow(), change.bumpedBookingIds());
     }
 

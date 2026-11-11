@@ -344,4 +344,117 @@ class SessionCapacityTest {
         assertViolation(() -> s.attend(1), RuleViolation.BOOKING_NOT_ACTIVE, null);
         assertViolation(() -> s.attend(2), RuleViolation.BOOKING_NOT_ACTIVE, null);
     }
+
+    // ---- MBA-3829 / ADR 0003: pending seat offers hold seats ----
+
+    private static SessionCapacity fullWithOffer() {
+        List<BookingSlot> bookings = List.of(
+                slot(1, 1, BookingStatus.BOOKED, null, 0),
+                slot(2, 2, BookingStatus.WAITLISTED, null, 1),
+                slot(3, 3, BookingStatus.WAITLISTED, null, 2),
+                slot(4, 4, BookingStatus.WAITLISTED, null, 3));
+        return new SessionCapacity(7, 3, SessionStatus.OPEN, 2, 0, bookings,
+                List.of(new WaitlistSlot(2, 1), new WaitlistSlot(3, 2), new WaitlistSlot(4, 3)),
+                List.of(new PendingOffer(11, 2, SeatKind.STANDARD, T0, T0.plusHours(24))));
+    }
+
+    @Test
+    void heldSeat_pendingOfferCountsAgainstSeatsAvailable_andReserveWaitlistsOthers() {
+        SessionCapacity s = fullWithOffer();
+        assertThat(s.seatsHeld()).isEqualTo(1);
+        assertThat(s.seatsOffered()).isEqualTo(1);
+        assertThat(s.seatsAvailable()).isZero();
+        assertThat(SeatFormulas.seatsAvailable(2, s.bookings(), 1)).isZero();
+        assertThat(SeatFormulas.seatsAvailable(2, 1, 1)).isZero();
+        assertThat(SeatFormulas.seatsAvailable(2, 2, 1)).as("never below zero").isZero();
+        Reservation r = s.reserve(99, null);
+        assertThat(r.status()).isEqualTo(BookingStatus.WAITLISTED);
+        assertThat(r.waitlistPosition()).isEqualTo(4);
+        assertThat(s.pendingOffers()).hasSize(1);
+        assertThat(s.pendingOffer(2)).isPresent();
+        assertThat(s.pendingOffer(3)).isEmpty();
+    }
+
+    @Test
+    void acceptOffer_booksTheCandidate_removesTheEntry_andCompactsLaterPositions() {
+        SessionCapacity s = fullWithOffer();
+        List<WaitlistSlot> shifted = s.acceptOffer(2, T0.plusHours(23));
+        assertThat(shifted).containsExactly(new WaitlistSlot(3, 1), new WaitlistSlot(4, 2));
+        assertThat(s.waitlist()).containsExactly(new WaitlistSlot(3, 1), new WaitlistSlot(4, 2));
+        assertThat(s.bookings()).filteredOn(b -> b.bookingId() == 2).singleElement()
+                .extracting(BookingSlot::status).isEqualTo(BookingStatus.BOOKED);
+        assertThat(s.seatsOffered()).isZero();
+        assertThat(s.seatsHeld()).isEqualTo(2);
+        assertThat(s.seatsAvailable()).isZero();
+    }
+
+    @Test
+    void acceptOffer_afterExpiresAt_isRejectedEvenBeforeTheExpiryJobRan() {
+        SessionCapacity s = fullWithOffer();
+        assertViolation(() -> s.acceptOffer(2, T0.plusHours(24)), RuleViolation.OFFER_EXPIRED, null);
+        assertThat(s.pendingOffer(2)).isPresent();
+        assertThat(s.pendingOffers().get(0).isExpiredAt(T0.plusHours(24).minusSeconds(1))).isFalse();
+    }
+
+    @Test
+    void offerTransitions_withoutAPendingOffer_areOfferNotPending() {
+        SessionCapacity s = fullWithOffer();
+        assertViolation(() -> s.acceptOffer(3, T0), RuleViolation.OFFER_NOT_PENDING, null);
+        assertViolation(() -> s.giveUpOffer(3), RuleViolation.OFFER_NOT_PENDING, null);
+        assertViolation(() -> s.withdrawOffer(3), RuleViolation.OFFER_NOT_PENDING, null);
+    }
+
+    @Test
+    void addOffer_rejectsNonWaitlistedAndDuplicateOffers() {
+        SessionCapacity s = fullWithOffer();
+        assertThatThrownBy(() -> s.addOffer(new PendingOffer(12, 2, SeatKind.STANDARD, T0, T0.plusHours(1))))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> s.addOffer(new PendingOffer(12, 1, SeatKind.STANDARD, T0, T0.plusHours(1))))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> s.addOffer(new PendingOffer(12, 404, SeatKind.STANDARD, T0, T0.plusHours(1))))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void cancellingAWaitlistedBookingWithAPendingOffer_releasesTheHeldSeat() {
+        SessionCapacity s = fullWithOffer();
+        assertThat(s.cancel(2)).isEqualTo(BookingStatus.WAITLISTED);
+        assertThat(s.seatsOffered()).isZero();
+        assertThat(s.seatsAvailable()).isEqualTo(1);
+        assertThat(s.waitlist()).extracting(WaitlistSlot::position).as("plain cancel leaves a gap").containsExactly(2, 3);
+    }
+
+    @Test
+    void withdrawOffer_keepsTheWaitlistPosition() {
+        SessionCapacity s = fullWithOffer();
+        PendingOffer o = s.withdrawOffer(2);
+        assertThat(o.offerId()).isEqualTo(11);
+        assertThat(s.waitlist()).extracting(WaitlistSlot::bookingId).containsExactly(2L, 3L, 4L);
+        assertThat(s.seatsAvailable()).isEqualTo(1);
+    }
+
+    @Test
+    void capacityDecrease_withdrawsNewestOffersTheReducedCapacityCannotHold() {
+        List<BookingSlot> bookings = List.of(
+                slot(1, 1, BookingStatus.BOOKED, null, 0),
+                slot(2, 2, BookingStatus.WAITLISTED, null, 1),
+                slot(3, 3, BookingStatus.WAITLISTED, null, 2));
+        SessionCapacity s = new SessionCapacity(7, 3, SessionStatus.OPEN, 3, 0, bookings,
+                List.of(new WaitlistSlot(2, 1), new WaitlistSlot(3, 2)),
+                List.of(new PendingOffer(11, 2, SeatKind.STANDARD, T0, T0.plusHours(24)),
+                        new PendingOffer(12, 3, SeatKind.STANDARD, T0.plusMinutes(5), T0.plusHours(24))));
+        CapacityChange change = s.changeCapacity(2, AccommodationFloorPolicy.ALLOCATED);
+        assertThat(change.withdrawnOffers()).extracting(PendingOffer::offerId).containsExactly(12L);
+        assertThat(change.bumped()).isEmpty();
+        assertThat(s.pendingOffers()).extracting(PendingOffer::offerId).containsExactly(11L);
+        assertThat(s.seatsAvailable()).isZero();
+
+        CapacityChange toOne = s.changeCapacity(1, AccommodationFloorPolicy.ALLOCATED);
+        assertThat(toOne.withdrawnOffers()).extracting(PendingOffer::offerId).containsExactly(11L);
+        assertThat(s.waitlist()).extracting(WaitlistSlot::position).containsExactly(1, 2);
+
+        CapacityChange up = s.changeCapacity(4, AccommodationFloorPolicy.ALLOCATED);
+        assertThat(up.withdrawnOffers()).isEmpty();
+        assertThat(s.seatsAvailable()).isEqualTo(3);
+    }
 }

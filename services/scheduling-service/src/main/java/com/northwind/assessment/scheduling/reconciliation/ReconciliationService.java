@@ -35,7 +35,8 @@ public class ReconciliationService {
 
     static final int MAX_LISTED = 200;
 
-    public record SessionCounts(int capacity, int seatsAvailable, int booked, int attended, int waitlisted, int accommodationUsed) {
+    public record SessionCounts(int capacity, int seatsAvailable, int booked, int attended, int waitlisted, int accommodationUsed,
+                                int seatsOffered) {
     }
 
     public record Mismatch(Integer sessionId, String bookingRef, String field, String scheduling, String legacy) {
@@ -95,6 +96,7 @@ public class ReconciliationService {
             compare(mismatches, e.getKey(), "ATTENDED", m.attended(), l.attended());
             compare(mismatches, e.getKey(), "WAITLISTED", m.waitlisted(), l.waitlisted());
             compare(mismatches, e.getKey(), "AccommodationSeatsUsed", m.accommodationUsed(), l.accommodationUsed());
+            compare(mismatches, e.getKey(), "SeatsOffered", m.seatsOffered(), l.seatsOffered());
         }
         int bookingsCompared = compareBookings(modern, mismatches);
         List<String> driftColumns = new ArrayList<>();
@@ -122,14 +124,16 @@ public class ReconciliationService {
                         + "SUM(CASE WHEN b.status = 'BOOKED' THEN 1 ELSE 0 END), "
                         + "SUM(CASE WHEN b.status = 'ATTENDED' THEN 1 ELSE 0 END), "
                         + "SUM(CASE WHEN b.status = 'WAITLISTED' THEN 1 ELSE 0 END), "
-                        + "SUM(CASE WHEN b.status IN ('BOOKED','ATTENDED') AND b.accommodation_code IN ('ET25','ET50') THEN 1 ELSE 0 END) "
+                        + "SUM(CASE WHEN b.status IN ('BOOKED','ATTENDED') AND b.accommodation_code IN ('ET25','ET50') THEN 1 ELSE 0 END), "
+                        + "(SELECT COUNT(*) FROM seat_offer o WHERE o.session_id = s.session_id AND o.status = 'PENDING') "
                         + "FROM exam_session s LEFT JOIN booking b ON b.session_id = s.session_id GROUP BY s.session_id, s.capacity")
                 .query(rs -> {
                     int cap = rs.getInt(2);
                     int booked = rs.getInt(3);
                     int attended = rs.getInt(4);
-                    out.put(rs.getInt(1), new SessionCounts(cap, SeatFormulas.seatsAvailable(cap, booked + attended), booked,
-                            attended, rs.getInt(5), rs.getInt(6)));
+                    int offered = rs.getInt(7);
+                    out.put(rs.getInt(1), new SessionCounts(cap, SeatFormulas.seatsAvailable(cap, booked + attended, offered),
+                            booked, attended, rs.getInt(5), rs.getInt(6), offered));
                 });
         return out;
     }
@@ -140,12 +144,13 @@ public class ReconciliationService {
                         + "SUM(CASE WHEN b.Status = 'BOOKED' THEN 1 ELSE 0 END), "
                         + "SUM(CASE WHEN b.Status = 'ATTENDED' THEN 1 ELSE 0 END), "
                         + "SUM(CASE WHEN b.Status = 'WAITLISTED' THEN 1 ELSE 0 END), "
-                        + "SUM(CASE WHEN b.Status IN ('BOOKED','ATTENDED') AND b.AccommodationCode IN ('ET25','ET50') THEN 1 ELSE 0 END) "
+                        + "SUM(CASE WHEN b.Status IN ('BOOKED','ATTENDED') AND b.AccommodationCode IN ('ET25','ET50') THEN 1 ELSE 0 END), "
+                        + "(SELECT COUNT(*) FROM dbo.Waitlist w WHERE w.SessionId = s.SessionId AND w.OfferExpiresAt IS NOT NULL) "
                         + "FROM dbo.ExamSession s LEFT JOIN dbo.Booking b ON b.SessionId = s.SessionId "
                         + "GROUP BY s.SessionId, s.Capacity, s.SeatsAvailable")
                 .query(rs -> {
                     out.put(rs.getInt(1), new SessionCounts(rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5), rs.getInt(6),
-                            rs.getInt(7)));
+                            rs.getInt(7), rs.getInt(8)));
                 });
         return out;
     }
@@ -227,7 +232,7 @@ public class ReconciliationService {
         });
         if (columns.isEmpty()) {
             columns.addAll(List.of("SessionId", "ExamCode", "CenterCode", "StartsAt", "Capacity", "SeatsAvailable",
-                    "ActiveBookings", "Drift"));
+                    "ActiveBookings", "OfferedSeats", "Drift"));
         }
         return rows;
     }

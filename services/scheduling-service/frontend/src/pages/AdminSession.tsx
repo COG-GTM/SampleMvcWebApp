@@ -36,11 +36,12 @@ export default function AdminSession() {
             <div><dt className="text-slate-500">Available</dt><dd className="font-semibold" data-testid="available">{s.seatsAvailable}</dd></div>
             <div><dt className="text-slate-500">Accommodation</dt><dd className="font-semibold">{s.accommodationUsed} / {s.accommodationCapacity}</dd></div>
             <div><dt className="text-slate-500">Waitlist</dt><dd className="font-semibold">{s.waitlistCount}</dd></div>
+            <div><dt className="text-slate-500">Held for offers</dt><dd className="font-semibold" data-testid="offered">{s.offeredSeats}</dd></div>
           </dl>
         </div>
         <div className="card p-6 lg:col-span-2">
           <h2 className="mb-2 font-semibold">Waitlist</h2>
-          <WaitlistTable sessionId={s.sessionId} refreshKey={s.waitlistCount} />
+          <WaitlistTable sessionId={s.sessionId} refreshKey={s.waitlistCount * 1000 + s.offeredSeats} />
         </div>
       </div>
     </div>

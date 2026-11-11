@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { needsAccommodationSeat, seatTone, validateCandidateNumber, validateCapacity } from './format';
+import { needsAccommodationSeat, seatTone, validateCandidateNumber, validateCapacity, waitlistOfferLabel } from './format';
 
 describe('validateCandidateNumber', () => {
   it('requires a value', () => expect(validateCandidateNumber('  ')).toMatch(/required/));
@@ -32,4 +32,14 @@ describe('seat helpers', () => {
     expect(seatTone(3, 20)).toBe('low');
     expect(seatTone(10, 20)).toBe('ok');
   });
+});
+
+describe('waitlistOfferLabel', () => {
+  it('shows the expiry of an offered position', () =>
+    expect(waitlistOfferLabel({ offerState: 'OFFERED', offerExpiresAt: '2026-11-12T09:30:00', accommodationCode: null }))
+      .toMatch(/^Offered, expires .*Nov 12/));
+  it('names the accommodation a skipped position needs', () =>
+    expect(waitlistOfferLabel({ offerState: 'SKIPPED', offerExpiresAt: null, accommodationCode: 'ET25' })).toBe('Skipped: needs ET25'));
+  it('shows nothing for a waiting position', () =>
+    expect(waitlistOfferLabel({ offerState: 'WAITING', offerExpiresAt: null, accommodationCode: 'ET50' })).toBeNull());
 });

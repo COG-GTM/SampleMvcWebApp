@@ -122,11 +122,13 @@ public class LegacyProjector {
             jdbc.sql("DELETE FROM dbo.Waitlist WHERE BookingId = ?").param(legacyId).update();
             return;
         }
-        int n = jdbc.sql("UPDATE dbo.Waitlist SET SessionId = ?, Position = ? WHERE BookingId = ?")
-                .params(b.sessionId(), b.waitlistPosition(), legacyId).update();
+        // OfferExpiresAt (db/schema/012): set while the entry holds a PENDING seat offer, so legacy readers and the
+        // seat-drift check see the held seat (ADR 0003).
+        int n = jdbc.sql("UPDATE dbo.Waitlist SET SessionId = ?, Position = ?, OfferExpiresAt = ? WHERE BookingId = ?")
+                .params(b.sessionId(), b.waitlistPosition(), b.offerExpiresAt(), legacyId).update();
         if (n == 0) {
-            jdbc.sql("INSERT INTO dbo.Waitlist (SessionId, CandidateId, BookingId, Position) VALUES (?, ?, ?, ?)")
-                    .params(b.sessionId(), b.candidateId(), legacyId, b.waitlistPosition()).update();
+            jdbc.sql("INSERT INTO dbo.Waitlist (SessionId, CandidateId, BookingId, Position, OfferExpiresAt) VALUES (?, ?, ?, ?, ?)")
+                    .params(b.sessionId(), b.candidateId(), legacyId, b.waitlistPosition(), b.offerExpiresAt()).update();
         }
     }
 
@@ -135,6 +137,9 @@ public class LegacyProjector {
         for (SessionState s : p.sessions()) {
             sb.append(" session=").append(s.sessionId()).append(" capacity=").append(s.capacity())
                     .append(" seats=").append(s.seatsAvailable());
+            if (s.seatsOffered() > 0) {
+                sb.append(" offered=").append(s.seatsOffered());
+            }
         }
         for (BookingState b : p.bookings()) {
             sb.append(" booking=").append(legacyIds.get(b.bookingId())).append('/').append(b.bookingId())

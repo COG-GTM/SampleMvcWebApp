@@ -2,6 +2,7 @@ package com.northwind.assessment.scheduling.config;
 
 import com.northwind.assessment.scheduling.domain.AccommodationFloorPolicy;
 import com.northwind.assessment.scheduling.domain.RetakeEligibilityPolicy;
+import com.northwind.assessment.scheduling.domain.WaitlistOfferPolicy;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +20,11 @@ public class RulesConfig {
     @Bean
     public RetakeEligibilityPolicy retakeEligibilityPolicy(SchedulingProperties properties) {
         return new RetakeEligibilityPolicy(properties.rules().retakeDayCounting());
+    }
+
+    @Bean
+    public WaitlistOfferPolicy waitlistOfferPolicy(SchedulingProperties properties) {
+        return new WaitlistOfferPolicy(properties.waitlist().offerTtl());
     }
 
     @Bean

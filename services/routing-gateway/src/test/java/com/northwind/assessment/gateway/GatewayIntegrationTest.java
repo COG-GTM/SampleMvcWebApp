@@ -110,6 +110,9 @@ class GatewayIntegrationTest {
         stubResolve("centerId=1", "BOS01", 1, null, null, null);
         stubResolve("bookingId=50000001", "NYC01", 2, 200, 50000001L, "MODERN");
         stubResolve("bookingId=300", "BOS01", 1, 100, 300L, "LEGACY_IMPORT");
+        stubResolve("offerId=7", "BOS01", 1, 100, 300L, "LEGACY_IMPORT");
+        stubResolve("offerId=8", "NYC01", 2, 200, 400L, "LEGACY_IMPORT");
+        stubResolve("bookingId=400", "NYC01", 2, 200, 400L, "LEGACY_IMPORT");
         scheduling.stubFor(get(urlPathEqualTo("/internal/routing/resolve")).atPriority(10)
                 .willReturn(aResponse().withStatus(404).withBody("{\"error\":\"NOT_FOUND\",\"message\":\"x\"}")));
     }
@@ -475,6 +478,35 @@ class GatewayIntegrationTest {
         client.post().uri("/api/v2/bookings/300/reschedule").contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"newSessionId\":100}").exchange().expectStatus().isForbidden();
         client.get().uri("/api/v2/sessions/200").exchange().expectStatus().isOk();
+    }
+
+    @Test
+    void seatOfferDecisionsAreGuardedByTheCenterOfTheOfferedBooking() throws Exception {
+        scheduling.stubFor(any(urlPathMatching("/api/v2/.*")).willReturn(okJson("{\"status\":\"ACCEPTED\"}")));
+        setAllowList("BOS01");
+        client.post().uri("/api/v2/offers/7/accept").exchange().expectStatus().isOk()
+                .expectHeader().valueEquals("X-Route", "modern");
+        client.post().uri("/api/v2/offers/7/decline").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"actor\":\"NW00000901\"}").exchange().expectStatus().isOk()
+                .expectHeader().valueEquals("X-Route", "modern");
+        client.post().uri("/api/v2/bookings/300/offer/accept").exchange().expectStatus().isOk()
+                .expectHeader().valueEquals("X-Route", "modern");
+        scheduling.verify(postRequestedFor(urlEqualTo("/api/v2/offers/7/accept")));
+        scheduling.verify(postRequestedFor(urlEqualTo("/api/v2/offers/7/decline"))
+                .withRequestBody(equalToJson("{\"actor\":\"NW00000901\"}")));
+        scheduling.verify(postRequestedFor(urlEqualTo("/api/v2/bookings/300/offer/accept")));
+
+        // offer on a center that is not modern, unknown offer, alias on a non-modern booking: rejected, never forwarded
+        client.post().uri("/api/v2/offers/8/accept").exchange().expectStatus().isForbidden()
+                .expectHeader().valueEquals("X-Route", "legacy")
+                .expectBody(String.class).value(b -> assertThat(b).contains("CENTER_NOT_MODERN"));
+        client.post().uri("/api/v2/offers/999/decline").exchange().expectStatus().isForbidden();
+        client.post().uri("/api/v2/bookings/400/offer/decline").exchange().expectStatus().isForbidden();
+        scheduling.verify(0, postRequestedFor(urlEqualTo("/api/v2/offers/8/accept")));
+        scheduling.verify(0, postRequestedFor(urlEqualTo("/api/v2/offers/999/decline")));
+        scheduling.verify(0, postRequestedFor(urlEqualTo("/api/v2/bookings/400/offer/decline")));
+        // reads are not guarded
+        client.get().uri("/api/v2/offers/8").exchange().expectStatus().isOk();
     }
 
     @Test

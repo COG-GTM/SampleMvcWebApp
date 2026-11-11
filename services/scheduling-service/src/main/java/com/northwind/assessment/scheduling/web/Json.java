@@ -2,6 +2,7 @@ package com.northwind.assessment.scheduling.web;
 
 import com.northwind.assessment.scheduling.domain.EligibilityDecision;
 import com.northwind.assessment.scheduling.domain.SeatFormulas;
+import com.northwind.assessment.scheduling.domain.WaitlistOfferState;
 import com.northwind.assessment.scheduling.persistence.Views;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,30 +27,67 @@ public final class Json {
 
     public record Session(int sessionId, String examCode, String examTitle, String centerCode, String centerName,
                           String roomName, String startsAt, int capacity, int accommodationCapacity, int seatsAvailable,
-                          String status, Integer bookedSeats, int accommodationUsed, int waitlistCount) {
+                          String status, Integer bookedSeats, int accommodationUsed, int waitlistCount,
+                          int offeredSeats) {
         static Session of(Views.SessionView v) {
             return new Session(v.sessionId(), v.examCode(), v.examTitle(), v.centerCode(), v.centerName(), v.roomName(),
                     fmt(v.startsAt()), v.capacity(), v.accommodationCapacity(),
-                    SeatFormulas.seatsAvailable(v.capacity(), v.bookedSeats()), v.status(), v.bookedSeats(),
-                    v.accommodationUsed(), v.waitlistCount());
+                    SeatFormulas.seatsAvailable(v.capacity(), v.bookedSeats(), v.offeredSeats()), v.status(), v.bookedSeats(),
+                    v.accommodationUsed(), v.waitlistCount(), v.offeredSeats());
         }
     }
 
     public record Booking(long bookingId, int sessionId, String candidateNumber, String examCode, String sessionStartsAt,
                           String status, String accommodationCode, String channel, String externalRef, String bookedAt,
                           String cancelledAt, String cancelReason, String origin, Integer legacyBookingId,
-                          Integer waitlistPosition) {
+                          Integer waitlistPosition, Offer pendingOffer) {
         static Booking of(Views.BookingView v) {
+            return of(v, null, null);
+        }
+
+        /** {@code pendingOffer}: the booking's PENDING seat offer, if any (ADR 0003). */
+        static Booking of(Views.BookingView v, Views.OfferView pendingOffer, LocalDateTime now) {
             return new Booking(v.bookingId(), v.sessionId(), v.candidateNumber(), v.examCode(), fmt(v.sessionStartsAt()),
                     v.status(), v.accommodationCode(), v.channel(), v.externalRef(), fmt(v.bookedAt()),
-                    fmt(v.cancelledAt()), v.cancelReason(), v.origin(), v.legacyBookingId(), v.waitlistPosition());
+                    fmt(v.cancelledAt()), v.cancelReason(), v.origin(), v.legacyBookingId(), v.waitlistPosition(),
+                    pendingOffer == null ? null : Offer.of(pendingOffer, now));
         }
     }
 
-    public record WaitlistEntry(int position, long bookingId, String candidateNumber, String candidateName, String addedAt) {
+    /**
+     * Waitlist position with its offer state (ADR 0003): {@code offerState} OFFERED (holds a pending offer until
+     * {@code offerExpiresAt}), SKIPPED ({@code skipReason}: needs an accommodation seat but none is free) or WAITING.
+     */
+    public record WaitlistEntry(int position, long bookingId, String candidateNumber, String candidateName, String addedAt,
+                                String accommodationCode, String offerState, Long offerId, String offerExpiresAt,
+                                String skipReason) {
         static WaitlistEntry of(Views.WaitlistView v) {
-            return new WaitlistEntry(v.position(), v.bookingId(), v.candidateNumber(), v.candidateName(), fmt(v.addedAt()));
+            return of(v, null);
         }
+
+        static WaitlistEntry of(Views.WaitlistView v, WaitlistOfferState state) {
+            return new WaitlistEntry(v.position(), v.bookingId(), v.candidateNumber(), v.candidateName(), fmt(v.addedAt()),
+                    v.accommodationCode(), state == null ? WaitlistOfferState.State.WAITING.name() : state.state().name(),
+                    state == null || state.offer() == null ? null : state.offer().offerId(),
+                    state == null ? null : fmt(state.offerExpiresAt()), state == null ? null : state.skipReason());
+        }
+    }
+
+    /** A seat offer (ADR 0003). {@code expired}: still PENDING but {@code expiresAt} has passed (the expiry job has not run yet). */
+    public record Offer(long offerId, long bookingId, int sessionId, String candidateNumber, String examCode,
+                        String sessionStartsAt, String centerCode, int waitlistPosition, String status, String seatKind,
+                        String offeredAt, String expiresAt, String decidedAt, boolean expired) {
+        /** {@code now}: the server clock, so clients need not compare the zone-less {@code expiresAt} themselves. */
+        static Offer of(Views.OfferView v, LocalDateTime now) {
+            boolean expired = "PENDING".equals(v.status()) && !now.isBefore(v.expiresAt());
+            return new Offer(v.offerId(), v.bookingId(), v.sessionId(), v.candidateNumber(), v.examCode(),
+                    fmt(v.sessionStartsAt()), v.centerCode(), v.waitlistPosition(), v.status(), v.seatKind(),
+                    fmt(v.offeredAt()), fmt(v.expiresAt()), fmt(v.decidedAt()), expired);
+        }
+    }
+
+    /** Body of the accept / decline calls (optional). */
+    public record OfferDecisionRequest(String actor) {
     }
 
     public record Eligibility(boolean eligible, String reason, String earliestRetakeDate) {

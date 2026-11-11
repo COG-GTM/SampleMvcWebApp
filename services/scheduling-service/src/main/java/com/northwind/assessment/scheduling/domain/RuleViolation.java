@@ -14,6 +14,8 @@ public enum RuleViolation {
     SAME_SESSION(Kind.CONFLICT, null),
     NOT_ELIGIBLE(Kind.CONFLICT, null),
     BOOKING_NOT_ACTIVE(Kind.CONFLICT, null),
+    OFFER_NOT_PENDING(Kind.CONFLICT, null),
+    OFFER_EXPIRED(Kind.CONFLICT, null),
     VALIDATION(Kind.INVALID, null);
 
     public enum Kind { INVALID, CONFLICT }

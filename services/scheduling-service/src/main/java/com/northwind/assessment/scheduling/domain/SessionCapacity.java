@@ -25,9 +25,15 @@ public final class SessionCapacity {
     private final int accommodationCapacity;
     private final List<BookingSlot> bookings;
     private final List<WaitlistSlot> waitlist;
+    private final List<PendingOffer> offers;
 
     public SessionCapacity(int sessionId, int examId, SessionStatus status, int capacity, int accommodationCapacity,
                            List<BookingSlot> bookings, List<WaitlistSlot> waitlist) {
+        this(sessionId, examId, status, capacity, accommodationCapacity, bookings, waitlist, List.of());
+    }
+
+    public SessionCapacity(int sessionId, int examId, SessionStatus status, int capacity, int accommodationCapacity,
+                           List<BookingSlot> bookings, List<WaitlistSlot> waitlist, List<PendingOffer> pendingOffers) {
         this.sessionId = sessionId;
         this.examId = examId;
         this.status = Objects.requireNonNull(status, "status");
@@ -35,6 +41,7 @@ public final class SessionCapacity {
         this.accommodationCapacity = accommodationCapacity;
         this.bookings = new ArrayList<>(bookings);
         this.waitlist = new ArrayList<>(waitlist);
+        this.offers = new ArrayList<>(pendingOffers);
     }
 
     public int sessionId() {
@@ -65,20 +72,40 @@ public final class SessionCapacity {
         return waitlist.stream().sorted(Comparator.comparingInt(WaitlistSlot::position)).toList();
     }
 
+    public List<PendingOffer> pendingOffers() {
+        return List.copyOf(offers);
+    }
+
+    public Optional<PendingOffer> pendingOffer(long bookingId) {
+        return offers.stream().filter(o -> o.bookingId() == bookingId).findFirst();
+    }
+
+    /** BOOKED + ATTENDED (pending offers are counted separately, see {@link #seatsOffered()}). */
     public int seatsHeld() {
         return SeatFormulas.seatsHeld(bookings);
     }
 
+    /** Seats held by PENDING seat offers (ADR 0003). */
+    public int seatsOffered() {
+        return offers.size();
+    }
+
+    /** Capacity - BOOKED - ATTENDED - PENDING offers: a seat held for an offer is not bookable by anyone else. */
     public int seatsAvailable() {
-        return SeatFormulas.seatsAvailable(capacity, bookings);
+        return SeatFormulas.seatsAvailable(capacity, bookings, offers.size());
     }
 
     public int accommodationSeatsUsed() {
         return SeatFormulas.accommodationSeatsUsed(bookings);
     }
 
+    /** Accommodation seats held by PENDING offers to ET25/ET50 candidates. */
+    public int accommodationSeatsOffered() {
+        return (int) offers.stream().filter(o -> o.seatKind() == SeatKind.ACCOMMODATION).count();
+    }
+
     public int accommodationSeatsAvailable() {
-        return Math.max(0, accommodationCapacity - accommodationSeatsUsed());
+        return Math.max(0, accommodationCapacity - accommodationSeatsUsed() - accommodationSeatsOffered());
     }
 
     public int waitlistCount() {
@@ -108,7 +135,7 @@ public final class SessionCapacity {
             throw new SchedulingRuleException(RuleViolation.DUPLICATE_BOOKING,
                     "Candidate already has an active booking on session " + sessionId);
         }
-        if (AccommodationCodes.requiresAccommodationSeat(code) && accommodationSeatsUsed() >= accommodationCapacity) {
+        if (AccommodationCodes.requiresAccommodationSeat(code) && accommodationSeatsAvailable() <= 0) {
             throw new SchedulingRuleException(RuleViolation.NO_ACCOMMODATION_SEAT,
                     "No accommodation seat available on session " + sessionId);
         }
@@ -130,8 +157,9 @@ public final class SessionCapacity {
 
     /**
      * db/procs/021_usp_CancelBooking.sql: only BOOKED / WAITLISTED can be cancelled (state 4). A booked
-     * cancellation frees its seat; a waitlisted one leaves the waitlist. Nobody is promoted
-     * automatically and remaining positions are not compacted (legacy behaviour, kept).
+     * cancellation frees its seat; a waitlisted one leaves the waitlist and gives up any pending offer
+     * (check {@link #pendingOffer} first to withdraw it). Remaining positions are not compacted (legacy
+     * behaviour, kept); offering the freed seat is {@link WaitlistOfferPolicy}'s job (ADR 0003).
      *
      * @return the status the booking had before cancelling
      */
@@ -145,7 +173,84 @@ public final class SessionCapacity {
         }
         bookings.set(idx, b.withStatus(BookingStatus.CANCELLED));
         waitlist.removeIf(w -> w.bookingId() == bookingId);
+        offers.removeIf(o -> o.bookingId() == bookingId);
         return b.status();
+    }
+
+    /** Registers a persisted PENDING offer (from {@link WaitlistOfferPolicy#plan}); it holds a seat from now on. */
+    public void addOffer(PendingOffer offer) {
+        int idx = indexOf(offer.bookingId())
+                .orElseThrow(() -> new IllegalArgumentException("Booking " + offer.bookingId() + " is not on session " + sessionId));
+        if (bookings.get(idx).status() != BookingStatus.WAITLISTED) {
+            throw new IllegalStateException("Booking " + offer.bookingId() + " is not waitlisted");
+        }
+        if (pendingOffer(offer.bookingId()).isPresent()) {
+            throw new IllegalStateException("Booking " + offer.bookingId() + " already holds a pending offer");
+        }
+        offers.add(offer);
+    }
+
+    /**
+     * Accepts the booking's pending offer (ADR 0003): the booking becomes BOOKED, leaves the waitlist, and
+     * every later position moves up by one. Rejected once {@code expiresAt} has passed, even if the expiry
+     * job has not run yet.
+     *
+     * @return the waitlist slots whose position changed
+     */
+    public List<WaitlistSlot> acceptOffer(long bookingId, LocalDateTime now) {
+        PendingOffer offer = requirePendingOffer(bookingId);
+        if (offer.isExpiredAt(now)) {
+            throw new SchedulingRuleException(RuleViolation.OFFER_EXPIRED,
+                    "Seat offer " + offer.offerId() + " expired at " + offer.expiresAt());
+        }
+        int idx = indexOf(bookingId).orElseThrow();
+        bookings.set(idx, bookings.get(idx).withStatus(BookingStatus.BOOKED));
+        offers.remove(offer);
+        return leaveWaitlist(bookingId);
+    }
+
+    /**
+     * Ends the booking's pending offer by decline or expiry (ADR 0003): the waitlisted booking is cancelled,
+     * leaves the waitlist and later positions move up by one, so the candidate is not offered the seat again.
+     *
+     * @return the waitlist slots whose position changed
+     */
+    public List<WaitlistSlot> giveUpOffer(long bookingId) {
+        PendingOffer offer = requirePendingOffer(bookingId);
+        int idx = indexOf(bookingId).orElseThrow();
+        bookings.set(idx, bookings.get(idx).withStatus(BookingStatus.CANCELLED));
+        offers.remove(offer);
+        return leaveWaitlist(bookingId);
+    }
+
+    /** Drops a pending offer; the booking keeps its waitlist position. */
+    public PendingOffer withdrawOffer(long bookingId) {
+        PendingOffer offer = requirePendingOffer(bookingId);
+        offers.remove(offer);
+        return offer;
+    }
+
+    private PendingOffer requirePendingOffer(long bookingId) {
+        return pendingOffer(bookingId).orElseThrow(() -> new SchedulingRuleException(RuleViolation.OFFER_NOT_PENDING,
+                "Booking " + bookingId + " has no pending seat offer"));
+    }
+
+    /** Removes the booking's waitlist slot and moves every later position up by one. */
+    private List<WaitlistSlot> leaveWaitlist(long bookingId) {
+        WaitlistSlot gone = waitlist.stream().filter(w -> w.bookingId() == bookingId).findFirst()
+                .orElseThrow(() -> new IllegalStateException("Booking " + bookingId + " is not on the waitlist"));
+        waitlist.remove(gone);
+        List<WaitlistSlot> shifted = new ArrayList<>();
+        for (int i = 0; i < waitlist.size(); i++) {
+            WaitlistSlot w = waitlist.get(i);
+            if (w.position() > gone.position()) {
+                WaitlistSlot moved = new WaitlistSlot(w.bookingId(), w.position() - 1);
+                waitlist.set(i, moved);
+                shifted.add(moved);
+            }
+        }
+        shifted.sort(Comparator.comparingInt(WaitlistSlot::position));
+        return shifted;
     }
 
     /**
@@ -180,8 +285,9 @@ public final class SessionCapacity {
      * <p>Validates the new capacity against {@code floorPolicy}. On a decrease below the seats held, the
      * newest BOOKED bookings ({@code BookedAt DESC, BookingId DESC}) move to the waitlist, appended
      * after the current last position in booking order (oldest bumped booking first), exactly like the
-     * trigger. ATTENDED bookings hold a seat but are never bumped. Raising capacity does not promote
-     * anyone from the waitlist (legacy behaviour, kept).
+     * trigger. ATTENDED bookings hold a seat but are never bumped. Pending seat offers the new capacity
+     * has no room for are withdrawn first, newest first (their bookings keep their positions). Raising
+     * capacity does not promote anyone here; {@link WaitlistOfferPolicy} offers the new seats (ADR 0003).
      */
     public CapacityChange changeCapacity(int newCapacity, AccommodationFloorPolicy floorPolicy) {
         if (newCapacity < 0) {
@@ -192,9 +298,18 @@ public final class SessionCapacity {
         floorPolicy.check(newCapacity, accommodationCapacity, accommodationSeatsUsed(), seatsHeld());
         int old = capacity;
         capacity = newCapacity;
+        List<PendingOffer> withdrawn = new ArrayList<>();
+        int excessOffers = offers.size() - Math.max(0, newCapacity - seatsHeld());
+        if (excessOffers > 0) {
+            offers.stream()
+                    .sorted(Comparator.comparing(PendingOffer::offeredAt).thenComparingLong(PendingOffer::offerId).reversed())
+                    .limit(excessOffers)
+                    .forEach(withdrawn::add);
+            offers.removeAll(withdrawn);
+        }
         int excess = bumpableCount() - newCapacity;
         if (newCapacity >= old || excess <= 0) {
-            return new CapacityChange(old, newCapacity, List.of());
+            return new CapacityChange(old, newCapacity, List.of(), withdrawn);
         }
         List<BookingSlot> toBump = bookings.stream()
                 .filter(b -> b.status() == BookingStatus.BOOKED)
@@ -211,7 +326,7 @@ public final class SessionCapacity {
             waitlist.add(slot);
             bumped.add(slot);
         }
-        return new CapacityChange(old, newCapacity, bumped);
+        return new CapacityChange(old, newCapacity, bumped, withdrawn);
     }
 
     private Optional<Integer> indexOf(long bookingId) {

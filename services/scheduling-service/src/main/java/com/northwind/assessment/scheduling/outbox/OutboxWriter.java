@@ -57,18 +57,21 @@ public class OutboxWriter {
         return jdbc.sql("SELECT s.capacity, s.accommodation_capacity, s.status, "
                         + "(SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id AND b.status IN ('BOOKED','ATTENDED')), "
                         + "(SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id AND b.status IN ('BOOKED','ATTENDED') "
-                        + "    AND b.accommodation_code IN ('ET25','ET50')) "
+                        + "    AND b.accommodation_code IN ('ET25','ET50')), "
+                        + "(SELECT COUNT(*) FROM seat_offer o WHERE o.session_id = s.session_id AND o.status = 'PENDING') "
                         + "FROM exam_session s WHERE s.session_id = ?")
                 .param(sessionId)
                 .query((rs, n) -> new SessionState(sessionId, rs.getInt(1), rs.getInt(2),
-                        SeatFormulas.seatsAvailable(rs.getInt(1), rs.getInt(4)), rs.getInt(4), rs.getInt(5), rs.getString(3)))
+                        SeatFormulas.seatsAvailable(rs.getInt(1), rs.getInt(4), rs.getInt(6)), rs.getInt(4), rs.getInt(5),
+                        rs.getString(3), rs.getInt(6)))
                 .single();
     }
 
     BookingState bookingState(long bookingId) {
         return jdbc.sql("SELECT b.booking_id, b.origin, b.legacy_booking_id, b.session_id, b.candidate_id, b.status, "
-                        + "b.accommodation_code, b.channel, b.external_ref, b.booked_at, b.cancelled_at, b.cancel_reason, w.position "
-                        + "FROM booking b LEFT JOIN waitlist_entry w ON w.booking_id = b.booking_id WHERE b.booking_id = ?")
+                        + "b.accommodation_code, b.channel, b.external_ref, b.booked_at, b.cancelled_at, b.cancel_reason, w.position, o.expires_at "
+                        + "FROM booking b LEFT JOIN waitlist_entry w ON w.booking_id = b.booking_id "
+                        + "LEFT JOIN seat_offer o ON o.booking_id = b.booking_id AND o.status = 'PENDING' WHERE b.booking_id = ?")
                 .param(bookingId)
                 .query((rs, n) -> {
                     int legacy = rs.getInt(3);
@@ -77,7 +80,7 @@ public class OutboxWriter {
                     Integer position = rs.wasNull() ? null : pos;
                     return new BookingState(rs.getLong(1), rs.getString(2), legacyId, rs.getInt(4), rs.getInt(5),
                             rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9), ldt(rs.getTimestamp(10)),
-                            ldt(rs.getTimestamp(11)), rs.getString(12), position);
+                            ldt(rs.getTimestamp(11)), rs.getString(12), position, ldt(rs.getTimestamp(14)));
                 })
                 .single();
     }

@@ -43,6 +43,9 @@ SCHEDULING_IMPORT_ON_STARTUP=true java -jar target/scheduling-service.jar
 | Import all centers at startup | `SCHEDULING_IMPORT_ON_STARTUP` | `false` (`true` in the run script) |
 | Retake day counting | `scheduling.rules.retake-days` | `calendar` (`working` = booking-api) |
 | Capacity floor | `scheduling.rules.accommodation-floor` | `allocated` (`booked-extra-time` = PR #51) |
+| Waitlist offer TTL (ISO-8601) | `SCHEDULING_WAITLIST_OFFER_TTL` / `scheduling.waitlist.offer-ttl` | `PT24H` |
+| Offer expiry job on/off | `SCHEDULING_WAITLIST_EXPIRY_ENABLED` / `scheduling.waitlist.expiry-enabled` | `true` |
+| Offer expiry poll interval | `SCHEDULING_WAITLIST_EXPIRY_POLL_MS` / `scheduling.waitlist.expiry-poll-ms` | `60000` |
 
 The service refuses to start if the scheduling datasource points at `AssessmentDelivery`.
 
@@ -70,7 +73,8 @@ scheduling-service is the **only writer** of bookings and seat counts. The datab
 
 - **Transactional outbox.** Every booking/capacity change inserts a row into `outbox_event` (Flyway `V2__outbox.sql`)
   in the same local `Scheduling` transaction (`OutboxWriter` is `Propagation.MANDATORY`): `BookingCreated`,
-  `BookingWaitlisted`, `BookingCancelled`, `BookingRescheduled`, `AttendanceRecorded`, `CapacityChanged`.
+  `BookingWaitlisted`, `BookingCancelled`, `BookingRescheduled`, `AttendanceRecorded`, `CapacityChanged`, and the
+  waitlist offer events `SeatOffered`, `SeatOfferAccepted`, `SeatOfferDeclined`, `SeatOfferExpired` (MBA-3829).
   `event_id` is an IDENTITY (monotonic). The payload carries the full resulting state of every touched session and
   booking (status, accommodation code, channel, waitlist position, capacity, derived `SeatsAvailable`), not deltas,
   so applying it is naturally idempotent.
@@ -125,13 +129,27 @@ is contained to the relay (the projection code consumes the same state-carrying 
 | POST | `/bookings/{bookingId}/attendance` | BOOKED -> ATTENDED (idempotent; 409 `BOOKING_NOT_ACTIVE` otherwise); used by results-service |
 | GET | `/candidates/{candidateNumber}` , `/candidates/{n}/bookings` , `/candidates/{n}/eligibility?examCode=&date=` | |
 | PUT | `/sessions/{sessionId}/capacity` | `{"newCapacity","actor"}` -> `{"session","bumpedBookingIds"}` |
-| GET | `/sessions/{sessionId}/waitlist` | `[{"position","bookingId","candidateNumber","candidateName","addedAt"}]` |
+| GET | `/sessions/{sessionId}/waitlist` | `[{"position","bookingId","candidateNumber","candidateName","addedAt","accommodationCode","offerState","offerId","offerExpiresAt","skipReason"}]`; `offerState` = `OFFERED` / `SKIPPED` (needs an accommodation seat) / `WAITING` |
+| GET | `/candidates/{n}/offers` | the candidate's seat offers (all statuses); `/candidates/{n}/bookings` also carries `pendingOffer` |
+| GET | `/offers/{offerId}` | `{"offerId","bookingId","sessionId","status","seatKind","offeredAt","expiresAt","decidedAt","expired",...}` (`expired`: still PENDING but past `expiresAt` by the server clock)  |
+| POST | `/offers/{offerId}/accept` | `{"actor"}` optional -> 200 offer `ACCEPTED`; booking BOOKED, waitlist compacted |
+| POST | `/offers/{offerId}/decline` | -> 200 offer `DECLINED`; booking CANCELLED, seat offered to the next candidate |
+| POST | `/bookings/{bookingId}/offer/accept`, `/bookings/{bookingId}/offer/decline` | aliases acting on the booking's pending offer |
 | GET | `/centers`, `/exams` | reference lists for the UI |
 
 Errors: `{"error","message","legacyCode"}` with booking-api v1 codes/statuses, e.g.
 `SESSION_NOT_OPEN` 409/50001, `DUPLICATE_BOOKING` 409/50002, `NO_ACCOMMODATION_SEAT` 409/50003,
 `NOT_CANCELLABLE` 409/50004, `CAPACITY_BELOW_ACCOMMODATION_FLOOR` 409/50005, `DIFFERENT_EXAM`
-409/50006, `VALIDATION` 400, `*_NOT_FOUND` 404.
+409/50006, `VALIDATION` 400, `*_NOT_FOUND` 404 (incl. `OFFER_NOT_FOUND`), `OFFER_NOT_PENDING` 409,
+`OFFER_EXPIRED` 409.
+
+### Waitlist auto-offer (MBA-3829, ADR 0003)
+
+A seat freed on an OPEN session (cancel, reschedule-out, capacity increase, declined/expired offer) is offered
+to the lowest waitlist position whose accommodation needs fit (`WaitlistOfferPolicy`); ET25/ET50 candidates
+without a free accommodation seat are skipped but keep their position. A PENDING offer holds the seat
+(`seatsAvailable` stays 0) until `expires_at`. Accept books the candidate and compacts later positions;
+decline or expiry cancels the waitlisted booking and moves on. See `docs/adr/0003-waitlist-auto-offer.md`.
 
 ## UI deep links
 
@@ -160,4 +178,13 @@ mvn -B verify -DskipFrontend=true   # backend only
   ```bash
   cd e2e && npm ci && npx playwright install chromium
   BASE_URL=http://localhost:8090 CENTER_CODE=BOS01 node run.mjs
+  ```
+
+- Waitlist auto-offer browser flow (MBA-3829: full session with waitlist 1-3 via the API, candidate A cancels in
+  My bookings, candidate B accepts the offer, admin waitlist compacted; screenshots in
+  `e2e/screenshots/waitlist-offer[-<SHOT_PREFIX>]/`):
+
+  ```bash
+  BASE_URL=http://localhost:8090 node waitlist-offer.mjs
+  BASE_URL=http://localhost:8000 SHOT_PREFIX=gateway node waitlist-offer.mjs   # through the routing gateway
   ```
