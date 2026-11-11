@@ -171,6 +171,18 @@ URLS
 start_scheduling() {
     local java21="${JAVA21_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}"
     [ -x "$java21/bin/java" ] || die "scheduling-service needs a JDK 21 (set JAVA21_HOME)"
+    if [ "${SKIP_DB:-0}" != "1" ]; then
+        # apply_db just re-created AssessmentDelivery: re-create Scheduling too so the service re-imports from it
+        if pid_alive "$RUN_DIR/scheduling-service.pid"; then
+            log "stopping scheduling-service to re-import from the re-created AssessmentDelivery"
+            kill "$(cat "$RUN_DIR/scheduling-service.pid")" 2>/dev/null || true
+            for _ in $(seq 1 20); do pid_alive "$RUN_DIR/scheduling-service.pid" || break; sleep 0.5; done
+            pid_alive "$RUN_DIR/scheduling-service.pid" && kill -9 "$(cat "$RUN_DIR/scheduling-service.pid")" 2>/dev/null || true
+            rm -f "$RUN_DIR/scheduling-service.pid"
+        fi
+        log "re-creating the Scheduling database (existing data is dropped; SKIP_DB=1 keeps it)"
+        sa_sql -Q "IF DB_ID('Scheduling') IS NOT NULL BEGIN ALTER DATABASE Scheduling SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE Scheduling; END" >/dev/null
+    fi
     log "bootstrapping the Scheduling database (services/scheduling-service/db/bootstrap.sql)"
     sa_sql < "$ROOT/services/scheduling-service/db/bootstrap.sql" >/dev/null
     local jar="$ROOT/services/scheduling-service/target/scheduling-service.jar"
