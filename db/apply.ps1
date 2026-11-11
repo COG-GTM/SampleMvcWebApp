@@ -46,6 +46,8 @@ if ($r.Code -ne 0) { $r.Output | Write-Host; Write-Error "drop failed"; exit 1 }
 
 $folders = @("schema", "procs", "triggers")
 if (-not $NoSeed) { $folders += "seed" }
+# security last (same as apply.sh): 035 read-only importer grants, 040 single-writer DENYs (MBA-3823)
+$folders += "security"
 
 foreach ($folder in $folders) {
     Get-ChildItem -Path (Join-Path $dbDir $folder) -Filter *.sql | Sort-Object Name | ForEach-Object {

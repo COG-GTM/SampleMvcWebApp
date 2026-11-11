@@ -453,7 +453,7 @@ function Show-Urls {
   booking-api      http://localhost:8081/api/v1/sessions
   results-service  http://localhost:8082/api/v1/results/candidate/{candidateNumber}
   capacity-sync    http://localhost:8083/sync/last
-  SQL Server       $server  database AssessmentDelivery  login ad_app
+  SQL Server       $server  database AssessmentDelivery  login ad_portal
 
   logs and pids:   .run\
   stop:            scripts\run-legacy.ps1 -Stop

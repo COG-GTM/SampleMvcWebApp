@@ -5,7 +5,7 @@ against SQL Server 2022 Developer in Docker). Everything runs in file-name order
 
 | Folder | What |
 |---|---|
-| `schema/` | `000` creates the database + dev login `ad_app`, `010` the tables |
+| `schema/` | `000` creates the database + per-component dev logins, `010` the tables |
 | `procs/` | `020`-`023` booking / cancel / capacity / reschedule procs used by the portal |
 | `triggers/` | `030`-`033` audit and housekeeping triggers |
 | `seed/` | `040`-`049` deterministic demo data (same rows and ids on every run) |
@@ -41,7 +41,12 @@ Windows (needs `sqlcmd` on the PATH):
 
 Both scripts honour `AD_SQL_SERVER` (default `localhost,1433`), `AD_SQL_USER` (`sa`),
 `AD_SA_PASSWORD` (`Str0ng!Passw0rd`, the local container) and `SQLCMD`.
-The applications connect as `ad_app` / `Northw1nd!Dev2011`.
+Each application connects with its own login (`ad_portal`, `ad_booking_api`, `ad_results`, `ad_capacity_sync`,
+`ad_sched_import`, `ad_sched_relay`; dev passwords in the root README). `security/` is applied last:
+`035` grants the read-only importer, `040_single_writer.sql` DENYs INSERT/UPDATE/DELETE on `Booking` and
+`Waitlist`, UPDATE of `ExamSession (Capacity, SeatsAvailable, AccommodationCapacity)` and EXECUTE on
+`usp_BookSeat` / `usp_CancelBooking` / `usp_ChangeCapacity` / `usp_RescheduleBooking` to every login except
+`ad_sched_relay`. Triggers `032` and `033` return early when `SESSION_CONTEXT(N'writer') = N'scheduling-relay'`.
 
 ## Seed contents
 

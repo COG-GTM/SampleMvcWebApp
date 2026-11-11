@@ -20,8 +20,11 @@ reads and writes one shared SQL Server database, `AssessmentDelivery`.
 | results-service (score ingestion) | Java 8, Spring Boot 1.5, JdbcTemplate | 8082 | `services/results-service` |
 | capacity-sync (scheduled seat re-sync) | Java 8, Spring Boot 1.5, `@Scheduled` | 8083 | `services/capacity-sync` |
 
-Local development credentials: SQL login `ad_app` / `Northw1nd!Dev2011`, created by
-`db/schema/000_create_database.sql` (dev only). On Azure the connection strings come
+Local development credentials: one SQL login per component (`ad_portal`, `ad_booking_api`, `ad_results`,
+`ad_capacity_sync`, `ad_sched_import`, `ad_sched_relay`), created by `db/schema/000_create_database.sql`
+(dev only; passwords in the root README). Since MBA-3823 `db/security/040_single_writer.sql` denies booking
+and seat writes to all of them except `ad_sched_relay`: scheduling-service is the single writer and its outbox
+relay projects every change back into `Booking` / `Waitlist` / `ExamSession` / `AuditLog`. On Azure the connection strings come
 from App Service settings, and the committed transforms/profiles hold only placeholders.
 
 ## Database (`db/`)
