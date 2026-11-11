@@ -66,8 +66,10 @@ function Invoke-PortalForm([string]$getUrl, [string]$postUrl, [hashtable]$fields
 
 try { Invoke-WebRequest "$BookingApiUrl/api/v1/sessions?from=2099-01-01" -UseBasicParsing -TimeoutSec 30 | Out-Null }
 catch { throw "booking-api not reachable at $BookingApiUrl" }
-try { Invoke-WebRequest "$PortalUrl/Booking" -UseBasicParsing -TimeoutSec 60 | Out-Null }
-catch { throw "portal not reachable at $PortalUrl" }
+if ($PortalBookings -gt 0) {
+    try { Invoke-WebRequest "$PortalUrl/Booking" -UseBasicParsing -TimeoutSec 60 | Out-Null }
+    catch { throw "portal not reachable at $PortalUrl" }
+}
 
 $total = $PortalBookings + $PartnerBookings
 $firstNumber = 'NW{0:D8}' -f $FirstCandidate
