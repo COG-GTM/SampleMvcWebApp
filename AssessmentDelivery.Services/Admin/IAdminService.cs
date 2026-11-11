@@ -18,5 +18,8 @@ namespace AssessmentDelivery.Services.Admin
 
         /// <summary>capacity-sync run rows logged in [from, toExclusive), newest first. Reads only.</summary>
         IList<CapacitySyncRunRow> ListCapacitySyncRuns(DateTime from, DateTime toExclusive, int max);
+
+        /// <summary>Read-only roster for exam day; null when the session does not exist</summary>
+        SessionRoster GetRoster(int sessionId);
     }
 }
