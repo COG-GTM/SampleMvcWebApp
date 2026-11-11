@@ -350,6 +350,51 @@ class SchedulingServiceIntegrationTest {
     }
 
     @Test
+    void realDriverDeadlockVictimIsClassifiedForRetry() throws Exception {
+        jdbc.execute("IF OBJECT_ID('dbo.DeadlockProbe') IS NULL CREATE TABLE dbo.DeadlockProbe (Id INT PRIMARY KEY, V INT)");
+        jdbc.execute("DELETE FROM dbo.DeadlockProbe; INSERT INTO dbo.DeadlockProbe VALUES (0, 0), (1, 0), (2, 0)");
+        java.util.concurrent.CyclicBarrier barrier = new java.util.concurrent.CyclicBarrier(2);
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        java.util.List<java.util.concurrent.Future<java.sql.SQLException>> results = new java.util.ArrayList<>();
+        for (int[] order : new int[][] {{1, 2}, {2, 1}}) {
+            results.add(pool.submit(() -> {
+                try (Connection c = jdbc.getDataSource().getConnection(); Statement st = c.createStatement()) {
+                    c.setAutoCommit(false);
+                    st.executeUpdate("UPDATE dbo.DeadlockProbe SET V = V + 1 WHERE Id = " + order[0]);
+                    barrier.await();
+                    try {
+                        // A multi-statement batch: the victim surfaces in mssql-jdbc's wrapped "Done status" form.
+                        st.execute("UPDATE dbo.DeadlockProbe SET V = V WHERE Id = 0; "
+                                + "UPDATE dbo.DeadlockProbe SET V = V + 1 WHERE Id = " + order[1]);
+                        while (st.getMoreResults() || st.getUpdateCount() != -1) {
+                            // drain
+                        }
+                        c.commit();
+                        return null;
+                    } catch (java.sql.SQLException e) {
+                        c.rollback();
+                        return e;
+                    }
+                }
+            }));
+        }
+        java.util.List<java.sql.SQLException> victims = new java.util.ArrayList<>();
+        for (var f : results) {
+            java.sql.SQLException e = f.get(60, java.util.concurrent.TimeUnit.SECONDS);
+            if (e != null) {
+                victims.add(e);
+            }
+        }
+        pool.shutdown();
+        assertThat(victims).hasSize(1);
+        java.sql.SQLException victim = victims.get(0);
+        System.out.println("[deadlock-probe] errorCode=" + victim.getErrorCode() + " message=" + victim.getMessage());
+        assertThat(com.northwind.scheduling.core.SchedulingCommands.isDeadlock(victim)).isTrue();
+        assertThat(com.northwind.scheduling.core.SchedulingCommands.isDeadlock(
+                jdbc.getExceptionTranslator().translate("probe", null, victim))).isTrue();
+    }
+
+    @Test
     void crossingReschedulesWithBookAndCancelNeverFailOrDrift() throws Exception {
         java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(16);
         try {
