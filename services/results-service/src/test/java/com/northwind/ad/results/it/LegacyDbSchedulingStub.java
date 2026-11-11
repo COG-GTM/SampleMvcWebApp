@@ -27,6 +27,8 @@ public class LegacyDbSchedulingStub {
     public static final String BASE = "/test-scheduling/api/v1";
 
     public static volatile boolean down;
+    /** Only POST /attendance fails: 503 when "503", or the given 4xx error code (e.g. BOOKING_NOT_ACTIVE). */
+    public static volatile String attendFailure;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -57,8 +59,11 @@ public class LegacyDbSchedulingStub {
 
     @RequestMapping(value = "/bookings/{id}/attendance", method = RequestMethod.POST)
     public ResponseEntity<?> attend(@PathVariable int id) {
-        if (down) {
+        if (down || "503".equals(attendFailure)) {
             return unavailable();
+        }
+        if (attendFailure != null) {
+            return error(HttpStatus.CONFLICT, attendFailure);
         }
         List<String> st = jdbc.queryForList("SELECT Status FROM dbo.Booking WHERE BookingId = ?", String.class, id);
         if (st.isEmpty()) {

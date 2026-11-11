@@ -43,6 +43,9 @@ public class ResultIngestServiceRaceTest {
     @Mock
     private SchedulingClient scheduling;
 
+    @Mock
+    private org.springframework.transaction.PlatformTransactionManager txManager;
+
     @InjectMocks
     private ResultIngestService service;
 
