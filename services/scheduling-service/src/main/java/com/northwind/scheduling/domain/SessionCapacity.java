@@ -40,4 +40,9 @@ public record SessionCapacity(int capacity, int accommodationCapacity, int occup
     public boolean accommodationExhausted() {
         return accommodationUsed >= accommodationCapacity;
     }
+
+    /** False only for ET25/ET50 once every accommodation seat is taken; SR, RB and no code never need one. */
+    public boolean hasSeatFor(String accommodationCode) {
+        return !AccommodationCodes.isExtraTime(accommodationCode) || !accommodationExhausted();
+    }
 }
