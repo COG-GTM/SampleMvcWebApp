@@ -24,14 +24,22 @@ BOOKING_API_URL="${BOOKING_API_URL:-http://localhost:8081}"
 PORTAL_URL="${PORTAL_URL:-}"
 MSSQL_SA_PASSWORD="${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}"
 
-if command -v sqlcmd >/dev/null 2>&1; then SQLCMD=sqlcmd
-elif [ -x /opt/mssql-tools18/bin/sqlcmd ]; then SQLCMD=/opt/mssql-tools18/bin/sqlcmd
-elif [ -x /opt/mssql-tools/bin/sqlcmd ]; then SQLCMD=/opt/mssql-tools/bin/sqlcmd
-else echo "sqlcmd not found (install mssql-tools18)" >&2; exit 1; fi
+MSSQL_CONTAINER="${MSSQL_CONTAINER:-mssql}"
 
-sql() {  # sql "<tsql>"  -> bare rows, | separated
-    "$SQLCMD" -S localhost,1433 -U sa -P "$MSSQL_SA_PASSWORD" -C -b -d AssessmentDelivery \
-        -h -1 -W -s '|' -Q "SET NOCOUNT ON; $1"
+# host sqlcmd if there is one, otherwise the one inside the SQL Server container (same as run-legacy.sh)
+if command -v sqlcmd >/dev/null 2>&1; then SQLCMD=(sqlcmd -S localhost,1433)
+elif [ -x /opt/mssql-tools18/bin/sqlcmd ]; then SQLCMD=(/opt/mssql-tools18/bin/sqlcmd -S localhost,1433)
+elif [ -x /opt/mssql-tools/bin/sqlcmd ]; then SQLCMD=(/opt/mssql-tools/bin/sqlcmd -S localhost,1433)
+elif docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$MSSQL_CONTAINER"; then
+    SQLCMD=(docker exec -i "$MSSQL_CONTAINER" /opt/mssql-tools18/bin/sqlcmd -S localhost)
+else echo "sqlcmd not found (install mssql-tools18 or start the $MSSQL_CONTAINER container)" >&2; exit 1; fi
+
+sqlq() {  # sqlq [sqlcmd args...]  -> bare rows, | separated
+    "${SQLCMD[@]}" -U sa -P "$MSSQL_SA_PASSWORD" -C -b -d AssessmentDelivery -h -1 -W -s '|' "$@"
+}
+
+sql() {  # sql "<tsql>"
+    sqlq -Q "SET NOCOUNT ON; $1"
 }
 
 log() { echo "[mixed-traffic] $*"; }
@@ -130,8 +138,7 @@ sql "SELECT s.SessionId, s.Capacity, s.SeatsAvailable,
 
 CHECK="$ROOT/db/checks/seat-drift.sql"
 if [ -f "$CHECK" ]; then
-    rows="$("$SQLCMD" -S localhost,1433 -U sa -P "$MSSQL_SA_PASSWORD" -C -b -d AssessmentDelivery -h -1 -W -s '|' \
-        -Q "SET NOCOUNT ON; :r $CHECK" | grep -cv '^\s*$' || true)"
+    rows="$( { echo "SET NOCOUNT ON;"; cat "$CHECK"; } | sqlq | grep -cv '^\s*$' || true)"
     log "db/checks/seat-drift.sql: $rows row(s)"
 else
     log "db/checks/seat-drift.sql not found, skipping the seat check"
