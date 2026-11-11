@@ -8,10 +8,10 @@
   Seed timestamps and domain dates (StartsAt, earliestRetakeDate, ...) are never touched.
   The scenario start comes from the DB clock (truncated to the second) while some targets stamp rows with
   their own clock (the modern service's JVM), so a run-time value may sit a moment before it or carry a UTC
-  offset: offsets are converted to local time and values up to ``CLOCK_SKEW`` before the start still count.
+  offset: offsets are converted to the DB's local time (harness local time if unknown) and values up to ``CLOCK_SKEW`` before the start still count.
 """
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 ID_KINDS = {
     "bookingid": "booking", "newbookingid": "booking", "oldbookingid": "booking", "originalbookingid": "booking",
@@ -25,10 +25,12 @@ NUM_IN_TEXT_RE = re.compile(r"(?<![\w.-])(\d{3,})(?![\w.-])")
 
 
 class Normalizer:
-    def __init__(self, baseline, scenario_start):
-        """baseline: {"booking": max id, ...}; scenario_start: 'YYYY-MM-DDTHH:MM:SS' from the DB clock."""
+    def __init__(self, baseline, scenario_start, db_offset_minutes=None):
+        """baseline: {"booking": max id, ...}; scenario_start: 'YYYY-MM-DDTHH:MM:SS' from the DB clock;
+        db_offset_minutes: the DB's UTC offset, so offset timestamps are compared in DB local time."""
+        self.tz = timezone(timedelta(minutes=int(db_offset_minutes))) if db_offset_minutes is not None else None
         self.baseline = baseline
-        self.start = _parse(scenario_start) if scenario_start else None
+        self.start = _parse(scenario_start, self.tz) if scenario_start else None
         self.ids = {}  # (kind, raw id) -> placeholder
         self.counters = {}
 
@@ -52,7 +54,7 @@ class Normalizer:
     def timestamp(self, value):
         if not isinstance(value, str) or not TS_RE.match(value) or not self.start:
             return value
-        ts = _parse(value)
+        ts = _parse(value, self.tz)
         return "<now>" if ts is not None and ts >= self.start - CLOCK_SKEW else value
 
     def text(self, value):
@@ -82,8 +84,8 @@ class Normalizer:
         return obj
 
 
-def _parse(value):
-    """Local naive datetime for 'YYYY-MM-DD[T ]HH:MM[:SS[.fff]][Z|+hh:mm]'; None if it is not one."""
+def _parse(value, tz=None):
+    """Naive datetime in ``tz`` (default: harness local time) for 'YYYY-MM-DD[T ]HH:MM[:SS[.fff]][Z|+hh:mm]'; None if it is not one."""
     v = value.strip().replace(" ", "T", 1)
     if v.endswith(("Z", "z")):
         v = v[:-1] + "+00:00"
@@ -94,4 +96,4 @@ def _parse(value):
         ts = datetime.fromisoformat(m.group(1) + (m.group(2) or ""))
     except ValueError:
         return None
-    return ts.astimezone().replace(tzinfo=None) if ts.tzinfo else ts
+    return ts.astimezone(tz).replace(tzinfo=None) if ts.tzinfo else ts

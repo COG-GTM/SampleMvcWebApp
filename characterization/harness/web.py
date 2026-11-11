@@ -115,7 +115,8 @@ def wait_settled(fetch, timeout=60.0, delay=0.25, clock=time.monotonic, sleep=ti
     while True:
         try:
             last = fetch()
-            if int(last.get("pending", 0)) == 0:
+            # an error body has no "pending"; SUM over an empty outbox is null, i.e. nothing pending
+            if "pending" in last and int(last["pending"] or 0) == 0:
                 return last
         except Exception as exc:  # restarting service, restore in progress, ...
             last = exc

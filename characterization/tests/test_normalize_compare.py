@@ -124,3 +124,20 @@ def test_wait_settled_gives_up_after_the_timeout():
     ticks = iter([0.0, 0.5, 1.5])
     with pytest.raises(RuntimeError, match="did not settle"):
         wait_settled(lambda: {"pending": 1}, timeout=1.0, clock=lambda: next(ticks), sleep=lambda _: None)
+
+
+def test_wait_settled_needs_a_pending_count_and_accepts_an_empty_outbox():
+    from harness.web import wait_settled
+    # an error body is not "settled"; the relay reports pending null (SUM over no rows) when the outbox is empty
+    answers = iter([{"status": 500, "error": "Internal Server Error"}, {"total": 0, "pending": None}])
+    sleeps = []
+    assert wait_settled(lambda: next(answers), sleep=sleeps.append) == {"total": 0, "pending": None}
+    assert len(sleeps) == 1
+
+
+def test_offset_timestamps_are_compared_in_the_db_timezone():
+    # DB at UTC-6 (scenario start 10:00:01 local = 16:00:01Z), whatever the harness machine's timezone is
+    n = Normalizer(BASE, "2026-11-11T10:00:01", -360)
+    assert n.apply({"bookedAt": "2026-11-11T16:00:03Z", "cancelledAt": "2026-11-11T10:00:02-06:00",
+                    "lastModified": "2026-11-11T15:00:03Z", "BookedAt": "2026-11-11T10:00:05"}) == \
+        {"bookedAt": "<now>", "cancelledAt": "<now>", "lastModified": "2026-11-11T15:00:03Z", "BookedAt": "<now>"}

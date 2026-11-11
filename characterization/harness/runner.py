@@ -127,7 +127,7 @@ class Runner:
                 raise
             log("no legacy-compatible DB baseline: every numeric id will be normalized as new")
             base = {"now": None}
-        norm = Normalizer(base, base.get("now"))
+        norm = Normalizer(base, base.get("now"), base.get("tzOffset"))
         sessions = set(sc.get("sessions", []))
         candidates = set(sc.get("candidates", []))
         vars_ = {}
