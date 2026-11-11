@@ -43,7 +43,7 @@ public class ResultIngestService {
 
     /**
      * @param insertAllowed false only re-checks a row (replayed score file): returns NOT_IMPORTED instead of
-     *                      inserting, and a conflict is not audited again (it was audited on the first upload)
+     *                      inserting, and a conflict already audited with the same detail is not audited again
      */
     @Transactional
     public IngestOutcome ingest(int bookingId, int score, Date scoredAt, String sourceFile, boolean insertAllowed) {
@@ -103,6 +103,11 @@ public class ResultIngestService {
                 null, null, passed);
     }
 
+    private boolean alreadyAudited(int resultId, String detail) {
+        return jdbc.queryForObject("SELECT COUNT(*) FROM dbo.AuditLog WHERE EntityName = 'Result' AND EntityId = ? "
+                + "AND Action = 'DUPLICATE_REJECTED' AND Detail = ?", Integer.class, resultId, detail) > 0;
+    }
+
     private Map<String, Object> findStored(int bookingId) {
         List<Map<String, Object>> rows = jdbc.queryForList(
                 "SELECT ResultId, Score, ScoredAt, Passed FROM dbo.Result WHERE BookingId = ?", bookingId);
@@ -121,12 +126,13 @@ public class ResultIngestService {
             return new IngestOutcome(IngestOutcome.Status.DUPLICATE, bookingId, resultId, score, scoredAt,
                     storedScore, storedScoredAt, passed);
         }
-        if (audit) {
+        String detail = "booking=" + bookingId
+                + " stored=" + storedScore + "@" + format(storedScoredAt)
+                + " submitted=" + score + "@" + (scoredAt != null ? format(scoredAt) : "now")
+                + (sourceFile != null ? " file=" + sourceFile : "");
+        if (audit || !alreadyAudited(resultId, detail)) {
             jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
-                "Result", resultId, "DUPLICATE_REJECTED", "booking=" + bookingId
-                        + " stored=" + storedScore + "@" + format(storedScoredAt)
-                        + " submitted=" + score + "@" + (scoredAt != null ? format(scoredAt) : "now")
-                        + (sourceFile != null ? " file=" + sourceFile : ""), actor);
+                    "Result", resultId, "DUPLICATE_REJECTED", detail, actor);
         }
         LOG.warn("Conflicting result for booking {} rejected: stored {} submitted {}", bookingId, storedScore, score);
         return new IngestOutcome(IngestOutcome.Status.CONFLICT, bookingId, resultId, score, scoredAt,
