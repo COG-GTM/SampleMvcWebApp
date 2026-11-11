@@ -14,7 +14,7 @@ python scripts/e2e/report.py
 
 ## E2E suite
 
-### Legacy estate (head `71fa0e6630`, as-of 2026-11-11T00:00:00)
+### Legacy estate (head `cfc995a262`, as-of 2026-11-11T00:00:00)
 
 Health: portal 200, booking-api 200, results-service 200. HB-01: kept (double decrement).
 
@@ -28,9 +28,9 @@ Health: portal 200, booking-api 200, results-service 200. HB-01: kept (double de
 | drift | 5 | 0 | 0 |
 | **total** | **148** | **0** | 12 |
 
-Drift under load: 640 ops, 8 workers, 26 samples over 309.0s; **max raw seat drift 6, max unexplained 0**, max duplicate waitlist positions 1.
+Drift under load: 640 ops, 8 workers, 26 samples over 5.1s; **max raw seat drift 7, max unexplained 0**, max duplicate waitlist positions 1.
 
-Load mix: `{"portalBook": 102, "partnerBook": 108, "cancel": 85, "attend": 15, "reschedule": 19, "rejected": {"NOT_CANCELLABLE": 7, "DUPLICATE_BOOKING": 174, "NOT_ELIGIBLE": 93, "DUPLICATE_RESULT": 5, "BOOKING_NOT_ACTIVE": 29, "NO_ACCOMMODATION_SEAT": 3}, "transport": 0, "sqlDeadlocks": 1, "samplerDeadlockVictims": 0}`
+Load mix: `{"portalBook": 104, "partnerBook": 109, "cancel": 88, "attend": 13, "reschedule": 24, "rejected": {"DUPLICATE_BOOKING": 176, "NOT_CANCELLABLE": 7, "BOOKING_NOT_ACTIVE": 31, "NOT_ELIGIBLE": 82, "DUPLICATE_RESULT": 4, "NO_ACCOMMODATION_SEAT": 2}, "transport": 0, "sqlDeadlocks": 1, "samplerDeadlockVictims": 0}`
 
 <details><summary>Portal vs partner parity trace (same scenario on each channel)</summary>
 
@@ -50,7 +50,7 @@ Load mix: `{"portalBook": 102, "partnerBook": 108, "cancel": 85, "attend": 15, "
 
 </details>
 
-### Migrated stack (head `71fa0e6630`, as-of 2026-11-11T00:00:00)
+### Migrated stack (head `cfc995a262`, as-of 2026-11-11T00:00:00)
 
 Health: portal 200, booking-api 200, results-service 200, scheduling-service 200. HB-01: removed (single writer).
 
@@ -64,9 +64,9 @@ Health: portal 200, booking-api 200, results-service 200, scheduling-service 200
 | drift | 5 | 0 | 0 |
 | **total** | **163** | **0** | 0 |
 
-Drift under load: 640 ops, 8 workers, 35 samples over 9.3s; **max raw seat drift 0, max unexplained 0**, max duplicate waitlist positions 0.
+Drift under load: 640 ops, 8 workers, 26 samples over 15.5s; **max raw seat drift 0, max unexplained 0**, max duplicate waitlist positions 0.
 
-Load mix: `{"portalBook": 94, "partnerBook": 96, "cancel": 79, "attend": 24, "reschedule": 19, "rejected": {"NOT_CANCELLABLE": 15, "DUPLICATE_BOOKING": 145, "NOT_ELIGIBLE": 137, "BOOKING_NOT_ACTIVE": 20, "DUPLICATE_RESULT": 5, "NO_ACCOMMODATION_SEAT": 5, "DB_ERROR": 1}, "transport": 1, "sqlDeadlocks": 1, "samplerDeadlockVictims": 0}`
+Load mix: `{"portalBook": 96, "partnerBook": 88, "cancel": 78, "attend": 25, "reschedule": 17, "rejected": {"NOT_CANCELLABLE": 14, "DUPLICATE_BOOKING": 148, "NOT_ELIGIBLE": 146, "BOOKING_NOT_ACTIVE": 15, "DUPLICATE_RESULT": 8, "NO_ACCOMMODATION_SEAT": 5}, "transport": 0, "sqlDeadlocks": 5, "samplerDeadlockVictims": 0}`
 
 <details><summary>Portal vs partner parity trace (same scenario on each channel)</summary>
 
@@ -88,7 +88,7 @@ Load mix: `{"portalBook": 94, "partnerBook": 96, "cancel": 79, "attend": 24, "re
 
 ## Cutover rehearsal
 
-Legacy worktree `e2975c1401`, migrated `71fa0e6630`, as-of 2026-11-11T00:00:00. Inputs chosen identically on both sides: True. **Zero drift: True.**
+Legacy worktree `e2975c1401`, migrated `cfc995a262`, as-of 2026-11-11T00:00:00. Inputs chosen identically on both sides: True. **Zero drift: True.**
 
 Baseline (production copy vs scheduling-service import, before the workload): Booking 3587/3587 identical, ExamSession 462/462 identical, Waitlist 34/34 identical, AuditLog 12/12 identical
 
