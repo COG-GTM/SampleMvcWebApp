@@ -26,6 +26,11 @@ class SqlError(RuntimeError):
     pass
 
 
+def q(value):
+    """T-SQL string literal (N'...') with embedded quotes doubled."""
+    return "N'%s'" % str(value).replace("'", "''")
+
+
 def find_sqlcmd():
     env = os.environ.get('SQLCMD')
     if env and (os.path.exists(env) or shutil.which(env)):

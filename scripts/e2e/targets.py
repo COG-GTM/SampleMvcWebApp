@@ -4,7 +4,7 @@ results-service call it over HTTP. Reference data (Exam, TestCenter, Room, Candi
 AssessmentDelivery for both."""
 import os
 
-from adlib import Sql, http
+from adlib import Sql, http, q
 from channels import Partner, Portal, Results, Scheduling
 
 # Core of db/checks/seat-drift.sql (same formula: Capacity - (BOOKED + ATTENDED) - SeatsAvailable) without the
@@ -83,7 +83,7 @@ class Target:
         return {int(r[0]): int(r[4]) for r in rows}
 
     def candidate_id(self, number):
-        return int(self.ref.scalar("SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = '%s'" % number))
+        return int(self.ref.scalar("SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = %s" % q(number)))
 
     def health(self):
         urls = {'portal': self.portal.url + '/Booking', 'booking-api': self.partner.url + '/api/v1/sessions/1',
