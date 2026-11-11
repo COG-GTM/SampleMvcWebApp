@@ -128,10 +128,7 @@ public class ReadModels {
     public List<Session> sessions(SessionQuery q) {
         StringBuilder where = new StringBuilder(" WHERE 1 = 1");
         List<Object> args = new ArrayList<>();
-        if (q.status() != null) {
-            where.append(" AND s.Status = ?");
-            args.add(q.status().toUpperCase(Locale.ROOT));
-        }
+        appendIn(where, args, "s.Status", q.status());
         if (q.examCode() != null) {
             where.append(" AND e.ExamCode = ?");
             args.add(q.examCode().trim().toUpperCase(Locale.ROOT));
@@ -168,18 +165,25 @@ public class ReadModels {
             where.append(" AND s.SeatsAvailable >= ?");
             args.add(q.minSeatsAvailable());
         }
-        String order = switch (q.sort() == null ? "startsAt" : q.sort()) {
+        String order = switch (q.sort() == null ? "startsAt,sessionId" : q.sort()) {
+            case "startsAt,centerCode" -> " ORDER BY s.StartsAt, tc.CenterCode, s.SessionId";
             case "sessionId" -> " ORDER BY s.SessionId";
             case "-startsAt" -> " ORDER BY s.StartsAt DESC, s.SessionId DESC";
             case "seatsAvailable" -> " ORDER BY s.SeatsAvailable, s.StartsAt, s.SessionId";
             case "-seatsAvailable" -> " ORDER BY s.SeatsAvailable DESC, s.StartsAt, s.SessionId";
             default -> " ORDER BY s.StartsAt, s.SessionId";
         };
-        int limit = q.limit() == null ? 200 : Math.max(1, Math.min(q.limit(), 5000));
-        int offset = q.offset() == null ? 0 : Math.max(0, q.offset());
-        args.add(offset);
-        args.add(limit);
-        return jdbc.query(SESSION_SELECT + where + order + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY", SESSION, args.toArray());
+        // contract: limit omitted = every match
+        String page = "";
+        if (q.limit() != null || q.offset() != null) {
+            args.add(q.offset() == null ? 0 : Math.max(0, q.offset()));
+            page = " OFFSET ? ROWS";
+            if (q.limit() != null) {
+                args.add(Math.max(1, q.limit()));
+                page += " FETCH NEXT ? ROWS ONLY";
+            }
+        }
+        return jdbc.query(SESSION_SELECT + where + order + page, SESSION, args.toArray());
     }
 
     public List<CenterSummary> summaryByTestCenter() {
@@ -216,18 +220,36 @@ public class ReadModels {
             where.append(" AND b.SessionId = ?");
             args.add(sessionId);
         }
-        if (status != null) {
-            where.append(" AND b.Status = ?");
-            args.add(status.toUpperCase(Locale.ROOT));
-        }
-        String order = switch (sort == null ? "-bookedAt" : sort) {
+        appendIn(where, args, "b.Status", status);
+        String order = switch (sort == null ? "bookedAt,desc" : sort) {
+            case "bookingId,desc" -> " ORDER BY b.BookingId DESC";
+            case "sessionStartsAt,desc" -> " ORDER BY s.StartsAt DESC, b.BookingId DESC";
             case "bookingId" -> " ORDER BY b.BookingId";
             case "bookedAt" -> " ORDER BY b.BookedAt, b.BookingId";
             case "sessionStartsAt" -> " ORDER BY s.StartsAt, b.BookingId";
             default -> " ORDER BY b.BookedAt DESC, b.BookingId DESC";
         };
-        int top = limit == null ? 1000 : Math.max(1, Math.min(limit, 10000));
-        return jdbc.query(BOOKING_SELECT.replaceFirst("SELECT", "SELECT TOP (" + top + ")") + where + order, BOOKING, args.toArray());
+        String select = limit == null ? BOOKING_SELECT : BOOKING_SELECT.replaceFirst("SELECT", "SELECT TOP (" + Math.max(1, limit) + ")");
+        return jdbc.query(select + where + order, BOOKING, args.toArray());
+    }
+
+    /** Comma-separated multi-value filter (contract: style=form, explode=false). */
+    private static void appendIn(StringBuilder where, List<Object> args, String column, String csv) {
+        if (csv == null || csv.isBlank()) {
+            return;
+        }
+        List<String> values = new ArrayList<>();
+        for (String v : csv.split(",")) {
+            if (!v.isBlank()) {
+                values.add(v.trim().toUpperCase(Locale.ROOT));
+            }
+        }
+        if (values.isEmpty()) {
+            return;
+        }
+        where.append(" AND ").append(column).append(" IN (").append(String.join(", ", java.util.Collections.nCopies(values.size(), "?")))
+                .append(")");
+        args.addAll(values);
     }
 
     public List<WaitlistEntry> waitlist(int sessionId) {
