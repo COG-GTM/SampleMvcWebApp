@@ -1,0 +1,142 @@
+{
+  "id": "RT-11-eligibility-nw00000950-2026-12-11",
+  "title": "Retake eligibility NW00000950 BCB-PM200 on 2026-12-11: working-day boundary after the month end",
+  "area": "retake",
+  "channel": "both",
+  "hb": [
+    "HB-07"
+  ],
+  "oddity": null,
+  "oddity_ids": null,
+  "notes": null,
+  "seed_as_of": "2026-11-10",
+  "setup": [
+    {
+      "name": "sql",
+      "request": {
+        "channel": "setup-sql",
+        "sql": "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000950'); DECLARE @e INT = (SELECT ExamId FROM dbo.ExamSession WHERE SessionId = 126); INSERT dbo.Booking (SessionId, CandidateId, Status, AccommodationCode, Channel, BookedAt, LastModified) VALUES (126, @c, 'ATTENDED', NULL, 'IMPORT', '20261001 10:00', '20261030 12:00'); INSERT dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt) VALUES (SCOPE_IDENTITY(), @c, @e, 126, 480, 0, '20261030 12:00', 'characterization-setup.csv', '20261030 13:00');"
+      },
+      "status": null
+    }
+  ],
+  "before": {
+    "sessions": [],
+    "bookings": [
+      {
+        "BookingId": "<booking:1>",
+        "SessionId": 126,
+        "CandidateNumber": "NW00000950",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": null,
+        "BookedAt": "2026-10-01T10:00:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-30T12:00:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [
+      {
+        "ResultId": "<result:1>",
+        "BookingId": "<booking:1>",
+        "CandidateNumber": "NW00000950",
+        "ExamCode": "BCB-PM200",
+        "SessionId": 126,
+        "Score": 480,
+        "Passed": false,
+        "ScoredAt": "2026-10-30T12:00:00",
+        "SourceFile": "characterization-setup.csv"
+      }
+    ],
+    "audit": []
+  },
+  "steps": [
+    {
+      "name": "portal_eligibility",
+      "request": {
+        "channel": "portal",
+        "method": "GET",
+        "path": "/Eligibility?candidateNumber=NW00000950&examCode=BCB-PM200&date=2026-12-11"
+      },
+      "response": {
+        "status": 200,
+        "path": "/Eligibility?candidateNumber=NW00000950&examCode=BCB-PM200&date=2026-12-11",
+        "rendered": {
+          "heading": "Retake eligibility",
+          "alerts": [],
+          "field_errors": [],
+          "cells": {
+            "Candidate": "NW00000950",
+            "Exam": "BCB-PM200",
+            "Proposed date": "11 Dec 2026",
+            "Eligible": "YES",
+            "Reason": "Retake wait period has elapsed",
+            "Earliest retake date": "29 Nov 2026"
+          }
+        },
+        "eligibility": {
+          "eligible": "YES",
+          "reason": "Retake wait period has elapsed",
+          "earliestRetakeDate": "29 Nov 2026"
+        }
+      }
+    },
+    {
+      "name": "api_eligibility",
+      "request": {
+        "channel": "api",
+        "method": "GET",
+        "path": "/api/v1/candidates/NW00000950/eligibility?examCode=BCB-PM200&date=2026-12-11"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "eligible": true,
+          "reason": "RETAKE_ALLOWED",
+          "earliestRetakeDate": "2026-12-11"
+        },
+        "eligibility": {
+          "eligible": true,
+          "reason": "RETAKE_ALLOWED",
+          "earliestRetakeDate": "2026-12-11"
+        }
+      }
+    }
+  ],
+  "after": {
+    "sessions": [],
+    "bookings": [
+      {
+        "BookingId": "<booking:1>",
+        "SessionId": 126,
+        "CandidateNumber": "NW00000950",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": null,
+        "BookedAt": "2026-10-01T10:00:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-30T12:00:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [
+      {
+        "ResultId": "<result:1>",
+        "BookingId": "<booking:1>",
+        "CandidateNumber": "NW00000950",
+        "ExamCode": "BCB-PM200",
+        "SessionId": 126,
+        "Score": 480,
+        "Passed": false,
+        "ScoredAt": "2026-10-30T12:00:00",
+        "SourceFile": "characterization-setup.csv"
+      }
+    ],
+    "audit": []
+  }
+}

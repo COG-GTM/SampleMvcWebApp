@@ -1,0 +1,210 @@
+{
+  "id": "AC-07-portal-extra-time-on-zero-allocation",
+  "title": "Portal books ET25 onto session 155 with AccommodationCapacity 0",
+  "area": "accommodation",
+  "channel": "portal",
+  "hb": [
+    "HB-08"
+  ],
+  "oddity": true,
+  "oddity_ids": [
+    "ODD-12"
+  ],
+  "notes": null,
+  "seed_as_of": "2026-11-10",
+  "setup": [],
+  "before": {
+    "sessions": [
+      {
+        "SessionId": 155,
+        "ExamCode": "HPI-ACC2",
+        "StartsAt": "2026-11-12T13:30",
+        "Capacity": 16,
+        "AccommodationCapacity": 0,
+        "SeatsAvailable": 13,
+        "Status": "OPEN",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 3,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1616,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000763",
+        "Status": "BOOKED",
+        "AccommodationCode": "SR",
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-155-1",
+        "BookedAt": "2026-11-09T09:03:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T09:03:00"
+      },
+      {
+        "BookingId": 1617,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000291",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015502",
+        "BookedAt": "2026-11-09T21:54:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Partner cancellation",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1618,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000700",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T07:25:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T07:25:00"
+      },
+      {
+        "BookingId": 3334,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000610",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-09-26T15:40:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-09-26T15:40:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": []
+  },
+  "steps": [
+    {
+      "name": "portal_book",
+      "request": {
+        "channel": "portal",
+        "method": "POST",
+        "path": "/Booking/Book",
+        "form": {
+          "SessionId": 155,
+          "CandidateNumber": "NW00000939",
+          "AccommodationCode": "ET25"
+        }
+      },
+      "response": {
+        "status": 200,
+        "path": "/Booking/Book",
+        "rendered": {
+          "heading": "Book a seat Session #155",
+          "alerts": [
+            "No accommodation seat available on session 155."
+          ],
+          "field_errors": [],
+          "cells": {
+            "Exam": "HPI-ACC2 – Management Accounting",
+            "Centre": "Liffey Assessment Rooms (DUB01)",
+            "Room": "Room 1",
+            "Start": "Thursday 12 Nov 2026 13:30",
+            "Duration": "150 minutes",
+            "Seats available": "13 of 16 (accommodation capacity 0)",
+            "Status": "OPEN"
+          }
+        }
+      },
+      "sessions_after": [
+        {
+          "SessionId": 155,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 13,
+          "Status": "OPEN"
+        }
+      ]
+    }
+  ],
+  "after": {
+    "sessions": [
+      {
+        "SessionId": 155,
+        "ExamCode": "HPI-ACC2",
+        "StartsAt": "2026-11-12T13:30",
+        "Capacity": 16,
+        "AccommodationCapacity": 0,
+        "SeatsAvailable": 13,
+        "Status": "OPEN",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 3,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1616,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000763",
+        "Status": "BOOKED",
+        "AccommodationCode": "SR",
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-155-1",
+        "BookedAt": "2026-11-09T09:03:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T09:03:00"
+      },
+      {
+        "BookingId": 1617,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000291",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015502",
+        "BookedAt": "2026-11-09T21:54:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Partner cancellation",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1618,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000700",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T07:25:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T07:25:00"
+      },
+      {
+        "BookingId": 3334,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000610",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-09-26T15:40:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-09-26T15:40:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": []
+  }
+}

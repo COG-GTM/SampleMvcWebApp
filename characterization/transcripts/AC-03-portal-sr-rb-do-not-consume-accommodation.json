@@ -1,0 +1,319 @@
+{
+  "id": "AC-03-portal-sr-rb-do-not-consume-accommodation",
+  "title": "With the accommodation seat taken, portal SR and RB bookings still succeed (not extra-time)",
+  "area": "accommodation",
+  "channel": "portal",
+  "hb": [
+    "HB-08"
+  ],
+  "oddity": null,
+  "oddity_ids": null,
+  "notes": null,
+  "seed_as_of": "2026-11-10",
+  "setup": [
+    {
+      "name": "portal_book",
+      "request": {
+        "channel": "portal",
+        "method": "POST",
+        "path": "/Booking/Book",
+        "form": {
+          "SessionId": 163,
+          "CandidateNumber": "NW00000935",
+          "AccommodationCode": "ET50"
+        }
+      },
+      "status": 200
+    }
+  ],
+  "before": {
+    "sessions": [
+      {
+        "SessionId": 163,
+        "ExamCode": "MHL-RN1",
+        "StartsAt": "2026-11-17T09:00",
+        "Capacity": 8,
+        "AccommodationCapacity": 1,
+        "SeatsAvailable": 4,
+        "Status": "OPEN",
+        "LastModified": "<now>",
+        "BookedOrAttended": 4,
+        "ExtraTimeBooked": 1,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1668,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000684",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T18:11:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T18:11:00"
+      },
+      {
+        "BookingId": 1669,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000212",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T03:42:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T03:42:00"
+      },
+      {
+        "BookingId": 3356,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000625",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R163625",
+        "BookedAt": "2026-10-12T15:55:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-12T15:55:00"
+      },
+      {
+        "BookingId": "<booking:1>",
+        "SessionId": 163,
+        "CandidateNumber": "NW00000935",
+        "Status": "BOOKED",
+        "AccommodationCode": "ET50",
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": [
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:1>",
+        "Action": "BOOK",
+        "Detail": "session=163 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "name": "portal_book",
+      "request": {
+        "channel": "portal",
+        "method": "POST",
+        "path": "/Booking/Book",
+        "form": {
+          "SessionId": 163,
+          "CandidateNumber": "NW00000923",
+          "AccommodationCode": "SR"
+        }
+      },
+      "response": {
+        "status": 200,
+        "path": "/Booking/MyBookings?candidateNumber=NW00000923",
+        "rendered": {
+          "heading": "My bookings",
+          "alerts": [
+            "Booking <booking:2> confirmed."
+          ],
+          "field_errors": [],
+          "cells": {
+            "Name": "Arjun Whitlock",
+            "Candidate no.": "NW00000923",
+            "Email": "arjun.whitlock923@example.org",
+            "Default accommodation": "SR"
+          }
+        }
+      },
+      "sessions_after": [
+        {
+          "SessionId": 163,
+          "Capacity": 8,
+          "AccommodationCapacity": 1,
+          "SeatsAvailable": 3,
+          "Status": "OPEN"
+        }
+      ]
+    },
+    {
+      "name": "portal_book",
+      "request": {
+        "channel": "portal",
+        "method": "POST",
+        "path": "/Booking/Book",
+        "form": {
+          "SessionId": 163,
+          "CandidateNumber": "NW00000943",
+          "AccommodationCode": "RB"
+        }
+      },
+      "response": {
+        "status": 200,
+        "path": "/Booking/MyBookings?candidateNumber=NW00000943",
+        "rendered": {
+          "heading": "My bookings",
+          "alerts": [
+            "Booking <booking:3> confirmed."
+          ],
+          "field_errors": [],
+          "cells": {
+            "Name": "Oliver Castell",
+            "Candidate no.": "NW00000943",
+            "Email": "oliver.castell943@example.net",
+            "Default accommodation": "RB"
+          }
+        }
+      },
+      "sessions_after": [
+        {
+          "SessionId": 163,
+          "Capacity": 8,
+          "AccommodationCapacity": 1,
+          "SeatsAvailable": 2,
+          "Status": "OPEN"
+        }
+      ]
+    }
+  ],
+  "after": {
+    "sessions": [
+      {
+        "SessionId": 163,
+        "ExamCode": "MHL-RN1",
+        "StartsAt": "2026-11-17T09:00",
+        "Capacity": 8,
+        "AccommodationCapacity": 1,
+        "SeatsAvailable": 2,
+        "Status": "OPEN",
+        "LastModified": "<now>",
+        "BookedOrAttended": 6,
+        "ExtraTimeBooked": 1,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1668,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000684",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T18:11:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T18:11:00"
+      },
+      {
+        "BookingId": 1669,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000212",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T03:42:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T03:42:00"
+      },
+      {
+        "BookingId": 3356,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000625",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R163625",
+        "BookedAt": "2026-10-12T15:55:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-12T15:55:00"
+      },
+      {
+        "BookingId": "<booking:1>",
+        "SessionId": 163,
+        "CandidateNumber": "NW00000935",
+        "Status": "BOOKED",
+        "AccommodationCode": "ET50",
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:2>",
+        "SessionId": 163,
+        "CandidateNumber": "NW00000923",
+        "Status": "BOOKED",
+        "AccommodationCode": "SR",
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:3>",
+        "SessionId": 163,
+        "CandidateNumber": "NW00000943",
+        "Status": "BOOKED",
+        "AccommodationCode": "RB",
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": [
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:1>",
+        "Action": "BOOK",
+        "Detail": "session=163 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:2>",
+        "Action": "BOOK",
+        "Detail": "session=163 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:3>",
+        "Action": "BOOK",
+        "Detail": "session=163 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      }
+    ]
+  }
+}

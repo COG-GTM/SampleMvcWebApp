@@ -1,0 +1,281 @@
+{
+  "id": "RT-12-eligibility-nw00000362-2026-12-21",
+  "title": "Retake eligibility NW00000362 HPI-ACC1 on 2026-12-21: candidate who already passed",
+  "area": "retake",
+  "channel": "both",
+  "hb": [
+    "HB-07"
+  ],
+  "oddity": null,
+  "oddity_ids": null,
+  "notes": null,
+  "seed_as_of": "2026-11-10",
+  "setup": [],
+  "before": {
+    "sessions": [],
+    "bookings": [
+      {
+        "BookingId": 86,
+        "SessionId": 8,
+        "CandidateNumber": "NW00000362",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-08-30T11:57:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-09-05T13:30:00"
+      },
+      {
+        "BookingId": 1393,
+        "SessionId": 135,
+        "CandidateNumber": "NW00000362",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202610-135-1",
+        "BookedAt": "2026-10-30T22:13:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-05T13:30:00"
+      },
+      {
+        "BookingId": 1488,
+        "SessionId": 144,
+        "CandidateNumber": "NW00000362",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0014401",
+        "BookedAt": "2026-10-28T18:22:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T13:30:00"
+      },
+      {
+        "BookingId": 3565,
+        "SessionId": 269,
+        "CandidateNumber": "NW00000362",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T19:32:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T19:32:00"
+      },
+      {
+        "BookingId": 2882,
+        "SessionId": 395,
+        "CandidateNumber": "NW00000362",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T03:14:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T03:14:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [
+      {
+        "ResultId": 78,
+        "BookingId": 86,
+        "CandidateNumber": "NW00000362",
+        "ExamCode": "CTA-SEC2",
+        "SessionId": 8,
+        "Score": 908,
+        "Passed": true,
+        "ScoredAt": "2026-09-05T06:15:00",
+        "SourceFile": "NW_SCORES_CTA_20260905.csv"
+      },
+      {
+        "ResultId": 1221,
+        "BookingId": 1393,
+        "CandidateNumber": "NW00000362",
+        "ExamCode": "MHL-RN2",
+        "SessionId": 135,
+        "Score": 552,
+        "Passed": false,
+        "ScoredAt": "2026-11-05T06:15:00",
+        "SourceFile": "NW_SCORES_MHL_20261105.csv"
+      },
+      {
+        "ResultId": 1309,
+        "BookingId": 1488,
+        "CandidateNumber": "NW00000362",
+        "ExamCode": "HPI-ACC1",
+        "SessionId": 144,
+        "Score": 659,
+        "Passed": true,
+        "ScoredAt": "2026-11-09T06:15:00",
+        "SourceFile": "NW_SCORES_HPI_20261109.csv"
+      }
+    ],
+    "audit": []
+  },
+  "steps": [
+    {
+      "name": "portal_eligibility",
+      "request": {
+        "channel": "portal",
+        "method": "GET",
+        "path": "/Eligibility?candidateNumber=NW00000362&examCode=HPI-ACC1&date=2026-12-21"
+      },
+      "response": {
+        "status": 200,
+        "path": "/Eligibility?candidateNumber=NW00000362&examCode=HPI-ACC1&date=2026-12-21",
+        "rendered": {
+          "heading": "Retake eligibility",
+          "alerts": [],
+          "field_errors": [],
+          "cells": {
+            "Candidate": "NW00000362",
+            "Exam": "HPI-ACC1",
+            "Proposed date": "21 Dec 2026",
+            "Eligible": "NO",
+            "Reason": "Candidate has already passed this exam",
+            "Earliest retake date": "n/a"
+          }
+        },
+        "eligibility": {
+          "eligible": "NO",
+          "reason": "Candidate has already passed this exam",
+          "earliestRetakeDate": "n/a"
+        }
+      }
+    },
+    {
+      "name": "api_eligibility",
+      "request": {
+        "channel": "api",
+        "method": "GET",
+        "path": "/api/v1/candidates/NW00000362/eligibility?examCode=HPI-ACC1&date=2026-12-21"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "eligible": false,
+          "reason": "ALREADY_PASSED",
+          "earliestRetakeDate": null
+        },
+        "eligibility": {
+          "eligible": false,
+          "reason": "ALREADY_PASSED",
+          "earliestRetakeDate": null
+        }
+      }
+    }
+  ],
+  "after": {
+    "sessions": [],
+    "bookings": [
+      {
+        "BookingId": 86,
+        "SessionId": 8,
+        "CandidateNumber": "NW00000362",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-08-30T11:57:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-09-05T13:30:00"
+      },
+      {
+        "BookingId": 1393,
+        "SessionId": 135,
+        "CandidateNumber": "NW00000362",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202610-135-1",
+        "BookedAt": "2026-10-30T22:13:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-05T13:30:00"
+      },
+      {
+        "BookingId": 1488,
+        "SessionId": 144,
+        "CandidateNumber": "NW00000362",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0014401",
+        "BookedAt": "2026-10-28T18:22:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T13:30:00"
+      },
+      {
+        "BookingId": 3565,
+        "SessionId": 269,
+        "CandidateNumber": "NW00000362",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T19:32:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T19:32:00"
+      },
+      {
+        "BookingId": 2882,
+        "SessionId": 395,
+        "CandidateNumber": "NW00000362",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T03:14:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T03:14:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [
+      {
+        "ResultId": 78,
+        "BookingId": 86,
+        "CandidateNumber": "NW00000362",
+        "ExamCode": "CTA-SEC2",
+        "SessionId": 8,
+        "Score": 908,
+        "Passed": true,
+        "ScoredAt": "2026-09-05T06:15:00",
+        "SourceFile": "NW_SCORES_CTA_20260905.csv"
+      },
+      {
+        "ResultId": 1221,
+        "BookingId": 1393,
+        "CandidateNumber": "NW00000362",
+        "ExamCode": "MHL-RN2",
+        "SessionId": 135,
+        "Score": 552,
+        "Passed": false,
+        "ScoredAt": "2026-11-05T06:15:00",
+        "SourceFile": "NW_SCORES_MHL_20261105.csv"
+      },
+      {
+        "ResultId": 1309,
+        "BookingId": 1488,
+        "CandidateNumber": "NW00000362",
+        "ExamCode": "HPI-ACC1",
+        "SessionId": 144,
+        "Score": 659,
+        "Passed": true,
+        "ScoredAt": "2026-11-09T06:15:00",
+        "SourceFile": "NW_SCORES_HPI_20261109.csv"
+      }
+    ],
+    "audit": []
+  }
+}

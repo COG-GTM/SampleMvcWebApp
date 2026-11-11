@@ -1,0 +1,369 @@
+{
+  "id": "CP-01-portal-capacity-increase",
+  "title": "Admin raises capacity 20 -> 25 - SeatsAvailable +5, no booking or waitlist row changes",
+  "area": "capacity",
+  "channel": "portal",
+  "hb": [
+    "HB-05"
+  ],
+  "oddity": null,
+  "oddity_ids": null,
+  "notes": null,
+  "seed_as_of": "2026-11-10",
+  "setup": [],
+  "before": {
+    "sessions": [
+      {
+        "SessionId": 154,
+        "ExamCode": "MHL-RN1",
+        "StartsAt": "2026-11-12T13:30",
+        "Capacity": 20,
+        "AccommodationCapacity": 2,
+        "SeatsAvailable": 11,
+        "Status": "OPEN",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 9,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1606,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000118",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015401",
+        "BookedAt": "2026-11-06T09:42:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-06T09:42:00"
+      },
+      {
+        "BookingId": 1607,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000527",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-2",
+        "BookedAt": "2026-11-06T22:33:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-06T22:33:00"
+      },
+      {
+        "BookingId": 1608,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000055",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-3",
+        "BookedAt": "2026-11-07T08:04:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T08:04:00"
+      },
+      {
+        "BookingId": 1609,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000464",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-07T17:35:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T17:35:00"
+      },
+      {
+        "BookingId": 1610,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000873",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015405",
+        "BookedAt": "2026-11-08T03:06:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T03:06:00"
+      },
+      {
+        "BookingId": 1611,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000401",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T15:57:00",
+        "CancelledAt": "2026-11-10T15:57:00",
+        "CancelReason": "Candidate request",
+        "LastModified": "2026-11-10T15:57:00"
+      },
+      {
+        "BookingId": 1612,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000810",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-7",
+        "BookedAt": "2026-11-09T01:28:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T01:28:00"
+      },
+      {
+        "BookingId": 1613,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000338",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015408",
+        "BookedAt": "2026-11-09T10:59:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T10:59:00"
+      },
+      {
+        "BookingId": 1614,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000747",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T20:30:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T20:30:00"
+      },
+      {
+        "BookingId": 1615,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000275",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T04:21:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T04:21:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": []
+  },
+  "steps": [
+    {
+      "name": "portal_capacity",
+      "request": {
+        "channel": "portal",
+        "method": "POST",
+        "path": "/Admin/Sessions/Capacity/154",
+        "form": {
+          "NewCapacity": 25
+        }
+      },
+      "response": {
+        "status": 200,
+        "path": "/Admin/Sessions/Capacity/154",
+        "rendered": {
+          "heading": "Capacity administration Session #154",
+          "alerts": [
+            "Capacity updated"
+          ],
+          "field_errors": [],
+          "cells": {
+            "Centre": "Bayside Assessment Centre",
+            "Exam": "MHL-RN1 – Registered Nurse Licensure - Part 1",
+            "Room": "Room North",
+            "Start": "Thursday 12 Nov 2026 13:30",
+            "Status": "OPEN"
+          }
+        }
+      },
+      "sessions_after": [
+        {
+          "SessionId": 154,
+          "Capacity": 25,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 16,
+          "Status": "OPEN"
+        }
+      ]
+    }
+  ],
+  "after": {
+    "sessions": [
+      {
+        "SessionId": 154,
+        "ExamCode": "MHL-RN1",
+        "StartsAt": "2026-11-12T13:30",
+        "Capacity": 25,
+        "AccommodationCapacity": 2,
+        "SeatsAvailable": 16,
+        "Status": "OPEN",
+        "LastModified": "<now>",
+        "BookedOrAttended": 9,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1606,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000118",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015401",
+        "BookedAt": "2026-11-06T09:42:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-06T09:42:00"
+      },
+      {
+        "BookingId": 1607,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000527",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-2",
+        "BookedAt": "2026-11-06T22:33:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-06T22:33:00"
+      },
+      {
+        "BookingId": 1608,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000055",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-3",
+        "BookedAt": "2026-11-07T08:04:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T08:04:00"
+      },
+      {
+        "BookingId": 1609,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000464",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-07T17:35:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T17:35:00"
+      },
+      {
+        "BookingId": 1610,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000873",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015405",
+        "BookedAt": "2026-11-08T03:06:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T03:06:00"
+      },
+      {
+        "BookingId": 1611,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000401",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T15:57:00",
+        "CancelledAt": "2026-11-10T15:57:00",
+        "CancelReason": "Candidate request",
+        "LastModified": "2026-11-10T15:57:00"
+      },
+      {
+        "BookingId": 1612,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000810",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-7",
+        "BookedAt": "2026-11-09T01:28:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T01:28:00"
+      },
+      {
+        "BookingId": 1613,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000338",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015408",
+        "BookedAt": "2026-11-09T10:59:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T10:59:00"
+      },
+      {
+        "BookingId": 1614,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000747",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T20:30:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T20:30:00"
+      },
+      {
+        "BookingId": 1615,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000275",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T04:21:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T04:21:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": [
+      {
+        "EntityName": "ExamSession",
+        "EntityId": 154,
+        "Action": "CAPACITY",
+        "Detail": "20 -> 25",
+        "Actor": "portal-admin",
+        "LoggedAt": "<now>"
+      }
+    ]
+  }
+}

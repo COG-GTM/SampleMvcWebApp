@@ -1,0 +1,184 @@
+{
+  "id": "BK-10-portal-book-cancelled-session",
+  "title": "Portal books a CANCELLED session (162)",
+  "area": "booking",
+  "channel": "portal",
+  "hb": [
+    "HB-14"
+  ],
+  "oddity": true,
+  "oddity_ids": [
+    "ODD-12"
+  ],
+  "notes": null,
+  "seed_as_of": "2026-11-10",
+  "setup": [],
+  "before": {
+    "sessions": [
+      {
+        "SessionId": 162,
+        "ExamCode": "BCB-AGL",
+        "StartsAt": "2026-11-17T09:00",
+        "Capacity": 11,
+        "AccommodationCapacity": 2,
+        "SeatsAvailable": 11,
+        "Status": "CANCELLED",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 0,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1665,
+        "SessionId": 162,
+        "CandidateNumber": "NW00000284",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-162-1",
+        "BookedAt": "2026-11-09T11:50:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Session cancelled by centre",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1666,
+        "SessionId": 162,
+        "CandidateNumber": "NW00000693",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T21:21:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Session cancelled by centre",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1667,
+        "SessionId": 162,
+        "CandidateNumber": "NW00000221",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T06:52:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Session cancelled by centre",
+        "LastModified": "2026-11-10T18:00:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": []
+  },
+  "steps": [
+    {
+      "name": "portal_book",
+      "request": {
+        "channel": "portal",
+        "method": "POST",
+        "path": "/Booking/Book",
+        "form": {
+          "SessionId": 162,
+          "CandidateNumber": "NW00000911",
+          "AccommodationCode": ""
+        }
+      },
+      "response": {
+        "status": 200,
+        "path": "/Booking/Book",
+        "rendered": {
+          "heading": "Book a seat Session #162",
+          "alerts": [
+            "Session 162 is not open for booking."
+          ],
+          "field_errors": [],
+          "cells": {
+            "Exam": "BCB-AGL – Agile Delivery Essentials",
+            "Centre": "Peachtree Exam Centre (ATL01)",
+            "Room": "Room 102",
+            "Start": "Tuesday 17 Nov 2026 09:00",
+            "Duration": "90 minutes",
+            "Seats available": "11 of 11 (accommodation capacity 2)",
+            "Status": "CANCELLED"
+          }
+        }
+      },
+      "sessions_after": [
+        {
+          "SessionId": 162,
+          "Capacity": 11,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 11,
+          "Status": "CANCELLED"
+        }
+      ]
+    }
+  ],
+  "after": {
+    "sessions": [
+      {
+        "SessionId": 162,
+        "ExamCode": "BCB-AGL",
+        "StartsAt": "2026-11-17T09:00",
+        "Capacity": 11,
+        "AccommodationCapacity": 2,
+        "SeatsAvailable": 11,
+        "Status": "CANCELLED",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 0,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1665,
+        "SessionId": 162,
+        "CandidateNumber": "NW00000284",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-162-1",
+        "BookedAt": "2026-11-09T11:50:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Session cancelled by centre",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1666,
+        "SessionId": 162,
+        "CandidateNumber": "NW00000693",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T21:21:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Session cancelled by centre",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1667,
+        "SessionId": 162,
+        "CandidateNumber": "NW00000221",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T06:52:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Session cancelled by centre",
+        "LastModified": "2026-11-10T18:00:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": []
+  }
+}

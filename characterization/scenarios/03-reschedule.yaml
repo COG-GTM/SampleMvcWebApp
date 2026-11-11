@@ -1,0 +1,155 @@
+# Reschedule of BOOKED bookings: portal (usp_RescheduleBooking = cancel + usp_BookSeat) vs booking-api
+# (BookingService.reschedule = usp_CancelBooking + partner book path). MHL-RN1 sessions: 154 -> 163 / 173; 155 is HPI-ACC2.
+scenarios:
+  - id: RS-01-portal-reschedule-same-exam
+    title: Portal reschedules a portal booking 154 -> 163 (same exam) - old row CANCELLED, new PORTAL row
+    area: reschedule
+    channel: portal
+    hb: [HB-10]
+    oddity: true
+    oddity_ids: [ODD-05]
+    sessions: [154, 163]
+    candidates: [NW00000919]
+    setup:
+      - portal_book: {session: 154, candidate: NW00000919}
+        save_as: b1
+    steps:
+      - portal_reschedule: {booking: "${b1}", session: 163, candidate: NW00000919}
+
+  - id: RS-02-api-reschedule-same-exam
+    title: booking-api reschedules a partner booking 154 -> 163 - cancel releases 1 seat, rebook takes 2
+    area: reschedule
+    channel: api
+    hb: [HB-11, HB-01]
+    oddity: true
+    oddity_ids: [ODD-05, ODD-01]
+    sessions: [154, 163]
+    candidates: [NW00000920]
+    setup:
+      - api_book: {session: 154, candidate: NW00000920, external_ref: PX-3001}
+        save_as: b1
+    steps:
+      - api_reschedule: {booking: "${b1}", session: 163}
+
+  - id: RS-03-portal-reschedule-different-exam
+    title: Portal reschedules 154 (MHL-RN1) -> 155 (HPI-ACC2) - usp_RescheduleBooking state 6 (50006 family)
+    area: reschedule
+    channel: portal
+    hb: [HB-14]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [154, 155]
+    candidates: [NW00000921]
+    setup:
+      - portal_book: {session: 154, candidate: NW00000921}
+        save_as: b1
+    steps:
+      - portal_reschedule: {booking: "${b1}", session: 155, candidate: NW00000921}
+
+  - id: RS-04-api-reschedule-different-exam
+    title: booking-api reschedules 154 (MHL-RN1) -> 155 (HPI-ACC2) - HTTP error mapping
+    area: reschedule
+    channel: api
+    hb: [HB-14]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [154, 155]
+    candidates: [NW00000922]
+    setup:
+      - api_book: {session: 154, candidate: NW00000922}
+        save_as: b1
+    steps:
+      - api_reschedule: {booking: "${b1}", session: 155}
+
+  - id: RS-05-portal-reschedule-same-session
+    title: Portal reschedules a booking onto its own session 154 - accepted, booking cancelled and rebooked
+    area: reschedule
+    channel: portal
+    hb: [HB-10]
+    oddity: true
+    oddity_ids: [ODD-08]
+    sessions: [154]
+    candidates: [NW00000924]
+    setup:
+      - portal_book: {session: 154, candidate: NW00000924}
+        save_as: b1
+    steps:
+      - portal_reschedule: {booking: "${b1}", session: 154, candidate: NW00000924}
+
+  - id: RS-06-api-reschedule-same-session
+    title: booking-api reschedules a booking onto its own session 154 - rejected by the API
+    area: reschedule
+    channel: api
+    hb: [HB-11]
+    oddity: true
+    oddity_ids: [ODD-08]
+    sessions: [154]
+    candidates: [NW00000925]
+    setup:
+      - api_book: {session: 154, candidate: NW00000925}
+        save_as: b1
+    steps:
+      - api_reschedule: {booking: "${b1}", session: 154}
+
+  - id: RS-07-db-reschedule-different-exam-error
+    title: usp_RescheduleBooking called directly for a different exam - raw RAISERROR number/state
+    area: reschedule
+    channel: db
+    hb: [HB-14]
+    oddity: true
+    oddity_ids: [ODD-11]
+    sessions: [154, 155]
+    candidates: [NW00000926]
+    setup:
+      - portal_book: {session: 154, candidate: NW00000926}
+        save_as: b1
+    steps:
+      - db_proc: >-
+          DECLARE @nb INT, @s VARCHAR(20);
+          EXEC dbo.usp_RescheduleBooking @BookingId = ${b1}, @NewSessionId = 155, @NewBookingId = @nb OUTPUT, @ResultStatus = @s OUTPUT;
+          SELECT ISNULL(@s, 'NULL');
+
+  - id: RS-08-portal-reschedule-partner-booking
+    title: Portal reschedules a PARTNER booking with an ExternalRef - new row is PORTAL and ExternalRef is lost
+    area: reschedule
+    channel: portal
+    hb: [HB-10]
+    oddity: true
+    oddity_ids: [ODD-10, ODD-13]
+    sessions: [154, 163]
+    candidates: [NW00000927]
+    setup:
+      - api_book: {session: 154, candidate: NW00000927, external_ref: PX-3008}
+        save_as: b1
+    steps:
+      - portal_reschedule: {booking: "${b1}", session: 163, candidate: NW00000927}
+
+  - id: RS-09-api-reschedule-to-full-session
+    title: booking-api reschedules BCB-AGL 158 -> full 153 - original cancelled, new booking WAITLISTED
+    area: reschedule
+    channel: api
+    hb: [HB-11]
+    oddity: true
+    oddity_ids: [ODD-05]
+    sessions: [153, 158]
+    candidates: [NW00000928]
+    setup:
+      - api_book: {session: 158, candidate: NW00000928, external_ref: PX-3009}
+        save_as: b1
+    steps:
+      - api_reschedule: {booking: "${b1}", session: 153}
+
+  - id: RS-10-portal-reschedule-to-full-session
+    title: Portal reschedules BCB-AGL 158 -> full 153 - original cancelled, new booking WAITLISTED
+    area: reschedule
+    channel: portal
+    hb: [HB-10]
+    oddity: true
+    oddity_ids: [ODD-05]
+    sessions: [153, 158]
+    candidates: [NW00000929]
+    setup:
+      - portal_book: {session: 158, candidate: NW00000929}
+        save_as: b1
+    steps:
+      - portal_reschedule: {booking: "${b1}", session: 153, candidate: NW00000929}

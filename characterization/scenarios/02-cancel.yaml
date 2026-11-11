@@ -1,0 +1,113 @@
+# Cancellation of BOOKED and WAITLISTED bookings through both channels (usp_CancelBooking underneath both).
+scenarios:
+  - id: CN-01-portal-cancel-booked
+    title: Portal cancels a BOOKED portal booking - one seat released
+    area: cancel
+    channel: portal
+    hb: [HB-02]
+    oddity: true
+    oddity_ids: [ODD-01]
+    sessions: [154]
+    candidates: [NW00000913]
+    setup:
+      - portal_book: {session: 154, candidate: NW00000913}
+        save_as: b1
+    steps:
+      - portal_cancel: {booking: "${b1}", candidate: NW00000913, reason: changed plans}
+
+  - id: CN-02-api-cancel-booked-partner
+    title: booking-api books then cancels a partner booking - two seats taken, one released (seat leak)
+    area: cancel
+    channel: api
+    hb: [HB-01, HB-02]
+    oddity: true
+    oddity_ids: [ODD-01, ODD-13]
+    sessions: [154]
+    candidates: [NW00000914]
+    setup:
+      - api_book: {session: 154, candidate: NW00000914, external_ref: PX-2001}
+        save_as: b1
+    steps:
+      - api_cancel: {booking: "${b1}", reason: partner-cancel}
+
+  - id: CN-03-portal-cancel-waitlisted
+    title: Portal cancels a WAITLISTED booking - Waitlist row deleted, positions not renumbered, seats unchanged
+    area: cancel
+    channel: portal
+    hb: [HB-06]
+    sessions: [153]
+    candidates: [NW00000915]
+    setup:
+      - portal_book: {session: 153, candidate: NW00000915}
+        save_as: b1
+    steps:
+      - portal_cancel: {booking: "${b1}", candidate: NW00000915}
+
+  - id: CN-04-api-cancel-waitlisted
+    title: booking-api cancels a WAITLISTED booking - Waitlist row deleted, seats unchanged
+    area: cancel
+    channel: api
+    hb: [HB-06]
+    sessions: [153]
+    candidates: [NW00000916]
+    setup:
+      - api_book: {session: 153, candidate: NW00000916}
+        save_as: b1
+    steps:
+      - api_cancel: {booking: "${b1}"}
+
+  - id: CN-05-portal-cancel-on-full-session-no-promotion
+    title: Portal cancels a BOOKED seat on full session 153 - seat freed, nobody promoted from the 3-deep waitlist
+    area: cancel
+    channel: portal
+    hb: [HB-06]
+    oddity: true
+    oddity_ids: [ODD-09]
+    sessions: [153]
+    candidates: [NW00000001]
+    steps:
+      - portal_cancel: {booking: 1602, candidate: NW00000001}
+
+  - id: CN-06-api-cancel-on-full-session-no-promotion
+    title: booking-api cancels a BOOKED seat on full session 153 - seat freed, nobody promoted
+    area: cancel
+    channel: api
+    hb: [HB-06]
+    oddity: true
+    oddity_ids: [ODD-09]
+    sessions: [153]
+    candidates: [NW00000473]
+    steps:
+      - api_cancel: {booking: 1601}
+
+  - id: CN-07-portal-cancel-twice
+    title: Portal cancels an already-cancelled booking - usp_CancelBooking state 4
+    area: cancel
+    channel: portal
+    hb: [HB-14]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [154]
+    candidates: [NW00000917]
+    setup:
+      - portal_book: {session: 154, candidate: NW00000917}
+        save_as: b1
+      - portal_cancel: {booking: "${b1}", candidate: NW00000917}
+    steps:
+      - portal_cancel: {booking: "${b1}", candidate: NW00000917}
+
+  - id: CN-08-api-cancel-twice
+    title: booking-api cancels an already-cancelled booking - HTTP error mapping
+    area: cancel
+    channel: api
+    hb: [HB-14]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [154]
+    candidates: [NW00000918]
+    setup:
+      - api_book: {session: 154, candidate: NW00000918}
+        save_as: b1
+      - api_cancel: {booking: "${b1}"}
+    steps:
+      - api_cancel: {booking: "${b1}"}
