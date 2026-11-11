@@ -11,6 +11,9 @@ import com.northwind.assessment.scheduling.service.NotFoundException;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.stream.Stream;
+import com.northwind.assessment.scheduling.config.SchedulingProperties;
+import com.northwind.assessment.scheduling.reconciliation.ReconciliationService;
+import com.northwind.assessment.scheduling.relay.OutboxRelay;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,11 +28,36 @@ public class InternalController {
     private final ReferenceRepository reference;
     private final BookingRepository bookings;
     private final SnapshotImporter importer;
+    private final ReconciliationService reconciliation;
+    private final OutboxRelay relay;
+    private final SchedulingProperties props;
 
-    public InternalController(ReferenceRepository reference, BookingRepository bookings, SnapshotImporter importer) {
+    public InternalController(ReferenceRepository reference, BookingRepository bookings, SnapshotImporter importer,
+                              ReconciliationService reconciliation, OutboxRelay relay, SchedulingProperties props) {
         this.reference = reference;
         this.bookings = bookings;
         this.importer = importer;
+        this.reconciliation = reconciliation;
+        this.relay = relay;
+        this.props = props;
+    }
+
+    /** MBA-3823: Scheduling vs AssessmentDelivery per session; {@code writeReport=true} also writes the markdown report. */
+    @GetMapping("/internal/reconciliation")
+    public ReconciliationService.Report reconcile(@RequestParam(defaultValue = "false") boolean writeReport) {
+        return reconciliation.reconcile(writeReport);
+    }
+
+    /** Outbox relay backlog and lag (ms between outbox commit and legacy projection). */
+    @GetMapping("/internal/relay/status")
+    public ReconciliationService.RelayStatus relayStatus() {
+        return reconciliation.relayStatus();
+    }
+
+    /** Drains the outbox now (the scheduled relay does the same every poll interval). */
+    @PostMapping("/internal/relay/run")
+    public OutboxRelay.RunResult runRelay() {
+        return relay.drain(props.relay().batchSize());
     }
 
     /** Integration contract item 3: exactly one of sessionId, bookingId, centerId, centerCode. */

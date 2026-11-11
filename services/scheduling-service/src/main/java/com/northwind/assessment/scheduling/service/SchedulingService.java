@@ -13,6 +13,8 @@ import com.northwind.assessment.scheduling.domain.RuleViolation;
 import com.northwind.assessment.scheduling.domain.SchedulingRuleException;
 import com.northwind.assessment.scheduling.domain.SessionCapacity;
 import com.northwind.assessment.scheduling.domain.WaitlistSlot;
+import com.northwind.assessment.scheduling.outbox.OutboxEventType;
+import com.northwind.assessment.scheduling.outbox.OutboxWriter;
 import com.northwind.assessment.scheduling.persistence.BookingRepository;
 import com.northwind.assessment.scheduling.persistence.ReferenceRepository;
 import com.northwind.assessment.scheduling.persistence.SessionRepository;
@@ -24,7 +26,9 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +36,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Booking, cancellation, reschedule and capacity use cases. Orchestrates the plain-Java domain
  * ({@link SessionCapacity}, {@link RetakeEligibilityPolicy}, {@link ReschedulePolicy}) and persists the
- * outcome; checks run in booking-api v1 order so error codes match.
+ * outcome; checks run in booking-api v1 order so error codes match. Every change appends its outbox event
+ * ({@link OutboxWriter}) in the same transaction (MBA-3823).
  */
 @Service
 public class SchedulingService {
@@ -47,10 +52,13 @@ public class SchedulingService {
     private final ReferenceRepository reference;
     private final RetakeEligibilityPolicy retakePolicy;
     private final AccommodationFloorPolicy floorPolicy;
+    private final OutboxWriter outbox;
     private final Clock clock;
 
     public SchedulingService(SessionRepository sessions, BookingRepository bookings, ReferenceRepository reference,
-                             RetakeEligibilityPolicy retakePolicy, AccommodationFloorPolicy floorPolicy, Clock clock) {
+                             RetakeEligibilityPolicy retakePolicy, AccommodationFloorPolicy floorPolicy,
+                             OutboxWriter outbox, Clock clock) {
+        this.outbox = outbox;
         this.sessions = sessions;
         this.bookings = bookings;
         this.reference = reference;
@@ -76,7 +84,12 @@ public class SchedulingService {
         CandidateView candidate = candidate(cmd.candidateNumber().trim());
         SessionCapacity capacity = sessions.lockForUpdate(cmd.sessionId())
                 .orElseThrow(() -> sessionNotFound(cmd.sessionId()));
-        return bookLocked(capacity, candidate, acc, externalRef, channel);
+        BookingResult result = bookLocked(capacity, candidate, acc, externalRef, channel);
+        OutboxEventType type = BookingStatus.WAITLISTED.name().equals(result.status())
+                ? OutboxEventType.BookingWaitlisted : OutboxEventType.BookingCreated;
+        outbox.append(type, result.sessionId(), result.bookingId(), List.of(), List.of(result.bookingId()),
+                channel.name().toLowerCase(Locale.ROOT), Map.of("channel", channel.name()), now());
+        return result;
     }
 
     private BookingResult bookLocked(SessionCapacity capacity, CandidateView candidate, String acc, String externalRef,
@@ -115,7 +128,8 @@ public class SchedulingService {
     }
 
     @Transactional
-    public BookingView cancel(long bookingId, String reason) {
+    public BookingView cancel(long requestedId, String reason) {
+        long bookingId = resolve(requestedId);
         int sessionId = bookings.sessionIdOf(bookingId).orElseThrow(() -> bookingNotFound(bookingId));
         SessionCapacity capacity = sessions.lockForUpdate(sessionId).orElseThrow(() -> sessionNotFound(sessionId));
         String why = blankToNull(reason) == null ? DEFAULT_CANCEL_REASON : reason.trim();
@@ -123,6 +137,8 @@ public class SchedulingService {
             throw invalid("reason is limited to 200 characters");
         }
         cancelLocked(capacity, bookingId, why);
+        outbox.append(OutboxEventType.BookingCancelled, sessionId, bookingId, List.of(), List.of(bookingId), "scheduling-service",
+                Map.of("reason", why), now());
         return bookings.find(bookingId).orElseThrow();
     }
 
@@ -142,10 +158,11 @@ public class SchedulingService {
      * in ascending id order to avoid deadlocks.
      */
     @Transactional
-    public BookingResult reschedule(long bookingId, Integer newSessionId) {
+    public BookingResult reschedule(long requestedId, Integer newSessionId) {
         if (newSessionId == null) {
             throw invalid("newSessionId is required");
         }
+        long bookingId = resolve(requestedId);
         BookingView booking = bookings.find(bookingId).orElseThrow(() -> bookingNotFound(bookingId));
         int newExam = sessions.examIdOf(newSessionId).orElseThrow(() -> sessionNotFound(newSessionId));
         int oldExam = sessions.examIdOf(booking.sessionId()).orElseThrow();
@@ -163,7 +180,39 @@ public class SchedulingService {
                 .orElseThrow(() -> new NotFoundException("CANDIDATE_NOT_FOUND", "Candidate of booking " + bookingId + " not found"));
         BookingChannel channel = BookingChannel.valueOf(booking.channel()) == BookingChannel.IMPORT
                 ? BookingChannel.PORTAL : BookingChannel.valueOf(booking.channel());
-        return bookLocked(to, candidate, booking.accommodationCode(), booking.externalRef(), channel);
+        BookingResult result = bookLocked(to, candidate, booking.accommodationCode(), booking.externalRef(), channel);
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("fromBookingId", bookingId);
+        detail.put("toBookingId", result.bookingId());
+        detail.put("fromSessionId", from.sessionId());
+        detail.put("toSessionId", to.sessionId());
+        outbox.append(OutboxEventType.BookingRescheduled, to.sessionId(), result.bookingId(), List.of(from.sessionId()),
+                List.of(bookingId, result.bookingId()), "scheduling-service", detail, now());
+        return result;
+    }
+
+    /**
+     * results-service ingestion (MBA-3823): the booking becomes ATTENDED here first; the relay then projects it
+     * into AssessmentDelivery. Idempotent: a booking that is already ATTENDED is returned unchanged, no event.
+     */
+    @Transactional
+    public BookingView recordAttendance(long requestedId) {
+        long bookingId = resolve(requestedId);
+        int sessionId = bookings.sessionIdOf(bookingId).orElseThrow(() -> bookingNotFound(bookingId));
+        SessionCapacity capacity = sessions.lockForUpdate(sessionId).orElseThrow(() -> sessionNotFound(sessionId));
+        if (capacity.attend(bookingId)) {
+            LocalDateTime now = now();
+            bookings.markAttended(bookingId, now);
+            sessions.markLocallyModified(sessionId, now);
+            outbox.append(OutboxEventType.AttendanceRecorded, sessionId, bookingId, List.of(), List.of(bookingId),
+                    "results-service", Map.of(), now);
+        }
+        return bookings.find(bookingId).orElseThrow();
+    }
+
+    /** Scheduling id for a Scheduling or AssessmentDelivery booking id ({@link BookingRepository#resolve}). */
+    public long resolve(long requestedId) {
+        return bookings.resolve(requestedId).orElseThrow(() -> bookingNotFound(requestedId));
     }
 
     public record CapacityResult(SessionView session, List<Long> bumpedBookingIds) {
@@ -188,6 +237,11 @@ public class SchedulingService {
             bookings.insertWaitlistEntry(sessionId, w.bookingId(), bookings.candidateIdOf(w.bookingId()), w.position(), now);
         }
         sessions.insertCapacityChange(sessionId, change.oldCapacity(), newCapacity, change.bumpedBookingIds(), who, now);
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("oldCapacity", change.oldCapacity());
+        detail.put("newCapacity", newCapacity);
+        detail.put("bumpedBookingIds", change.bumpedBookingIds());
+        outbox.append(OutboxEventType.CapacityChanged, sessionId, null, List.of(), change.bumpedBookingIds(), who, detail, now);
         return new CapacityResult(sessions.find(sessionId).orElseThrow(), change.bumpedBookingIds());
     }
 

@@ -100,8 +100,13 @@ public class SchedulingApiController {
 
     @GetMapping("/bookings/{bookingId}")
     public Json.Booking booking(@PathVariable long bookingId) {
-        return Json.Booking.of(bookings.find(bookingId)
-                .orElseThrow(() -> new NotFoundException("BOOKING_NOT_FOUND", "Booking " + bookingId + " not found")));
+        return Json.Booking.of(bookings.find(service.resolve(bookingId)).orElseThrow());
+    }
+
+    /** results-service: marks a BOOKED booking ATTENDED (idempotent); the relay projects it to AssessmentDelivery. */
+    @PostMapping("/bookings/{bookingId}/attendance")
+    public Json.Booking attendance(@PathVariable long bookingId) {
+        return Json.Booking.of(service.recordAttendance(bookingId));
     }
 
     @DeleteMapping("/bookings/{bookingId}")
