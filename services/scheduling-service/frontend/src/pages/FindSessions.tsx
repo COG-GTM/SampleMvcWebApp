@@ -26,7 +26,11 @@ export default function FindSessions() {
   const acc = accParam ?? profileDefault ?? '';
 
   useEffect(() => {
-    if (!CANDIDATE_RE.test(number)) { setProfileDefault(null); return; }
+    if (!CANDIDATE_RE.test(number)) {
+      setProfileDefault(null);
+      if (!number) setCandidate('');
+      return;
+    }
     setCandidate(number);
     let live = true;
     api.candidate(number)
@@ -54,6 +58,15 @@ export default function FindSessions() {
     const p = new URLSearchParams(params);
     if (v) p.set(k, v); else p.delete(k);
     setParams(p, { replace: true });
+  };
+  // a different candidate starts again from their own profile default
+  const changeCandidate = (v: string) => {
+    setNumber(v);
+    if (params.has('acc')) {
+      const p = new URLSearchParams(params);
+      p.delete('acc');
+      setParams(p, { replace: true });
+    }
   };
   const setAcc = (v: string) => {
     const p = new URLSearchParams(params);
@@ -95,7 +108,7 @@ export default function FindSessions() {
         <div>
           <label className="label" htmlFor="find-cand">Candidate number (optional)</label>
           <input id="find-cand" data-testid="find-candidate-input" className="input" value={number} placeholder="NW00000901"
-            onChange={(e) => setNumber(e.target.value.trim().toUpperCase())} />
+            onChange={(e) => changeCandidate(e.target.value.trim().toUpperCase())} />
         </div>
         <div>
           <label className="label" htmlFor="find-acc">Accommodation</label>
