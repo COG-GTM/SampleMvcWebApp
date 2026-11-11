@@ -64,6 +64,7 @@
     <Compile Include="Admin\AdminSessionRow.cs" />
     <Compile Include="Admin\CenterListItem.cs" />
     <Compile Include="Admin\IAdminService.cs" />
+    <Compile Include="Admin\SessionRoster.cs" />
     <Compile Include="Common\PortalException.cs" />
     <Compile Include="Eligibility\EligibilityService.cs" />
     <Compile Include="Eligibility\IEligibilityService.cs" />

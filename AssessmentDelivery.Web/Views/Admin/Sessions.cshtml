@@ -41,7 +41,7 @@
                     <td class="num">@s.Booked</td>
                     <td class="num">@s.WaitlistCount</td>
                     <td>@Html.StatusPill(s.Status)</td>
-                    <td class="nw-actions"><a href="@Html.ModernUiUrl("/app/admin/sessions/" + s.SessionId)">Capacity</a></td>
+                    <td class="nw-actions nowrap"><a href="@Html.ModernUiUrl("/app/admin/sessions/" + s.SessionId)">Capacity</a> &middot; <a href="@Url.RouteUrl("AdminRoster", new { id = s.SessionId, format = "csv" })" title="Download the check-in roster for session #@s.SessionId">Download roster (CSV)</a></td>
                 </tr>
             }
             @if (Model.Sessions.Count == 0)

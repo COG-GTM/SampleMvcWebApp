@@ -9,6 +9,13 @@ namespace AssessmentDelivery.Web
         {
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
+            //proctor check-in roster download (read-only)
+            routes.MapRoute(
+                name: "AdminRoster",
+                url: "Admin/Sessions/Roster/{id}",
+                defaults: new { controller = "Admin", action = "Roster" }
+            );
+
             routes.MapRoute(
                 name: "Default",
                 url: "{controller}/{action}/{id}",

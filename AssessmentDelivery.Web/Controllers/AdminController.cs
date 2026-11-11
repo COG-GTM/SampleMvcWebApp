@@ -1,4 +1,7 @@
+using System;
+using System.Net;
 using System.Web.Mvc;
+using AssessmentDelivery.Business.Rosters;
 using AssessmentDelivery.Services.Admin;
 using AssessmentDelivery.Services.Common;
 using AssessmentDelivery.Web.Models;
@@ -55,6 +58,22 @@ namespace AssessmentDelivery.Web.Controllers
             var center = _admin.GetCenter(centerId.Value);
             if (center == null) return HttpNotFound();
             return View(new SessionsViewModel { Center = center, Sessions = _admin.ListSessions(center.TestCenterId) });
+        }
+
+        /// <summary>
+        /// GET /Admin/Sessions/Roster/{id}?format=csv - proctor check-in roster, read-only
+        /// </summary>
+        [HttpGet]
+        public ActionResult Roster(int id, string format)
+        {
+            if (!string.IsNullOrEmpty(format) && !string.Equals(format, "csv", StringComparison.OrdinalIgnoreCase))
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest, "Unsupported roster format");
+
+            var roster = _admin.GetSessionRoster(id);
+            if (roster == null) return HttpNotFound();
+
+            var fileName = RosterCsvBuilder.BuildFileName(roster.CenterCode, roster.ExamCode, DateTime.Now);
+            return File(RosterCsvBuilder.Build(roster.Lines), "text/csv", fileName);
         }
     }
 }

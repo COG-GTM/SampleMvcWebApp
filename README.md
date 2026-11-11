@@ -84,7 +84,7 @@ The portal is Windows-only (.NET Framework 4.8).
 
 | What | URL |
 |---|---|
-| Portal | http://localhost:8080/ - `/Admin/Centers`, `/Admin/Sessions?centerId=`, `/Eligibility`, `/Results` (booking pages retired: `/Booking/*` via the gateway :8000 -> `/app`) |
+| Portal | http://localhost:8080/ - `/Admin/Centers`, `/Admin/Sessions?centerId=`, `/Admin/Sessions/Roster/{id}?format=csv`, `/Eligibility`, `/Results` (booking pages retired: `/Booking/*` via the gateway :8000 -> `/app`) |
 | booking-api | http://localhost:8081/api/v1/sessions |
 | results-service | http://localhost:8082/api/v1/results/candidate/NW00000001 |
 | capacity-sync | http://localhost:8083/sync/last (`POST /sync/run` to run now) |

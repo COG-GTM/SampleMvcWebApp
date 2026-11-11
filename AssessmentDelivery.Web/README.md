@@ -43,6 +43,19 @@ msbuild AssessmentDelivery.sln /p:Configuration=Debug
 packages\NUnit.ConsoleRunner.3.16.3\tools\nunit3-console.exe AssessmentDelivery.Tests\bin\Debug\AssessmentDelivery.Tests.dll
 ```
 
+Browser check of the session roster CSV export (headless Playwright, needs Node 18+, `sqlcmd` on PATH,
+the portal on :8080 and a seeded database). It applies `e2e/fixture.sql` (one BOS01 session with
+BOOKED, ATTENDED, CANCELLED and WAITLISTED bookings), downloads the roster through the
+"Download roster (CSV)" link, checks the file and confirms that no `usp_*` proc ran and no AuditLog
+row was written. Screenshots and the downloaded file go to `e2e/screenshots/`.
+
+```powershell
+cd AssessmentDelivery.Web\e2e
+npm install
+npx playwright install chromium
+node run.mjs          # env: BASE_URL (default http://localhost:8080), SQL_SERVER, AD_SA_PASSWORD, SQLCMD
+```
+
 ## Configuration
 
 - `Web.config` - local dev connection string and `Portal.*` appSettings.
@@ -62,5 +75,9 @@ packages\NUnit.ConsoleRunner.3.16.3\tools\nunit3-console.exe AssessmentDelivery.
   `/Results`), plus editing a centre's name/active flag (a plain EF update).
   `scripts/check-retired-booking.sh` (CI) and `RetiredBookingGuardTests` fail if C# booking writes,
   `SeatsAvailable` updates or the dropped booking procs reappear.
+- *Download roster (CSV)* on each session row (`/Admin/Sessions/Roster/{id}?format=csv`) returns the
+  proctor check-in list: BOOKED/ATTENDED candidates, then the WAITLISTED ones with their waitlist
+  position, each group by last/first name. UTF-8 with BOM, RFC 4180 quoting, read-only (no procs, no
+  audit rows). Unknown session = 404.
 - The "Booked" column in centre admin is counted from the Booking rows (BOOKED + ATTENDED); the
   "Seats avail." column is the stored `ExamSession.SeatsAvailable` figure.

@@ -110,7 +110,7 @@ starts a run by hand and `GET /sync/last` shows the last run.
 
 | Area | Routes |
 |---|---|
-| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=` (read-only); capacity changes moved to the modern UI `/app/admin/sessions/{id}` |
+| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=` (read-only), `/Admin/Sessions/Roster/{id}?format=csv` (read-only check-in roster CSV); capacity changes moved to the modern UI `/app/admin/sessions/{id}` |
 | Candidate booking | retired in MBA-3824: `/Booking`, `/Booking/Book`, `/Booking/MyBookings`, `/Booking/Cancel/{id}`, `/Booking/Reschedule/{id}` redirect to `/app/...` through the routing gateway (:8000) |
 | Retake eligibility | `/Eligibility?candidateNumber=&examCode=&date=` |
 | Results | `/Results?candidateNumber=` |

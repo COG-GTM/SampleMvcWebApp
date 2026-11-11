@@ -9,5 +9,6 @@ namespace AssessmentDelivery.Services.Admin
         TestCenter GetCenter(int centerId);
         void UpdateCenter(int centerId, string name, bool isActive);
         IList<AdminSessionRow> ListSessions(int centerId);
+        SessionRoster GetSessionRoster(int sessionId);
     }
 }
