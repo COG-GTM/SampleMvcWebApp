@@ -147,6 +147,13 @@ class OpenApiSpecIT extends SqlServerTestBase {
                 .isEqualTo("[\"candidateNumber\",\"sessionId\"]");
         assertThat(spec.at("/components/schemas/EligibilityDto/required").toString())
                 .contains("\"eligible\"", "\"reason\"", "\"earliestRetakeDate\"");
+        assertThat(spec.at("/paths/~1api~1v2~1candidates~1{candidateNumber}~1eligibility/get/parameters").findValuesAsText("name"))
+                .contains("examCode");
+        spec.at("/paths/~1api~1v2~1candidates~1{candidateNumber}~1eligibility/get/parameters").forEach(p -> {
+            if (p.path("name").asText().equals("examCode")) {
+                assertThat(p.path("required").asBoolean()).as("examCode required").isTrue();
+            }
+        });
         assertThat(spec.at("/info/description").asText()).contains("| `NO_ACCOMMODATION_SEAT` | 409 | 50003 |");
     }
 

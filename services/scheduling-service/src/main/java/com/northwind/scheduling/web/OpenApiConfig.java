@@ -90,6 +90,9 @@ public class OpenApiConfig {
 
     static final Set<String> CREATED = Set.of("book", "reschedule");
 
+    /** Query parameters declared optional on the controller that SchedulingService rejects with VALIDATION when missing. */
+    static final Map<String, Set<String>> REQUIRED_PARAMS = Map.of("eligibility", Set.of("examCode"));
+
     /** Response properties that can be JSON null (nullable columns of V1__scheduling_schema.sql). */
     static final Map<String, Set<String>> NULLABLE = Map.of(
             "BookingDto", Set.of("accommodationCode", "externalRef", "cancelledAt", "cancelReason", "waitlistPosition",
@@ -297,6 +300,10 @@ public class OpenApiConfig {
         if (meta != null) {
             op.setTags(List.of(meta[0]));
             op.setSummary(meta[1]);
+        }
+        if (op.getParameters() != null) {
+            Set<String> requiredParams = REQUIRED_PARAMS.getOrDefault(id, Set.of());
+            op.getParameters().stream().filter(p -> requiredParams.contains(p.getName())).forEach(p -> p.setRequired(true));
         }
         ApiResponses responses = op.getResponses();
         if (responses == null) {
