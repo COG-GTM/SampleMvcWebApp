@@ -16,6 +16,30 @@ services/scheduling-contract-tests/run-contract-tests.sh
 - Optional: `mono` + `mcs` to execute the real portal `RetakeRules.cs`.
 - Maven Central rate-limits: use the GCS mirror (`MVNW_REPOURL`, `~/.m2/settings.xml`).
 
+### Targets
+
+The same tests prove legacy and migrated behaviour match. Select with `-Dcontract.target=legacy|scheduling` (or `CONTRACT_TARGET=...` for the script). The script defaults to `scheduling` when `services/scheduling-service` exists and to `legacy` otherwise; plain `mvn test` defaults to `legacy`.
+
+**Legacy mode is only valid on the pre-Phase-2 baseline** (`migration/phase0` / `estate/legacy-baseline`). From Phase 2 on, booking-api and results-service call scheduling-service, which legacy mode does not start, so ResultsAttend, BookingApi and Retake fail there by construction (the script prints a warning).
+
+```bash
+services/scheduling-contract-tests/run-contract-tests.sh                                 # scheduling if services/scheduling-service exists, else legacy
+CONTRACT_TARGET=legacy services/scheduling-contract-tests/run-contract-tests.sh          # legacy: only on migration/phase0 (pre-Phase-2 code)
+```
+
+- **legacy**: as described below; ExamSession/Booking/Waitlist fixtures and assertions use `AssessmentDelivery`.
+- **scheduling**: the container also gets the `Scheduling` DB (`services/scheduling-service/db/bootstrap.sql`), the real `scheduling-service.jar` runs under JDK 21 (import off, relay polling off, reconciler cron off, `scheduling.legacy-seat-accounting=false`), and booking-api/results-service start with `--scheduling.base-url` pointing at it. Reference rows are still written to `AssessmentDelivery` and replicated with `POST /reference/sync`; ExamSession/Booking/Waitlist fixtures, their assertions (`LegacyEstate.sched`) and the `Attempt` twin of each `Result` live in `Scheduling`.
+
+Per-target differences (assertions are otherwise identical):
+
+| Where | legacy | scheduling | Why |
+|---|---|---|---|
+| `BookingApiContractTest` seat counts after a PARTNER BOOKED row | -2 (DAO + trigger 032) | -1 | HB-01 removed on purpose: scheduling-service is the single writer (contract section 6) |
+| `PortalReadContractTest` | runs | skipped | portal EF reads of `AssessmentDelivery` no longer exist once Session 4 rewires the portal; Windows parity checks in `docs/to-be/portal-contract-spec.md` |
+| `RetakeEligibilityContractTest` portal policy | portal SQL + Java/Mono `RetakeRules` | `GET /eligibility/retake?policy=PORTAL_CALENDAR_DAYS` (`portalViaSchedulingService`) | ADR-001: the portal asks scheduling-service; the expected values in `retake-cases.psv` are unchanged |
+
+`BookingApiContractTest` on the scheduling target needs Session 4's booking-api rewiring (run it on `migration/phase2`).
+
 ## Harness
 
 - `support/LegacyEstate` starts **one** SQL Server 2022 container per JVM. It runs `db/apply.sh --no-seed` inside the container (schema, the five procs, all triggers), then launches the **real** legacy `booking-api.jar` and `results-service.jar` under Java 8 on free ports, pointed at the container as `ad_app`. Logs go to `target/legacy-logs/`.

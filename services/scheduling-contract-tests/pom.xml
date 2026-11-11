@@ -13,6 +13,7 @@
     <description>Phase 0 contract tests pinning cross-boundary access to ExamSession/Booking/Waitlist</description>
 
     <properties>
+        <contract.target>legacy</contract.target>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.10.3</junit.version>
@@ -94,6 +95,7 @@
                     <systemPropertyVariables>
                         <legacy.repo.root>${legacy.repo.root}</legacy.repo.root>
                         <legacy.java.home>${legacy.java.home}</legacy.java.home>
+                        <contract.target>${contract.target}</contract.target>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

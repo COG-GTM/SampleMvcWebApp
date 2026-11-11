@@ -21,7 +21,6 @@
     <modules>
         <module>booking-api</module>
         <module>results-service</module>
-        <module>capacity-sync</module>
     </modules>
 
     <properties>

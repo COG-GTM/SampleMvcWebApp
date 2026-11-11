@@ -11,8 +11,6 @@ P-B11|AssessmentDelivery.Services/Booking/BookingService.cs|155|var q = _db.Exam
 P-B11|AssessmentDelivery.Services/Booking/BookingService.cs|156|&& s.SessionId != booking.SessionId && s.StartsAt >= today);
 P-B12|AssessmentDelivery.Services/Booking/BookingService.cs|163|var target = _db.ExamSessions.Include(s => s.Exam).AsNoTracking().SingleOrDefault(s => s.SessionId == newSessionId);
 P-B13|AssessmentDelivery.Services/Booking/BookingService.cs|177|"EXEC dbo.usp_RescheduleBooking @BookingId, @NewSessionId, @NewBookingId OUTPUT, @ResultStatus OUTPUT",
-P-E01|AssessmentDelivery.Services/Eligibility/EligibilityService.cs|32|var attempts = _db.Results
-P-E01|AssessmentDelivery.Services/Eligibility/EligibilityService.cs|34|.Select(r => new PriorAttempt { SessionDate = r.Session.StartsAt, Passed = r.Passed, Score = r.Score })
 P-R01|AssessmentDelivery.Services/Results/ResultsService.cs|21|.OrderByDescending(r => r.Session.StartsAt)
 P-A01|AssessmentDelivery.Services/Admin/AdminService.cs|39|OpenSessionCount = c.Sessions.Count(s => s.Status == "OPEN")
 P-A03|AssessmentDelivery.Services/Admin/AdminService.cs|60|_db.SaveChanges();
@@ -31,15 +29,4 @@ BA-11|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/Se
 BA-14|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/SessionDao.java|79|"SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = ?", Integer.class, sessionId);
 BA-15|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/SessionDao.java|83|jdbcTemplate.update("UPDATE dbo.ExamSession SET SeatsAvailable = SeatsAvailable - 1, LastModified = GETDATE() "
 BA-16|services/booking-api/src/main/java/com/northwind/assessment/booking/service/SeatCounter.java|19|"SELECT COUNT(*) FROM dbo.Booking WHERE SessionId = ? AND Status IN ('BOOKED','ATTENDED')",
-BA-17|services/booking-api/src/main/java/com/northwind/assessment/booking/service/RetakeEligibilityService.java|60|Integer days = jdbcTemplate.queryForObject("SELECT RetakeWaitDays FROM dbo.Exam WHERE ExamId = ?",
-BA-18|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/ResultDao.java|27|+ "FROM dbo.Result r JOIN dbo.ExamSession s ON s.SessionId = r.SessionId "
-RS-01|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|55|+ "FROM dbo.Booking b JOIN dbo.ExamSession s ON s.SessionId = b.SessionId "
-RS-02|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|96|jdbc.update("UPDATE dbo.Booking SET Status = 'ATTENDED', LastModified = GETDATE() "
-RS-02|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|97|+ "WHERE BookingId = ? AND Status = 'BOOKED'", bookingId);
-RS-03|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|161|"SELECT TOP 1 b.BookingId FROM dbo.Booking b JOIN dbo.Candidate c ON c.CandidateId = b.CandidateId "
-RS-05|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|180|+ "JOIN dbo.ExamSession s ON s.SessionId = r.SessionId "
-RS-06|services/results-service/src/main/java/com/northwind/ad/results/service/ScoreFileImporter.java|74|Integer bookingId = ingestService.findBookingId(row.candidateNumber, row.sessionId);
-CS-01|services/capacity-sync/src/main/java/com/northwind/assessment/capacity/CapacitySyncService.java|34|+ "FROM dbo.ExamSession s WHERE s.Status = 'OPEN' ORDER BY s.SessionId";
-CS-02|services/capacity-sync/src/main/java/com/northwind/assessment/capacity/CapacitySyncService.java|65|int n = jdbc.update("UPDATE dbo.ExamSession SET SeatsAvailable = ?, LastModified = GETDATE() "
-CS-03|services/capacity-sync/src/main/java/com/northwind/assessment/capacity/CapacitySyncService.java|96|jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
 X-09|db/procs/030_usp_GetCapacityAudit.sql|36|JOIN dbo.ExamSession s ON s.SessionId = al.EntityId

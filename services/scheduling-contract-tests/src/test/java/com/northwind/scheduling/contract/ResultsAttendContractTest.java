@@ -29,6 +29,7 @@ class ResultsAttendContractTest {
 
     static LegacyEstate estate;
     static Db db;
+    static Db sched;
     static Http rs;
     static Fixtures fx;
     static Ref ref;
@@ -39,8 +40,9 @@ class ResultsAttendContractTest {
     static void up() {
         estate = LegacyEstate.get();
         db = estate.db;
+        sched = estate.sched;
         rs = estate.resultsService;
-        fx = new Fixtures(db);
+        fx = new Fixtures(estate);
         ref = fx.reference(650, 30);
         pastSession = fx.session(ref, LocalDateTime.now().minusDays(2).withHour(9).withMinute(0).withSecond(0).withNano(0),
                 10, 2, 7, "DELIVERED");
@@ -51,11 +53,11 @@ class ResultsAttendContractTest {
     }
 
     static Map<String, Object> booking(int id) {
-        return db.one("SELECT Status, LastModified, Channel, SessionId FROM dbo.Booking WHERE BookingId = ?", id);
+        return sched.one("SELECT Status, LastModified, Channel, SessionId FROM dbo.Booking WHERE BookingId = ?", id);
     }
 
     static int seats(int sessionId) {
-        return db.count("SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = ?", sessionId);
+        return sched.count("SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = ?", sessionId);
     }
 
     @Test
@@ -64,7 +66,7 @@ class ResultsAttendContractTest {
         Cand c = fx.candidate();
         int b = fx.booking(pastSession, c, "BOOKED", BOOKED_AT);
         int seatsBefore = seats(pastSession);
-        int waitBefore = db.count("SELECT COUNT(*) FROM dbo.Waitlist WHERE SessionId = ?", pastSession);
+        int waitBefore = sched.count("SELECT COUNT(*) FROM dbo.Waitlist WHERE SessionId = ?", pastSession);
 
         Resp r = post(b, 700);
 
@@ -79,7 +81,7 @@ class ResultsAttendContractTest {
         assertThat((LocalDateTime) row.get("LastModified")).isAfter(BOOKED_AT);
         assertThat(row.get("Channel")).isEqualTo("PORTAL");
         assertThat(seats(pastSession)).as("ATTENDED transition does not touch SeatsAvailable").isEqualTo(seatsBefore);
-        assertThat(db.count("SELECT COUNT(*) FROM dbo.Waitlist WHERE SessionId = ?", pastSession)).isEqualTo(waitBefore);
+        assertThat(sched.count("SELECT COUNT(*) FROM dbo.Waitlist WHERE SessionId = ?", pastSession)).isEqualTo(waitBefore);
         assertThat(db.one("SELECT CandidateId, ExamId, SessionId, Score, Passed, SourceFile FROM dbo.Result WHERE BookingId = ?", b))
                 .containsEntry("CandidateId", c.candidateId()).containsEntry("ExamId", ref.examId())
                 .containsEntry("SessionId", pastSession).containsEntry("Score", 700).containsEntry("Passed", true)
@@ -145,7 +147,7 @@ class ResultsAttendContractTest {
         assertThat(r.status()).isEqualTo(409);
         assertThat(r.body().get("error").asText()).isEqualTo("BOOKING_NOT_ACTIVE");
         assertThat(booking(b).get("Status")).isEqualTo("WAITLISTED");
-        assertThat(db.count("SELECT COUNT(*) FROM dbo.Waitlist WHERE BookingId = ?", b)).isEqualTo(1);
+        assertThat(sched.count("SELECT COUNT(*) FROM dbo.Waitlist WHERE BookingId = ?", b)).isEqualTo(1);
     }
 
     @Test
@@ -281,8 +283,8 @@ class ResultsAttendContractTest {
         fx.booking(s, b2, "BOOKED", BOOKED_AT);
         String drift = "SELECT (s.Capacity - (SELECT COUNT(*) FROM dbo.Booking b WHERE b.SessionId = s.SessionId "
                 + "AND b.Status IN ('BOOKED','ATTENDED'))) - s.SeatsAvailable AS Drift FROM dbo.ExamSession s WHERE s.SessionId = ?";
-        assertThat(db.count(drift, s)).isZero();
+        assertThat(sched.count(drift, s)).isZero();
         assertThat(post(ba, 700).status()).isEqualTo(201);
-        assertThat(db.count(drift, s)).isZero();
+        assertThat(sched.count(drift, s)).isZero();
     }
 }
