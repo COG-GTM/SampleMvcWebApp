@@ -17,8 +17,11 @@ import java.util.stream.Collectors;
 
 /**
  * Internal seat reconciler: services/capacity-sync CapacitySyncService.runSync absorbed (contract section 6).
- * Keeps its formula, max(0, Capacity - AccommodationCapacity - standard BOOKED/ATTENDED bookings) on OPEN sessions
- * (HB-03, pinned), and its compare-and-set update, so a booking that lands between read and write wins and the next
+ * With scheduling.legacy-seat-accounting=true it keeps capacity-sync's formula,
+ * max(0, Capacity - AccommodationCapacity - standard BOOKED/ATTENDED bookings) on OPEN sessions (HB-03, pinned by the
+ * characterization suite). With the runtime default (false) HB-03 is intentionally removed: every session is set to
+ * the seat-drift.sql definition, Capacity - (BOOKED + ATTENDED), so a run always converges to zero drift.
+ * Both modes keep the compare-and-set update, so a booking that lands between read and write wins and the next
  * run picks the session up. Every run, including failures, gets a ReconcilerRun row and a CAPACITY_SYNC audit row.
  */
 @Service
@@ -27,7 +30,7 @@ public class SeatReconciler {
     private static final Logger LOG = LoggerFactory.getLogger(SeatReconciler.class);
 
     public record Run(int runId, String trigger, String status, LocalDateTime startedAt, LocalDateTime finishedAt,
-                      int checked, int updated, int skipped, String error) {
+                      int checked, int updated, int skipped, String error, String actor) {
     }
 
     public static final class AlreadyRunning extends RuntimeException {
@@ -41,15 +44,22 @@ public class SeatReconciler {
             + "AND (b.AccommodationCode IS NULL OR b.AccommodationCode NOT IN ('ET25','ET50'))) AS StandardBooked "
             + "FROM dbo.ExamSession s WHERE s.Status = 'OPEN'";
 
+    private static final String SELECT_ALL = "SELECT s.SessionId, s.Capacity, s.SeatsAvailable, "
+            + "(SELECT COUNT(*) FROM dbo.Booking b WHERE b.SessionId = s.SessionId AND b.Status IN ('BOOKED','ATTENDED')) "
+            + "AS ActiveBookings FROM dbo.ExamSession s WHERE 1 = 1";
+
     private final JdbcTemplate jdbc;
     private final Audit audit;
     private final String actor;
+    private final boolean legacyFormula;
     private final AtomicBoolean running = new AtomicBoolean();
 
-    public SeatReconciler(JdbcTemplate jdbc, Audit audit, @Value("${scheduling.reconciler.actor:capacity-sync}") String actor) {
+    public SeatReconciler(JdbcTemplate jdbc, Audit audit, @Value("${scheduling.reconciler.actor:capacity-sync}") String actor,
+                          @Value("${scheduling.legacy-seat-accounting:false}") boolean legacyFormula) {
         this.jdbc = jdbc;
         this.audit = audit;
         this.actor = actor;
+        this.legacyFormula = legacyFormula;
     }
 
     @Scheduled(cron = "${scheduling.reconciler.cron:-}")
@@ -84,7 +94,7 @@ public class SeatReconciler {
         String status = "OK";
         String error = null;
         try {
-            String sql = SELECT_OPEN;
+            String sql = legacyFormula ? SELECT_OPEN : SELECT_ALL;
             if (sessionIds != null) {
                 if (sessionIds.isEmpty()) {
                     sql += " AND 1 = 0";
@@ -97,10 +107,13 @@ public class SeatReconciler {
             for (Map<String, Object> s : sessions) {
                 int sessionId = num(s, "SessionId");
                 int current = num(s, "SeatsAvailable");
-                int expected = Math.max(0, num(s, "Capacity") - num(s, "AccommodationCapacity") - num(s, "StandardBooked"));
+                int expected = legacyFormula
+                        ? Math.max(0, num(s, "Capacity") - num(s, "AccommodationCapacity") - num(s, "StandardBooked"))
+                        : num(s, "Capacity") - num(s, "ActiveBookings");
                 if (expected != current) {
                     int n = jdbc.update("UPDATE dbo.ExamSession SET SeatsAvailable = ?, LastModified = GETDATE() "
-                            + "WHERE SessionId = ? AND Status = 'OPEN' AND SeatsAvailable = ?", expected, sessionId, current);
+                            + "WHERE SessionId = ? AND SeatsAvailable = ?" + (legacyFormula ? " AND Status = 'OPEN'" : ""),
+                            expected, sessionId, current);
                     if (n == 1) {
                         updated++;
                     } else {
@@ -125,17 +138,17 @@ public class SeatReconciler {
                 + "Updated, Skipped, Error, Actor) OUTPUT INSERTED.RunId VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", Integer.class,
                 trigger, status, started, finished, checked, updated, skipped, error, auditActor);
         LOG.info("Seat reconciler ({}) {}: checked={} updated={} skipped={}", trigger, status, checked, updated, skipped);
-        return new Run(runId, trigger, status, started, finished, checked, updated, skipped, error);
+        return new Run(runId, trigger, status, started, finished, checked, updated, skipped, error, auditActor);
     }
 
     public List<Run> runs(LocalDateTime from, LocalDateTime to, int max) {
-        return jdbc.query("SELECT TOP (?) RunId, TriggerType, Status, StartedAt, FinishedAt, Checked, Updated, Skipped, Error "
+        return jdbc.query("SELECT TOP (?) RunId, TriggerType, Status, StartedAt, FinishedAt, Checked, Updated, Skipped, Error, Actor "
                         + "FROM dbo.ReconcilerRun WHERE (? IS NULL OR StartedAt >= ?) AND (? IS NULL OR StartedAt < ?) "
                         + "ORDER BY RunId DESC",
                 (rs, i) -> new Run(rs.getInt(1), rs.getString(2), rs.getString(3),
                         rs.getTimestamp(4).toLocalDateTime(),
                         rs.getTimestamp(5) == null ? null : rs.getTimestamp(5).toLocalDateTime(),
-                        rs.getInt(6), rs.getInt(7), rs.getInt(8), rs.getString(9)),
+                        rs.getInt(6), rs.getInt(7), rs.getInt(8), rs.getString(9), rs.getString(10)),
                 max, from, from, to, to);
     }
 

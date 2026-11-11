@@ -88,13 +88,14 @@ public class LegacyImporter implements SmartInitializingSingleton {
         int[] counts = new int[COPIES.size()];
         tx.executeWithoutResult(s -> {
             if (replace) {
-                for (String t : List.of("Waitlist", "Booking", "ExamSession", "AuditLog", "Attempt")) {
+                for (String t : List.of("Waitlist", "Booking", "ExamSession", "AuditLog", "Attempt", "ReconcilerRun")) {
                     jdbc.update("DELETE FROM dbo." + t);
                 }
             }
             for (int i = 0; i < COPIES.size(); i++) {
                 counts[i] = copy(src, COPIES.get(i));
             }
+            seedReconcilerRuns(!replace);
             jdbc.update("INSERT INTO dbo.ImportRun (Sessions, Bookings, WaitlistRows, AuditRows, Attempts) VALUES (?, ?, ?, ?, ?)",
                     counts[0], counts[1], counts[2], counts[3], counts[4]);
         });
@@ -130,5 +131,35 @@ public class LegacyImporter implements SmartInitializingSingleton {
             }
         }
         return rows.size();
+    }
+
+    private static final java.util.regex.Pattern SYNC_DETAIL = java.util.regex.Pattern.compile(
+            "trigger=(\\S+) status=(\\S+) checked=(\\d+) updated=(\\d+)");
+
+    /** Pre-cutover capacity-sync runs exist only as CAPACITY_SYNC audit rows; rebuild run history from them. */
+    public int seedReconcilerRuns(boolean onlyIfEmpty) {
+        if (onlyIfEmpty) {
+            Integer existing = jdbc.queryForObject("SELECT COUNT(*) FROM dbo.ReconcilerRun", Integer.class);
+            if (existing != null && existing > 0) {
+                return 0;
+            }
+        }
+        List<Object[]> runs = new ArrayList<>();
+        for (Map<String, Object> a : jdbc.queryForList("SELECT Detail, Actor, LoggedAt FROM dbo.AuditLog "
+                + "WHERE EntityName = 'ExamSession' AND Action = 'CAPACITY_SYNC' ORDER BY AuditId")) {
+            java.util.regex.Matcher m = SYNC_DETAIL.matcher(String.valueOf(a.get("Detail")));
+            if (!m.find()) {
+                continue;
+            }
+            String status = "COMPLETED".equals(m.group(2)) ? "OK" : m.group(2);
+            runs.add(new Object[] {m.group(1), status.length() > 10 ? status.substring(0, 10) : status, a.get("LoggedAt"),
+                    a.get("LoggedAt"), Integer.valueOf(m.group(3)), Integer.valueOf(m.group(4)), a.get("Actor")});
+        }
+        if (!runs.isEmpty()) {
+            jdbc.batchUpdate("INSERT INTO dbo.ReconcilerRun (TriggerType, Status, StartedAt, FinishedAt, Checked, Updated, "
+                    + "Skipped, Actor) VALUES (?, ?, ?, ?, ?, ?, 0, ?)", runs);
+        }
+        LOG.info("Seeded {} reconciler runs from legacy CAPACITY_SYNC audit rows", runs.size());
+        return runs.size();
     }
 }
