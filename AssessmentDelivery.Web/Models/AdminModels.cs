@@ -35,6 +35,8 @@ namespace AssessmentDelivery.Web.Models
         public IList<CapacityAuditRow> Rows { get; set; }
         public IList<AdminSessionRow> Sessions { get; set; }
         public IList<CapacitySyncRunRow> SyncRuns { get; set; }
+        /// <summary>More runs exist in the period than SyncRuns shows (newest 50 only).</summary>
+        public bool SyncRunsTruncated { get; set; }
     }
 
     public class EditCenterViewModel

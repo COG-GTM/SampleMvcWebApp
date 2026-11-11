@@ -121,4 +121,8 @@
             }
         </tbody>
     </table>
+    @if (Model.SyncRunsTruncated)
+    {
+        <div class="nw-panel-body nw-muted" id="sync-truncated">Showing the newest @Model.SyncRuns.Count runs only; narrow the date range to see older runs.</div>
+    }
 </div>

@@ -101,6 +101,9 @@ namespace AssessmentDelivery.Web.Controllers
 
             var range = CapacityAuditRange.Create(DateTime.Today, from, to, page);
             var audit = _admin.GetCapacityAudit(id, range.From, range.ToExclusive, sessionId, range.Page, CapacityAuditRange.PageSize);
+            var syncRuns = _admin.ListCapacitySyncRuns(range.From, range.ToExclusive, CapacityAuditRange.PageSize + 1);
+            var syncTruncated = syncRuns.Count > CapacityAuditRange.PageSize;
+            if (syncTruncated) syncRuns.RemoveAt(syncRuns.Count - 1);
             return View(new CapacityAuditViewModel
             {
                 Center = center,
@@ -112,7 +115,8 @@ namespace AssessmentDelivery.Web.Controllers
                 TotalRows = audit.TotalRows,
                 Rows = audit.Rows,
                 Sessions = _admin.ListSessions(id),
-                SyncRuns = _admin.ListCapacitySyncRuns(range.From, range.ToExclusive, CapacityAuditRange.PageSize)
+                SyncRuns = syncRuns,
+                SyncRunsTruncated = syncTruncated
             });
         }
 
