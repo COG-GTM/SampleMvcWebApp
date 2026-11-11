@@ -62,6 +62,8 @@
   <ItemGroup>
     <Compile Include="Admin\AdminService.cs" />
     <Compile Include="Admin\AdminSessionRow.cs" />
+    <Compile Include="Admin\CapacityAuditRow.cs" />
+    <Compile Include="Admin\CapacitySyncRunRow.cs" />
     <Compile Include="Admin\CenterListItem.cs" />
     <Compile Include="Admin\IAdminService.cs" />
     <Compile Include="Booking\BookingListItem.cs" />

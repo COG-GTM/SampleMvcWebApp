@@ -1,4 +1,6 @@
+using System;
 using System.Web.Mvc;
+using AssessmentDelivery.Business.Rules;
 using AssessmentDelivery.Services.Admin;
 using AssessmentDelivery.Services.Common;
 using AssessmentDelivery.Web.Models;
@@ -90,6 +92,28 @@ namespace AssessmentDelivery.Web.Controllers
 
             TempData["message"] = "Capacity updated";
             return RedirectToAction("Capacity", new { id });
+        }
+
+        public ActionResult CapacityAudit(int id, DateTime? from, DateTime? to, int? sessionId, int? page)
+        {
+            var center = _admin.GetCenter(id);
+            if (center == null) return HttpNotFound();
+
+            var range = CapacityAuditRange.Create(DateTime.Today, from, to, page);
+            var audit = _admin.GetCapacityAudit(id, range.From, range.ToExclusive, sessionId, range.Page, CapacityAuditRange.PageSize);
+            return View(new CapacityAuditViewModel
+            {
+                Center = center,
+                From = range.From,
+                To = range.To,
+                SessionId = sessionId,
+                Page = range.Page,
+                PageCount = CapacityAuditRange.PageCount(audit.TotalRows),
+                TotalRows = audit.TotalRows,
+                Rows = audit.Rows,
+                Sessions = _admin.ListSessions(id),
+                SyncRuns = _admin.ListCapacitySyncRuns(range.From, range.ToExclusive, CapacityAuditRange.PageSize)
+            });
         }
 
         private CapacityViewModel BuildCapacityModel(int sessionId)

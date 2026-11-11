@@ -89,6 +89,53 @@ namespace AssessmentDelivery.Services.Admin
             }
         }
 
+        public CapacityAuditResult GetCapacityAudit(int centerId, DateTime from, DateTime toExclusive, int? sessionId, int pageNumber, int pageSize)
+        {
+            var rows = _db.Database.SqlQuery<CapacityAuditRow>(
+                "EXEC dbo.usp_GetCapacityAudit @TestCenterId, @From, @To, @SessionId, @PageNumber, @PageSize",
+                new SqlParameter("@TestCenterId", centerId),
+                new SqlParameter("@From", SqlDbType.DateTime) { Value = from },
+                new SqlParameter("@To", SqlDbType.DateTime) { Value = toExclusive },
+                new SqlParameter("@SessionId", SqlDbType.Int) { Value = sessionId.HasValue ? (object)sessionId.Value : DBNull.Value },
+                new SqlParameter("@PageNumber", pageNumber),
+                new SqlParameter("@PageSize", pageSize)).ToList();
+
+            foreach (var row in rows)
+            {
+                var parsed = CapacityAuditDetail.TryParse(row.Detail);
+                row.OldCapacity = parsed == null ? (int?)null : parsed.OldCapacity;
+                row.NewCapacity = parsed == null ? (int?)null : parsed.NewCapacity;
+                row.Delta = parsed == null ? (long?)null : parsed.Delta;
+            }
+            return new CapacityAuditResult { Rows = rows, TotalRows = rows.Count == 0 ? 0 : rows[0].TotalRows };
+        }
+
+        public IList<CapacitySyncRunRow> ListCapacitySyncRuns(DateTime from, DateTime toExclusive, int max)
+        {
+            var raw = _db.AuditLogs.AsNoTracking()
+                .Where(a => a.EntityName == "ExamSession" && a.Action == "CAPACITY_SYNC"
+                            && a.LoggedAt >= from && a.LoggedAt < toExclusive)
+                .OrderByDescending(a => a.LoggedAt).ThenByDescending(a => a.AuditId)
+                .Take(max)
+                .ToList();
+
+            return raw.Select(a =>
+            {
+                var d = CapacitySyncDetail.Parse(a.Detail);
+                return new CapacitySyncRunRow
+                {
+                    AuditId = a.AuditId,
+                    LoggedAt = a.LoggedAt,
+                    Actor = a.Actor,
+                    Detail = a.Detail,
+                    Trigger = d.Trigger,
+                    Status = d.Status,
+                    SessionsChecked = d.Checked,
+                    SessionsUpdated = d.Updated
+                };
+            }).ToList();
+        }
+
         private IList<AdminSessionRow> Load(IQueryable<ExamSession> q)
         {
             var raw = q.OrderBy(s => s.StartsAt)

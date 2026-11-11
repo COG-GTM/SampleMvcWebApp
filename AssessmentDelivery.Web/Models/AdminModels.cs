@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using AssessmentDelivery.Data.DataClasses.Entities;
@@ -20,6 +21,20 @@ namespace AssessmentDelivery.Web.Models
         [Required, Range(0, 500)]
         [Display(Name = "New capacity")]
         public int NewCapacity { get; set; }
+    }
+
+    public class CapacityAuditViewModel
+    {
+        public TestCenter Center { get; set; }
+        public DateTime From { get; set; }
+        public DateTime To { get; set; }
+        public int? SessionId { get; set; }
+        public int Page { get; set; }
+        public int PageCount { get; set; }
+        public int TotalRows { get; set; }
+        public IList<CapacityAuditRow> Rows { get; set; }
+        public IList<AdminSessionRow> Sessions { get; set; }
+        public IList<CapacitySyncRunRow> SyncRuns { get; set; }
     }
 
     public class EditCenterViewModel
