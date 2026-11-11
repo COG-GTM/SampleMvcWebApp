@@ -853,7 +853,10 @@ components:
           nullable: true
         bookedAt:
           type: string
-          format: date-time
+          description: "Local date-time at the test centre, ISO-8601 without offset\
+            \ (see the centre's timeZone)"
+          example: 2026-11-10T09:15:00
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
         bookingId:
           type: integer
           format: int32
@@ -863,8 +866,10 @@ components:
           nullable: true
         cancelledAt:
           type: string
-          format: date-time
+          description: "Local date-time at the test centre, ISO-8601 without offset\
+            \ (see the centre's timeZone)"
           nullable: true
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
         candidateName:
           type: string
           example: First20 Last20
@@ -904,7 +909,10 @@ components:
           example: 154
         sessionStartsAt:
           type: string
-          format: date-time
+          description: "Local date-time at the test centre, ISO-8601 without offset\
+            \ (see the centre's timeZone)"
+          example: 2026-11-12T13:30:00
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
         status:
           type: string
           enum:
@@ -995,7 +1003,10 @@ components:
       properties:
         changedAt:
           type: string
-          format: date-time
+          description: "Local date-time at the test centre, ISO-8601 without offset\
+            \ (see the centre's timeZone)"
+          example: 2026-11-10T09:15:00
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
         changedBy:
           type: string
           example: scheduling-service
@@ -1202,7 +1213,10 @@ components:
           example: 154
         startsAt:
           type: string
-          format: date-time
+          description: "Local date-time at the test centre, ISO-8601 without offset\
+            \ (see the centre's timeZone)"
+          example: 2026-11-12T13:30:00
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
         status:
           type: string
           enum:
@@ -1239,7 +1253,10 @@ components:
           nullable: true
         addedAt:
           type: string
-          format: date-time
+          description: "Local date-time at the test centre, ISO-8601 without offset\
+            \ (see the centre's timeZone)"
+          example: 2026-11-10T09:15:00
+          pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$"
         bookingId:
           type: integer
           format: int32

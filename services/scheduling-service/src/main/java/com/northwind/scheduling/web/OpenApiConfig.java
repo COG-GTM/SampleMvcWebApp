@@ -44,6 +44,7 @@ public class OpenApiConfig {
 
     static final String API_VERSION = "2.0.0";
     static final String ERROR_SCHEMA = "ApiError";
+    static final String LOCAL_DATE_TIME_PATTERN = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$";
 
     /** Error codes each operation can answer with (SchedulingService, domain rules, ApiExceptionHandler). */
     static final Map<String, List<ErrorCode>> ERRORS = Map.ofEntries(
@@ -238,6 +239,10 @@ public class OpenApiConfig {
             return;
         }
         Map<String, Schema> props = schema.getProperties();
+        // LocalDateTime is the centre's wall-clock time without offset, not an RFC 3339 date-time
+        props.replaceAll((p, ps) -> "date-time".equals(ps.getFormat()) ? new StringSchema()
+                .pattern(LOCAL_DATE_TIME_PATTERN)
+                .description("Local date-time at the test centre, ISO-8601 without offset (see the centre's timeZone)") : ps);
         if (name.endsWith("Dto")) {
             // Jackson default-property-inclusion: always -> every response property is always present
             schema.setRequired(new ArrayList<>(new TreeMap<>(props).keySet()));

@@ -154,6 +154,10 @@ class OpenApiSpecIT extends SqlServerTestBase {
                 assertThat(p.path("required").asBoolean()).as("examCode required").isTrue();
             }
         });
+        assertThat(spec.toString()).as("LocalDateTime has no offset, so no RFC 3339 date-time").doesNotContain("\"date-time\"");
+        JsonNode startsAt = spec.at("/components/schemas/SessionDto/properties/startsAt");
+        assertThat(startsAt.path("type").asText()).isEqualTo("string");
+        assertThat(startsAt.path("example").asText()).matches(startsAt.path("pattern").asText());
         assertThat(spec.at("/info/description").asText()).contains("| `NO_ACCOMMODATION_SEAT` | 409 | 50003 |");
     }
 
