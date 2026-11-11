@@ -1,0 +1,41 @@
+@model AssessmentDelivery.Web.Models.EditCenterViewModel
+@{
+    ViewBag.Title = "Edit Centre";
+    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Centers") + "\">Test Centres</a> &raquo; " + Html.Encode(Model.CenterCode) + " &raquo; Edit";
+}
+<div class="nw-page-head"><h2>Edit centre @Model.CenterCode</h2></div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="nw-panel">
+            <div class="nw-panel-heading">Centre details</div>
+            <div class="nw-panel-body">
+                @using (Html.BeginForm("EditCenter", "Admin", FormMethod.Post, new { @class = "form-horizontal nw-form" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(false, "", new { @class = "alert alert-danger nw-alert" })
+                    @Html.HiddenFor(m => m.TestCenterId)
+                    @Html.HiddenFor(m => m.CenterCode)
+                    <div class="form-group">
+                        <label class="col-sm-3 control-label">Centre code</label>
+                        <div class="col-sm-9"><p class="form-control-static">@Model.CenterCode</p></div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(m => m.Name, new { @class = "col-sm-3 control-label" })
+                        <div class="col-sm-9">@Html.TextBoxFor(m => m.Name, new { @class = "form-control input-sm" })</div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-sm-offset-3 col-sm-9">
+                            <label class="checkbox-inline">@Html.CheckBoxFor(m => m.IsActive) Active (accepts new sessions)</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-sm-offset-3 col-sm-9">
+                            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                            @Html.ActionLink("Cancel", "Centers", null, new { @class = "btn btn-default btn-sm" })
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

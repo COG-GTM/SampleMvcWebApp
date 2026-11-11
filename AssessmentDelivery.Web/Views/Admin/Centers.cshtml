@@ -1,0 +1,51 @@
+@model IList<AssessmentDelivery.Services.Admin.CenterListItem>
+@{
+    ViewBag.Title = "Test Centres";
+}
+<div class="nw-page-head">
+    <h2>Test Centres</h2>
+    <span class="nw-sub">@Model.Count centre(s) &middot; @Model.Count(c => c.IsActive) active &middot; @Model.Sum(c => c.SessionCount) scheduled sessions</span>
+</div>
+<div class="nw-panel">
+    <div class="nw-panel-heading">Centre list <span class="pull-right nw-muted">Click a centre code to view its sessions</span></div>
+    <table class="table table-condensed table-striped nw-grid">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Centre name</th>
+                <th>City</th>
+                <th>Region</th>
+                <th>Time zone</th>
+                <th class="num">Rooms</th>
+                <th class="num">Sessions</th>
+                <th class="num">Open</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in Model)
+            {
+                <tr class="@(c.IsActive ? "" : "nw-inactive")">
+                    <td><a href="@Url.Action("Sessions", new { centerId = c.TestCenterId })"><strong>@c.CenterCode</strong></a></td>
+                    <td>@c.Name</td>
+                    <td>@c.City</td>
+                    <td>@c.Region</td>
+                    <td class="nw-muted">@c.TimeZone</td>
+                    <td class="num">@c.RoomCount</td>
+                    <td class="num">@c.SessionCount</td>
+                    <td class="num">@c.OpenSessionCount</td>
+                    <td>@if (c.IsActive) { <span class="pill pill-open">ACTIVE</span> } else { <span class="pill pill-cancelled">INACTIVE</span> }</td>
+                    <td class="nw-actions">
+                        <a href="@Url.Action("Sessions", new { centerId = c.TestCenterId })">Sessions</a> |
+                        @Html.ActionLink("Edit", "EditCenter", new { id = c.TestCenterId })
+                    </td>
+                </tr>
+            }
+            @if (Model.Count == 0)
+            {
+                <tr><td colspan="10" class="nw-empty">No test centres found.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>

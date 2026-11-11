@@ -1,0 +1,72 @@
+@{
+    var controller = (string)ViewContext.RouteData.Values["controller"];
+    var action = (string)ViewContext.RouteData.Values["action"];
+    Func<string, string, string> tab = (c, a) => (c == controller && (a == null || a == action)) ? "active" : "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - Assessment Delivery Portal</title>
+    @Styles.Render("~/Content/css")
+    @Scripts.Render("~/bundles/modernizr")
+</head>
+<body>
+    <div class="nw-topbar">
+        <div class="container-fluid">
+            <span class="pull-right nw-topbar-info">
+                Environment: <span class="nw-env">@Html.EnvironmentName()</span>
+                &nbsp;|&nbsp; Operator console &nbsp;|&nbsp; @DateTime.Now.ToString("ddd dd MMM yyyy HH:mm")
+            </span>
+            <span>Northwind Assessment Network &mdash; internal use only</span>
+        </div>
+    </div>
+    <div class="nw-header">
+        <div class="container-fluid">
+            <a class="nw-brand" href="@Url.Action("Centers", "Admin")">
+                <span class="nw-logo"><span>N</span></span>
+                <span class="nw-brand-text">
+                    <span class="nw-brand-org">Northwind Assessment Network</span>
+                    <span class="nw-brand-product">Assessment Delivery Portal</span>
+                </span>
+            </a>
+            <form class="nw-quickfind pull-right" method="get" action="@Url.Action("MyBookings", "Booking")">
+                <label for="qf">Candidate lookup</label>
+                <input type="text" id="qf" name="candidateNumber" placeholder="NW00000000" class="input-sm" />
+                <button type="submit" class="btn btn-xs btn-default">Go</button>
+            </form>
+        </div>
+    </div>
+    <div class="nw-tabs">
+        <div class="container-fluid">
+            <ul class="nav nav-tabs">
+                <li class="@tab("Admin", null)"><a href="@Url.Action("Centers", "Admin")"><span class="glyphicon glyphicon-home"></span> Centre Admin</a></li>
+                <li class="@tab("Booking", null)"><a href="@Url.Action("Index", "Booking")"><span class="glyphicon glyphicon-calendar"></span> Bookings</a></li>
+                <li class="@tab("Eligibility", null)"><a href="@Url.Action("Index", "Eligibility")"><span class="glyphicon glyphicon-check"></span> Eligibility</a></li>
+                <li class="@tab("Results", null)"><a href="@Url.Action("Index", "Results")"><span class="glyphicon glyphicon-list-alt"></span> Results</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="container-fluid nw-body">
+        @if (ViewBag.Breadcrumb != null)
+        {
+            <div class="nw-crumbs">@Html.Raw(ViewBag.Breadcrumb)</div>
+        }
+        @if (TempData["message"] != null)
+        {
+            <div class="alert alert-success nw-alert">@TempData["message"]</div>
+        }
+        @RenderBody()
+    </div>
+    <div class="nw-footer">
+        <div class="container-fluid">
+            <span class="pull-right">Assessment Delivery Portal v@(Html.PortalVersion()) &nbsp;|&nbsp; Server @Environment.MachineName</span>
+            <span>(c) Northwind Assessment Network 2011-@DateTime.Now.Year. All rights reserved. Support: ext. 4410 / ops-helpdesk</span>
+        </div>
+    </div>
+    @Scripts.Render("~/bundles/javascript")
+    @RenderSection("scripts", required: false)
+</body>
+</html>

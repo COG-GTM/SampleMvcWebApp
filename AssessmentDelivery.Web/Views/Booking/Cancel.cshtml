@@ -1,0 +1,34 @@
+@model AssessmentDelivery.Web.Models.CancelViewModel
+@{
+    ViewBag.Title = "Cancel Booking";
+    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("MyBookings", new { candidateNumber = Model.CandidateNumber }) + "\">My bookings</a> &raquo; Cancel booking " + Model.Booking.BookingId;
+}
+<div class="nw-page-head"><h2>Cancel booking <small>#@Model.Booking.BookingId</small></h2></div>
+<div class="row">
+    <div class="col-md-7">
+        <div class="nw-panel">
+            <div class="nw-panel-heading">Booking</div>
+            <table class="table table-condensed nw-detail">
+                <tr><th>Exam</th><td><strong>@Model.Booking.ExamCode</strong> &ndash; @Model.Booking.ExamTitle</td></tr>
+                <tr><th>Centre</th><td>@Model.Booking.CenterName</td></tr>
+                <tr><th>Start</th><td>@Model.Booking.StartsAt.ToString("dddd dd MMM yyyy HH:mm")</td></tr>
+                <tr><th>Status</th><td>@Html.StatusPill(Model.Booking.Status)</td></tr>
+                <tr><th>Channel</th><td>@Model.Booking.Channel</td></tr>
+            </table>
+            <div class="nw-panel-body">
+                @using (Html.BeginForm("Cancel", "Booking", new { id = Model.Booking.BookingId }, FormMethod.Post, new { @class = "nw-form" }))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(false, "", new { @class = "alert alert-danger nw-alert" })
+                    @Html.HiddenFor(m => m.CandidateNumber)
+                    <div class="form-group">
+                        <label for="Reason">Reason (optional)</label>
+                        @Html.TextBoxFor(m => m.Reason, new { @class = "form-control input-sm", maxlength = "200" })
+                    </div>
+                    <button type="submit" class="btn btn-danger btn-sm">Cancel booking</button>
+                    @Html.ActionLink("Keep booking", "MyBookings", new { candidateNumber = Model.CandidateNumber }, new { @class = "btn btn-default btn-sm" })
+                }
+            </div>
+        </div>
+    </div>
+</div>
