@@ -9,7 +9,118 @@
 #   "NOT REPLAYABLE (retired legacy surface)" with the reason and the transcripts that cover the behaviour on the
 #   modern stack. Never counted as MATCH.
 
-adr_divergences: []
+adr_divergences:
+  - transcript: book_open_session_partner
+    adr: "section 1 (transcript listed)"
+    reason: >-
+      Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: last_seat_negative_counter_partner
+    adr: "section 1 (transcript listed)"
+    reason: >-
+      Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: cancel_then_new_booker_gets_seat_partner
+    adr: "section 1 (transcript listed)"
+    reason: >-
+      Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: accommodation_sr_rb_not_counted_partner
+    adr: "section 1 (transcript listed)"
+    reason: >-
+      Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: book_inactive_center_partner
+    adr: "section 1 (transcript listed)"
+    reason: >-
+      Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: reschedule_same_exam_partner
+    adr: "section 1 (transcript listed)"
+    reason: >-
+      Partner bookings take one seat (no double decrement): the derived count differs from the legacy SeatsAvailable counter after a partner booking.
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: accommodation_capacity_exhausted_partner
+    adr: "section 1 (rule; transcript not on the section 1 list)"
+    reason: >-
+      Setup includes a partner v1 booking; ADR rule 1 (no partner double decrement, derived seats) is the only difference.
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: capacity_increase_admin
+    adr: "section 1 (rule; transcript not on the section 1 list)"
+    reason: >-
+      Setup includes a partner v1 booking; ADR rule 1 (no partner double decrement, derived seats) is the only difference.
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: capacity_decrease_above_active_admin
+    adr: "section 1 (rule; transcript not on the section 1 list)"
+    reason: >-
+      Setup includes a partner v1 booking; ADR rule 1 (no partner double decrement, derived seats) is the only difference.
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: capacity_decrease_below_active_admin
+    adr: "section 1 (rule; transcript not on the section 1 list)"
+    reason: >-
+      Setup includes a partner v1 booking; ADR rule 1 (no partner double decrement, derived seats) is the only difference.
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: capacity_raise_then_lower_admin
+    adr: "section 1 (rule; transcript not on the section 1 list)"
+    reason: >-
+      Setup includes a partner v1 booking; ADR rule 1 (no partner double decrement, derived seats) is the only difference.
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: accommodation_blank_uses_default_partner
+    adr: "sections 6a + 1 (transcript listed in 6a)"
+    reason: >-
+      Partner blank accommodation books with no accommodation on both estates (6a); the only difference is the derived seat count (1).
+    fields: ["business.seatsAvailable", "db_state.examSession."]
+  - transcript: accommodation_blank_uses_default_portal
+    adr: "section 6a (transcript listed)"
+    reason: >-
+      The API books exactly what it is sent; the legacy portal substituted the candidate DefaultAccommodationCode server-side (the modern UI pre-fills it in the form instead, which an API-level replay does not exercise).
+    fields: ["db_state.bookings.462[1].accommodation"]
+  - transcript: reschedule_same_session_portal
+    adr: "section 6b (transcript listed)"
+    reason: >-
+      Same-session reschedule is rejected with 409 SAME_SESSION for every channel; usp_RescheduleBooking re-booked the same seat.
+    fields: ["business.bookingId", "business.error", "business.outcome", "db_state.bookings.462"]
+    signature: {error: SAME_SESSION}
+  - transcript: capacity_sync_fresh_seed_system
+    adr: "section 3 (transcript listed)"
+    reason: >-
+      Formula A everywhere; capacity-sync no longer rewrites seats with formula B, so the sync run reports no drift (and section 1 removes the partner drift it used to heal).
+    fields: ["business.driftSessions", "business.totalDrift"]
+  - transcript: capacity_sync_with_accommodation_bookings
+    adr: "section 3 (transcript listed)"
+    reason: >-
+      Formula A everywhere; capacity-sync no longer rewrites seats with formula B, so the sync run reports no drift (and section 1 removes the partner drift it used to heal).
+    fields: ["business.driftSessions", "business.totalDrift"]
+
+mismatch_root_causes:
+  - transcript: cancel_on_delivered_session_portal
+    root_cause: &cancel >-
+      Blank cancel reason: scheduling-service stores DEFAULT_CANCEL_REASON "Cancelled"
+      (SchedulingService.DEFAULT_CANCEL_REASON); the legacy portal (usp_CancelBooking @Reason NULL) stored NULL.
+      Not recorded in ADR 0002; booking status, seats and waitlist match.
+  - transcript: cancel_other_candidates_booking_portal
+    root_cause: *cancel
+  - transcript: cancel_then_new_booker_gets_seat_portal
+    root_cause: *cancel
+  - transcript: reschedule_same_exam_portal
+    root_cause: >-
+      The modern reschedule copies the original booking's ExternalRef onto the replacement booking; the legacy
+      portal path (usp_RescheduleBooking) inserted the new booking without one. Not recorded in ADR 0002.
+  - transcript: accommodation_unknown_code_portal
+    root_cause: >-
+      Both estates reject the unknown code and book nothing; the legacy portal showed a generic error page
+      (PORTAL_ERROR, no code), the modern API answers 400 VALIDATION. Error vocabulary only, not recorded in ADR 0002.
+  - transcript: capacity_negative_admin
+    root_cause: >-
+      Both estates reject capacity -1 and change nothing; the legacy portal showed a generic error (PORTAL_ERROR),
+      the modern API answers 400 VALIDATION with legacyCode 50005 (usp_ChangeCapacity's state for an invalid
+      capacity). Error vocabulary only, not recorded in ADR 0002.
+  - transcript: mixed_traffic_then_capacity_sync
+    root_cause: >-
+      Consequence of ADR sections 1 and 3: in the legacy run the partner double decrement made sessions 154/157
+      look full, so later bookings were waitlisted and capacity-sync reported drift (112 sessions); on the modern
+      stack those bookings are seated, nothing is waitlisted and there is no drift. Booking/waitlist state differs,
+      which the ADR does not list for this transcript, so it stays a MISMATCH.
 
 not_replayable:
   - transcript: book_passed_candidate_proc_db

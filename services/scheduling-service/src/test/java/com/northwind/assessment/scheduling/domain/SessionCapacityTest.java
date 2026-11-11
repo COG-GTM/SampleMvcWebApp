@@ -280,8 +280,22 @@ class SessionCapacityTest {
                 slot(1, 1, BookingStatus.ATTENDED, null, 50),
                 slot(2, 2, BookingStatus.ATTENDED, null, 60),
                 slot(3, 3, BookingStatus.BOOKED, null, 0));
-        CapacityChange c = s.changeCapacity(1, AccommodationFloorPolicy.ALLOCATED);
+        CapacityChange c = s.changeCapacity(0, AccommodationFloorPolicy.ALLOCATED);
         assertThat(c.bumpedBookingIds()).containsExactly(3L);
+        assertThat(s.seatsAvailable()).isZero();
+    }
+
+    @Test
+    void trg_ExamSession_Update_onlyBookedCountAgainstNewCapacity_deliveredSessionWithAttendedBumpsNobody() {
+        // capacity_decrease_delivered_with_attended_admin: 2 ATTENDED + 1 BOOKED, capacity 3 -> 1; BOOKED (1) fits in 1.
+        SessionCapacity s = open(3,
+                0,
+                slot(1, 1, BookingStatus.ATTENDED, null, 50),
+                slot(2, 2, BookingStatus.ATTENDED, null, 60),
+                slot(3, 3, BookingStatus.BOOKED, null, 0));
+        CapacityChange c = s.changeCapacity(1, AccommodationFloorPolicy.ALLOCATED);
+        assertThat(c.bumpedBookingIds()).isEmpty();
+        assertThat(s.waitlist()).isEmpty();
         assertThat(s.seatsAvailable()).isZero();
     }
 

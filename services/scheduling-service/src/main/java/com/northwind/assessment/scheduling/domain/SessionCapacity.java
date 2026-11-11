@@ -186,7 +186,8 @@ public final class SessionCapacity {
         floorPolicy.check(newCapacity, accommodationCapacity, accommodationSeatsUsed(), seatsHeld());
         int old = capacity;
         capacity = newCapacity;
-        int excess = seatsHeld() - newCapacity;
+        // trg_ExamSession_Update compares the new capacity with BOOKED bookings only; ATTENDED ones never count here.
+        int excess = (int) bookings.stream().filter(b -> b.status() == BookingStatus.BOOKED).count() - newCapacity;
         if (newCapacity >= old || excess <= 0) {
             return new CapacityChange(old, newCapacity, List.of());
         }

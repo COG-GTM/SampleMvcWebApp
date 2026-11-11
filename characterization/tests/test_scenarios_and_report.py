@@ -175,7 +175,7 @@ def test_classification_file_references_real_transcripts_and_states_reasons():
     adr, retired = load_classification()
     assert set(adr) <= names and set(retired) <= names
     assert not (set(adr) & set(retired)) and not (set(adr) & set(load_known_defects()))
-    assert all(d["adr"] and d["reason"] for d in adr.values())
+    assert all((d.get("adr") and d.get("reason")) or d.get("root_cause") for d in adr.values())
     assert all(d["reason"] and d["covered_by"] for d in retired.values())
 
 

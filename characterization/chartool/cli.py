@@ -1,6 +1,7 @@
 """Command line: `capture` (write golden transcripts from the legacy estate) and `replay` (compare a target)."""
 import argparse
 import json
+import re
 import subprocess
 import sys
 import time
@@ -47,12 +48,15 @@ def load_classification(path=CLASSIFICATION):
         return {}, {}
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
     adr = {d["transcript"]: d for d in data.get("adr_divergences", [])}
+    # investigated mismatches: stay MISMATCH, the report shows the root cause
+    adr.update({d["transcript"]: d for d in data.get("mismatch_root_causes", [])})
     retired = {d["transcript"]: d for d in data.get("not_replayable", [])}
     return adr, retired
 
 
 def _diffs_within(diffs, prefixes):
-    return all(any(str(path).startswith(p) for p in prefixes) for path, _e, _a in diffs)
+    # per-step paths ("step3.business.x") are judged like the final ones ("business.x")
+    return all(any(re.sub(r"^step\d+\.", "", str(path)).startswith(p) for p in prefixes) for path, _e, _a in diffs)
 
 
 def _has_signature(actual, signature):
@@ -74,6 +78,8 @@ def classify_modern_mismatch(transcript, actual, known, adr=None, diffs=()):
     if any(s["expected"]["business_fields"].get("error") == "CENTER_NOT_MODERN" for s in actual["steps"]):
         return "SKIPPED", "gateway: center not on routing.modern-centers (CENTER_NOT_MODERN)"
     entry = (adr or {}).get(transcript["scenario"])
+    if entry is not None and entry.get("root_cause"):
+        return "MISMATCH", "root cause: %s" % entry["root_cause"]
     if entry is not None:
         ok_fields = not entry.get("fields") or _diffs_within(diffs, entry["fields"])
         ok_sig = not entry.get("signature") or _has_signature(actual, entry["signature"])
