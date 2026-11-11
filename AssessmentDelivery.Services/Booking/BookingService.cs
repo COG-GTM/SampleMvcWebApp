@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using AssessmentDelivery.Business.Rules;
 using AssessmentDelivery.Data.DataClasses;
@@ -110,8 +111,19 @@ namespace AssessmentDelivery.Services.Booking
                 CandidateId = candidate.CandidateId,
                 AccommodationCode = code,
                 Channel = Channel
-            }, Actor));
+            }, LegacyLoginActor()));
             return new BookingOutcome { BookingId = result.BookingId, Status = result.Status };
+        }
+
+        /// <summary>
+        /// Audit actor for book and reschedule. usp_BookSeat and usp_RescheduleBooking took no @Actor, so their
+        /// AuditLog rows got the column default SUSER_SNAME(): the portal's shared SQL login (ad_app). Cancel and
+        /// capacity passed @Actor explicitly ('portal', 'portal-admin') and keep doing so.
+        /// </summary>
+        private string LegacyLoginActor()
+        {
+            var login = new SqlConnectionStringBuilder(_db.Database.Connection.ConnectionString).UserID;
+            return string.IsNullOrEmpty(login) ? System.Security.Principal.WindowsIdentity.GetCurrent().Name : login;
         }
 
         public void Cancel(int bookingId, string reason)
@@ -153,7 +165,7 @@ namespace AssessmentDelivery.Services.Booking
             }
 
             //channel PORTAL = usp_RescheduleBooking semantics: new booking is PORTAL with no ExternalRef (HB-10)
-            var result = Call(() => _scheduling.Reschedule(bookingId, newSessionId, Channel, Actor));
+            var result = Call(() => _scheduling.Reschedule(bookingId, newSessionId, Channel, LegacyLoginActor()));
             if (result == null || result.BookingId == 0)
                 throw new PortalException("Booking " + bookingId + " could not be rescheduled.");
             return new BookingOutcome { BookingId = result.BookingId, Status = result.Status };
