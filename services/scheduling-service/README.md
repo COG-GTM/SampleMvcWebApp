@@ -63,10 +63,9 @@ The service refuses to start if the scheduling datasource points at `AssessmentD
 
 scheduling-service is the **only writer** of bookings and seat counts. The database enforces it:
 `db/security/040_single_writer.sql` DENYs INSERT/UPDATE/DELETE on `dbo.Booking` / `dbo.Waitlist`, UPDATE of
-`dbo.ExamSession (Capacity, SeatsAvailable, AccommodationCapacity)` and EXECUTE on `usp_BookSeat`,
-`usp_CancelBooking`, `usp_ChangeCapacity`, `usp_RescheduleBooking` to `ad_portal`, `ad_booking_api`, `ad_results`,
-`ad_capacity_sync` and `ad_sched_import`. Only `ad_sched_relay` can write those tables (and cannot run the procs or
-delete bookings). booking-api forwards v1 writes through the routing layer, results-service calls
+`dbo.ExamSession (Capacity, SeatsAvailable, AccommodationCapacity)` to `ad_portal`, `ad_booking_api`, `ad_results`,
+`ad_capacity_sync` and `ad_sched_import` (the four legacy booking procs were dropped in MBA-3824). Only
+`ad_sched_relay` can write those tables (and cannot delete bookings). booking-api forwards v1 writes through the routing layer, results-service calls
 `POST /api/v2/bookings/{bookingId}/attendance`, capacity-sync is disabled (`capacity.sync.enabled=false`).
 
 - **Transactional outbox.** Every booking/capacity change inserts a row into `outbox_event` (Flyway `V2__outbox.sql`)

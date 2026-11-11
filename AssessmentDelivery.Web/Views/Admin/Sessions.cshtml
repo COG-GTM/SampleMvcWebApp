@@ -41,7 +41,7 @@
                     <td class="num">@s.Booked</td>
                     <td class="num">@s.WaitlistCount</td>
                     <td>@Html.StatusPill(s.Status)</td>
-                    <td class="nw-actions"><a href="@Url.RouteUrl("AdminCapacity", new { id = s.SessionId })">Capacity</a></td>
+                    <td class="nw-actions"><a href="@Html.ModernUiUrl("/app/admin/sessions/" + s.SessionId)">Capacity</a></td>
                 </tr>
             }
             @if (Model.Sessions.Count == 0)

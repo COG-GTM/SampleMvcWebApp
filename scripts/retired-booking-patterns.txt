@@ -1,0 +1,19 @@
+usp_BookSeat
+usp_CancelBooking
+usp_ChangeCapacity
+usp_RescheduleBooking
+ExecuteSqlCommand
+SqlQuery<
+INSERT +INTO +(dbo\.)?(Booking|Waitlist)
+UPDATE +(dbo\.)?(Booking|Waitlist|ExamSession)
+DELETE +(FROM +)?(dbo\.)?(Booking|Waitlist)
+SET +SeatsAvailable
+\.SeatsAvailable *(\+|-)?= *[^=]
+\.SeatsAvailable *(\+\+|--)
+(Bookings|Waitlist|Set<Booking>\(\)|Set<WaitlistEntry>\(\))\.(Add|AddRange|Remove|RemoveRange|Attach)\(
+new +(Booking|WaitlistEntry) *[({]
+BookingController
+IBookingService
+BookingService
+SeatCounter
+ChangeCapacity

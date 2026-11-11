@@ -56,7 +56,10 @@ no seat constraint.
 failed can book again only after `Exam.RetakeWaitDays` (30) days from the date of the
 last attempt (the `StartsAt` of the session the failed result belongs to).
 
-### Stored procedures
+### Stored procedures (retired)
+
+The four booking procs below were dropped in MBA-3824 (`db/procs/090_retire_booking_procs.sql`; source in git
+history). scheduling-service is the only booking writer; the table documents the legacy contract it ported.
 
 | Procedure | Signature | Notes |
 |---|---|---|
@@ -107,8 +110,8 @@ starts a run by hand and `GET /sync/last` shows the last run.
 
 | Area | Routes |
 |---|---|
-| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=`, `/Admin/Sessions/Capacity/{id}` (calls usp_ChangeCapacity) |
-| Candidate booking | `/Booking` (find sessions), `/Booking/Book`, `/Booking/MyBookings?candidateNumber=`, `/Booking/Cancel/{id}`, `/Booking/Reschedule/{id}` |
+| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=` (read-only); capacity changes moved to the modern UI `/app/admin/sessions/{id}` |
+| Candidate booking | retired in MBA-3824: `/Booking`, `/Booking/Book`, `/Booking/MyBookings`, `/Booking/Cancel/{id}`, `/Booking/Reschedule/{id}` redirect to `/app/...` through the routing gateway (:8000) |
 | Retake eligibility | `/Eligibility?candidateNumber=&examCode=&date=` |
 | Results | `/Results?candidateNumber=` |
 

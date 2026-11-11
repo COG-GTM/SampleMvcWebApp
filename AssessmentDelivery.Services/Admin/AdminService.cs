@@ -1,10 +1,6 @@
-using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Data.Entity;
-using System.Data.SqlClient;
 using System.Linq;
-using AssessmentDelivery.Business.Rules;
 using AssessmentDelivery.Data.DataClasses;
 using AssessmentDelivery.Data.DataClasses.Entities;
 using AssessmentDelivery.Services.Common;
@@ -13,6 +9,8 @@ namespace AssessmentDelivery.Services.Admin
 {
     public class AdminService : IAdminService
     {
+        private static readonly string[] SeatHoldingStatuses = { "BOOKED", "ATTENDED" };
+
         private readonly AssessmentDeliveryDb _db;
 
         public AdminService(AssessmentDeliveryDb db)
@@ -64,34 +62,10 @@ namespace AssessmentDelivery.Services.Admin
             return Load(_db.ExamSessions.Where(s => s.TestCenterId == centerId));
         }
 
-        public AdminSessionRow GetSessionRow(int sessionId)
-        {
-            return Load(_db.ExamSessions.Where(s => s.SessionId == sessionId)).SingleOrDefault();
-        }
-
-        public void ChangeCapacity(int sessionId, int newCapacity, string actor)
-        {
-            if (newCapacity < 0)
-                throw new PortalException("Capacity cannot be negative.");
-            try
-            {
-                _db.Database.ExecuteSqlCommand(TransactionalBehavior.DoNotEnsureTransaction,
-                    "EXEC dbo.usp_ChangeCapacity @SessionId, @NewCapacity, @Actor",
-                    new SqlParameter("@SessionId", sessionId),
-                    new SqlParameter("@NewCapacity", newCapacity),
-                    new SqlParameter("@Actor", SqlDbType.VarChar, 60) { Value = string.IsNullOrEmpty(actor) ? "portal-admin" : actor });
-            }
-            catch (Exception ex)
-            {
-                var pe = SqlErrorHelper.TryTranslate(ex);
-                if (pe != null) throw pe;
-                throw;
-            }
-        }
-
         private IList<AdminSessionRow> Load(IQueryable<ExamSession> q)
         {
-            var raw = q.OrderBy(s => s.StartsAt)
+            var seatHolding = SeatHoldingStatuses;
+            return q.OrderBy(s => s.StartsAt)
                 .Select(s => new
                 {
                     s.SessionId,
@@ -105,27 +79,25 @@ namespace AssessmentDelivery.Services.Admin
                     s.AccommodationCapacity,
                     s.SeatsAvailable,
                     s.Status,
-                    Statuses = s.Bookings.Select(b => b.Status),
+                    Booked = s.Bookings.Count(b => seatHolding.Contains(b.Status)),
                     WaitlistCount = s.Waitlist.Count()
+                }).ToList()
+                .Select(r => new AdminSessionRow
+                {
+                    SessionId = r.SessionId,
+                    TestCenterId = r.TestCenterId,
+                    CenterName = r.CenterName,
+                    ExamCode = r.ExamCode,
+                    ExamTitle = r.Title,
+                    RoomName = r.RoomName,
+                    StartsAt = r.StartsAt,
+                    Capacity = r.Capacity,
+                    AccommodationCapacity = r.AccommodationCapacity,
+                    SeatsAvailable = r.SeatsAvailable,
+                    Booked = r.Booked,
+                    WaitlistCount = r.WaitlistCount,
+                    Status = r.Status
                 }).ToList();
-
-            //Booked is counted from the booking rows here
-            return raw.Select(r => new AdminSessionRow
-            {
-                SessionId = r.SessionId,
-                TestCenterId = r.TestCenterId,
-                CenterName = r.CenterName,
-                ExamCode = r.ExamCode,
-                ExamTitle = r.Title,
-                RoomName = r.RoomName,
-                StartsAt = r.StartsAt,
-                Capacity = r.Capacity,
-                AccommodationCapacity = r.AccommodationCapacity,
-                SeatsAvailable = r.SeatsAvailable,
-                Booked = SeatCounter.CountBooked(r.Statuses),
-                WaitlistCount = r.WaitlistCount,
-                Status = r.Status
-            }).ToList();
         }
     }
 }

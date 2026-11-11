@@ -43,8 +43,8 @@ java -jar services/results-service/target/results-service.jar
 java -jar services/capacity-sync/target/capacity-sync.jar
 ```
 
-`scripts/mixed-traffic.sh` books a batch of seats through both channels (portal via `usp_BookSeat`,
-partner via booking-api) on a freshly seeded database and prints a short summary.
+`scripts/mixed-traffic.sh` books a batch of seats through booking-api (the portal channel was retired in
+MBA-3824) on a freshly seeded database and prints a short summary.
 
 ## Profiles / configuration
 

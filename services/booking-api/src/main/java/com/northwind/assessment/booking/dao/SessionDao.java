@@ -74,9 +74,12 @@ public class SessionDao {
         return d.isEmpty() ? null : d.get(0);
     }
 
-    public int readSeatsAvailable(int sessionId) {
-        return jdbcTemplate.queryForObject(
-                "SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = ?", Integer.class, sessionId);
+    /** Seats taken on a session (BOOKED + ATTENDED), as projected into AssessmentDelivery by the relay. */
+    public int countBookedSeats(int sessionId) {
+        Integer n = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM dbo.Booking WHERE SessionId = ? AND Status IN ('BOOKED','ATTENDED')",
+                Integer.class, sessionId);
+        return n == null ? 0 : n.intValue();
     }
 
     private static final RowMapper<SessionInfo> SESSION_MAPPER = new RowMapper<SessionInfo>() {

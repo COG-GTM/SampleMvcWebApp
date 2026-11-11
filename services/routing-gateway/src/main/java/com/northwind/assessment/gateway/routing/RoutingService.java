@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
  *       scheduling-service is down.</li>
  *   <li>If the lookup fails: reads fall back to legacy, writes fail closed ({@link ResolveUnavailableException})
  *       so a booking is never written to the wrong system.</li>
+ *   <li>Retired legacy pages ({@link #retired}) always go modern; the lookup only names the center.</li>
  * </ul>
  */
 @Component
@@ -35,6 +36,21 @@ public class RoutingService {
         this.allowList = allowList;
         this.resolver = resolver;
         this.decider = new RouteDecider(props.getModernBookingIdFloor());
+    }
+
+    public static final String RETIRED = "legacy-retired";
+
+    /**
+     * Decision for a retired legacy page (MBA-3824): modern for every center, allow-list or not. The center is looked
+     * up for the route log only; a failed or empty lookup falls back to the center named in the request.
+     */
+    public Mono<RouteDecision> retired(ResolveKey key, String centerHint) {
+        if (key == null) {
+            return Mono.just(RouteDecision.modern(centerHint, RETIRED));
+        }
+        return resolver.resolve(key)
+                .onErrorResume(e -> Mono.just(Optional.empty()))
+                .map(r -> RouteDecision.modern(r.map(ResolvedCenter::centerCode).orElse(centerHint), RETIRED));
     }
 
     public Mono<RouteDecision> decide(ResolveKey key, Long bookingId, boolean write) {

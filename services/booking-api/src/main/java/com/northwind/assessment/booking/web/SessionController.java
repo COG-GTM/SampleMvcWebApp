@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.northwind.assessment.booking.dao.SessionDao;
 import com.northwind.assessment.booking.model.SessionInfo;
-import com.northwind.assessment.booking.service.SeatCounter;
 import com.northwind.assessment.booking.util.DateUtils;
 
 @RestController
@@ -21,9 +20,6 @@ public class SessionController {
 
     @Autowired
     private SessionDao sessionDao;
-
-    @Autowired
-    private SeatCounter seatCounter;
 
     @RequestMapping(method = RequestMethod.GET)
     public List<SessionInfo> list(@RequestParam(value = "examCode", required = false) String examCode,
@@ -47,7 +43,7 @@ public class SessionController {
         if (s == null) {
             throw ApiException.notFound("SESSION_NOT_FOUND", "Session " + sessionId + " not found");
         }
-        s.setBookedSeats(seatCounter.countBookedSeats(sessionId));
+        s.setBookedSeats(sessionDao.countBookedSeats(sessionId));
         return s;
     }
 }

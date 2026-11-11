@@ -11,8 +11,11 @@ import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -29,6 +32,7 @@ import com.northwind.assessment.gateway.routing.AllowListHolder;
  * scheduling-service (integration contract items 3, 5, 6).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ExtendWith(OutputCaptureExtension.class)
 class GatewayIntegrationTest {
 
     static final WireMockServer portal = start();
@@ -335,18 +339,75 @@ class GatewayIntegrationTest {
     }
 
     @Test
-    void portalPagesForOtherCentersAndNonBookingPagesPassThrough() throws Exception {
+    void portalPagesThatStayInTheNetPortalPassThrough() throws Exception {
         setAllowList("BOS01");
-        for (String uri : new String[] {"/Booking?CenterCode=NYC01", "/Booking", "/Booking/MyBookings?candidateNumber=NW00000901",
-                "/Admin/Centers", "/Eligibility", "/Results", "/"}) {
+        for (String uri : new String[] {"/Admin/Centers", "/Admin/Sessions?centerId=2", "/Eligibility",
+                "/Results?candidateNumber=NW00000901", "/"}) {
             client.get().uri(uri).exchange().expectStatus().isOk()
                     .expectHeader().valueEquals("X-Route", "legacy")
                     .expectBody(String.class).isEqualTo("<html>legacy portal</html>");
         }
+    }
+
+    /** MBA-3824: DEN01 was never on the allow-list; every retired portal URL still lands on the modern UI. */
+    @Test
+    void retiredBookingUrlsRedirectToModernUiForCenterNeverOnAllowList(CapturedOutput log) throws Exception {
+        stubResolve("sessionId=700", "DEN01", 7, 700, null, null);
+        stubResolve("bookingId=701", "DEN01", 7, 700, 701L, "LEGACY_IMPORT");
+        stubResolve("centerCode=DEN01", "DEN01", 7, null, null, null);
+        scheduling.stubFor(get(urlPathMatching("/app.*")).willReturn(ok("<html>modern spa</html>")));
+        String[][] cases = {
+            {"/Booking?CenterCode=DEN01&ExamCode=CTA-NET1&From=2026-12-01", "/app?centerCode=DEN01&examCode=CTA-NET1&date=2026-12-01", "DEN01"},
+            {"/Booking", "/app", "-"},
+            {"/Booking/Book?sessionId=700&candidateNumber=NW00000042", "/app/book?sessionId=700&candidateNumber=NW00000042", "DEN01"},
+            {"/Booking/MyBookings?candidateNumber=NW00000042", "/app/my-bookings?candidateNumber=NW00000042", "-"},
+            {"/Booking/Cancel/701?candidateNumber=NW00000042", "/app/my-bookings?candidateNumber=NW00000042", "DEN01"},
+            {"/Booking/Reschedule/701", "/app/reschedule/701", "DEN01"},
+            {"/Admin/Sessions/Capacity/700", "/app/admin/sessions/700", "DEN01"}};
+        for (String allow : new String[] {"", "BOS01"}) {
+            setAllowList(allow);
+            for (String[] c : cases) {
+                client.get().uri(c[0]).exchange().expectStatus().isFound()
+                        .expectHeader().valueEquals("Location", c[1])
+                        .expectHeader().valueEquals("X-Route", "modern");
+                client.get().uri(c[1]).exchange().expectStatus().isOk()
+                        .expectHeader().valueEquals("X-Route", "modern")
+                        .expectBody(String.class).isEqualTo("<html>modern spa</html>");
+                assertThat(log.getOut()).contains("route=modern center=" + c[2] + " reason=legacy-retired method=GET path="
+                        + c[0] + " status=302");
+            }
+        }
+        portal.verify(0, anyRequestedFor(anyUrl()));
+    }
+
+    @Test
+    void retiredBookingFormPostsAnswer303ForEveryCenter() throws Exception {
         client.post().uri("/Booking/Book").contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .bodyValue("SessionId=200&CandidateNumber=NW00000901").exchange().expectStatus().isOk();
-        portal.verify(postRequestedFor(urlEqualTo("/Booking/Book"))
-                .withRequestBody(equalTo("SessionId=200&CandidateNumber=NW00000901")));
+                .bodyValue("SessionId=200&CandidateNumber=NW00000901").exchange()
+                .expectStatus().isSeeOther()
+                .expectHeader().valueEquals("Location", "/app/book?sessionId=200&candidateNumber=NW00000901")
+                .expectHeader().valueEquals("X-Route", "modern");
+        client.post().uri("/Admin/Sessions/Capacity/200").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .bodyValue("newCapacity=12").exchange()
+                .expectStatus().isSeeOther().expectHeader().valueEquals("Location", "/app/admin/sessions/200");
+        client.post().uri("/Booking/Cancel/300").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .bodyValue("reason=ill").exchange()
+                .expectStatus().isSeeOther().expectHeader().valueEquals("Location", "/app/my-bookings");
+        portal.verify(0, anyRequestedFor(anyUrl()));
+    }
+
+    @Test
+    void retiredBookingUrlsStillRedirectWhenTheCenterLookupFails(CapturedOutput log) {
+        scheduling.stubFor(get(urlPathEqualTo("/internal/routing/resolve")).atPriority(0)
+                .willReturn(aResponse().withStatus(500)));
+        client.get().uri("/Booking/MyBookings?centerCode=nyc02&candidateNumber=NW00000042").exchange()
+                .expectStatus().isFound()
+                .expectHeader().valueEquals("Location", "/app/my-bookings?candidateNumber=NW00000042")
+                .expectHeader().valueEquals("X-Route", "modern");
+        client.get().uri("/Booking/Reschedule/701").exchange().expectStatus().isFound()
+                .expectHeader().valueEquals("Location", "/app/reschedule/701");
+        assertThat(log.getOut()).contains("route=modern center=NYC02 reason=legacy-retired");
+        portal.verify(0, anyRequestedFor(anyUrl()));
     }
 
     @Test
@@ -433,7 +494,9 @@ class GatewayIntegrationTest {
 
         client.get().uri("/api/v1/sessions/200").exchange().expectStatus().isOk()
                 .expectHeader().valueEquals("X-Route", "legacy");
+        // the portal page itself is retired (MBA-3824): modern for every center, not a legacy read any more
         client.get().uri("/Booking/MyBookings?centerCode=NYC01&candidateNumber=NW00000901").exchange()
-                .expectStatus().isOk().expectHeader().valueEquals("X-Route", "legacy");
+                .expectStatus().isFound().expectHeader().valueEquals("X-Route", "modern")
+                .expectHeader().valueEquals("Location", "/app/my-bookings?candidateNumber=NW00000901");
     }
 }

@@ -7,7 +7,8 @@
 
       - INSERT / UPDATE / DELETE on dbo.Booking and dbo.Waitlist
       - UPDATE of dbo.ExamSession (Capacity, SeatsAvailable, AccommodationCapacity)
-      - EXECUTE on usp_BookSeat, usp_CancelBooking, usp_ChangeCapacity, usp_RescheduleBooking
+
+    The four legacy booking procs these logins used to call were dropped by db/procs/090 (MBA-3824).
 
     Legacy read pages keep reading these tables.  Writes for all centers go through the routing layer to
     scheduling-service.  Applied by db/apply.sh after 035 (idempotent; re-runnable).
@@ -30,10 +31,6 @@ BEGIN
              + N'DENY INSERT, UPDATE, DELETE ON dbo.Waitlist TO ' + @u + N';'
              + N'DENY INSERT, DELETE ON dbo.ExamSession TO ' + @u + N';'
              + N'DENY UPDATE ON dbo.ExamSession (Capacity, SeatsAvailable, AccommodationCapacity) TO ' + @u + N';'
-             + N'DENY EXECUTE ON dbo.usp_BookSeat TO ' + @u + N';'
-             + N'DENY EXECUTE ON dbo.usp_CancelBooking TO ' + @u + N';'
-             + N'DENY EXECUTE ON dbo.usp_ChangeCapacity TO ' + @u + N';'
-             + N'DENY EXECUTE ON dbo.usp_RescheduleBooking TO ' + @u + N';'
              + N'DENY INSERT, UPDATE, DELETE ON dbo.RelayCheckpoint TO ' + @u + N';'
              + N'DENY INSERT, UPDATE, DELETE ON dbo.RelayBookingMap TO ' + @u + N';';
     EXEC sp_executesql @sql;

@@ -3,7 +3,7 @@
     mixed-traffic.ps1 - smoke/load script that exercises both booking channels (Windows twin of mixed-traffic.sh).
 
 .DESCRIPTION
-    PORTAL channel  : the real portal over HTTP - GET + POST /Booking/Book and /Booking/Cancel/{id}
+    PORTAL channel  : RETIRED in MBA-3824 - the portal booking pages are gone (their URLs redirect to the modern UI on :8000)
                       (antiforgery token picked up from the form)
     PARTNER channel : booking-api REST on -BookingApiUrl (POST /api/v1/bookings, DELETE /api/v1/bookings/{id})
 
@@ -17,7 +17,7 @@
     powershell -ExecutionPolicy Bypass -File scripts\mixed-traffic.ps1 -PortalBookings 10 -PartnerBookings 10
 #>
 param(
-    [int]$PortalBookings  = $(if ($env:PORTAL_BOOKINGS)  { [int]$env:PORTAL_BOOKINGS }  else { 20 }),
+    [int]$PortalBookings  = $(if ($env:PORTAL_BOOKINGS)  { [int]$env:PORTAL_BOOKINGS }  else { 0 }),
     [int]$PartnerBookings = $(if ($env:PARTNER_BOOKINGS) { [int]$env:PARTNER_BOOKINGS } else { 20 }),
     [int]$Cancels         = $(if ($env:CANCELS)          { [int]$env:CANCELS }          else { 3 }),
     [int]$Sessions        = $(if ($env:SESSIONS)         { [int]$env:SESSIONS }         else { 4 }),
@@ -66,6 +66,7 @@ function Invoke-PortalForm([string]$getUrl, [string]$postUrl, [hashtable]$fields
 
 try { Invoke-WebRequest "$BookingApiUrl/api/v1/sessions?from=2099-01-01" -UseBasicParsing -TimeoutSec 30 | Out-Null }
 catch { throw "booking-api not reachable at $BookingApiUrl" }
+if ($PortalBookings -gt 0) { throw 'PORTAL channel retired (MBA-3824): the portal booking pages are gone; use -PortalBookings 0' }
 if ($PortalBookings -gt 0) {
     try { Invoke-WebRequest "$PortalUrl/Booking" -UseBasicParsing -TimeoutSec 60 | Out-Null }
     catch { throw "portal not reachable at $PortalUrl" }

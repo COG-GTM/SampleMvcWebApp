@@ -47,30 +47,6 @@ public class BookingDao {
                 BOOKING_MAPPER, candidateId);
     }
 
-    public int findCandidateId(int bookingId) {
-        return jdbcTemplate.queryForObject("SELECT CandidateId FROM dbo.Booking WHERE BookingId = ?",
-                Integer.class, bookingId);
-    }
-
-    public boolean hasActiveBooking(int sessionId, int candidateId) {
-        Integer n = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM dbo.Booking WHERE SessionId = ? AND CandidateId = ? "
-              + "AND Status IN ('BOOKED','WAITLISTED')", Integer.class, sessionId, candidateId);
-        return n != null && n.intValue() > 0;
-    }
-
-    /** Extra-time bookings currently holding an accommodation seat. Same rule as usp_BookSeat. */
-    public int countAccommodationSeatsUsed(int sessionId) {
-        return jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM dbo.Booking WHERE SessionId = ? AND Status IN ('BOOKED','ATTENDED') "
-              + "AND AccommodationCode IN ('ET25','ET50')", Integer.class, sessionId);
-    }
-
-    public int findAccommodationCapacity(int sessionId) {
-        return jdbcTemplate.queryForObject(
-                "SELECT AccommodationCapacity FROM dbo.ExamSession WHERE SessionId = ?", Integer.class, sessionId);
-    }
-
     private static final RowMapper<BookingInfo> BOOKING_MAPPER = new RowMapper<BookingInfo>() {
         public BookingInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
             BookingInfo b = new BookingInfo();

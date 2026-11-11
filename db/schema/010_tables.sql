@@ -57,7 +57,7 @@ CREATE TABLE dbo.ExamSession (
     StartsAt              DATETIME    NOT NULL,      -- center-local time
     Capacity              INT         NOT NULL,      -- total seats incl. accommodation seats
     AccommodationCapacity INT         NOT NULL CONSTRAINT DF_ExamSession_AccCap DEFAULT (0),
-    SeatsAvailable        INT         NOT NULL,      -- denormalised counter, maintained by usp_BookSeat / usp_CancelBooking
+    SeatsAvailable        INT         NOT NULL,      -- denormalised counter; scheduling-service owns it, the relay projects it (M4)
     Status                VARCHAR(12) NOT NULL CONSTRAINT DF_ExamSession_Status DEFAULT ('OPEN'),
     LastModified          DATETIME    NOT NULL CONSTRAINT DF_ExamSession_LastModified DEFAULT (GETDATE()),
     CONSTRAINT CK_ExamSession_Status CHECK (Status IN ('OPEN','CLOSED','DELIVERED','CANCELLED'))

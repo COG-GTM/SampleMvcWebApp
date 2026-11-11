@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # mixed-traffic.sh - smoke/load script that exercises both booking channels.
 #
-#   PORTAL channel  : EXEC dbo.usp_BookSeat / usp_CancelBooking through sqlcmd (same call the portal makes),
+#   PORTAL channel  : RETIRED in MBA-3824 (the portal booking procs are dropped; book via the modern UI on :8000),
 #                     or POST $PORTAL_URL/Booking/Book when PORTAL_URL is set (Windows box running the portal),
 #                     or, when ROUTING_URL is set (post-MBA-3823 single writer), POST/DELETE
 #                     $ROUTING_URL/api/v2/bookings with channel PORTAL (what the portal's modern deep link does)
@@ -20,7 +20,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PORTAL_BOOKINGS="${PORTAL_BOOKINGS:-20}"
+PORTAL_BOOKINGS="${PORTAL_BOOKINGS:-0}"
+if [ "$PORTAL_BOOKINGS" -gt 0 ]; then
+    echo "PORTAL channel retired (MBA-3824): the portal booking procs are dropped; set PORTAL_BOOKINGS=0" >&2; exit 2
+fi
 PARTNER_BOOKINGS="${PARTNER_BOOKINGS:-20}"
 CANCELS="${CANCELS:-3}"
 SESSIONS="${SESSIONS:-4}"

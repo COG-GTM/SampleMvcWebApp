@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("AssessmentDelivery.Business")]
-[assembly: AssemblyDescription("Booking rules (eligibility, seats, accommodations)")]
+[assembly: AssemblyDescription("Eligibility and accommodation rules")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Northwind Assessment Network")]
 [assembly: AssemblyProduct("Assessment Delivery")]
