@@ -115,7 +115,7 @@ CREATE INDEX IX_Attempt_Candidate_Exam ON dbo.Attempt (CandidateId, ExamId);
 
 CREATE TABLE dbo.ReconcilerRun (
     RunId      INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ReconcilerRun PRIMARY KEY,
-    TriggerType VARCHAR(10) NOT NULL,
+    TriggerType VARCHAR(40) NOT NULL,
     Status     VARCHAR(10) NOT NULL,
     StartedAt  DATETIME NOT NULL,
     FinishedAt DATETIME NULL,
@@ -130,7 +130,7 @@ CREATE TABLE dbo.IdempotencyKey (
     IdemKey     VARCHAR(64)  NOT NULL,
     Client      VARCHAR(60)  NOT NULL,
     RequestHash CHAR(64)     NOT NULL,
-    StatusCode  INT          NOT NULL,
+    StatusCode  INT          NOT NULL, -- 0 = in progress
     Body        NVARCHAR(MAX) NULL,
     CreatedAt   DATETIME     NOT NULL CONSTRAINT DF_IdempotencyKey_CreatedAt DEFAULT (GETDATE()),
     CONSTRAINT PK_IdempotencyKey PRIMARY KEY (IdemKey, Client)
