@@ -3,8 +3,7 @@ package com.northwind.scheduling.reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -19,7 +18,7 @@ import java.util.Map;
  * Runs at startup per scheduling.import.on-startup (if-empty | always | never).
  */
 @Component
-public class LegacyImporter implements ApplicationRunner {
+public class LegacyImporter implements SmartInitializingSingleton {
 
     private static final Logger LOG = LoggerFactory.getLogger(LegacyImporter.class);
 
@@ -64,8 +63,9 @@ public class LegacyImporter implements ApplicationRunner {
         this.mode = mode;
     }
 
+    /** Runs before the web server starts, so no request can allocate identities the import is about to copy. */
     @Override
-    public void run(ApplicationArguments args) {
+    public void afterSingletonsInstantiated() {
         if ("never".equalsIgnoreCase(mode)) {
             return;
         }

@@ -54,6 +54,11 @@ public class Idempotency {
         try {
             jdbc.update("INSERT INTO dbo.IdempotencyKey (IdemKey, Client, RequestHash, StatusCode) VALUES (?, ?, ?, 0)", key, who, hash);
         } catch (DuplicateKeyException taken) {
+            // A reservation left by a request that died mid-flight (restart, crash) expires after a few minutes.
+            if (jdbc.update("DELETE FROM dbo.IdempotencyKey WHERE IdemKey = ? AND Client = ? AND StatusCode = 0 "
+                    + "AND CreatedAt <= DATEADD(MINUTE, -5, GETDATE())", key, who) > 0) {
+                return execute(key, client, request, command);
+            }
             List<Map<String, Object>> prior = jdbc.queryForList("SELECT RequestHash, StatusCode, Body FROM dbo.IdempotencyKey "
                     + "WHERE IdemKey = ? AND Client = ?", key, who);
             if (prior.isEmpty()) {
