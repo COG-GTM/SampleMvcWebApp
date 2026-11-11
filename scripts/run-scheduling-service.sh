@@ -31,14 +31,16 @@ export MSSQL_SA_PASSWORD="${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}"
 log() { echo "[run-scheduling-service] $*"; }
 die() { echo "[run-scheduling-service] ERROR: $*" >&2; exit 1; }
 
-sa_sql() {
-    if command -v sqlcmd >/dev/null 2>&1; then
-        sqlcmd -S localhost,1433 -U sa -P "$MSSQL_SA_PASSWORD" -C -b "$@"
-    elif [ -x /opt/mssql-tools18/bin/sqlcmd ]; then
-        /opt/mssql-tools18/bin/sqlcmd -S localhost,1433 -U sa -P "$MSSQL_SA_PASSWORD" -C -b "$@"
-    else
-        docker exec -i "$MSSQL_CONTAINER" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -b "$@"
+find_sqlcmd() {
+    # db/apply.sh and the -i scripts below need a host sqlcmd (the files are read from this checkout).
+    if command -v sqlcmd >/dev/null 2>&1; then SQLCMD="$(command -v sqlcmd)"
+    elif [ -x /opt/mssql-tools18/bin/sqlcmd ]; then SQLCMD=/opt/mssql-tools18/bin/sqlcmd
+    else die "sqlcmd not found - install mssql-tools18 (https://learn.microsoft.com/sql/linux/sql-server-linux-setup-tools)"
     fi
+}
+
+sa_sql() {
+    "$SQLCMD" -S localhost,1433 -U sa -P "$MSSQL_SA_PASSWORD" -C -b "$@"
 }
 
 find_java21() {
@@ -51,6 +53,7 @@ find_java21() {
 
 start_sql() {
     command -v docker >/dev/null 2>&1 || die "docker is required"
+    find_sqlcmd
     if ! docker ps --format '{{.Names}}' | grep -qx "$MSSQL_CONTAINER"; then
         if docker ps -a --format '{{.Names}}' | grep -qx "$MSSQL_CONTAINER"; then
             log "starting existing container '$MSSQL_CONTAINER'"
@@ -73,7 +76,7 @@ prepare_legacy_db() {
     exists="$(sa_sql -h -1 -W -Q "SET NOCOUNT ON; SELECT CASE WHEN DB_ID('AssessmentDelivery') IS NULL THEN 0 ELSE 1 END" | tr -d '[:space:]')"
     if [ "${APPLY_DB:-0}" = "1" ] || [ "$exists" != "1" ]; then
         log "creating AssessmentDelivery with db/apply.sh (drops it if present)"
-        AD_SA_PASSWORD="$MSSQL_SA_PASSWORD" bash "$ROOT/db/apply.sh" >/dev/null
+        SQLCMD="$SQLCMD" AD_SA_PASSWORD="$MSSQL_SA_PASSWORD" bash "$ROOT/db/apply.sh" >/dev/null
     fi
     log "ensuring the read-only importer login (db/security/035_sched_import_login.sql)"
     sa_sql -i "$ROOT/db/security/035_sched_import_login.sql" >/dev/null
