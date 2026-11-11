@@ -113,7 +113,44 @@ class GatewayIntegrationTest {
         web.get().uri("/Results?candidateNumber=NW00000001").exchange()
                 .expectStatus().isOk().expectHeader().valueEquals("X-Route", "legacy")
                 .expectBody(String.class).isEqualTo("<h1>legacy /Results?candidateNumber=NW00000001</h1>");
-        web.get().uri("/Booking?CenterCode=CHI01").exchange()
+        web.get().uri("/Admin/Centers").exchange()
+                .expectStatus().isOk().expectHeader().valueEquals("X-Route", "legacy");
+        web.get().uri("/Eligibility?candidateNumber=NW00000001&examCode=AZ-104").exchange()
+                .expectStatus().isOk().expectHeader().valueEquals("X-Route", "legacy");
+    }
+
+    /** MBA-3824: the portal pages are gone, so their URLs redirect for every centre, not only allow-listed ones. */
+    @Test
+    void retiredPortalPagesRedirectForEveryCentre() {
+        writeConfig("");
+        web.post().uri("/actuator/refresh").exchange().expectStatus().isOk();
+        int portalCalls = PORTAL.calls("GET", "/Booking").size();
+        web.get().uri("/Booking?CenterCode=chi01&ExamCode=AZ-104").exchange()
+                .expectStatus().isFound().expectHeader().valueEquals("X-Route", "modern")
+                .expectHeader().valueEquals("Location", "/app/?center=CHI01&exam=AZ-104");
+        web.get().uri("/Booking").exchange().expectStatus().isFound().expectHeader().valueEquals("Location", "/app/");
+        web.get().uri("/Booking/Book?sessionId=200").exchange()
+                .expectStatus().isFound().expectHeader().valueEquals("Location", "/app/book?sessionId=200");
+        web.post().uri("/Booking/Book").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .bodyValue("SessionId=200&CandidateNumber=NW00000901").exchange()
+                .expectStatus().isSeeOther().expectHeader().valueEquals("Location", "/app/book?sessionId=200");
+        web.get().uri("/Booking/MyBookings?candidateNumber=NW00000042").exchange()
+                .expectStatus().isFound().expectHeader().valueEquals("Location", "/app/my-bookings?candidateNumber=NW00000042");
+        web.get().uri("/Booking/Cancel/1200").exchange()
+                .expectStatus().isFound().expectHeader().valueEquals("Location", "/app/my-bookings");
+        web.post().uri("/Booking/Cancel/1200").contentType(MediaType.APPLICATION_FORM_URLENCODED).bodyValue("x=1").exchange()
+                .expectStatus().isSeeOther().expectHeader().valueEquals("Location", "/app/my-bookings");
+        web.get().uri("/Booking/Reschedule/1200").exchange()
+                .expectStatus().isFound().expectHeader().valueEquals("Location", "/app/reschedule/1200");
+        web.get().uri("/Admin/Sessions?centerId=1").exchange()
+                .expectStatus().isFound().expectHeader().valueEquals("Location", "/app/admin/centers/BOS01");
+        web.get().uri("/Admin/Sessions?centerId=99").exchange()
+                .expectStatus().isFound().expectHeader().valueEquals("Location", "/app/");
+        web.get().uri("/Admin/Sessions/Capacity/200").exchange()
+                .expectStatus().isFound().expectHeader().valueEquals("Location", "/app/admin/sessions/200");
+        assertThat(PORTAL.calls("GET", "/Booking")).hasSize(portalCalls);
+        assertThat(PORTAL.calls("POST", "/Booking/Book")).isEmpty();
+        web.get().uri("/Results?candidateNumber=NW00000042").exchange()
                 .expectStatus().isOk().expectHeader().valueEquals("X-Route", "legacy");
     }
 
@@ -147,11 +184,6 @@ class GatewayIntegrationTest {
         web.post().uri("/Booking/Book").contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .bodyValue("__RequestVerificationToken=t&SessionId=154&CandidateNumber=NW00000901").exchange()
                 .expectStatus().isSeeOther().expectHeader().valueEquals("Location", "/app/book?sessionId=154");
-        web.post().uri("/Booking/Book").contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .bodyValue("SessionId=200&CandidateNumber=NW00000901").exchange()
-                .expectStatus().isOk().expectHeader().valueEquals("X-Route", "legacy");
-        assertThat(PORTAL.calls("POST", "/Booking/Book").get(PORTAL.calls("POST", "/Booking/Book").size() - 1).body())
-                .isEqualTo("SessionId=200&CandidateNumber=NW00000901");
         web.get().uri("/Admin/Sessions?centerId=1").exchange()
                 .expectStatus().isFound().expectHeader().valueEquals("Location", "/app/admin/centers/BOS01");
         web.get().uri("/Admin/Sessions/Capacity/154").exchange()
@@ -175,7 +207,7 @@ class GatewayIntegrationTest {
         long deadline = System.currentTimeMillis() + 5000;
         String route = "modern";
         while (System.currentTimeMillis() < deadline) {
-            route = web.get().uri("/Booking?CenterCode=BOS01").exchange().returnResult(String.class)
+            route = web.get().uri("/api/v1/sessions?centerCode=BOS01").exchange().returnResult(String.class)
                     .getResponseHeaders().getFirst("X-Route");
             if ("legacy".equals(route)) {
                 break;
@@ -194,10 +226,10 @@ class GatewayIntegrationTest {
     void refreshEndpointReloadsAndInvalidListIsRejected() {
         writeConfig("SEA01");
         web.post().uri("/actuator/refresh").exchange().expectStatus().isOk();
-        web.get().uri("/Booking?CenterCode=BOS01").exchange().expectHeader().valueEquals("X-Route", "legacy");
+        web.get().uri("/api/v1/sessions?centerCode=BOS01").exchange().expectHeader().valueEquals("X-Route", "legacy");
         writeConfig("BOS01,LON01");
         web.post().uri("/actuator/refresh").exchange().expectStatus().isOk();
-        web.get().uri("/Booking?CenterCode=SEA01").exchange().expectStatus().isFound();
+        web.get().uri("/api/v1/sessions?centerCode=SEA01").exchange().expectHeader().valueEquals("X-Route", "modern");
     }
 
     @Test
@@ -265,7 +297,7 @@ class GatewayIntegrationTest {
                 .expectBody().jsonPath("$.error").isEqualTo("CENTER_IS_MODERN");
         writeConfig("");
         long deadline = System.currentTimeMillis() + 5000;
-        while (System.currentTimeMillis() < deadline && !"legacy".equals(web.get().uri("/Booking?CenterCode=BOS01")
+        while (System.currentTimeMillis() < deadline && !"legacy".equals(web.get().uri("/api/v1/sessions?centerCode=BOS01")
                 .exchange().returnResult(String.class).getResponseHeaders().getFirst("X-Route"))) {
             Thread.yield();
         }

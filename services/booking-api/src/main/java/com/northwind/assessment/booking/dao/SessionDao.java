@@ -61,28 +61,6 @@ public class SessionDao {
         return list.isEmpty() ? null : list.get(0);
     }
 
-    /** Exam id of a session, or null. */
-    public Integer findExamId(int sessionId) {
-        List<Integer> ids = jdbcTemplate.queryForList(
-                "SELECT ExamId FROM dbo.ExamSession WHERE SessionId = ?", Integer.class, sessionId);
-        return ids.isEmpty() ? null : ids.get(0);
-    }
-
-    public Date findStartsAt(int sessionId) {
-        List<Date> d = jdbcTemplate.queryForList(
-                "SELECT StartsAt FROM dbo.ExamSession WHERE SessionId = ?", Date.class, sessionId);
-        return d.isEmpty() ? null : d.get(0);
-    }
-
-    public int readSeatsAvailable(int sessionId) {
-        return jdbcTemplate.queryForObject(
-                "SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = ?", Integer.class, sessionId);
-    }
-
-    public void decrementSeatsAvailable(int sessionId) {
-        jdbcTemplate.update("UPDATE dbo.ExamSession SET SeatsAvailable = SeatsAvailable - 1, LastModified = GETDATE() "
-                + "WHERE SessionId = ?", sessionId);
-    }
 
     private static final RowMapper<SessionInfo> SESSION_MAPPER = new RowMapper<SessionInfo>() {
         public SessionInfo mapRow(ResultSet rs, int rowNum) throws SQLException {

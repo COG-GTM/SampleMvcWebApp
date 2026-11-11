@@ -29,7 +29,7 @@ namespace AssessmentDelivery.Business.Roster
 
         public static bool IsOnRoster(string bookingStatus)
         {
-            return SeatCounter.HoldsSeat(bookingStatus) || bookingStatus == BookingStatus.Waitlisted;
+            return bookingStatus == BookingStatus.Booked || bookingStatus == BookingStatus.Attended || bookingStatus == BookingStatus.Waitlisted;
         }
 
         public static IList<RosterLine> Order(IEnumerable<RosterLine> lines)

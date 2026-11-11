@@ -61,7 +61,7 @@
             {
                 <tr>
                     <td class="nowrap">@r.LoggedAt.ToString("dd MMM yyyy HH:mm:ss")</td>
-                    <td class="nowrap"><a href="@Url.RouteUrl("AdminCapacity", new { id = r.SessionId })">#@r.SessionId</a> <strong>@r.ExamCode</strong> @r.SessionStartsAt.ToString("dd MMM yyyy HH:mm")</td>
+                    <td class="nowrap"><a href="@Url.Content("~/Admin/Sessions/Capacity/" + r.SessionId)">#@r.SessionId</a> <strong>@r.ExamCode</strong> @r.SessionStartsAt.ToString("dd MMM yyyy HH:mm")</td>
                     <td>@r.RoomName</td>
                     @if (r.OldCapacity.HasValue && r.NewCapacity.HasValue)
                     {

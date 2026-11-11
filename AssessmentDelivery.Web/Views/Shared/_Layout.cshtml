@@ -32,7 +32,7 @@
                     <span class="nw-brand-product">Assessment Delivery Portal</span>
                 </span>
             </a>
-            <form class="nw-quickfind pull-right" method="get" action="@Url.Action("MyBookings", "Booking")">
+            <form class="nw-quickfind pull-right" method="get" action="@Url.Content("~/Booking/MyBookings")">
                 <label for="qf">Candidate lookup</label>
                 <input type="text" id="qf" name="candidateNumber" placeholder="NW00000000" class="input-sm" />
                 <button type="submit" class="btn btn-xs btn-default">Go</button>
@@ -43,7 +43,7 @@
         <div class="container-fluid">
             <ul class="nav nav-tabs">
                 <li class="@tab("Admin", null)"><a href="@Url.Action("Centers", "Admin")"><span class="glyphicon glyphicon-home"></span> Centre Admin</a></li>
-                <li class="@tab("Booking", null)"><a href="@Url.Action("Index", "Booking")"><span class="glyphicon glyphicon-calendar"></span> Bookings</a></li>
+                <li><a href="@Url.Content("~/Booking")"><span class="glyphicon glyphicon-calendar"></span> Bookings</a></li>
                 <li class="@tab("Eligibility", null)"><a href="@Url.Action("Index", "Eligibility")"><span class="glyphicon glyphicon-check"></span> Eligibility</a></li>
                 <li class="@tab("Results", null)"><a href="@Url.Action("Index", "Results")"><span class="glyphicon glyphicon-list-alt"></span> Results</a></li>
             </ul>

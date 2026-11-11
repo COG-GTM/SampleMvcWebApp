@@ -1,6 +1,7 @@
 /*
     test_usp_GetCapacityAudit.sql - SQL test for dbo.usp_GetCapacityAudit (MBA-3828) on seed data.
-    Makes capacity changes through usp_ChangeCapacity plus hand-written AuditLog rows inside one
+    Makes capacity changes (written the way the retired usp_ChangeCapacity did, MBA-3824) plus
+    hand-written AuditLog rows inside one
     transaction, checks the proc output, then ROLLS BACK (leaves the database unchanged).
     Test rows are moved to 2030 so they never mix with real/seed audit rows.
     Prints PASS/FAIL per check and raises error 50000 at the end if any check failed.
@@ -37,14 +38,18 @@ DECLARE @before INT, @after INT, @n INT;
 
 BEGIN TRANSACTION;
 
--- three portal-style changes at C1, one at C2 (raises only, so trigger 033 demotes nothing)
-EXEC dbo.usp_ChangeCapacity @SessionId = @s1, @NewCapacity = @new1, @Actor = 'portal-admin';
+-- three portal-style changes at C1, one at C2 (raises only, so trigger 033 demotes nothing),
+-- same capacity update and '<old> -> <new>' AuditLog row as the retired usp_ChangeCapacity (legacy-baseline)
+UPDATE dbo.ExamSession SET Capacity = CASE SessionId WHEN @s1 THEN @new1 WHEN @s2 THEN @new2 WHEN @s3 THEN @new3 ELSE @newx END,
+       SeatsAvailable = SeatsAvailable + (CASE SessionId WHEN @s1 THEN @new1 WHEN @s2 THEN @new2 WHEN @s3 THEN @new3 ELSE @newx END - Capacity)
+ WHERE SessionId IN (@s1, @s2, @s3, @x1);
+INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES ('ExamSession', @s1, 'CAPACITY', CONCAT(@cap1, ' -> ', @new1), 'portal-admin');
 SELECT @a1 = MAX(AuditId) FROM dbo.AuditLog WHERE EntityId = @s1 AND Action = 'CAPACITY';
-EXEC dbo.usp_ChangeCapacity @SessionId = @s2, @NewCapacity = @new2, @Actor = 'portal-admin';
+INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES ('ExamSession', @s2, 'CAPACITY', CONCAT(@cap2, ' -> ', @new2), 'portal-admin');
 SELECT @a2 = MAX(AuditId) FROM dbo.AuditLog WHERE EntityId = @s2 AND Action = 'CAPACITY';
-EXEC dbo.usp_ChangeCapacity @SessionId = @s3, @NewCapacity = @new3, @Actor = 'test-admin';
+INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES ('ExamSession', @s3, 'CAPACITY', CONCAT(@cap3, ' -> ', @new3), 'test-admin');
 SELECT @a3 = MAX(AuditId) FROM dbo.AuditLog WHERE EntityId = @s3 AND Action = 'CAPACITY';
-EXEC dbo.usp_ChangeCapacity @SessionId = @x1, @NewCapacity = @newx, @Actor = 'portal-admin';
+INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES ('ExamSession', @x1, 'CAPACITY', CONCAT(@capx, ' -> ', @newx), 'portal-admin');
 SELECT @ax = MAX(AuditId) FROM dbo.AuditLog WHERE EntityId = @x1 AND Action = 'CAPACITY';
 
 -- malformed CAPACITY detail and a capacity-sync run row (EntityId 0)
