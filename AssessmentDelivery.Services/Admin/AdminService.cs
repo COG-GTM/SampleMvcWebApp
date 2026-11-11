@@ -131,8 +131,9 @@ namespace AssessmentDelivery.Services.Admin
         public IList<CapacitySyncRunRow> ListCapacitySyncRuns(DateTime from, DateTime toExclusive, int max)
         {
             // The service filters on StartedAt; legacy filtered on the audit row time (= finish). Ask a day earlier so
-            // a run that crossed 'from' is included, then filter on the finish time.
-            var runs = BookingService.Call(() => _scheduling.ListReconcilerRuns(from.AddDays(-1), toExclusive, max))
+            // a run that crossed 'from' is included, and one extra row in case the newest run crosses 'toExclusive',
+            // then filter on the finish time.
+            var runs = BookingService.Call(() => _scheduling.ListReconcilerRuns(from.AddDays(-1), toExclusive, max + 1))
                        ?? new List<ApiReconcilerRun>();
             return runs.Select(r =>
             {
