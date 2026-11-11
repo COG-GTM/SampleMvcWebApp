@@ -166,6 +166,10 @@ With the relay live and the legacy write denial in place (`db/security/040_singl
 
 ## 5. Roll a centre back to legacy (routing allow-list, M3)
 
+> **Single writer (MBA-3823).** Once `db/security/040_single_writer.sql` is applied, routing a centre back to legacy
+> only moves its *reads*: legacy booking/capacity writes stay denied for every centre, so the steps below do not restore
+> legacy writes on their own. To hand writes back to legacy use §6 (it is all-or-nothing, not per centre).
+
 Which backend serves a centre is decided by the routing allow-list `scheduling.routing.modern-centers`
 (env `SCHEDULING_ROUTING_MODERN_CENTERS`, comma-separated centre codes, `*` = all; everything else goes to
 `SCHEDULING_ROUTING_DEFAULT_TARGET`, default `legacy`). The M3 routing layer consults it per request.
@@ -183,3 +187,26 @@ Which backend serves a centre is decided by the routing allow-list `scheduling.r
 3. Verify: `routing/resolve` returns `"target":"legacy"`, and `rate(scheduling_booking_duration_seconds_count{centerCode="SFO01"}[5m])`
    drops to 0 while legacy portal/booking-api traffic for the centre resumes.
 4. Bookings taken by modern for that centre stay in `Scheduling`; reconcile them (§4) before routing the centre back.
+
+## 6. Single-writer cutover and rollback (MBA-3823)
+
+Cutover (order matters: bookings legacy takes between the snapshot and the denial would be missing from `Scheduling`,
+because the importer only copies bookings when the `Scheduling` DB has no sessions or on a RESET import):
+
+1. Apply `db/security/036_component_logins.sql` and `db/security/040_single_writer.sql` (legacy writes now fail with a
+   permission error; booking-api answers `403 LEGACY_WRITE_DENIED`).
+2. Re-import with the legacy estate quiesced: drop/recreate the `Scheduling` DB (or run the RESET import) and start
+   scheduling-service with the relay on. The import emits `InventoryBaselined`, which the relay projects once.
+3. `GET /internal/reconciliation` must report 0 mismatches and 0 seat-drift rows.
+4. Only then set `routing.coexistence-mode=relay` and `routing.modern-centers=*` in the gateway.
+
+Rollback to legacy writes (all centres at once):
+
+1. Set `routing.modern-centers=` (empty) in the gateway so no new writes reach scheduling-service; wait for
+   `GET /internal/relay` `pending` = 0 so every modern change is in `AssessmentDelivery`.
+2. Revoke the denial: for each legacy login, `REVOKE INSERT, UPDATE, DELETE ON dbo.Booking / dbo.Waitlist`,
+   `REVOKE UPDATE ON dbo.ExamSession (Capacity, SeatsAvailable, AccommodationCapacity)` and
+   `REVOKE EXECUTE` on the four booking procedures (the inverse of `040_single_writer.sql`).
+3. Stop scheduling-service (or `SCHEDULING_RELAY_ENABLED=false`) and, if seat recomputation is wanted again,
+   `capacity.sync.enabled=true` in capacity-sync. Legacy drift (HB-01..HB-05) returns with the legacy writers.
+4. Before routing writes to modern again, repeat the cutover from step 2: `Scheduling` must be re-imported.
