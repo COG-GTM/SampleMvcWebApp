@@ -165,7 +165,7 @@ def multipart(fields, files):
 def wait_http(url, timeout=120):
     end = time.time() + timeout
     while time.time() < end:
-        if http('GET', url, timeout=10).status:
+        if 0 < http('GET', url, timeout=10).status < 500:
             return True
         time.sleep(1)
     return False
