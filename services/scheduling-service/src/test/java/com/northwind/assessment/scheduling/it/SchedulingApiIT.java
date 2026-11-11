@@ -109,7 +109,7 @@ class SchedulingApiIT extends SqlServerTestBase {
     }
 
     @Test
-    void trg_ExamSession_Update_capacityDecreaseBumpsNewestBookedToWaitlist_andFloorRejectsWith50005() {
+    void trg_ExamSession_Update_capacityDecreaseBumpsNewestBookedToWaitlist() {
         int sessionId = openSession("s.accommodation_capacity >= 1 AND (SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id "
                 + "AND b.status = 'BOOKED') >= s.accommodation_capacity + 3");
         Map<String, Object> session = get("/api/v2/sessions/" + sessionId);
@@ -131,12 +131,33 @@ class SchedulingApiIT extends SqlServerTestBase {
                 .containsEntry("waitlistCount", waitlist + 2);
         assertThat(db.queryForObject("SELECT COUNT(*) FROM capacity_change WHERE session_id = ?", Integer.class, sessionId)).isEqualTo(1);
 
-        int floor = ((Number) session.get("accommodationCapacity")).intValue();
-        assertError(putCapacity(sessionId, floor - 1), HttpStatus.CONFLICT, "CAPACITY_BELOW_ACCOMMODATION_FLOOR", 50005);
-
         ResponseEntity<Map<String, Object>> raised = putCapacity(sessionId, capacity);
         assertThat(raised.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat((List<?>) raised.getBody().get("bumpedBookingIds")).isEmpty();
+    }
+
+    @Test
+    void capacityFloor_unbookedAccommodationSeatsDoNotBlockAReduction_bookedOnesRejectWith50005() {
+        int sessionId = openSession("s.accommodation_capacity >= 2 AND s.capacity - (SELECT COUNT(*) FROM booking b "
+                + "WHERE b.session_id = s.session_id AND b.status IN ('BOOKED','ATTENDED')) >= 2 "
+                + "AND NOT EXISTS (SELECT 1 FROM booking b WHERE b.session_id = s.session_id "
+                + "AND b.status IN ('BOOKED','ATTENDED') AND b.accommodation_code IN ('ET25','ET50'))");
+        Map<String, Object> session = get("/api/v2/sessions/" + sessionId);
+        int capacity = ((Number) session.get("capacity")).intValue();
+        int allocated = ((Number) session.get("accommodationCapacity")).intValue();
+
+        ResponseEntity<Map<String, Object>> below = putCapacity(sessionId, allocated - 1);
+        assertThat(below.getStatusCode()).isEqualTo(HttpStatus.OK);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> reduced = (Map<String, Object>) below.getBody().get("session");
+        assertThat(reduced).containsEntry("capacity", allocated - 1).containsEntry("accommodationCapacity", allocated);
+
+        assertThat(putCapacity(sessionId, capacity).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(book(sessionId, eligibleCandidates(sessionId, 1).get(0), "ET25").getBody()).containsEntry("status", "BOOKED");
+
+        assertError(putCapacity(sessionId, 0), HttpStatus.CONFLICT, "CAPACITY_BELOW_ACCOMMODATION_FLOOR", 50005);
+        assertThat(((Number) get("/api/v2/sessions/" + sessionId).get("capacity")).intValue()).isEqualTo(capacity);
+        assertThat(putCapacity(sessionId, 1).getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test

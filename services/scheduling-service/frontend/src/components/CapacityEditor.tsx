@@ -13,7 +13,7 @@ export default function CapacityEditor({ session, onChanged, compact = false }: 
   const [value, setValue] = useState(String(session.capacity));
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
-  const error = editing ? validateCapacity(value, session.accommodationCapacity) : null;
+  const error = editing ? validateCapacity(value, session.accommodationUsed) : null;
   const next = Number(value);
   const willBump = Math.max(0, session.bookedSeats - next);
 

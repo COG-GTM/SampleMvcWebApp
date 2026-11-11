@@ -142,16 +142,20 @@ accommodation seats are booked.
 this: the allocation is kept as set, and only the number of accommodation seats already booked
 (ET25/ET50, BOOKED or ATTENDED) blocks a reduction.
 
-**Decision: port the rule currently on `assessment-delivery-demo`**
-(`scheduling.rules.accommodation-floor: allocated`): `newCapacity < accommodationCapacity` -> 409
-`CAPACITY_BELOW_ACCOMMODATION_FLOOR`, `legacyCode` 50005. The PR #51 rule is implemented as
-`AccommodationFloorPolicy.BOOKED_EXTRA_TIME` and is one property away
-(`accommodation-floor: booked-extra-time`) once PR #51 is merged.
+**Decision (revised): use the PR #51 rule** (`scheduling.rules.accommodation-floor: booked-extra-time`,
+the default): only `newCapacity < ` ET25/ET50 seats already held (BOOKED or ATTENDED) -> 409
+`CAPACITY_BELOW_ACCOMMODATION_FLOOR`, `legacyCode` 50005. The allocation is kept as set; while capacity is
+below it, every accommodation booking still needs a free seat, so no booking can exceed capacity. The strict
+legacy rule stays available as `AccommodationFloorPolicy.ALLOCATED` (`accommodation-floor: allocated`).
 
-**Why.** M2 must match the legacy behaviour that is live today; PR #51 is still under review. Tests:
-`usp_ChangeCapacity_rejectsBelowAllocatedAccommodationCapacity_50005`,
-`pr51_bookedExtraTimeFloor_allowsBelowAllocationButNotBelowBookedEtSeats`, and the integration
-test `trg_ExamSession_Update_capacityDecreaseBumpsNewestBookedToWaitlist_andFloorRejectsWith50005`.
+**Why.** With the strict rule the v2 API rejected ~4.6% of capacity changes (7-day baseline ~0.3%), all of
+them reductions on sessions with accommodation seats: the strict rule blocks a reduction below the allocation
+even when those seats are empty, so centres could not give back unused accommodation seats. The SPA validates against `accommodationUsed` to match. Tests:
+`defaultFloor_allowsReductionBelowUnbookedAccommodationSeats`,
+`defaultFloor_stillRejectsReductionBelowBookedAccommodationSeats`,
+`usp_ChangeCapacity_rejectsBelowAllocatedAccommodationCapacity_50005` (strict policy),
+`pr51_bookedExtraTimeFloor_allowsBelowAllocationButNotBelowBookedEtSeats`, and the integration test
+`capacityFloor_unbookedAccommodationSeatsDoNotBlockAReduction_bookedOnesRejectWith50005`.
 
 Transcripts: pending M1 (MBA-3820)
 

@@ -13,9 +13,10 @@ describe('validateCapacity', () => {
     expect(validateCapacity('3.5', 0)).toMatch(/whole/);
     expect(validateCapacity('-1', 0)).toMatch(/whole/);
   });
-  it('mirrors the usp_ChangeCapacity accommodation floor', () => {
-    expect(validateCapacity('1', 2)).toMatch(/accommodation/);
+  it('floors capacity at the accommodation seats already booked, not the allocation', () => {
+    expect(validateCapacity('1', 2)).toMatch(/accommodation seats already booked/);
     expect(validateCapacity('2', 2)).toBeNull();
+    expect(validateCapacity('0', 0)).toBeNull();
   });
   it('caps absurd values', () => expect(validateCapacity('900', 0)).toMatch(/exceed/));
 });

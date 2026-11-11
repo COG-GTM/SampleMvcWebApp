@@ -7,7 +7,7 @@ public enum AccommodationFloorPolicy {
 
     /**
      * db/procs/022_usp_ChangeCapacity.sql on assessment-delivery-demo: reject a new capacity below the
-     * allocated {@code AccommodationCapacity} (RAISERROR state 5). Default.
+     * allocated {@code AccommodationCapacity} (RAISERROR state 5), even when no accommodation seat is booked.
      */
     ALLOCATED {
         @Override
@@ -20,8 +20,8 @@ public enum AccommodationFloorPolicy {
     },
 
     /**
-     * Pending PR #51: only reject a new capacity below the ET25/ET50 seats already held; the
-     * allocation itself may exceed capacity.
+     * PR #51: only reject a new capacity below the ET25/ET50 seats already held; the allocation itself
+     * may exceed capacity (usable accommodation seats are then capped by capacity). Default.
      */
     BOOKED_EXTRA_TIME {
         @Override

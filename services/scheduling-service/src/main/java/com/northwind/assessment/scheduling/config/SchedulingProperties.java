@@ -32,8 +32,8 @@ public record SchedulingProperties(Datasource datasource, Legacy legacy, @Name("
         }
 
         public AccommodationFloorPolicy accommodationFloorPolicy() {
-            return "booked-extra-time".equalsIgnoreCase(accommodationFloor)
-                    ? AccommodationFloorPolicy.BOOKED_EXTRA_TIME : AccommodationFloorPolicy.ALLOCATED;
+            return "allocated".equalsIgnoreCase(accommodationFloor)
+                    ? AccommodationFloorPolicy.ALLOCATED : AccommodationFloorPolicy.BOOKED_EXTRA_TIME;
         }
     }
 }

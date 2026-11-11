@@ -15,12 +15,13 @@ export function validateCandidateNumber(value: string): string | null {
   return null;
 }
 
-export function validateCapacity(value: string, accommodationCapacity: number): string | null {
+/** {@code accommodationSeatsBooked}: ET25/ET50 seats held - the scheduling-service capacity floor (booked-extra-time). */
+export function validateCapacity(value: string, accommodationSeatsBooked: number): string | null {
   if (value.trim() === '') return 'Enter a capacity';
   if (!/^\d+$/.test(value.trim())) return 'Capacity must be a whole number';
   const n = Number(value);
   if (n > 500) return 'Capacity cannot exceed 500';
-  if (n < accommodationCapacity) return `Cannot go below the ${accommodationCapacity} accommodation seats`;
+  if (n < accommodationSeatsBooked) return `Cannot go below the ${accommodationSeatsBooked} accommodation seats already booked`;
   return null;
 }
 

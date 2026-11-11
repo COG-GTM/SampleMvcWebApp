@@ -34,8 +34,9 @@ scheduling:
   rules:
     # calendar (portal RetakeRules.AddDays, chosen by ADR 0002) | working (booking-api DateUtils.addWorkingDays)
     retake-days: calendar
-    # allocated (usp_ChangeCapacity on assessment-delivery-demo) | booked-extra-time (pending PR #51)
-    accommodation-floor: allocated
+    # booked-extra-time (only ET25/ET50 seats already booked block a reduction, PR #51)
+    # | allocated (strict usp_ChangeCapacity floor: rejects any reduction below the allocation)
+    accommodation-floor: booked-extra-time
 
 management:
   endpoints:

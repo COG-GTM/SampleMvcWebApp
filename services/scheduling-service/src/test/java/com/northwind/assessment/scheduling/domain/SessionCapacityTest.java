@@ -3,6 +3,7 @@ package com.northwind.assessment.scheduling.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.northwind.assessment.scheduling.config.SchedulingProperties;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -203,6 +204,28 @@ class SessionCapacityTest {
                 RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR, 50005);
         assertThat(s.capacity()).isEqualTo(10);
         assertThat(s.changeCapacity(3, AccommodationFloorPolicy.ALLOCATED).newCapacity()).isEqualTo(3);
+    }
+
+    @Test
+    void defaultFloor_allowsReductionBelowUnbookedAccommodationSeats() {
+        SessionCapacity s = open(10, 3, slot(1, 1, BookingStatus.BOOKED, null, 0));
+        CapacityChange c = s.changeCapacity(2, defaultFloorPolicy());
+        assertThat(c.newCapacity()).isEqualTo(2);
+        assertThat(c.bumped()).isEmpty();
+        assertThat(s.accommodationCapacity()).isEqualTo(3);
+        assertThat(s.seatsAvailable()).isEqualTo(1);
+    }
+
+    @Test
+    void defaultFloor_stillRejectsReductionBelowBookedAccommodationSeats() {
+        SessionCapacity s = open(10, 3, slot(1, 1, BookingStatus.BOOKED, "ET25", 0), slot(2, 2, BookingStatus.ATTENDED, "ET50", 1));
+        assertViolation(() -> s.changeCapacity(1, defaultFloorPolicy()), RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR, 50005);
+        assertThat(s.capacity()).isEqualTo(10);
+    }
+
+    private static AccommodationFloorPolicy defaultFloorPolicy() {
+        return new SchedulingProperties(null, null, null, null)
+                .rules().accommodationFloorPolicy();
     }
 
     @Test

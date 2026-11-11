@@ -42,7 +42,7 @@ SCHEDULING_IMPORT_ON_STARTUP=true java -jar target/scheduling-service.jar
 | Legacy read-only source | `LEGACY_DB_URL`, `LEGACY_DB_USER`, `LEGACY_DB_PASSWORD` | db `AssessmentDelivery`, `ad_sched_import` |
 | Import all centers at startup | `SCHEDULING_IMPORT_ON_STARTUP` | `false` (`true` in the run script) |
 | Retake day counting | `scheduling.rules.retake-days` | `calendar` (`working` = booking-api) |
-| Capacity floor | `scheduling.rules.accommodation-floor` | `allocated` (`booked-extra-time` = PR #51) |
+| Capacity floor | `scheduling.rules.accommodation-floor` | `booked-extra-time` (PR #51: only booked ET25/ET50 seats block a reduction; `allocated` = strict legacy floor) |
 
 The service refuses to start if the scheduling datasource points at `AssessmentDelivery`.
 
