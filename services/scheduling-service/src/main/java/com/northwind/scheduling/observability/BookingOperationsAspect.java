@@ -1,8 +1,5 @@
 package com.northwind.scheduling.observability;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -35,7 +32,6 @@ public class BookingOperationsAspect {
 
     private final BookingMetrics metrics;
     private final SchedulingRepository repo;
-    private final Map<Integer, String> sessionCenters = new ConcurrentHashMap<>();
 
     public BookingOperationsAspect(BookingMetrics metrics, SchedulingRepository repo) {
         this.metrics = metrics;
@@ -121,7 +117,7 @@ public class BookingOperationsAspect {
         return args.length > i && args[i] instanceof Integer v ? v : null;
     }
 
-    /** Session -> centre is immutable, so hits are cached; lookups that fail (DB down, unknown id) give "unknown". */
+    /** Looked up per command (centre codes can change with a snapshot refresh); failed lookups give "unknown". */
     String centerFor(Integer sessionId, Integer bookingId) {
         try {
             Integer sid = sessionId;
@@ -131,16 +127,7 @@ public class BookingOperationsAspect {
             if (sid == null) {
                 return UNKNOWN;
             }
-            String cached = sessionCenters.get(sid);
-            if (cached != null) {
-                return cached;
-            }
-            String code = repo.sessionCenterCode(sid).orElse(null);
-            if (code == null) {
-                return UNKNOWN;
-            }
-            sessionCenters.put(sid, code);
-            return code;
+            return repo.sessionCenterCode(sid).orElse(UNKNOWN);
         } catch (RuntimeException e) {
             return UNKNOWN;
         }

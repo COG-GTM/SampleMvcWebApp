@@ -89,7 +89,6 @@ class ObservabilityUnitTest {
         assertThat(reg.get(BookingMetrics.DURATION).tags("operation", "reschedule", "outcome", "success",
                 "centerCode", "SFO01").timer().count()).isEqualTo(2);
         assertThat(reg.find(BookingMetrics.ERRORS).counters()).isEmpty();
-        org.mockito.Mockito.verify(repo, org.mockito.Mockito.times(1)).sessionCenterCode(163);
     }
 
     @Test
