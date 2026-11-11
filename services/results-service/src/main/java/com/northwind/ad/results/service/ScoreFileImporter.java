@@ -126,7 +126,12 @@ public class ScoreFileImporter {
                     Integer.class, r.getFileName(), r.getSha256(), r.getRowsRead(), r.getImported(),
                     r.getDuplicates(), r.getConflicts(), r.getErrors().size(), actor);
         } catch (DuplicateKeyException e) {
-            // the same file was imported concurrently; its rows were deduplicated row by row above
+            // the same file was imported concurrently and recorded first: rows this request inserted were
+            // counted as duplicates there, so move them to Imported to keep the stored totals right
+            if (r.getImported() > 0) {
+                jdbc.update("UPDATE dbo.ResultUpload SET Imported = Imported + ?, Duplicates = Duplicates - ? "
+                        + "WHERE Sha256 = ?", r.getImported(), r.getImported(), r.getSha256());
+            }
             return findUpload(r.getSha256());
         }
     }

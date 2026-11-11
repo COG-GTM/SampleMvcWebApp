@@ -110,13 +110,14 @@ public class ScoreFileIdempotencyTest extends AbstractResultsIT {
         int conflictResultId = ((Number) result(conflict.bookingId).get("ResultId")).intValue();
         Map<String, Object> conflictRowBefore = result(conflict.bookingId);
 
-        ResponseEntity<Map> r = upload("NWTEST_MIXED_B.csv", csv(
+        String mixed = csv(
                 fresh.csvRow(777, "2026-11-10T08:30:00"),           // line 2: new
                 dup.csvRow(600, "2026-11-10T08:00:00"),             // line 3: duplicate
                 conflict.csvRow(999, "2026-11-10T08:00:00"),        // line 4: conflict
                 "NW00000001,1,abc,2026-11-10",                      // line 5: bad score
                 afterBadRow.csvRow(333, "2026-11-10T08:45:00"),     // line 6: new, after the bad row
-                "NW00000999,999999,500,2026-11-10"));               // line 7: no booking
+                "NW00000999,999999,500,2026-11-10");                // line 7: no booking
+        ResponseEntity<Map> r = upload("NWTEST_MIXED_B.csv", mixed);
 
         assertEquals(HttpStatus.OK, r.getStatusCode());
         Map body = r.getBody();
@@ -151,6 +152,13 @@ public class ScoreFileIdempotencyTest extends AbstractResultsIT {
         assertEquals(1, upload.get("Duplicates"));
         assertEquals(1, upload.get("Conflicts"));
         assertEquals(2, upload.get("Errors"));
+
+        // replaying the same file reports the conflict again but does not audit it a second time
+        ResponseEntity<Map> replay = upload("NWTEST_MIXED_B.csv", mixed);
+        assertEquals(Boolean.TRUE, replay.getBody().get("alreadyUploaded"));
+        assertEquals(1, num(replay.getBody(), "conflicts"));
+        assertEquals(1, auditCount(conflictResultId, "DUPLICATE_REJECTED"));
+        assertEquals(conflictRowBefore, result(conflict.bookingId));
     }
 
     @Test
@@ -227,6 +235,10 @@ public class ScoreFileIdempotencyTest extends AbstractResultsIT {
             assertEquals(1, resultCount(f.bookingId));
         }
         assertEquals(1, uploadsWithFileName("NWTEST_CONCURRENT.csv"));
+        Map<String, Object> stored = jdbc.queryForMap(
+                "SELECT Imported, Duplicates FROM dbo.ResultUpload WHERE FileName = 'NWTEST_CONCURRENT.csv'");
+        assertEquals(5, stored.get("Imported"));
+        assertEquals(0, stored.get("Duplicates"));
         assertFalse(fixtures.isEmpty());
     }
 }
