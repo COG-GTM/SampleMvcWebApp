@@ -201,7 +201,7 @@ def build(data: dict, base: Path) -> str:
     matrix = "".join(f'<tr><td><a href="#s{int(s["id"])}">{int(s["id"])}. {E(s["title"])}</a></td><td>{badge(s["classification"])}</td>'
                      f'<td>{E(s.get("citation", ""))}</td><td>{E(s.get("summary", ""))}</td></tr>' for s in scen)
     env_rows = "".join(f"<tr><td>{E(e['worker'])}</td><td>{E(e.get('role', ''))}</td><td>{E(e.get('env', ''))}</td>"
-                       f"<td>{'<a href=' + chr(34) + E(e['url']) + chr(34) + '>session</a>' if e.get('url') else ''}</td></tr>" for e in m["workers"])
+                       f"<td>{'<a href=' + chr(34) + E(e['url']) + chr(34) + '>session</a>' if str(e.get('url', '')).startswith('https://') else ''}</td></tr>" for e in m["workers"])
     prs = "".join(f'<li><a href="https://github.com/COG-GTM/SampleMvcWebApp/pull/{p["n"]}">#{p["n"]}</a> {E(p["title"])}</li>' for p in m["prs"])
     mism = "".join(f"<li>{E(x)}</li>" for x in data.get("mismatches", [])) or "<li>None. Every difference is either ADR-approved, a retired legacy surface or the documented on-call demo defect.</li>"
     filt = "".join(f'<button data-f="{c}">{c} ({counts[c]})</button>' for c in CLASSES)
