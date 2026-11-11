@@ -198,7 +198,7 @@ def build(data: dict, base: Path) -> str:
                          max_val=max(cc["legacy"]["success"], cc["modern"]["success"], 1))
     test_rows = "".join(f"<tr><td>{E(t['suite'])}</td><td>{E(t.get('platform', ''))}</td><td>{t.get('passed', 0)}</td>"
                         f"<td>{t.get('failed', 0)}</td><td>{t.get('skipped', 0)}</td><td>{E(t.get('note', ''))}</td></tr>" for t in tests)
-    matrix = "".join(f'<tr><td><a href="#s{s["id"]}">{s["id"]}. {E(s["title"])}</a></td><td>{badge(s["classification"])}</td>'
+    matrix = "".join(f'<tr><td><a href="#s{int(s["id"])}">{int(s["id"])}. {E(s["title"])}</a></td><td>{badge(s["classification"])}</td>'
                      f'<td>{E(s.get("citation", ""))}</td><td>{E(s.get("summary", ""))}</td></tr>' for s in scen)
     env_rows = "".join(f"<tr><td>{E(e['worker'])}</td><td>{E(e.get('role', ''))}</td><td>{E(e.get('env', ''))}</td>"
                        f"<td>{'<a href=' + chr(34) + E(e['url']) + chr(34) + '>session</a>' if e.get('url') else ''}</td></tr>" for e in m["workers"])
