@@ -32,6 +32,9 @@ public class SchedulingClient {
 
     private final RestTemplate rest;
     private final String baseUrl;
+    /** The only 5xx error code in the contract: a SQL failure inside the service (e.g. deadlock 1205). */
+    public static final String SYSTEM_ERROR = "SYSTEM_ERROR";
+
     private final ObjectMapper json = new ObjectMapper();
 
     @Autowired
@@ -145,19 +148,18 @@ public class SchedulingClient {
 
     private SchedulingException toException(HttpStatusCodeException e) {
         int status = e.getRawStatusCode();
-        if (status >= 500) {
-            return new SchedulingException(status, "SCHEDULING_UNAVAILABLE",
-                    "scheduling-service returned HTTP " + status, null);
-        }
         try {
             JsonNode err = json.readTree(e.getResponseBodyAsString());
-            if (err != null && err.hasNonNull("message")) {
+            boolean contractError = err != null && err.hasNonNull("message")
+                    && (status < 500 || SYSTEM_ERROR.equals(err.path("error").asText(null)));
+            if (contractError) {
                 return new SchedulingException(status, err.path("error").asText(null), err.get("message").asText(),
                         err.hasNonNull("legacyState") ? Integer.valueOf(err.get("legacyState").asInt()) : null);
             }
         } catch (Exception ignored) {
             // not a contract error body
         }
-        return new SchedulingException(status, "SCHEDULING_ERROR", "scheduling-service returned HTTP " + status, null);
+        return new SchedulingException(status, status >= 500 ? "SCHEDULING_UNAVAILABLE" : "SCHEDULING_ERROR",
+                "scheduling-service returned HTTP " + status, null);
     }
 }
