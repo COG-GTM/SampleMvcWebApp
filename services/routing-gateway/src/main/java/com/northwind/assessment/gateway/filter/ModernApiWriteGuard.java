@@ -28,7 +28,9 @@ import reactor.core.publisher.Mono;
 @Component
 public class ModernApiWriteGuard implements GatewayFilter {
 
-    private static final Pattern BOOKING = Pattern.compile("^/api/v2/bookings/(\\d+)(/reschedule)?$");
+    private static final Pattern BOOKING = Pattern.compile("^/api/v2/bookings/(\\d+)(/reschedule|/offer/accept|/offer/decline)?$");
+    /** Waitlist seat offer decisions (MBA-3829): guarded by the center of the offered booking. */
+    private static final Pattern OFFER = Pattern.compile("^/api/v2/offers/(\\d+)/(accept|decline)$");
     private static final Pattern CAPACITY = Pattern.compile("^/api/v2/sessions/(\\d+)/capacity$");
 
     private final RoutingService routing;
@@ -60,6 +62,9 @@ public class ModernApiWriteGuard implements GatewayFilter {
         if ((m = BOOKING.matcher(path)).matches()
                 && (HttpMethod.DELETE.equals(method) || (HttpMethod.POST.equals(method) && m.group(2) != null))) {
             return guard(exchange, chain, ResolveKey.booking(m.group(1)), Ids.parseLong(m.group(1)));
+        }
+        if (HttpMethod.POST.equals(method) && (m = OFFER.matcher(path)).matches()) {
+            return guard(exchange, chain, ResolveKey.offer(m.group(1)), null);
         }
         if (HttpMethod.PUT.equals(method) && (m = CAPACITY.matcher(path)).matches()) {
             return guard(exchange, chain, ResolveKey.session(m.group(1)), null);

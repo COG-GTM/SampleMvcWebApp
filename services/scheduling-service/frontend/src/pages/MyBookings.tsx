@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { api, Booking } from '../api';
+import { api, Booking, Offer } from '../api';
 import { Empty, ErrorBox, Modal, PageHeader, Spinner, StatusBadge } from '../components/ui';
-import { formatDateTime, validateCandidateNumber } from '../format';
+import { formatDateTime, offerExpired, validateCandidateNumber } from '../format';
 import { rememberCandidate, rememberedCandidate, toastError, useLoad } from '../hooks';
 
 export default function MyBookings() {
@@ -26,6 +26,25 @@ export default function MyBookings() {
     setParams({ candidateNumber: n });
   };
 
+  const decide = async (offer: Offer, accept: boolean) => {
+    setBusy(true);
+    try {
+      if (accept) {
+        await api.acceptOffer(offer.offerId, candidateNumber);
+        toast.success(`Seat accepted for booking #${offer.bookingId}`, { description: 'You are now booked on this session.' });
+      } else {
+        await api.declineOffer(offer.offerId, candidateNumber);
+        toast.success('Seat offer declined', { description: 'You have left the waitlist for this session.' });
+      }
+      await bookings.reload();
+    } catch (e) {
+      toastError(e);
+      await bookings.reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const cancel = async () => {
     if (!cancelling) return;
     setBusy(true);
@@ -41,6 +60,7 @@ export default function MyBookings() {
     }
   };
 
+  const offers = (bookings.data ?? []).filter((b) => b.pendingOffer);
   const active = (bookings.data ?? []).filter((b) => b.status === 'BOOKED' || b.status === 'WAITLISTED');
   const past = (bookings.data ?? []).filter((b) => b.status !== 'BOOKED' && b.status !== 'WAITLISTED');
 
@@ -62,6 +82,14 @@ export default function MyBookings() {
       {bookings.error && <ErrorBox error={bookings.error} />}
       {bookings.data && (
         <div className="space-y-8">
+          {offers.length > 0 && (
+            <section data-testid="offers">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Seat offers ({offers.length})</h2>
+              <div className="grid gap-3">
+                {offers.map((b) => <OfferCard key={b.bookingId} b={b} offer={b.pendingOffer!} busy={busy} onDecide={decide} />)}
+              </div>
+            </section>
+          )}
           <section>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Upcoming ({active.length})</h2>
             {active.length === 0 ? <Empty>No active bookings. <Link className="text-brand-600 hover:underline" to="/">Find a session</Link></Empty> : (
@@ -90,6 +118,31 @@ export default function MyBookings() {
   );
 }
 
+function OfferCard({ b, offer, busy, onDecide }: { b: Booking; offer: Offer; busy: boolean; onDecide: (o: Offer, accept: boolean) => void }) {
+  const expired = offerExpired(offer.expiresAt);
+  return (
+    <article className="card flex flex-wrap items-center gap-4 border-emerald-300 bg-emerald-50/60 p-4" data-testid="offer-card"
+      data-offer-id={offer.offerId} data-booking-id={b.bookingId}>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-semibold">{b.examCode}</span>
+          <span className="badge bg-emerald-100 text-emerald-800" data-testid="offer-badge">Seat offered</span>
+          {offer.seatKind === 'ACCOMMODATION' && <span className="badge bg-indigo-50 text-indigo-700">accommodation seat</span>}
+        </div>
+        <p className="mt-1 text-sm text-slate-600">
+          A seat freed up on {formatDateTime(b.sessionStartsAt)} (session {b.sessionId}). It is held for you until{' '}
+          <strong data-testid="offer-expires">{formatDateTime(offer.expiresAt)}</strong>.
+        </p>
+        {expired && <p className="text-xs text-rose-600">This offer has expired.</p>}
+      </div>
+      <div className="flex gap-2">
+        <button className="btn-secondary" disabled={busy || expired} onClick={() => onDecide(offer, false)} data-testid="offer-decline">Decline</button>
+        <button className="btn-primary" disabled={busy || expired} onClick={() => onDecide(offer, true)} data-testid="offer-accept">Accept seat</button>
+      </div>
+    </article>
+  );
+}
+
 function BookingRow({ b, onCancel }: { b: Booking; onCancel?: () => void }) {
   return (
     <article className="card flex flex-wrap items-center gap-4 p-4" data-testid="booking-row" data-booking-id={b.bookingId} data-status={b.status}>
@@ -98,6 +151,7 @@ function BookingRow({ b, onCancel }: { b: Booking; onCancel?: () => void }) {
           <span className="font-semibold">{b.examCode}</span>
           <StatusBadge status={b.status} />
           {b.waitlistPosition && <span className="badge bg-amber-50 text-amber-700">waitlist #{b.waitlistPosition}</span>}
+          {b.pendingOffer && <span className="badge bg-emerald-100 text-emerald-800">offer pending</span>}
           {b.accommodationCode && <span className="badge bg-indigo-50 text-indigo-700">{b.accommodationCode}</span>}
         </div>
         <p className="mt-1 text-sm text-slate-500">

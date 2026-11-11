@@ -6,6 +6,7 @@ import com.northwind.assessment.scheduling.importer.ImportSummary;
 import com.northwind.assessment.scheduling.importer.SnapshotImporter;
 import com.northwind.assessment.scheduling.persistence.BookingRepository;
 import com.northwind.assessment.scheduling.persistence.ReferenceRepository;
+import com.northwind.assessment.scheduling.persistence.SeatOfferRepository;
 import com.northwind.assessment.scheduling.persistence.Views;
 import com.northwind.assessment.scheduling.service.NotFoundException;
 import java.time.Duration;
@@ -31,9 +32,12 @@ public class InternalController {
     private final ReconciliationService reconciliation;
     private final OutboxRelay relay;
     private final SchedulingProperties props;
+    private final SeatOfferRepository offers;
 
     public InternalController(ReferenceRepository reference, BookingRepository bookings, SnapshotImporter importer,
-                              ReconciliationService reconciliation, OutboxRelay relay, SchedulingProperties props) {
+                              ReconciliationService reconciliation, OutboxRelay relay, SchedulingProperties props,
+                              SeatOfferRepository offers) {
+        this.offers = offers;
         this.reference = reference;
         this.bookings = bookings;
         this.importer = importer;
@@ -65,13 +69,23 @@ public class InternalController {
     public ResponseEntity<Json.Route> resolve(@RequestParam(required = false) String sessionId,
                                               @RequestParam(required = false) String bookingId,
                                               @RequestParam(required = false) String centerId,
-                                              @RequestParam(required = false) String centerCode) {
-        long given = Stream.of(sessionId, bookingId, centerId, centerCode).filter(v -> v != null && !v.isBlank()).count();
+                                              @RequestParam(required = false) String centerCode,
+                                              @RequestParam(required = false) String offerId) {
+        long given = Stream.of(sessionId, bookingId, centerId, centerCode, offerId).filter(v -> v != null && !v.isBlank())
+                .count();
         if (given != 1) {
             throw new SchedulingRuleException(RuleViolation.VALIDATION,
-                    "Exactly one of sessionId, bookingId, centerId, centerCode is required");
+                    "Exactly one of sessionId, bookingId, centerId, centerCode, offerId is required");
         }
         CacheControl cacheable = CacheControl.maxAge(Duration.ofSeconds(60));
+        if (offerId != null && !offerId.isBlank()) {
+            long id = parse("offerId", offerId);
+            long offerBooking = offers.find(id).orElseThrow(() -> new NotFoundException("NOT_FOUND",
+                    "Seat offer " + id + " not found")).bookingId();
+            Views.RouteView r = bookings.routeOfBooking(offerBooking)
+                    .orElseThrow(() -> new NotFoundException("NOT_FOUND", "Booking " + offerBooking + " not found"));
+            return ResponseEntity.ok(Json.Route.of(r));
+        }
         if (bookingId != null && !bookingId.isBlank()) {
             long id = parse("bookingId", bookingId);
             Views.RouteView r = bookings.routeOfBooking(id)

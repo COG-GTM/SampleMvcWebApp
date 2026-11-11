@@ -5,18 +5,29 @@ export interface Candidate { candidateNumber: string; firstName: string; lastNam
 export interface Session {
   sessionId: number; examCode: string; examTitle: string; centerCode: string; centerName: string; roomName: string;
   startsAt: string; capacity: number; accommodationCapacity: number; seatsAvailable: number; status: string;
-  bookedSeats: number; accommodationUsed: number; waitlistCount: number;
+  bookedSeats: number; accommodationUsed: number; waitlistCount: number; offeredSeats: number;
+}
+/** A waitlist seat offer (ADR 0003): holds a seat while PENDING, until expiresAt. */
+export interface Offer {
+  offerId: number; bookingId: number; sessionId: number; candidateNumber: string; examCode: string; sessionStartsAt: string;
+  centerCode: string; waitlistPosition: number; status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'WITHDRAWN';
+  seatKind: 'STANDARD' | 'ACCOMMODATION'; offeredAt: string; expiresAt: string; decidedAt: string | null;
 }
 export interface Booking {
   bookingId: number; sessionId: number; candidateNumber: string; examCode: string; sessionStartsAt: string; status: string;
   accommodationCode: string | null; channel: string; externalRef: string | null; bookedAt: string; cancelledAt: string | null;
   cancelReason: string | null; origin: 'MODERN' | 'LEGACY_IMPORT'; legacyBookingId: number | null; waitlistPosition: number | null;
+  pendingOffer: Offer | null;
 }
 export interface BookingResult {
   bookingId: number; status: 'BOOKED' | 'WAITLISTED'; sessionId: number; candidateNumber: string;
   accommodationCode: string | null; channel: string; waitlistPosition: number | null; seatsAvailable: number;
 }
-export interface WaitlistEntry { position: number; bookingId: number; candidateNumber: string; candidateName: string | null; addedAt: string }
+export interface WaitlistEntry {
+  position: number; bookingId: number; candidateNumber: string; candidateName: string | null; addedAt: string;
+  accommodationCode: string | null; offerState: 'OFFERED' | 'SKIPPED' | 'WAITING'; offerId: number | null;
+  offerExpiresAt: string | null; skipReason: string | null;
+}
 export interface Eligibility { eligible: boolean; reason: string; earliestRetakeDate: string | null }
 export interface CapacityResult { session: Session; bumpedBookingIds: number[] }
 
@@ -64,5 +75,8 @@ export const api = {
   book: (sessionId: number, candidateNumber: string, accommodationCode: string | null) =>
     call<BookingResult>('POST', '/api/v2/bookings', { sessionId, candidateNumber, accommodationCode, externalRef: null, channel: 'PORTAL' }),
   cancel: (id: number, reason?: string) => call<Booking>('DELETE', `/api/v2/bookings/${id}${q({ reason })}`),
+  candidateOffers: (n: string) => call<Offer[]>('GET', `/api/v2/candidates/${encodeURIComponent(n)}/offers`),
+  acceptOffer: (offerId: number, actor?: string) => call<Offer>('POST', `/api/v2/offers/${offerId}/accept`, { actor: actor ?? null }),
+  declineOffer: (offerId: number, actor?: string) => call<Offer>('POST', `/api/v2/offers/${offerId}/decline`, { actor: actor ?? null }),
   reschedule: (id: number, newSessionId: number) => call<BookingResult>('POST', `/api/v2/bookings/${id}/reschedule`, { newSessionId }),
 };

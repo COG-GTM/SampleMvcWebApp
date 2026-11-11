@@ -45,3 +45,15 @@ export function seatTone(available: number, capacity: number): 'full' | 'low' | 
   if (available <= Math.max(2, Math.floor(capacity * 0.2))) return 'low';
   return 'ok';
 }
+
+/** Admin waitlist drawer label for a position's offer state (ADR 0003). */
+export function waitlistOfferLabel(w: { offerState: string; offerExpiresAt: string | null; accommodationCode: string | null }): string | null {
+  if (w.offerState === 'OFFERED') return `Offered, expires ${formatDateTime(w.offerExpiresAt)}`;
+  if (w.offerState === 'SKIPPED') return `Skipped: needs ${w.accommodationCode ?? 'accommodation'}`;
+  return null;
+}
+
+/** True once the offer's expiry has passed: the server rejects accept/decline from then on. */
+export function offerExpired(expiresAt: string, now: Date = new Date()): boolean {
+  return new Date(expiresAt).getTime() <= now.getTime();
+}
