@@ -159,6 +159,16 @@ namespace AssessmentDelivery.Services.Booking
 
         public BookingOutcome Reschedule(int bookingId, int newSessionId)
         {
+            var booking = _db.Bookings.AsNoTracking().Include(b => b.Candidate).SingleOrDefault(b => b.BookingId == bookingId);
+            var target = _db.ExamSessions.Include(s => s.Exam).AsNoTracking().SingleOrDefault(s => s.SessionId == newSessionId);
+            if (booking != null && target != null)
+            {
+                //same retake check as Book - the proc only checks the exam matches
+                var decision = _eligibility.Check(booking.Candidate.CandidateNumber, target.Exam.ExamCode, target.StartsAt);
+                if (!decision.Eligible)
+                    throw new PortalException("Not eligible to book " + target.Exam.ExamCode + ": " + decision.Reason);
+            }
+
             var pNewId = new SqlParameter("@NewBookingId", SqlDbType.Int) { Direction = ParameterDirection.Output };
             var pStatus = new SqlParameter("@ResultStatus", SqlDbType.VarChar, 12) { Direction = ParameterDirection.Output };
             try
