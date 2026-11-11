@@ -42,6 +42,16 @@ namespace AssessmentDelivery.Web.Infrastructure
                 ConfigurationManager.AppSettings["Portal.BuildNumber"] ?? "local");
         }
 
+        /// <summary>
+        /// Link into the modern scheduling UI. Booking and capacity pages live there now and the
+        /// routing gateway serves both apps on one origin, so the default base is empty (same host).
+        /// </summary>
+        public static string ModernUiUrl(this HtmlHelper html, string path)
+        {
+            var baseUrl = (ConfigurationManager.AppSettings["Portal.ModernUiBaseUrl"] ?? "").TrimEnd('/');
+            return baseUrl + path;
+        }
+
         public static string EnvironmentName(this HtmlHelper html)
         {
             return ConfigurationManager.AppSettings["Portal.EnvironmentName"] ?? "DEV";

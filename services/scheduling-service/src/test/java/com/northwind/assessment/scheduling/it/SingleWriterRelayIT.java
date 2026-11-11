@@ -78,11 +78,7 @@ class SingleWriterRelayIT extends SqlServerTestBase {
                 "UPDATE dbo.ExamSession SET AccommodationCapacity = 0 WHERE SessionId = " + sessionId,
                 "INSERT INTO dbo.ExamSession (ExamId, TestCenterId, RoomId, StartsAt, Capacity, SeatsAvailable) "
                         + "SELECT TOP 1 ExamId, TestCenterId, RoomId, DATEADD(DAY, 400, StartsAt), 99, 99 FROM dbo.ExamSession",
-                "DELETE FROM dbo.ExamSession WHERE SessionId = " + sessionId,
-                "EXEC dbo.usp_BookSeat @SessionId = " + sessionId + ", @CandidateId = 1",
-                "EXEC dbo.usp_CancelBooking @BookingId = " + bookingId,
-                "EXEC dbo.usp_ChangeCapacity @SessionId = " + sessionId + ", @NewCapacity = 1",
-                "EXEC dbo.usp_RescheduleBooking @BookingId = " + bookingId + ", @NewSessionId = " + sessionId);
+                "DELETE FROM dbo.ExamSession WHERE SessionId = " + sessionId);
         try (Connection c = DriverManager.getConnection(jdbcUrl("AssessmentDelivery"), login, password)) {
             for (String sql : forbidden) {
                 assertThatThrownBy(() -> {
@@ -97,11 +93,11 @@ class SingleWriterRelayIT extends SqlServerTestBase {
     }
 
     @Test
-    void relayLogin_canProjectButCannotRunLegacyProcs() throws SQLException {
+    void relayLogin_cannotDeleteBookings_andLegacyBookingProcsAreRetired() throws SQLException {
+        assertThat(legacyInt("SELECT COUNT(*) FROM sys.procedures WHERE name IN "
+                + "('usp_BookSeat','usp_CancelBooking','usp_ChangeCapacity','usp_RescheduleBooking')")).isZero();
         try (Connection c = DriverManager.getConnection(jdbcUrl("AssessmentDelivery"), "ad_sched_relay", "Sch3d!Re1ay2026");
              Statement st = c.createStatement()) {
-            assertThatThrownBy(() -> st.execute("EXEC dbo.usp_CancelBooking @BookingId = 1"))
-                    .isInstanceOf(SQLException.class).hasMessageContaining("permission was denied");
             assertThatThrownBy(() -> st.execute("DELETE FROM dbo.Booking WHERE BookingId = -1"))
                     .isInstanceOf(SQLException.class).hasMessageContaining("permission was denied");
         }

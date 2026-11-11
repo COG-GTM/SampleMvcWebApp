@@ -3,8 +3,8 @@ package com.northwind.assessment.gateway.filter;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -27,20 +27,16 @@ import com.northwind.assessment.gateway.routing.RoutingService;
 import reactor.core.publisher.Mono;
 
 /**
- * Portal route: booking/admin pages of an allow-listed center redirect to the modern UI deep links under
- * {@code /app} (served by scheduling-service, proxied through this gateway). Everything else, and every page of a
- * non-allow-listed center, is proxied to the MVC 5 portal unchanged. Paths match case-insensitively like MVC routing.
+ * Portal route. The .NET booking and capacity pages are retired (MBA-3824): every legacy booking URL and
+ * {@code /Admin/Sessions/Capacity/{id}} redirects to its modern UI deep link under {@code /app} (served by
+ * scheduling-service, proxied through this gateway) for every center, see {@link RetiredPortalLinks}. The read-only
+ * {@code /Admin/Sessions?centerId=} list goes to the modern admin grid for allow-listed centers. Everything else is
+ * proxied to the MVC 5 portal unchanged. Paths match case-insensitively like MVC routing.
  */
 @Component
 public class PortalStranglerFilter implements GatewayFilter {
 
-    private static final Pattern BOOKING_INDEX = Pattern.compile("^/booking(/index)?/?$");
-    private static final Pattern BOOK = Pattern.compile("^/booking/book/?$");
-    private static final Pattern MY_BOOKINGS = Pattern.compile("^/booking/mybookings/?$");
-    private static final Pattern CANCEL = Pattern.compile("^/booking/cancel/(\\d+)/?$");
-    private static final Pattern RESCHEDULE = Pattern.compile("^/booking/reschedule/(\\d+)/?$");
     private static final Pattern ADMIN_SESSIONS = Pattern.compile("^/admin/sessions/?$");
-    private static final Pattern CAPACITY = Pattern.compile("^/admin/sessions/capacity/(\\d+)/?$");
 
     private final RoutingService routing;
 
@@ -58,7 +54,7 @@ public class PortalStranglerFilter implements GatewayFilter {
         boolean post = HttpMethod.POST.equals(method);
         boolean form = post && MediaType.APPLICATION_FORM_URLENCODED.isCompatibleWith(
                 exchange.getRequest().getHeaders().getContentType());
-        if (!post && !HttpMethod.GET.equals(method)) {
+        if (!post && !HttpMethod.GET.equals(method) && !HttpMethod.HEAD.equals(method)) {
             return chain.filter(exchange);
         }
         if (!form) {
@@ -74,35 +70,13 @@ public class PortalStranglerFilter implements GatewayFilter {
 
     private Mono<Void> dispatch(ServerWebExchange exchange, GatewayFilterChain chain, String path, boolean post,
             Map<String, String> p) {
-        Matcher m;
-        if (BOOKING_INDEX.matcher(path).matches() && has(p, "centercode")) {
-            return route(exchange, chain, ResolveKey.centerCode(p.get("centercode")), null, post,
-                    d -> link("/app").queryParam("centerCode", d.centerCode())
-                            .queryParam("examCode", p.getOrDefault("examcode", ""))
-                            .queryParam("date", p.getOrDefault("from", "")));
-        }
-        if (BOOK.matcher(path).matches() && isNumber(p.get("sessionid"))) {
-            return route(exchange, chain, ResolveKey.session(p.get("sessionid")), null, post,
-                    d -> withCandidate(link("/app/book").queryParam("sessionId", p.get("sessionid")), p));
-        }
-        if (MY_BOOKINGS.matcher(path).matches() && has(p, "centercode")) {
-            return route(exchange, chain, ResolveKey.centerCode(p.get("centercode")), null, post,
-                    d -> withCandidate(link("/app/my-bookings"), p));
-        }
-        if ((m = CANCEL.matcher(path)).matches()) {
-            String id = m.group(1);
-            return route(exchange, chain, ResolveKey.booking(id), Ids.parseLong(id), post,
-                    d -> withCandidate(link("/app/my-bookings"), p));
-        }
-        if ((m = RESCHEDULE.matcher(path)).matches()) {
-            String id = m.group(1);
-            return route(exchange, chain, ResolveKey.booking(id), Ids.parseLong(id), post,
-                    d -> withCandidate(link("/app/reschedule/" + id), p));
-        }
-        if ((m = CAPACITY.matcher(path)).matches()) {
-            String id = m.group(1);
-            return route(exchange, chain, ResolveKey.session(id), null, post,
-                    d -> link("/app/admin/sessions/" + id));
+        Optional<RetiredPortalLinks.Target> retired = RetiredPortalLinks.match(path, p);
+        if (retired.isPresent()) {
+            RetiredPortalLinks.Target t = retired.get();
+            return routing.retired(t.key(), t.centerHint()).flatMap(d -> {
+                RouteAttributes.set(exchange, d);
+                return Responses.redirect(exchange, post, t.location().apply(d.centerCode()));
+            });
         }
         if (ADMIN_SESSIONS.matcher(path).matches() && isNumber(p.get("centerid"))) {
             return route(exchange, chain, ResolveKey.centerId(p.get("centerid")), null, post,
@@ -132,10 +106,6 @@ public class PortalStranglerFilter implements GatewayFilter {
         return UriComponentsBuilder.fromPath(path);
     }
 
-    private static UriComponentsBuilder withCandidate(UriComponentsBuilder b, Map<String, String> p) {
-        return has(p, "candidatenumber") ? b.queryParam("candidateNumber", p.get("candidatenumber")) : b;
-    }
-
     /** Query string plus form fields, keys lower-cased (MVC model binding is case-insensitive). */
     static Map<String, String> params(MultiValueMap<String, String> query, String formBody) {
         Map<String, String> out = new TreeMap<>();
@@ -156,11 +126,6 @@ public class PortalStranglerFilter implements GatewayFilter {
 
     private static String decode(String s) {
         return java.net.URLDecoder.decode(s, StandardCharsets.UTF_8);
-    }
-
-    private static boolean has(Map<String, String> p, String key) {
-        String v = p.get(key);
-        return v != null && !v.isBlank();
     }
 
     private static boolean isNumber(String s) {

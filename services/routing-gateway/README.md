@@ -41,19 +41,23 @@ booking-api writes them (Jackson pretty printer, v1 field order, explicit nulls,
 `Content-Type: application/json;charset=UTF-8`). Candidate bookings/eligibility and session lists without
 `centerCode` are not center-specific and stay legacy.
 
-**Portal** (paths case-insensitive, like MVC routing; GET answers 302, POST answers 303):
+**Portal** (paths case-insensitive, like MVC routing; GET answers 302, POST answers 303). The .NET booking and
+capacity pages are retired (MBA-3824), so their URLs redirect for **every** center, allow-listed or not, with or
+without a center in the URL (`RetiredPortalLinks`). The center lookup only labels the route log
+(`reason=legacy-retired`); if it fails the redirect still happens.
 
-| Portal page | resolved by | modern deep link |
+| Portal page (retired) | logged center from | modern deep link |
 |---|---|---|
-| `/Booking?CenterCode=` (search form) | CenterCode | `/app?centerCode=&examCode=&date=<From>` |
+| `/Booking`, `/Booking/Index` (search form) | CenterCode, if given | `/app[?centerCode=&examCode=&date=<From>]` |
 | `/Booking/Book?sessionId=` (GET or form POST) | sessionId | `/app/book?sessionId=[&candidateNumber=]` |
-| `/Booking/Cancel/{id}` | bookingId | `/app/my-bookings?candidateNumber=` (the contract has no cancel deep link) |
-| `/Booking/Reschedule/{id}` | bookingId | `/app/reschedule/{id}` |
-| `/Booking/MyBookings?centerCode=` | centerCode | `/app/my-bookings?candidateNumber=` (without `centerCode` it spans centers -> legacy) |
-| `/Admin/Sessions?centerId=` | centerId | `/app/admin/centers/{centerCode}` |
+| `/Booking/Cancel/{id}` | bookingId | `/app/my-bookings[?candidateNumber=]` (the contract has no cancel deep link) |
+| `/Booking/Reschedule/{id}` | bookingId | `/app/reschedule/{id}[?candidateNumber=]` |
+| `/Booking/MyBookings` | centerCode, if given | `/app/my-bookings[?candidateNumber=]` |
 | `/Admin/Sessions/Capacity/{id}` | sessionId | `/app/admin/sessions/{id}` |
+| any other `/Booking/...` URL | centerCode, if given | `/app` |
 
-`/Booking` without a center, `/Admin/Centers`, `/Eligibility`, `/Results` and every other page pass through.
+`/Admin/Sessions?centerId=` (still a portal page) goes to `/app/admin/centers/{centerCode}` only for allow-listed
+centers. `/Admin/Centers`, `/Eligibility`, `/Results` and every other page pass through.
 
 **Decision** (`RouteDecider`, a pure class): booking id `>= routing.modern-booking-id-floor` (50,000,000) or
 `bookingOrigin=MODERN` -> modern regardless of the allow-list (in-flight modern bookings are never orphaned);

@@ -55,8 +55,8 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UnitTests\AccommodationCodesTests.cs" />
+    <Compile Include="UnitTests\RetiredBookingGuardTests.cs" />
     <Compile Include="UnitTests\RetakeRulesTests.cs" />
-    <Compile Include="UnitTests\SeatCounterTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

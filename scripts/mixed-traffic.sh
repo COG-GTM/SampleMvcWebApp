@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # mixed-traffic.sh - smoke/load script that exercises both booking channels.
 #
-#   PORTAL channel  : EXEC dbo.usp_BookSeat / usp_CancelBooking through sqlcmd (same call the portal makes),
-#                     or POST $PORTAL_URL/Booking/Book when PORTAL_URL is set (Windows box running the portal),
-#                     or, when ROUTING_URL is set (post-MBA-3823 single writer), POST/DELETE
-#                     $ROUTING_URL/api/v2/bookings with channel PORTAL (what the portal's modern deep link does)
+#   PORTAL channel  : POST/DELETE $ROUTING_URL/api/v2/bookings with channel PORTAL (what the modern UI does).
+#                     Needs ROUTING_URL: the portal's own booking pages and procs were retired in MBA-3824.
 #   PARTNER channel : booking-api REST on $BOOKING_API_URL (default http://localhost:8081); since MBA-3823
 #                     booking-api forwards its writes through the routing layer to scheduling-service
 #
@@ -12,22 +10,24 @@
 # repeated runs on a fresh seed book the same candidates onto the same sessions.
 #
 # Environment overrides:
-#   PORTAL_BOOKINGS (20)  PARTNER_BOOKINGS (20)  CANCELS (3 per channel)  SESSIONS (4)
+#   PORTAL_BOOKINGS (20 with ROUTING_URL, else 0)  PARTNER_BOOKINGS (20)  CANCELS (3 per channel)  SESSIONS (4)
 #   FIRST_CANDIDATE (901)   - candidates NW00000901.. are left unbooked by the seed
-#   MSSQL_SA_PASSWORD, BOOKING_API_URL, PORTAL_URL
+#   MSSQL_SA_PASSWORD, BOOKING_API_URL
 #   ROUTING_URL           - routing gateway (e.g. http://localhost:8000); portal writes go to scheduling-service
 #   RELAY_SETTLE_SECONDS (3) - with ROUTING_URL, wait this long for the outbox relay before the summary
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PORTAL_BOOKINGS="${PORTAL_BOOKINGS:-20}"
 PARTNER_BOOKINGS="${PARTNER_BOOKINGS:-20}"
 CANCELS="${CANCELS:-3}"
 SESSIONS="${SESSIONS:-4}"
 FIRST_CANDIDATE="${FIRST_CANDIDATE:-901}"
 BOOKING_API_URL="${BOOKING_API_URL:-http://localhost:8081}"
-PORTAL_URL="${PORTAL_URL:-}"
 ROUTING_URL="${ROUTING_URL:-}"
+if [ -n "$ROUTING_URL" ]; then PORTAL_BOOKINGS="${PORTAL_BOOKINGS:-20}"; else PORTAL_BOOKINGS="${PORTAL_BOOKINGS:-0}"; fi
+if [ "$PORTAL_BOOKINGS" -gt 0 ] && [ -z "$ROUTING_URL" ]; then
+    echo "PORTAL channel needs ROUTING_URL: the portal booking pages and procs were retired in MBA-3824" >&2; exit 2
+fi
 RELAY_SETTLE_SECONDS="${RELAY_SETTLE_SECONDS:-3}"
 MSSQL_SA_PASSWORD="${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}"
 
@@ -76,20 +76,9 @@ portal_ok=0; portal_fail=0; partner_ok=0; partner_fail=0
 
 book_portal() {  # book_portal <candidateId> <candidateNumber> <sessionId>
     local out
-    if [ -n "$ROUTING_URL" ]; then
-        out="$(curl -s -f -H 'Content-Type: application/json' -X POST "$ROUTING_URL/api/v2/bookings" \
-                -d "{\"sessionId\":$3,\"candidateNumber\":\"$2\",\"channel\":\"PORTAL\"}" \
-            | grep -o '"bookingId" *: *[0-9]*' | grep -o '[0-9]*$' || true)"
-    elif [ -n "$PORTAL_URL" ]; then
-        if curl -s -f -o /dev/null -X POST "$PORTAL_URL/Booking/Book" \
-                --data-urlencode "SessionId=$3" --data-urlencode "CandidateNumber=$2"; then
-            out="$(sql "SELECT TOP 1 BookingId FROM dbo.Booking WHERE SessionId = $3 AND CandidateId = $1 ORDER BY BookingId DESC")"
-        fi
-    else
-        out="$(sql "DECLARE @b INT, @s VARCHAR(12);
-            EXEC dbo.usp_BookSeat @SessionId = $3, @CandidateId = $1, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT;
-            SELECT CAST(@b AS VARCHAR(12))" 2>/dev/null || true)"
-    fi
+    out="$(curl -s -f -H 'Content-Type: application/json' -X POST "$ROUTING_URL/api/v2/bookings" \
+            -d "{\"sessionId\":$3,\"candidateNumber\":\"$2\",\"channel\":\"PORTAL\"}" \
+        | grep -o '"bookingId" *: *[0-9]*' | grep -o '[0-9]*$' || true)"
     out="$(echo "${out:-}" | tr -d '[:space:]')"
     if [[ "$out" =~ ^[0-9]+$ ]]; then
         PORTAL_IDS+=("$out"); portal_ok=$((portal_ok + 1))
@@ -132,13 +121,8 @@ log "partner: $partner_ok ok, $partner_fail failed"
 # --- cancels: the first few bookings on each channel ---------------------
 c_portal=0; c_partner=0
 for ((k = 0; k < CANCELS && k < ${#PORTAL_IDS[@]}; k++)); do
-    if [ -n "$ROUTING_URL" ]; then
-        code="$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$ROUTING_URL/api/v2/bookings/${PORTAL_IDS[$k]}?reason=mixed-traffic")"
-        [ "$code" = "200" ] && c_portal=$((c_portal + 1))
-        continue
-    fi
-    sql "EXEC dbo.usp_CancelBooking @BookingId = ${PORTAL_IDS[$k]}, @Reason = N'mixed-traffic', @Actor = 'portal'" >/dev/null \
-        && c_portal=$((c_portal + 1))
+    code="$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$ROUTING_URL/api/v2/bookings/${PORTAL_IDS[$k]}?reason=mixed-traffic")"
+    [ "$code" = "200" ] && c_portal=$((c_portal + 1))
 done
 for ((k = 0; k < CANCELS && k < ${#PARTNER_IDS[@]}; k++)); do
     code="$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$BOOKING_API_URL/api/v1/bookings/${PARTNER_IDS[$k]}?reason=mixed-traffic")"

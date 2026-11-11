@@ -43,7 +43,7 @@ for allow-listed test centers to scheduling-service and everything else to the l
 2. Reproduce the failing call directly and through the gateway, e.g.
    `curl -si -X PUT localhost:8090/api/v2/sessions/<id>/capacity -H 'Content-Type: application/json' -d '{"newCapacity":24,"actor":"oncall"}'`.
    Errors are `{"error","message","legacyCode"}`.
-3. Compare with legacy behaviour (`db/procs/022_usp_ChangeCapacity.sql`, `db/triggers/033_trg_ExamSession_Update.sql`)
+3. Compare with legacy behaviour (`git show legacy-baseline:db/procs/022_usp_ChangeCapacity.sql` - retired in MBA-3824, `db/triggers/033_trg_ExamSession_Update.sql`)
    and the decision in ADR 0002. Run `mvn -B verify -DskipFrontend=true` in `services/scheduling-service` for the
    domain unit tests and the SQL Server integration tests.
 4. Fix forward with a regression test in `SessionCapacityTest` / `SchedulingApiIT`, PR into `assessment-delivery-demo`.

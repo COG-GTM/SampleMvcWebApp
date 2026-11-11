@@ -11,17 +11,6 @@ namespace AssessmentDelivery.Web.Models
         public IList<AdminSessionRow> Sessions { get; set; }
     }
 
-    public class CapacityViewModel
-    {
-        public AdminSessionRow Session { get; set; }
-        public int CenterId { get; set; }
-        public string CenterName { get; set; }
-
-        [Required, Range(0, 500)]
-        [Display(Name = "New capacity")]
-        public int NewCapacity { get; set; }
-    }
-
     public class EditCenterViewModel
     {
         public int TestCenterId { get; set; }
