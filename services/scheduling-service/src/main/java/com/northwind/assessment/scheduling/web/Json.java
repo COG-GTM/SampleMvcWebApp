@@ -42,15 +42,15 @@ public final class Json {
                           String cancelledAt, String cancelReason, String origin, Integer legacyBookingId,
                           Integer waitlistPosition, Offer pendingOffer) {
         static Booking of(Views.BookingView v) {
-            return of(v, null);
+            return of(v, null, null);
         }
 
         /** {@code pendingOffer}: the booking's PENDING seat offer, if any (ADR 0003). */
-        static Booking of(Views.BookingView v, Views.OfferView pendingOffer) {
+        static Booking of(Views.BookingView v, Views.OfferView pendingOffer, LocalDateTime now) {
             return new Booking(v.bookingId(), v.sessionId(), v.candidateNumber(), v.examCode(), fmt(v.sessionStartsAt()),
                     v.status(), v.accommodationCode(), v.channel(), v.externalRef(), fmt(v.bookedAt()),
                     fmt(v.cancelledAt()), v.cancelReason(), v.origin(), v.legacyBookingId(), v.waitlistPosition(),
-                    pendingOffer == null ? null : Offer.of(pendingOffer));
+                    pendingOffer == null ? null : Offer.of(pendingOffer, now));
         }
     }
 
@@ -73,14 +73,16 @@ public final class Json {
         }
     }
 
-    /** A seat offer (ADR 0003). {@code expired} is true once {@code expiresAt} passed, even before the expiry job ran. */
+    /** A seat offer (ADR 0003). {@code expired}: still PENDING but {@code expiresAt} has passed (the expiry job has not run yet). */
     public record Offer(long offerId, long bookingId, int sessionId, String candidateNumber, String examCode,
                         String sessionStartsAt, String centerCode, int waitlistPosition, String status, String seatKind,
-                        String offeredAt, String expiresAt, String decidedAt) {
-        static Offer of(Views.OfferView v) {
+                        String offeredAt, String expiresAt, String decidedAt, boolean expired) {
+        /** {@code now}: the server clock, so clients need not compare the zone-less {@code expiresAt} themselves. */
+        static Offer of(Views.OfferView v, LocalDateTime now) {
+            boolean expired = "PENDING".equals(v.status()) && !now.isBefore(v.expiresAt());
             return new Offer(v.offerId(), v.bookingId(), v.sessionId(), v.candidateNumber(), v.examCode(),
                     fmt(v.sessionStartsAt()), v.centerCode(), v.waitlistPosition(), v.status(), v.seatKind(),
-                    fmt(v.offeredAt()), fmt(v.expiresAt()), fmt(v.decidedAt()));
+                    fmt(v.offeredAt()), fmt(v.expiresAt()), fmt(v.decidedAt()), expired);
         }
     }
 

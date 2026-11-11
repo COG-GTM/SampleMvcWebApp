@@ -12,6 +12,8 @@ export interface Offer {
   offerId: number; bookingId: number; sessionId: number; candidateNumber: string; examCode: string; sessionStartsAt: string;
   centerCode: string; waitlistPosition: number; status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'WITHDRAWN';
   seatKind: 'STANDARD' | 'ACCOMMODATION'; offeredAt: string; expiresAt: string; decidedAt: string | null;
+  /** Still PENDING but past expiresAt, judged by the server clock. */
+  expired: boolean;
 }
 export interface Booking {
   bookingId: number; sessionId: number; candidateNumber: string; examCode: string; sessionStartsAt: string; status: string;

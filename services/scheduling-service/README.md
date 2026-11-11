@@ -131,7 +131,7 @@ is contained to the relay (the projection code consumes the same state-carrying 
 | PUT | `/sessions/{sessionId}/capacity` | `{"newCapacity","actor"}` -> `{"session","bumpedBookingIds"}` |
 | GET | `/sessions/{sessionId}/waitlist` | `[{"position","bookingId","candidateNumber","candidateName","addedAt","accommodationCode","offerState","offerId","offerExpiresAt","skipReason"}]`; `offerState` = `OFFERED` / `SKIPPED` (needs an accommodation seat) / `WAITING` |
 | GET | `/candidates/{n}/offers` | the candidate's seat offers (all statuses); `/candidates/{n}/bookings` also carries `pendingOffer` |
-| GET | `/offers/{offerId}` | `{"offerId","bookingId","sessionId","status","seatKind","offeredAt","expiresAt","decidedAt",...}` |
+| GET | `/offers/{offerId}` | `{"offerId","bookingId","sessionId","status","seatKind","offeredAt","expiresAt","decidedAt","expired",...}` (`expired`: still PENDING but past `expiresAt` by the server clock)  |
 | POST | `/offers/{offerId}/accept` | `{"actor"}` optional -> 200 offer `ACCEPTED`; booking BOOKED, waitlist compacted |
 | POST | `/offers/{offerId}/decline` | -> 200 offer `DECLINED`; booking CANCELLED, seat offered to the next candidate |
 | POST | `/bookings/{bookingId}/offer/accept`, `/bookings/{bookingId}/offer/decline` | aliases acting on the booking's pending offer |

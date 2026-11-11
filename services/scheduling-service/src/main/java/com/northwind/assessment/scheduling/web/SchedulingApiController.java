@@ -12,6 +12,7 @@ import com.northwind.assessment.scheduling.service.BookingResult;
 import com.northwind.assessment.scheduling.service.NotFoundException;
 import com.northwind.assessment.scheduling.service.SchedulingService;
 import com.northwind.assessment.scheduling.service.SeatOfferService;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -40,10 +41,12 @@ public class SchedulingApiController {
     private final BookingRepository bookings;
     private final ReferenceRepository reference;
     private final SeatOfferService offers;
+    private final Clock clock;
 
     public SchedulingApiController(SchedulingService service, SessionRepository sessions, BookingRepository bookings,
-                                   ReferenceRepository reference, SeatOfferService offers) {
+                                   ReferenceRepository reference, SeatOfferService offers, Clock clock) {
         this.service = service;
+        this.clock = clock;
         this.offers = offers;
         this.sessions = sessions;
         this.bookings = bookings;
@@ -138,28 +141,28 @@ public class SchedulingApiController {
         Map<Long, Views.OfferView> pending = new HashMap<>();
         offers.byCandidate(candidateId).stream().filter(o -> "PENDING".equals(o.status()))
                 .forEach(o -> pending.put(o.bookingId(), o));
-        return bookings.byCandidate(candidateId).stream().map(b -> Json.Booking.of(b, pending.get(b.bookingId()))).toList();
+        return bookings.byCandidate(candidateId).stream().map(b -> Json.Booking.of(b, pending.get(b.bookingId()), now())).toList();
     }
 
     /** Every seat offer the candidate received, newest first (ADR 0003). */
     @GetMapping("/candidates/{candidateNumber}/offers")
     public List<Json.Offer> candidateOffers(@PathVariable String candidateNumber) {
-        return offers.byCandidate(service.candidate(candidateNumber).candidateId()).stream().map(Json.Offer::of).toList();
+        return offers.byCandidate(service.candidate(candidateNumber).candidateId()).stream().map(o -> Json.Offer.of(o, now())).toList();
     }
 
     @GetMapping("/offers/{offerId}")
     public Json.Offer offer(@PathVariable long offerId) {
-        return Json.Offer.of(offers.find(offerId));
+        return Json.Offer.of(offers.find(offerId), now());
     }
 
     @PostMapping("/offers/{offerId}/accept")
     public Json.Offer acceptOffer(@PathVariable long offerId, @RequestBody(required = false) Json.OfferDecisionRequest body) {
-        return Json.Offer.of(offers.accept(offerId, body == null ? null : body.actor()));
+        return Json.Offer.of(offers.accept(offerId, body == null ? null : body.actor()), now());
     }
 
     @PostMapping("/offers/{offerId}/decline")
     public Json.Offer declineOffer(@PathVariable long offerId, @RequestBody(required = false) Json.OfferDecisionRequest body) {
-        return Json.Offer.of(offers.decline(offerId, body == null ? null : body.actor()));
+        return Json.Offer.of(offers.decline(offerId, body == null ? null : body.actor()), now());
     }
 
     /** Alias of {@code /offers/{offerId}/accept} for the booking's pending offer. */
@@ -198,5 +201,9 @@ public class SchedulingApiController {
 
     private static NotFoundException sessionNotFound(int sessionId) {
         return new NotFoundException("SESSION_NOT_FOUND", "Session " + sessionId + " not found");
+    }
+
+    private LocalDateTime now() {
+        return LocalDateTime.now(clock);
     }
 }

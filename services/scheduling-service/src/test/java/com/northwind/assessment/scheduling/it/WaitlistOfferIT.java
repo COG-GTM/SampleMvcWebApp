@@ -206,7 +206,7 @@ class WaitlistOfferIT extends SqlServerTestBase {
         ResponseEntity<Map<String, Object>> late = post("/api/v2/offers/" + secondId + "/accept");
         assertThat(late.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(late.getBody()).containsEntry("error", "OFFER_EXPIRED");
-        assertThat(get("/api/v2/offers/" + secondId)).containsEntry("status", "PENDING");
+        assertThat(get("/api/v2/offers/" + secondId)).containsEntry("status", "PENDING").containsEntry("expired", true);
 
         assertThat(expiryJob.runOnce()).isGreaterThanOrEqualTo(1);
         assertThat(get("/api/v2/offers/" + secondId)).containsEntry("status", "EXPIRED");

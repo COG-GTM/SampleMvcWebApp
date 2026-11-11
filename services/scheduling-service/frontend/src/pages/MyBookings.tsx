@@ -132,10 +132,11 @@ function OfferCard({ b, offer, busy, onDecide }: { b: Booking; offer: Offer; bus
           A seat freed up on {formatDateTime(b.sessionStartsAt)} (session {b.sessionId}). It is held for you until{' '}
           <strong data-testid="offer-expires">{formatDateTime(offer.expiresAt)}</strong>.
         </p>
+        {offer.expired && <p className="text-xs text-rose-600" data-testid="offer-expired">This offer has expired.</p>}
       </div>
       <div className="flex gap-2">
-        <button className="btn-secondary" disabled={busy} onClick={() => onDecide(offer, false)} data-testid="offer-decline">Decline</button>
-        <button className="btn-primary" disabled={busy} onClick={() => onDecide(offer, true)} data-testid="offer-accept">Accept seat</button>
+        <button className="btn-secondary" disabled={busy || offer.expired} onClick={() => onDecide(offer, false)} data-testid="offer-decline">Decline</button>
+        <button className="btn-primary" disabled={busy || offer.expired} onClick={() => onDecide(offer, true)} data-testid="offer-accept">Accept seat</button>
       </div>
     </article>
   );
