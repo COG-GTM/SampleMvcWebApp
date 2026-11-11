@@ -51,4 +51,11 @@ cat "$M" | tr -d '\r'
 say "curl -F file=@NWE2E_MIXED.csv $RESULTS/api/v1/results/upload"
 curl -s -w '\nHTTP %{http_code}\n' -F "file=@$M" "$RESULTS/api/v1/results/upload" | tr -d '\r'
 sql "SELECT r.BookingId, r.Score, r.SourceFile FROM dbo.Result r WHERE r.BookingId IN ($B1,$B3,$B4,$B5,$B6) ORDER BY r.BookingId;
-     SELECT a.EntityId AS ResultId, a.Action, a.Detail FROM dbo.AuditLog a WHERE a.Action='DUPLICATE_REJECTED' ORDER BY a.AuditId"
+     SELECT a.EntityId AS ResultId, a.Action, a.Detail FROM dbo.AuditLog a JOIN dbo.Result r ON r.ResultId = a.EntityId AND a.EntityName = 'Result' WHERE a.Action='DUPLICATE_REJECTED' AND r.BookingId IN ($B1,$B4) ORDER BY a.AuditId"
+
+echo; echo "### 5. CSV: replay the mixed file (conflict reported again, not audited again)"
+say "curl -F file=@NWE2E_MIXED.csv $RESULTS/api/v1/results/upload   (same bytes)"
+curl -s -w '\nHTTP %{http_code}\n' -F "file=@$M" "$RESULTS/api/v1/results/upload" | tr -d '\r'
+sql "SELECT COUNT(*) AS DuplicateRejectedAudits FROM dbo.AuditLog a JOIN dbo.Result r ON r.ResultId = a.EntityId AND a.EntityName = 'Result'
+     WHERE a.Action='DUPLICATE_REJECTED' AND r.BookingId = $B4;
+     SELECT UploadId, FileName, RowsRead, Imported, Duplicates, Conflicts, Errors FROM dbo.ResultUpload WHERE FileName='NWE2E_MIXED.csv'"
