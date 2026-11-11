@@ -169,6 +169,11 @@ public final class SessionCapacity {
         return true;
     }
 
+    /** trg_ExamSession_Update counts only BOOKED rows against a reduced capacity (ATTENDED are never bumped). */
+    private int bumpableCount() {
+        return (int) bookings.stream().filter(b -> b.status() == BookingStatus.BOOKED).count();
+    }
+
     /**
      * db/procs/022_usp_ChangeCapacity.sql + db/triggers/033_trg_ExamSession_Update.sql.
      *
@@ -186,8 +191,7 @@ public final class SessionCapacity {
         floorPolicy.check(newCapacity, accommodationCapacity, accommodationSeatsUsed(), seatsHeld());
         int old = capacity;
         capacity = newCapacity;
-        // trg_ExamSession_Update compares the new capacity with BOOKED bookings only; ATTENDED ones never count here.
-        int excess = (int) bookings.stream().filter(b -> b.status() == BookingStatus.BOOKED).count() - newCapacity;
+        int excess = bumpableCount() - newCapacity;
         if (newCapacity >= old || excess <= 0) {
             return new CapacityChange(old, newCapacity, List.of());
         }

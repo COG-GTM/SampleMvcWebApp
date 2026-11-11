@@ -140,6 +140,14 @@ class SchedulingApiIT extends SqlServerTestBase {
         assertThat((List<?>) raised.getBody().get("bumpedBookingIds")).isEmpty();
     }
 
+    /** Guardrail for the on-call demo: the intentional #57 floor still rejects session #41872 (BOS01) 30 -> 24. */
+    @Test
+    void onCallDefect57_session41872Bos01From30To24_stillRejectedBelowAccommodationFloor() {
+        assertThat(get("/api/v2/sessions/41872")).containsEntry("capacity", 30);
+        assertError(putCapacity(41872, 24), HttpStatus.CONFLICT, "CAPACITY_BELOW_ACCOMMODATION_FLOOR", 50005);
+        assertThat(get("/api/v2/sessions/41872")).containsEntry("capacity", 30);
+    }
+
     @Test
     void usp_RescheduleBooking_sameExamCancelsAndBooks_differentExamRejectedWith50006() {
         Map<String, Object> pair = db.queryForMap("SELECT TOP 1 a.session_id AS a, b.session_id AS b FROM exam_session a "
