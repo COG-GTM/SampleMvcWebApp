@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api, BookingResult, Eligibility } from '../api';
@@ -14,6 +14,7 @@ export default function Book() {
   const [candidate, setCandidate] = useState(rememberedCandidate());
   const [touched, setTouched] = useState(false);
   const [accommodation, setAccommodation] = useState('');
+  const prefilledAccommodation = useRef<string | null>(null);
   const [eligibility, setEligibility] = useState<Eligibility | null>(null);
   const [candidateName, setCandidateName] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -25,13 +26,23 @@ export default function Book() {
   useEffect(() => {
     setEligibility(null);
     setCandidateName(null);
+    const previous = prefilledAccommodation.current;
+    prefilledAccommodation.current = null;
+    if (previous) setAccommodation((a) => (a === previous ? '' : a));
     if (candidateError || !s) return;
     const n = candidate.trim().toUpperCase();
     let live = true;
     api.candidate(n).then((c) => {
       if (!live) return;
       setCandidateName(`${c.firstName} ${c.lastName}`);
-      if (c.defaultAccommodationCode) setAccommodation((a) => a || c.defaultAccommodationCode!);
+      const preset = c.defaultAccommodationCode;
+      if (preset) {
+        setAccommodation((a) => {
+          if (a) return a;
+          prefilledAccommodation.current = preset;
+          return preset;
+        });
+      }
       return api.eligibility(n, s.examCode, s.startsAt.slice(0, 10)).then((e) => live && setEligibility(e));
     }).catch(() => live && setCandidateName(''));
     return () => { live = false; };
