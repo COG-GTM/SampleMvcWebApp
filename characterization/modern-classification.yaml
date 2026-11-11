@@ -1,2 +1,45 @@
+# Modern-target classification for `characterization/replay --target modern` (MBA-3825, M6).
+#
+# adr_divergences: a transcript only counts as ADR-APPROVED DIVERGENCE when docs/adr/0002-ported-rule-decisions.md
+#   records the rule (section cited in `adr`) AND every differing field is under one of the `fields` prefixes
+#   (diff paths as printed in the report) AND the `signature` business fields (if any) are present. Anything else
+#   in the same transcript stays a MISMATCH.
+# not_replayable: the legacy entry point the transcript drives was retired by M4/M5 and has no modern equivalent.
+#   The replay still runs the scenario's other steps where it can; the scenario is reported as
+#   "NOT REPLAYABLE (retired legacy surface)" with the reason and the transcripts that cover the behaviour on the
+#   modern stack. Never counted as MATCH.
+
 adr_divergences: []
-not_replayable: []
+
+not_replayable:
+  - transcript: book_passed_candidate_proc_db
+    reason: >-
+      Calls dbo.usp_BookSeat directly. MBA-3824 (M5) dropped the legacy booking procs
+      (db/procs/090_retire_booking_procs.sql) and db/security/040_single_writer.sql denies the legacy logins any
+      Booking write; scheduling-service is the only writer and applies the retake rules on every channel.
+    covered_by: book_passed_candidate_portal, book_passed_candidate_partner, retake_already_passed_portal, retake_already_passed_partner
+  - transcript: proc_error_contract_db
+    reason: >-
+      Raises each usp_* error directly (usp_BookSeat, usp_ChangeCapacity, usp_RescheduleBooking). The procs were
+      dropped in MBA-3824 (db/procs/090_retire_booking_procs.sql); the modern API carries the same error numbers as
+      `legacyCode` (50001-50006) on its 409 responses.
+    covered_by: book_full_session_portal, book_duplicate_portal, book_closed_session_portal, accommodation_capacity_exhausted_portal, capacity_below_accommodation_floor_admin, reschedule_different_exam_portal
+  - transcript: capacity_direct_update_decrease_db
+    reason: >-
+      Plain UPDATE of AssessmentDelivery.dbo.ExamSession.Capacity. After M4 capacity is owned by the Scheduling
+      database and projected by the relay; db/security/040_single_writer.sql DENYs UPDATE of
+      ExamSession(Capacity, SeatsAvailable, AccommodationCapacity) to every legacy login, so there is no direct-SQL
+      capacity path left to replay.
+    covered_by: capacity_decrease_below_active_admin, capacity_raise_then_lower_admin, capacity_decrease_delivered_with_attended_admin
+  - transcript: capacity_direct_update_increase_db
+    reason: >-
+      Plain UPDATE raising ExamSession.Capacity. Same as capacity_direct_update_decrease_db: the column is denied to
+      the legacy logins (db/security/040_single_writer.sql) and capacity changes go through
+      PUT /api/v2/sessions/{id}/capacity.
+    covered_by: capacity_increase_admin, capacity_raise_then_lower_admin
+  - transcript: direct_sql_cancel_and_import_db
+    reason: >-
+      Direct UPDATE/INSERT on AssessmentDelivery.dbo.Booking (cancel and IMPORT rows behind every application).
+      db/security/040_single_writer.sql DENYs INSERT/UPDATE/DELETE on Booking to the legacy logins; bookings and
+      cancellations are written by scheduling-service only and the reconciliation job reports any out-of-band row.
+    covered_by: cancel_booked_on_full_session_portal, cancel_booked_on_full_session_partner, mixed_traffic_then_capacity_sync
