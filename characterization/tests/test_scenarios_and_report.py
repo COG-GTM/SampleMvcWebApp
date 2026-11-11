@@ -71,6 +71,15 @@ def test_compare_legacy_is_exact_and_modern_uses_legacy_code():
     assert compare(e, a2, "legacy") == [("db_state.x.bookedAt", "<now>", "2026-01-01")]
 
 
+def test_modern_compare_ignores_legacy_audit_log_only():
+    e = _t({"outcome": "BOOKED"}, {"auditLog.new": [{"action": "BOOK"}], "examSession.1": {"SeatsAvailable": 3}})
+    a = _t({"outcome": "BOOKED"}, {"auditLog.new": [], "examSession.1": {"SeatsAvailable": 3}})
+    assert compare(e, a, "modern") == []
+    assert compare(e, a, "legacy")
+    a["expected"]["db_state"]["examSession.1"]["SeatsAvailable"] = 2
+    assert compare(e, a, "modern") == [("db_state.examSession.1.SeatsAvailable", 3, 2)]
+
+
 def test_report_groups_and_lists_mismatches_with_sha():
     ok = {"transcript": _t({}, {}), "status": "MATCH", "diffs": []}
     t2 = _t({}, {}, group="retake_eligibility", channel="PARTNER")

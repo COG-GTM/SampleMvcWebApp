@@ -57,6 +57,7 @@ scenarios:
     steps:
       - {op: book, session: 462, candidate: NW00000903}
   - name: accommodation_blank_uses_default_partner
+    modern_expected_mismatch: ADR 0002 section 1 - derived seat count, no double decrement.
     channel: PARTNER
     oddity: true
     oddity_note: booking-api books a blank accommodation as none even when the candidate has a DefaultAccommodationCode; the portal substitutes the default (and the double decrement applies).

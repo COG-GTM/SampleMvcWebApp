@@ -2,6 +2,9 @@
 
 TIMESTAMP_KEYS = {"bookedAt", "cancelledAt", "addedAt"}
 MODERN_IGNORED_BOOKING_KEYS = {"channel"}  # scheduling-service may store IMPORT for imported rows
+# AuditLog rows are written by the legacy usp_* procs; scheduling-service audits capacity changes in
+# capacity_change instead (ADR 0002 section 3), so they are not a channel-independent business field.
+MODERN_IGNORED_STATE_PREFIXES = ("auditLog.",)
 
 
 def _strip(obj, keys):
@@ -50,5 +53,8 @@ def compare(expected, actual, target):
                           modern_business(a["expected"]["business_fields"]), prefix + ".business")
     ignore = set() if target == "legacy" else TIMESTAMP_KEYS | MODERN_IGNORED_BOOKING_KEYS
     for key in ("db_state_before", "db_state"):
-        diffs += diff(_strip(expected["expected"][key], ignore), _strip(actual["expected"][key], ignore), key)
+        exp, act = expected["expected"][key], actual["expected"][key]
+        if target != "legacy":
+            exp, act = ({k: v for k, v in d.items() if not k.startswith(MODERN_IGNORED_STATE_PREFIXES)} for d in (exp, act))
+        diffs += diff(_strip(exp, ignore), _strip(act, ignore), key)
     return diffs
