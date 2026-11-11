@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -102,6 +102,20 @@ namespace AssessmentDelivery.Tests.UnitTests
         {
             RespondOnce(500, "oops");
             Assert.Throws<SchedulingUnavailableException>(() => new SchedulingClient(_baseUrl).GetBooking(1));
+        }
+
+        [Test]
+        public void UnreachableServiceOnAWriteIsUnavailable()
+        {
+            var closed = new TcpListener(IPAddress.Loopback, 0);
+            closed.Start();
+            var port = ((IPEndPoint)closed.LocalEndpoint).Port;
+            closed.Stop();
+            var client = new SchedulingClient("http://127.0.0.1:" + port + "/api/v1", 5);
+            Assert.Throws<SchedulingUnavailableException>(() => client.Book(new ApiBookRequest
+            {
+                SessionId = 7, CandidateId = 9, AccommodationCode = "NONE", Channel = "PORTAL"
+            }, "portal"));
         }
     }
 }

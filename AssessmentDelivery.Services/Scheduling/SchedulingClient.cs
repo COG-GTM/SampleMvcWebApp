@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
@@ -154,8 +154,15 @@ namespace AssessmentDelivery.Services.Scheduling
                 var bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(body, Json));
                 request.ContentType = "application/json; charset=utf-8";
                 request.ContentLength = bytes.Length;
-                using (var s = request.GetRequestStream())
-                    s.Write(bytes, 0, bytes.Length);
+                try
+                {
+                    using (var s = request.GetRequestStream())
+                        s.Write(bytes, 0, bytes.Length);
+                }
+                catch (Exception ex) when (ex is WebException || ex is IOException)
+                {
+                    throw new SchedulingUnavailableException(method + " " + path + " failed: " + ex.Message, ex);
+                }
             }
 
             HttpWebResponse response;
