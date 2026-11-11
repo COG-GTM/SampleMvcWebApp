@@ -23,6 +23,8 @@ COLS = {
     'AuditLog': ['EntityName', 'EntityId', 'Action', 'Detail', 'Actor', 'LoggedAt'],
 }
 TS = {'StartsAt', 'LastModified', 'BookedAt', 'CancelledAt', 'AddedAt', 'LoggedAt'}
+# StartsAt is schedule data (no workload op writes it, and future sessions start after the run): compared verbatim
+RUN_TS = TS - {'StartsAt'}
 
 
 # results-service DUPLICATE_REJECTED detail embeds the stored row's ScoredAt, written during the run:
@@ -62,7 +64,7 @@ def normalize(snap, mk):
     start = mk['start']
 
     def ts(row):
-        for c in TS:
+        for c in RUN_TS:
             if c in row and row[c] is not None and row[c] >= start:
                 row[c] = '<run>'
         return row
