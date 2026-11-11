@@ -3,7 +3,7 @@
 # Needs the estate from scripts/run-legacy.sh start (with scheduling-service) and MSSQL_SA_PASSWORD.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SCHED="${SCHEDULING_BASE_URL:-http://localhost:8084/api/v1}"
+SCHED="${SCHEDULING_BASE_URL:-http://localhost:${SCHEDULING_PORT:-8084}/api/v1}"
 RESULTS="${RESULTS_URL:-http://localhost:8082/api/v1}"
 : "${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD}"
 sql() { docker exec -i -e SQLCMDPASSWORD="$MSSQL_SA_PASSWORD" mssql /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -h -1 -W "$@"; }
