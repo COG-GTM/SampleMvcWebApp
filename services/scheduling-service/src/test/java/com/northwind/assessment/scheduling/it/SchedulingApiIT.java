@@ -221,6 +221,10 @@ class SchedulingApiIT extends SqlServerTestBase {
         assertThat(missing.getBody()).containsEntry("error", "NOT_FOUND").containsKey("message");
         assertThat(http.exchange("/internal/routing/resolve?centerCode=BOS01&sessionId=1", HttpMethod.GET, null, MAP)
                 .getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(http.exchange("/internal/routing/resolve?sessionId=4294967297", HttpMethod.GET, null, MAP)
+                .getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(http.exchange("/internal/routing/resolve?centerId=4294967297", HttpMethod.GET, null, MAP)
+                .getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test

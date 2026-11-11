@@ -51,13 +51,13 @@ public class InternalController {
             return ResponseEntity.ok(Json.Route.of(r));
         }
         if (sessionId != null && !sessionId.isBlank()) {
-            int id = (int) parse("sessionId", sessionId);
+            int id = parseInt("sessionId", sessionId);
             Views.RouteView r = bookings.routeOfSession(id)
                     .orElseThrow(() -> new NotFoundException("NOT_FOUND", "Session " + id + " not found"));
             return ResponseEntity.ok().cacheControl(cacheable).body(Json.Route.of(r));
         }
         Optional<Views.CenterView> center = centerId != null && !centerId.isBlank()
-                ? reference.centerById((int) parse("centerId", centerId))
+                ? reference.centerById(parseInt("centerId", centerId))
                 : reference.centerByCode(centerCode.trim());
         Views.CenterView c = center.orElseThrow(() -> new NotFoundException("NOT_FOUND",
                 "Test center " + (centerId != null && !centerId.isBlank() ? centerId : centerCode) + " not found"));
@@ -68,6 +68,14 @@ public class InternalController {
     @PostMapping("/internal/import/sessions")
     public ImportSummary importSessions(@RequestParam(required = false) String centerCode) {
         return importer.importSessions(centerCode);
+    }
+
+    private static int parseInt(String name, String value) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            throw new SchedulingRuleException(RuleViolation.VALIDATION, name + " must be a number in the int range");
+        }
     }
 
     private static long parse(String name, String value) {
