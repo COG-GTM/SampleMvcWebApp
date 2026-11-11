@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.Map;
 
@@ -29,7 +31,7 @@ public class ResultPostFunctionalTest extends SqlServerTestSupport {
         assertEquals(HttpStatus.CREATED, r.getStatusCode());
         assertEquals("CREATED", r.getBody().get("status"));
         assertEquals(((Number) resultRow(bookingId).get("ResultId")).intValue(), ((Number) r.getBody().get("resultId")).intValue());
-        assertEquals("ATTENDED", bookingRow(bookingId).get("Status"));
+        verify(attendance).recordAttendance(bookingId);
     }
 
     @Test
@@ -54,6 +56,7 @@ public class ResultPostFunctionalTest extends SqlServerTestSupport {
         assertEquals(bookingBefore, bookingRow(bookingId));
         assertEquals(totalBefore, totalResults());
         assertEquals(auditBefore, (int) jdbc.queryForObject("SELECT COUNT(*) FROM dbo.AuditLog", Integer.class));
+        verify(attendance, times(1)).recordAttendance(bookingId);
     }
 
     @Test

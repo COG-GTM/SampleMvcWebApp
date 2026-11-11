@@ -59,7 +59,7 @@ public class ResultStore {
     }
 
     /**
-     * Inserts the result, marks the booking ATTENDED and writes the INGEST audit row, all or nothing.
+     * Inserts the result and writes the INGEST audit row, all or nothing (Booking is scheduling-service's, MBA-3823).
      * Throws DuplicateKeyException when another caller stored a result for the booking first (UQ_Result_Booking).
      */
     @Transactional
@@ -71,8 +71,6 @@ public class ResultStore {
               + "VALUES (?, ?, ?, ?, ?, ?, ?, ?); SELECT CAST(SCOPE_IDENTITY() AS INT);",
                 Integer.class, bookingId, booking.get("CandidateId"), booking.get("ExamId"), booking.get("SessionId"),
                 score, passed, new Timestamp(scoredAt.getTime()), sourceFile);
-        jdbc.update("UPDATE dbo.Booking SET Status = 'ATTENDED', LastModified = GETDATE() "
-                + "WHERE BookingId = ? AND Status = 'BOOKED'", bookingId);
         jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
                 "Result", resultId, "INGEST", "booking=" + bookingId + " score=" + score
                         + (sourceFile != null ? " file=" + sourceFile : ""), actor);

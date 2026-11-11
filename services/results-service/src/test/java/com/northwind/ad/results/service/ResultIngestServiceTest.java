@@ -32,6 +32,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.northwind.ad.results.client.AttendanceClient;
 import com.northwind.ad.results.model.IngestOutcome;
 import com.northwind.ad.results.model.StoredResult;
 import com.northwind.ad.results.web.ApiException;
@@ -47,6 +48,9 @@ public class ResultIngestServiceTest {
 
     @Mock
     private JdbcTemplate jdbc;
+
+    @Mock
+    private AttendanceClient attendance;
 
     @InjectMocks
     private ResultIngestService service;
@@ -72,6 +76,7 @@ public class ResultIngestServiceTest {
         IngestOutcome o = service.ingest(BOOKING, 612, AT, null);
         assertEquals(IngestOutcome.Status.CREATED, o.getStatus());
         assertEquals(42, o.getResultId());
+        verify(attendance).recordAttendance(BOOKING);
         verify(store).insertResult(booking, 612, true, AT, null);
         verify(store, never()).auditDuplicateRejected(any(IngestOutcome.class), any(String.class), any(Integer.class));
     }
@@ -95,6 +100,7 @@ public class ResultIngestServiceTest {
         assertEquals(IngestOutcome.Status.DUPLICATE, o.getStatus());
         assertEquals(42, o.getResultId());
         verify(store, never()).insertResult(anyBooking(), anyInt(), anyBoolean(), any(Date.class), any(String.class));
+        verify(attendance, never()).recordAttendance(anyInt());
         verify(store, never()).auditDuplicateRejected(any(IngestOutcome.class), any(String.class), any(Integer.class));
     }
 
@@ -106,6 +112,7 @@ public class ResultIngestServiceTest {
         assertEquals(612, o.getScore());
         assertEquals(Integer.valueOf(640), o.getSubmittedScore());
         verify(store).auditDuplicateRejected(o, "f.csv", 4);
+        verify(attendance, never()).recordAttendance(anyInt());
         verify(store, never()).insertResult(anyBooking(), anyInt(), anyBoolean(), any(Date.class), any(String.class));
     }
 

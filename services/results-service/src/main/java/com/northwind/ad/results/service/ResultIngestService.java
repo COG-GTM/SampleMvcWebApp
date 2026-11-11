@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import com.northwind.ad.results.client.AttendanceClient;
 import com.northwind.ad.results.model.IngestOutcome;
 import com.northwind.ad.results.model.StoredResult;
 import com.northwind.ad.results.web.ApiException;
@@ -21,7 +22,7 @@ import com.northwind.ad.results.web.ApiException;
 /**
  * Idempotent result ingestion. A booking has at most one result (UQ_Result_Booking):
  * <ul>
- * <li>no result yet: insert it, booking becomes ATTENDED -> CREATED</li>
+ * <li>no result yet: record attendance in scheduling-service, insert it -> CREATED</li>
  * <li>same score and scoredAt already stored (see {@link ResultClassifier}) -> DUPLICATE, nothing written</li>
  * <li>a different result already stored -> CONFLICT, stored row untouched, DUPLICATE_REJECTED audit row committed</li>
  * </ul>
@@ -41,12 +42,18 @@ public class ResultIngestService {
     @Autowired
     private ResultStore store;
 
+    @Autowired
+    private AttendanceClient attendance;
+
     /** REST variant, see {@link #ingest(int, int, Date, String, Integer)}. */
     public IngestOutcome ingest(int bookingId, int score, Date scoredAt, String sourceFile) {
         return ingest(bookingId, score, scoredAt, sourceFile, null);
     }
 
     /**
+     * A new result first records attendance in scheduling-service (MBA-3823: this service's login can no
+     * longer write dbo.Booking; the outbox relay projects ATTENDED into AssessmentDelivery). Duplicates and
+     * conflicts never call it, so Booking is left alone.
      * @param scoredAt   null when the caller sent none: a new result is stored with "now" and a
      *                   replay is matched on score only
      * @param sourceFile score file name, null for REST posts
@@ -69,6 +76,8 @@ public class ResultIngestService {
             throw new ApiException(HttpStatus.CONFLICT, "BOOKING_NOT_ACTIVE",
                     "Booking " + bookingId + " is " + status + ", cannot record a result");
         }
+
+        attendance.recordAttendance(bookingId);
 
         int passingScore = ((Number) b.get("PassingScore")).intValue();
         boolean passed = score >= passingScore;

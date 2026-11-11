@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.verify;
 
 import java.util.Date;
 import java.util.List;
@@ -135,7 +136,7 @@ public class ResultUploadFunctionalTest extends SqlServerTestSupport {
             assertNotNull(stored);
             assertEquals(701 + i, ((Number) stored.get("Score")).intValue());
             assertEquals("NW_SCORES_MIXED.csv", stored.get("SourceFile"));
-            assertEquals("ATTENDED", bookingRow(id(fresh.get(i), "BookingId")).get("Status"));
+            verify(attendance).recordAttendance(id(fresh.get(i), "BookingId"));
         }
         assertEquals(dupBefore, resultRow(id(dup, "BookingId")));
         assertEquals(conflictBefore, resultRow(id(conflict, "BookingId")));

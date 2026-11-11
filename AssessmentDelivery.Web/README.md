@@ -22,7 +22,7 @@ Routes are listed in [docs/SYSTEM_OVERVIEW.md](../docs/SYSTEM_OVERVIEW.md#portal
   (`run-portal.ps1` installs the 2022 Build Tools if no MSBuild is found)
 - IIS Express 10 (installed by the script if missing)
 - SQL Server (Express or Developer) listening on `localhost,1433` with SQL authentication, with
-  `db/schema/*.sql` then `db/procs/*.sql` applied. The portal connects as the dev login `ad_app`
+  `db/schema/*.sql` then `db/procs/*.sql` applied. The portal connects as the dev login `ad_portal`
   (connection string `AssessmentDelivery` in `Web.config`).
 
 ## Run

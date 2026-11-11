@@ -15,6 +15,7 @@ import java.util.Set;
 
 import org.junit.BeforeClass;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -29,9 +30,13 @@ import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
+import com.northwind.ad.results.client.AttendanceClient;
+
 /**
  * One SQL Server 2022 container per test JVM, built exactly like {@code db/apply.sh}
- * (schema, procs, triggers, deterministic seed). results-service connects as ad_app, like in dev.
+ * (schema, procs, triggers, deterministic seed, security). results-service connects as ad_results, like in
+ * dev, so the single-writer DENYs on dbo.Booking apply. scheduling-service is replaced by a mock
+ * {@link AttendanceClient}.
  * Tests claim their own seeded bookings so they do not depend on each other.
  */
 public abstract class SqlServerTestSupport {
@@ -53,7 +58,7 @@ public abstract class SqlServerTestSupport {
         SQL = newContainer(dbDir);
         SQL.start();
         try {
-            for (String folder : Arrays.asList("schema", "procs", "triggers", "seed")) {
+            for (String folder : Arrays.asList("schema", "procs", "triggers", "seed", "security")) {
                 File[] files = new File(dbDir, folder).listFiles();
                 List<String> names = new ArrayList<String>();
                 for (File f : files) {
@@ -79,8 +84,8 @@ public abstract class SqlServerTestSupport {
         }
         System.setProperty("spring.datasource.url", "jdbc:sqlserver://" + SQL.getHost() + ":"
                 + SQL.getMappedPort(1433) + ";databaseName=AssessmentDelivery;encrypt=true;trustServerCertificate=true");
-        System.setProperty("spring.datasource.username", "ad_app");
-        System.setProperty("spring.datasource.password", "Northw1nd!Dev2011");
+        System.setProperty("spring.datasource.username", "ad_results");
+        System.setProperty("spring.datasource.password", "Resu1ts!Dev2026");
     }
 
     @SuppressWarnings({"rawtypes", "unchecked", "resource"})
@@ -97,6 +102,9 @@ public abstract class SqlServerTestSupport {
     public static void database() {
         SQL.isRunning();
     }
+
+    @MockBean
+    protected AttendanceClient attendance;
 
     @Autowired
     protected TestRestTemplate http;

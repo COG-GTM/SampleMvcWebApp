@@ -206,6 +206,22 @@ class SessionCapacityTest {
     }
 
     @Test
+    void usp_ChangeCapacity_allocatedFloorKeepsAccommodationSeatsForExtraTime_50005() {
+        SessionCapacity s = open(12, 2,
+                slot(1, 1, BookingStatus.BOOKED, null, 0),
+                slot(2, 2, BookingStatus.BOOKED, null, 1),
+                slot(3, 3, BookingStatus.BOOKED, "SR", 2),
+                slot(4, 4, BookingStatus.ATTENDED, null, 3),
+                slot(5, 5, BookingStatus.BOOKED, "ET25", 4));
+        assertViolation(() -> s.changeCapacity(5, AccommodationFloorPolicy.ALLOCATED),
+                RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR, 50005);
+        assertThat(s.capacity()).isEqualTo(12);
+        CapacityChange c = s.changeCapacity(6, AccommodationFloorPolicy.ALLOCATED);
+        assertThat(c.newCapacity()).isEqualTo(6);
+        assertThat(c.bumped()).isEmpty();
+    }
+
+    @Test
     void usp_ChangeCapacity_rejectsNegativeCapacity() {
         SessionCapacity s = open(10, 0);
         assertViolation(() -> s.changeCapacity(-1, AccommodationFloorPolicy.ALLOCATED), RuleViolation.VALIDATION, 50005);
@@ -280,5 +296,21 @@ class SessionCapacityTest {
     void seatsAvailableNeverNegative() {
         SessionCapacity s = open(1, 0, slot(1, 1, BookingStatus.ATTENDED, null, 0), slot(2, 2, BookingStatus.ATTENDED, null, 0));
         assertThat(s.seatsAvailable()).isZero();
+    }
+
+    @Test
+    void attend_bookedBecomesAttended_stillHoldsSeat_repeatIsNoOp() {
+        SessionCapacity s = open(3, 1, slot(1, 1, BookingStatus.BOOKED, null, 0));
+        int before = s.seatsAvailable();
+        assertThat(s.attend(1)).isTrue();
+        assertThat(s.attend(1)).isFalse();
+        assertThat(s.seatsAvailable()).isEqualTo(before);
+    }
+
+    @Test
+    void attend_cancelledOrWaitlisted_rejectedAsNotActive() {
+        SessionCapacity s = open(3, 1, slot(1, 1, BookingStatus.CANCELLED, null, 0), slot(2, 2, BookingStatus.WAITLISTED, null, 1));
+        assertViolation(() -> s.attend(1), RuleViolation.BOOKING_NOT_ACTIVE, null);
+        assertViolation(() -> s.attend(2), RuleViolation.BOOKING_NOT_ACTIVE, null);
     }
 }
