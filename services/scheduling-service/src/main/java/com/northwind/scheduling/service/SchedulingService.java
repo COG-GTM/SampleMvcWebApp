@@ -7,6 +7,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +21,7 @@ import com.northwind.scheduling.domain.BookingStatus;
 import com.northwind.scheduling.domain.CapacityChange;
 import com.northwind.scheduling.domain.EligibilityDecision;
 import com.northwind.scheduling.domain.ErrorCode;
+import com.northwind.scheduling.domain.OfferStatus;
 import com.northwind.scheduling.domain.ReschedulePolicy;
 import com.northwind.scheduling.domain.RetakeEligibilityPolicy;
 import com.northwind.scheduling.domain.SchedulingException;
@@ -46,11 +48,14 @@ public class SchedulingService {
     private final Clock clock;
     private final String actor;
     private final OutboxRepository outbox;
+    private final WaitlistOfferPolicy offers;
 
     public SchedulingService(SchedulingRepository repo, RetakeEligibilityPolicy retakePolicy,
                              AccommodationFloorPolicy floorPolicy, Clock clock,
-                             @Value("${scheduling.actor:scheduling-service}") String actor, OutboxRepository outbox) {
+                             @Value("${scheduling.actor:scheduling-service}") String actor, OutboxRepository outbox,
+                             WaitlistOfferPolicy offers) {
         this.repo = repo;
+        this.offers = offers;
         this.outbox = outbox;
         this.retakePolicy = retakePolicy;
         this.floorPolicy = floorPolicy;
@@ -169,20 +174,120 @@ public class SchedulingService {
         return new BookingOutcome(bookingId, status, position, sessionId);
     }
 
-    /** usp_CancelBooking: frees the seat (derived count), drops the waitlist row, no promotion (ODD-09). */
+    /**
+     * usp_CancelBooking: frees the seat (derived count), drops the waitlist row (positions keep their gap, HB-06).
+     * Unlike legacy (ODD-09) a freed or released held seat is offered to the next eligible waitlist entry
+     * (MBA-3829, ADR 0004); a pending offer of the cancelled booking is withdrawn.
+     */
     @Transactional
     public Rows.Booking cancel(int bookingId, String reason) {
         Rows.Booking b = booking(bookingId);
         repo.lockSession(b.sessionId());
         b = booking(bookingId);
         BookingRules.checkCancellable(bookingId, b.status());
+        boolean seatReleased = withdrawPendingOffer(bookingId, "booking cancelled") || b.status() == BookingStatus.BOOKED;
         repo.markCancelled(bookingId, reason, now());
         if (b.status() == BookingStatus.WAITLISTED) {
             repo.deleteWaitlistEntry(bookingId);
         }
         outbox.append(OutboxEventType.BookingCancelled, bookingId, List.of(bookingId), List.of(b.sessionId()), actor,
                 "reason=" + reason);
+        if (seatReleased) {
+            offers.offerFreedSeats(b.sessionId(), "cancel booking=" + bookingId);
+        }
         return booking(bookingId);
+    }
+
+    private boolean withdrawPendingOffer(int bookingId, String reason) {
+        return repo.pendingOfferForBooking(bookingId).map(o -> {
+            offers.withdraw(o, reason);
+            return true;
+        }).orElse(false);
+    }
+
+    // ------------------------------------------------------------------ waitlist offers (MBA-3829, ADR 0004)
+
+    public Rows.Offer offer(int offerId) {
+        return repo.offer(offerId).orElseThrow(
+                () -> new SchedulingException(ErrorCode.OFFER_NOT_FOUND, "Offer " + offerId + " not found"));
+    }
+
+    private static void requirePending(Rows.Offer o, LocalDateTime now) {
+        if (!OfferStatus.PENDING.name().equals(o.status())) {
+            throw new SchedulingException(ErrorCode.OFFER_NOT_PENDING, "Offer " + o.offerId() + " is " + o.status());
+        }
+        if (!o.expiresAt().isAfter(now)) {
+            throw new SchedulingException(ErrorCode.OFFER_NOT_PENDING,
+                    "Offer " + o.offerId() + " expired at " + o.expiresAt());
+        }
+    }
+
+    /** PENDING offer accepted before expiry: the waitlisted booking becomes BOOKED and leaves the waitlist. */
+    @Transactional
+    public Rows.Booking acceptOffer(int offerId) {
+        Rows.Offer o = offer(offerId);
+        repo.lockSession(o.sessionId());
+        o = offer(offerId);
+        LocalDateTime now = now();
+        requirePending(o, now);
+        Rows.Booking b = booking(o.bookingId());
+        repo.resolveOffer(offerId, OfferStatus.ACCEPTED.name(), "accepted", now);
+        repo.markBooked(b.bookingId(), now);
+        List<Integer> changed = removeFromWaitlist(b);
+        outbox.append(OutboxEventType.SeatOfferAccepted, b.bookingId(), changed, List.of(o.sessionId()), actor,
+                "offer=" + offerId);
+        return booking(b.bookingId());
+    }
+
+    /** The candidate turns the seat down: their waitlisted booking is cancelled and the seat goes to the next entry. */
+    @Transactional
+    public Rows.Booking declineOffer(int offerId) {
+        Rows.Offer o = offer(offerId);
+        repo.lockSession(o.sessionId());
+        o = offer(offerId);
+        if (!OfferStatus.PENDING.name().equals(o.status())) {
+            throw new SchedulingException(ErrorCode.OFFER_NOT_PENDING, "Offer " + offerId + " is " + o.status());
+        }
+        closeOffer(o, OfferStatus.DECLINED, OutboxEventType.SeatOfferDeclined, "Waitlist offer declined");
+        return booking(o.bookingId());
+    }
+
+    /** Ids of PENDING offers whose expiry has passed (scheduled by WaitlistOfferExpiryJob). */
+    public List<Integer> dueOfferIds() {
+        return repo.expiredPendingOffers(now(), 100).stream().map(Rows.Offer::offerId).toList();
+    }
+
+    /** Expires one due offer and offers the seat on; false when it was resolved meanwhile or is not due. */
+    @Transactional
+    public boolean expireOffer(int offerId) {
+        Rows.Offer o = offer(offerId);
+        repo.lockSession(o.sessionId());
+        o = offer(offerId);
+        if (!OfferStatus.PENDING.name().equals(o.status()) || o.expiresAt().isAfter(now())) {
+            return false;
+        }
+        closeOffer(o, OfferStatus.EXPIRED, OutboxEventType.SeatOfferExpired, "Waitlist offer expired");
+        return true;
+    }
+
+    private void closeOffer(Rows.Offer o, OfferStatus status, OutboxEventType event, String reason) {
+        LocalDateTime now = now();
+        Rows.Booking b = booking(o.bookingId());
+        repo.resolveOffer(o.offerId(), status.name(), reason, now);
+        repo.markCancelled(b.bookingId(), reason, now);
+        List<Integer> changed = removeFromWaitlist(b);
+        outbox.append(event, b.bookingId(), changed, List.of(o.sessionId()), actor, "offer=" + o.offerId());
+        offers.offerFreedSeats(o.sessionId(), status.name().toLowerCase() + " offer=" + o.offerId());
+    }
+
+    /** Drops the booking's waitlist row and moves later entries up one; returns the booking plus the moved ones. */
+    private List<Integer> removeFromWaitlist(Rows.Booking b) {
+        repo.deleteWaitlistEntry(b.bookingId());
+        List<Integer> changed = new ArrayList<>(List.of(b.bookingId()));
+        if (b.waitlistPosition() != null) {
+            changed.addAll(repo.shiftWaitlistAfter(b.sessionId(), b.waitlistPosition()));
+        }
+        return changed;
     }
 
     /**
@@ -225,6 +330,8 @@ public class SchedulingService {
         repo.lockSession(Math.max(old.sessionId(), newSessionId));
         old = booking(bookingId);
         ReschedulePolicy.check(bookingId, old.status(), old.sessionId(), old.examId(), newSessionId, newExam);
+        boolean seatReleased = withdrawPendingOffer(bookingId, "booking rescheduled")
+                || old.status() == BookingStatus.BOOKED;
         repo.markCancelled(bookingId, ReschedulePolicy.CANCEL_REASON, now());
         if (old.status() == BookingStatus.WAITLISTED) {
             repo.deleteWaitlistEntry(bookingId);
@@ -233,6 +340,9 @@ public class SchedulingService {
                 old.externalRef(), old.channel()), bookingId);
         outbox.append(OutboxEventType.BookingRescheduled, moved.bookingId(), List.of(bookingId, moved.bookingId()),
                 List.of(old.sessionId(), newSessionId), actor, "from=" + bookingId + " to=" + moved.bookingId());
+        if (seatReleased) {
+            offers.offerFreedSeats(old.sessionId(), "reschedule booking=" + bookingId);
+        }
         return moved;
     }
 
@@ -259,6 +369,8 @@ public class SchedulingService {
                 plan.demotions().stream().map(CapacityChange.Demotion::bookingId).toList(), List.of(sessionId), actor,
                 "capacity=" + plan.newCapacity() + " demoted=" + plan.demotions().size()
                         + (reason == null ? "" : " reason=" + reason));
+        offers.withdrawExcess(sessionId, "capacity reduced to " + plan.newCapacity());
+        offers.offerFreedSeats(sessionId, "capacity=" + plan.newCapacity());
         return new CapacityOutcome(plan, session(sessionId));
     }
 }

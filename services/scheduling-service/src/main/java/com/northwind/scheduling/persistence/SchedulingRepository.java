@@ -27,7 +27,8 @@ public class SchedulingRepository {
     private static final String SESSION_SELECT = """
             SELECT s.session_id, s.exam_id, e.exam_code, e.title AS exam_title, s.test_center_id, c.center_code,
                    c.name AS center_name, r.room_name, s.starts_at, s.capacity, s.accommodation_capacity, s.status,
-                   ISNULL(x.occupied, 0) AS occupied, ISNULL(x.acc_used, 0) AS acc_used, ISNULL(x.waitlisted, 0) AS waitlisted
+                   ISNULL(x.occupied, 0) AS occupied, ISNULL(x.acc_used, 0) AS acc_used, ISNULL(x.waitlisted, 0) AS waitlisted,
+                   ISNULL(h.held, 0) AS held, ISNULL(h.acc_held, 0) AS acc_held
               FROM exam_session s
               JOIN exam_snapshot e ON e.exam_id = s.exam_id
               JOIN test_center_snapshot c ON c.test_center_id = s.test_center_id
@@ -37,19 +38,34 @@ public class SchedulingRepository {
                                           THEN 1 ELSE 0 END) AS acc_used,
                                  SUM(CASE WHEN b.status = 'WAITLISTED' THEN 1 ELSE 0 END) AS waitlisted
                             FROM booking b WHERE b.session_id = s.session_id) x
+             OUTER APPLY (SELECT COUNT(*) AS held,
+                                 SUM(CASE WHEN ob.accommodation_code IN ('ET25','ET50') THEN 1 ELSE 0 END) AS acc_held
+                            FROM seat_offer o JOIN booking ob ON ob.booking_id = o.booking_id
+                           WHERE o.session_id = s.session_id AND o.status = 'PENDING') h
             """;
 
     private static final String BOOKING_SELECT = """
             SELECT b.booking_id, b.session_id, b.candidate_id, c.candidate_number,
                    c.first_name + N' ' + c.last_name AS candidate_name, s.exam_id, e.exam_code, e.title AS exam_title,
                    t.center_code, t.name AS center_name, s.starts_at, b.status, b.accommodation_code, b.channel,
-                   b.external_ref, b.booked_at, b.cancelled_at, b.cancel_reason, b.rescheduled_from, w.position
+                   b.external_ref, b.booked_at, b.cancelled_at, b.cancel_reason, b.rescheduled_from, w.position,
+                   o.offer_id, o.status AS offer_status, o.offered_at, o.expires_at
               FROM booking b
               JOIN candidate_snapshot c ON c.candidate_id = b.candidate_id
               JOIN exam_session s ON s.session_id = b.session_id
               JOIN exam_snapshot e ON e.exam_id = s.exam_id
               JOIN test_center_snapshot t ON t.test_center_id = s.test_center_id
               LEFT JOIN waitlist_entry w ON w.booking_id = b.booking_id
+             OUTER APPLY (SELECT TOP 1 so.offer_id, so.status, so.offered_at, so.expires_at FROM seat_offer so
+                           WHERE so.booking_id = b.booking_id ORDER BY so.offer_id DESC) o
+            """;
+
+    private static final String OFFER_SELECT = """
+            SELECT o.offer_id, o.session_id, o.booking_id, o.candidate_id, c.candidate_number, o.position, o.status,
+                   o.offered_at, o.expires_at, o.resolved_at, o.resolution, b.accommodation_code
+              FROM seat_offer o
+              JOIN candidate_snapshot c ON c.candidate_id = o.candidate_id
+              JOIN booking b ON b.booking_id = o.booking_id
             """;
 
     private final JdbcClient db;
@@ -73,7 +89,7 @@ public class SchedulingRepository {
                 rs.getString("exam_title"), rs.getInt("test_center_id"), rs.getString("center_code"),
                 rs.getString("center_name"), rs.getString("room_name"), ldt(rs, "starts_at"), rs.getInt("capacity"),
                 rs.getInt("accommodation_capacity"), SessionStatus.valueOf(rs.getString("status")), rs.getInt("occupied"),
-                rs.getInt("acc_used"), rs.getInt("waitlisted"));
+                rs.getInt("acc_used"), rs.getInt("waitlisted"), rs.getInt("held"), rs.getInt("acc_held"));
     }
 
     static Rows.Booking booking(ResultSet rs, int i) throws SQLException {
@@ -83,7 +99,16 @@ public class SchedulingRepository {
                 rs.getString("center_name"), ldt(rs, "starts_at"), BookingStatus.valueOf(rs.getString("status")),
                 rs.getString("accommodation_code"), rs.getString("channel"), rs.getString("external_ref"),
                 ldt(rs, "booked_at"), ldt(rs, "cancelled_at"), rs.getString("cancel_reason"),
-                intOrNull(rs, "rescheduled_from"), intOrNull(rs, "position"));
+                intOrNull(rs, "rescheduled_from"), intOrNull(rs, "position"),
+                rs.getObject("offer_id") == null ? null : new Rows.OfferRef(rs.getInt("offer_id"),
+                        rs.getString("offer_status"), ldt(rs, "offered_at"), ldt(rs, "expires_at")));
+    }
+
+    static Rows.Offer offer(ResultSet rs, int i) throws SQLException {
+        return new Rows.Offer(rs.getInt("offer_id"), rs.getInt("session_id"), rs.getInt("booking_id"),
+                rs.getInt("candidate_id"), rs.getString("candidate_number"), rs.getInt("position"),
+                rs.getString("status"), ldt(rs, "offered_at"), ldt(rs, "expires_at"), ldt(rs, "resolved_at"),
+                rs.getString("resolution"), rs.getString("accommodation_code"));
     }
 
     // ------------------------------------------------------------------ reference data
@@ -269,13 +294,88 @@ public class SchedulingRepository {
     /** Only WAITLISTED bookings are listed (a cancelled one has had its row removed - usp_CancelBooking). */
     public List<Rows.WaitlistEntry> waitlist(int sessionId) {
         return db.sql("""
+                SELECT w.position, w.booking_id, c.candidate_number, c.first_name + N' ' + c.last_name, b.accommodation_code, w.added_at,
+                       o.offer_id, o.status AS offer_status, o.offered_at, o.expires_at
+                  FROM waitlist_entry w
+                  JOIN booking b ON b.booking_id = w.booking_id
+                  JOIN candidate_snapshot c ON c.candidate_id = w.candidate_id
+                  LEFT JOIN seat_offer o ON o.booking_id = w.booking_id AND o.status = 'PENDING'
+                 WHERE w.session_id = ? AND b.status = 'WAITLISTED'
+                 ORDER BY w.position, w.waitlist_entry_id""").param(sessionId)
+                .query((rs, i) -> new Rows.WaitlistEntry(rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getString(4),
+                        rs.getString(5), ldt(rs, "added_at"), rs.getObject("offer_id") == null ? null
+                                : new Rows.OfferRef(rs.getInt("offer_id"), rs.getString("offer_status"),
+                                        ldt(rs, "offered_at"), ldt(rs, "expires_at")))).list();
+    }
+
+    /** Remaining waitlist entries after {@code position} move up by one (MBA-3829); returns the moved booking ids. */
+    public List<Integer> shiftWaitlistAfter(int sessionId, int position) {
+        List<Integer> moved = db.sql("SELECT booking_id FROM waitlist_entry WHERE session_id = ? AND position > ? ORDER BY position")
+                .params(sessionId, position).query(Integer.class).list();
+        db.sql("UPDATE waitlist_entry SET position = position - 1 WHERE session_id = ? AND position > ?")
+                .params(sessionId, position).update();
+        return moved;
+    }
+
+    public void markBooked(int bookingId, LocalDateTime now) {
+        db.sql("UPDATE booking SET status = 'BOOKED', last_modified = ? WHERE booking_id = ? AND status = 'WAITLISTED'")
+                .params(Timestamp.valueOf(now), bookingId).update();
+    }
+
+    // ------------------------------------------------------------------ seat offers (MBA-3829)
+
+    /** WAITLISTED entries without a pending offer, lowest position first (offer candidates). */
+    public List<Rows.WaitlistEntry> unofferedWaitlist(int sessionId) {
+        return db.sql("""
                 SELECT w.position, w.booking_id, c.candidate_number, c.first_name + N' ' + c.last_name, b.accommodation_code, w.added_at
                   FROM waitlist_entry w
                   JOIN booking b ON b.booking_id = w.booking_id
                   JOIN candidate_snapshot c ON c.candidate_id = w.candidate_id
                  WHERE w.session_id = ? AND b.status = 'WAITLISTED'
+                   AND NOT EXISTS (SELECT 1 FROM seat_offer o WHERE o.booking_id = w.booking_id AND o.status = 'PENDING')
                  ORDER BY w.position, w.waitlist_entry_id""").param(sessionId)
                 .query((rs, i) -> new Rows.WaitlistEntry(rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getString(4),
-                        rs.getString(5), ldt(rs, "added_at"))).list();
+                        rs.getString(5), ldt(rs, "added_at"), null)).list();
+    }
+
+    public int insertOffer(int sessionId, int bookingId, int position, LocalDateTime now, LocalDateTime expiresAt) {
+        return db.sql("INSERT INTO seat_offer (session_id, booking_id, candidate_id, position, status, offered_at, expires_at) "
+                + "OUTPUT INSERTED.offer_id SELECT session_id, booking_id, candidate_id, ?, 'PENDING', ?, ? FROM booking "
+                + "WHERE booking_id = ?")
+                .params(position, Timestamp.valueOf(now), Timestamp.valueOf(expiresAt), bookingId)
+                .query(Integer.class).single();
+    }
+
+    public Optional<Rows.Offer> offer(int offerId) {
+        return db.sql(OFFER_SELECT + " WHERE o.offer_id = ?").param(offerId).query(SchedulingRepository::offer).optional();
+    }
+
+    public Optional<Rows.Offer> pendingOfferForBooking(int bookingId) {
+        return db.sql(OFFER_SELECT + " WHERE o.booking_id = ? AND o.status = 'PENDING'").param(bookingId)
+                .query(SchedulingRepository::offer).optional();
+    }
+
+    /** Pending offers of a session, newest first (withdrawn first when capacity shrinks). */
+    public List<Rows.Offer> pendingOffers(int sessionId) {
+        return db.sql(OFFER_SELECT + " WHERE o.session_id = ? AND o.status = 'PENDING' ORDER BY o.offer_id DESC")
+                .param(sessionId).query(SchedulingRepository::offer).list();
+    }
+
+    public List<Rows.Offer> offersForSession(int sessionId) {
+        return db.sql(OFFER_SELECT + " WHERE o.session_id = ? ORDER BY o.offer_id").param(sessionId)
+                .query(SchedulingRepository::offer).list();
+    }
+
+    /** Pending offers whose expiry is at or before {@code now}, oldest first. */
+    public List<Rows.Offer> expiredPendingOffers(LocalDateTime now, int limit) {
+        return db.sql("SELECT TOP (" + Math.max(1, limit) + ") * FROM (" + OFFER_SELECT
+                + " WHERE o.status = 'PENDING' AND o.expires_at <= ?) q ORDER BY q.expires_at, q.offer_id")
+                .param(Timestamp.valueOf(now)).query(SchedulingRepository::offer).list();
+    }
+
+    /** PENDING -> {@code status}; false when the offer was already resolved (lost a race). */
+    public boolean resolveOffer(int offerId, String status, String resolution, LocalDateTime now) {
+        return db.sql("UPDATE seat_offer SET status = ?, resolution = ?, resolved_at = ? WHERE offer_id = ? AND status = 'PENDING'")
+                .params(status, resolution, Timestamp.valueOf(now), offerId).update() > 0;
     }
 }

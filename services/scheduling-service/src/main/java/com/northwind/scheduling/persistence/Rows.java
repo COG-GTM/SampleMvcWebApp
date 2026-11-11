@@ -24,9 +24,10 @@ public final class Rows {
     public record Session(int sessionId, int examId, String examCode, String examTitle, int centerId, String centerCode,
                           String centerName, String roomName, LocalDateTime startsAt, int capacity,
                           int accommodationCapacity, SessionStatus status, int occupied, int accommodationUsed,
-                          int waitlisted) {
+                          int waitlisted, int held, int accommodationHeld) {
         public SessionCapacity seats() {
-            return new SessionCapacity(capacity, accommodationCapacity, occupied, accommodationUsed, waitlisted);
+            return new SessionCapacity(capacity, accommodationCapacity, occupied, accommodationUsed, waitlisted, held,
+                    accommodationHeld);
         }
     }
 
@@ -34,11 +35,21 @@ public final class Rows {
                           int examId, String examCode, String examTitle, String centerCode, String centerName,
                           LocalDateTime sessionStartsAt, BookingStatus status, String accommodationCode, String channel,
                           String externalRef, LocalDateTime bookedAt, LocalDateTime cancelledAt, String cancelReason,
-                          Integer rescheduledFrom, Integer waitlistPosition) {
+                          Integer rescheduledFrom, Integer waitlistPosition, OfferRef offer) {
     }
 
+    /** offer: the pending seat offer of this entry, null when none (MBA-3829) */
     public record WaitlistEntry(int position, int bookingId, String candidateNumber, String candidateName,
-                                String accommodationCode, LocalDateTime addedAt) {
+                                String accommodationCode, LocalDateTime addedAt, OfferRef offer) {
+    }
+
+    /** Latest seat offer of a booking (MBA-3829). */
+    public record OfferRef(int offerId, String status, LocalDateTime offeredAt, LocalDateTime expiresAt) {
+    }
+
+    public record Offer(int offerId, int sessionId, int bookingId, int candidateId, String candidateNumber, int position,
+                        String status, LocalDateTime offeredAt, LocalDateTime expiresAt, LocalDateTime resolvedAt,
+                        String resolution, String accommodationCode) {
     }
 
     public record CapacityChangeRow(int id, int sessionId, int oldCapacity, int newCapacity, int demotedBookings,

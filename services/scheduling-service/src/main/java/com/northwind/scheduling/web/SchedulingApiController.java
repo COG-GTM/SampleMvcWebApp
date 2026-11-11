@@ -122,6 +122,28 @@ public class SchedulingApiController {
         return BookingDto.of(service.booking(bookingId));
     }
 
+    @GetMapping("/offers/{offerId}")
+    public OfferDto offer(@PathVariable int offerId) {
+        return OfferDto.of(service.offer(offerId));
+    }
+
+    /** MBA-3829: the waitlisted candidate takes the held seat (booking becomes BOOKED, waitlist shifts up). */
+    @PostMapping("/offers/{offerId}/accept")
+    public OfferResultDto acceptOffer(@PathVariable int offerId) {
+        return offerResult(offerId, service.acceptOffer(offerId));
+    }
+
+    /** MBA-3829: the candidate turns the seat down (booking CANCELLED); the seat is offered to the next entry. */
+    @PostMapping("/offers/{offerId}/decline")
+    public OfferResultDto declineOffer(@PathVariable int offerId) {
+        return offerResult(offerId, service.declineOffer(offerId));
+    }
+
+    private OfferResultDto offerResult(int offerId, com.northwind.scheduling.persistence.Rows.Booking b) {
+        return new OfferResultDto(OfferDto.of(service.offer(offerId)), BookingDto.of(b),
+                SessionDto.of(service.session(b.sessionId())));
+    }
+
     @DeleteMapping("/bookings/{bookingId}")
     public BookingDto cancel(@PathVariable int bookingId, @RequestParam(required = false) String reason) {
         return BookingDto.of(service.cancel(bookingId, reason == null || reason.isBlank() ? "Cancelled by candidate" : reason));
