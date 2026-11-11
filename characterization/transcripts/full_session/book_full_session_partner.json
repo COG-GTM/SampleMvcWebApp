@@ -649,6 +649,9 @@
     },
     "status": 201
   },
+  "finding": [
+    "HB-02"
+  ],
   "format": 1,
   "group": "full_session",
   "legacy_baseline": {
@@ -700,5 +703,8 @@
       }
     }
   ],
-  "tags": []
+  "tags": [],
+  "tests": [
+    "CT-05"
+  ]
 }

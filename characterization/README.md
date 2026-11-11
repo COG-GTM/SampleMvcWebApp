@@ -7,7 +7,9 @@ behaviour by accident.
 
 - Captured from tag `legacy-baseline` = `e458238da39c991b51d8f670f6d0c463b51b372f`. The SHA is in every
   transcript (`legacy_baseline.sha`) and every report.
-- 53 scenarios in `scenarios/*.yaml` -> 53 transcripts in `transcripts/<group>/<scenario>.json`.
+- 86 scenarios in `scenarios/*.yaml` -> 86 transcripts in `transcripts/<group>/<scenario>.json`; every one links
+  the `docs/as-is/hidden-behavior.md` finding(s) it characterizes (`finding:`) and the checklist tests it covers
+  (`tests:`). Catalogue with both columns: [`CATALOG.md`](CATALOG.md).
 - Odd behaviour is pinned, not fixed: see [`ODDITIES.md`](ODDITIES.md).
 - Reports land in `reports/replay-<target>-<sha7>.md` with X/Y MATCH per scenario group.
 
@@ -15,7 +17,9 @@ behaviour by accident.
 
 | Path | What |
 |---|---|
-| `scenarios/*.yaml` | Scenario catalogue: channel, setup SQL, steps (`book`, `cancel`, `reschedule`, `capacity`, `eligibility`, `drift`, `sync`, `mixed_traffic`), oddity notes |
+| `scenarios/*.yaml` | Scenario catalogue: channel, setup SQL, `finding`/`tests` ids, steps (`book`, `cancel`, `reschedule`, `capacity`, `eligibility`, `drift`, `sync`, `mixed_traffic`, `sql` direct T-SQL, `sessions`/`session` v1 reads, `search` portal search, `result` results-service ingest), oddity notes |
+| `CATALOG.md` | Generated scenario catalogue (finding + test columns, CT-01..CT-38 coverage): `python -m chartool.catalog` |
+| `known-defects.yaml` | Modern-target differences that are known and tracked (reported as KNOWN-DEFECT) |
 | `capture`, `capture.cmd` | Headless capture tool: runs every scenario against the running legacy estate and writes the transcripts |
 | `replay`, `replay.cmd` | Replay harness: `--target legacy` or `--target modern --base-url ...` |
 | `chartool/` | Python package (adapters per channel, DB snapshot/restore, normalizer, comparer, report) |
@@ -137,6 +141,38 @@ modern writes back); `--db-state scheduling` reads `Scheduling` (`exam_session`,
 `POST /internal/import/sessions` so scheduling-service starts from the same seed; `--modern-reset-cmd`
 substitutes another re-sync. Deliberate differences are listed per transcript in
 `modern_expected_mismatch` (from `docs/adr/0002-ported-rule-decisions.md`).
+
+## Coverage of the docs/as-is checklist (CT-01..CT-38)
+
+`docs/as-is/migration-risks.md` section 2 lists 38 characterization tests for the 18 findings in
+`docs/as-is/hidden-behavior.md`. Each scenario names the findings it pins (`finding: [HB-nn]`, copied into the
+transcript) and the tests it covers (`tests: [CT-nn]`). The per-test transcript list is generated into
+[`CATALOG.md`](CATALOG.md); `tests/test_scenarios_and_report.py` fails if a CT id has neither a transcript nor a
+row below, or if `CATALOG.md` is stale. 36 of 38 tests have at least one transcript.
+
+Notes on partial coverage (covered, but with a deterministic stand-in):
+
+| Test | How it is covered |
+|---|---|
+| CT-08, CT-09 | True concurrency is not reproducible in a golden transcript. `last_seat_negative_counter_partner` pins the end state the race produces for one seat (SeatsAvailable -1, next booking WAITLISTED) and `book_duplicate_*` pins the duplicate check that a same-candidate race can slip past. |
+| CT-31 | `retake_no_show_not_counted_*` pins that an ATTENDED booking without a `Result` is a first attempt; the latest-Result date rule is pinned by the `retake_*` window scenarios. |
+| CT-33 | `proc_error_contract_db` records error number, severity, state and message for states 1, 2, 3, 5, 6 (RAISERROR with a message string gives number 50000; the code is the state). |
+
+Not applicable as golden transcripts (the replay compares a single deterministic run):
+
+| Test | Reason |
+|---|---|
+| CT-27 | N/A - concurrent opposite-direction reschedules are a lock-order/deadlock race (HB-17); whether and which side deadlocks depends on thread timing, so a transcript would not be deterministic. Needs a dedicated load/soak test (M6), not a golden transcript. |
+| CT-32 | N/A - JVM time zone behaviour (HB-13) depends on the host time zone and the clock at 02:00; the estate is pinned to one host zone for capture, and `NightlySyncJob` is exercised through `POST /sync/run` instead of the cron. Changing the JVM zone is a deployment test, not a behaviour transcript. |
+
+## Known defects (modern target)
+
+`known-defects.yaml` lists transcripts that are expected to differ on `--target modern` for a known, tracked
+reason (currently the on-call defect from #57 in scheduling-service capacity reductions). On a modern replay a
+listed transcript that differs is reported as **KNOWN-DEFECT**: counted in its own column and in the status counts,
+never as MATCH and never hidden (the full request/expected/actual is in the mismatch section). If it matches it is
+counted as MATCH. Legacy replays ignore the file. A gateway answer `CENTER_NOT_MODERN` (the scenario's center is not
+on the gateway allow-list, so nothing reached the modern service) is reported as SKIPPED with that note.
 
 ## Tests
 

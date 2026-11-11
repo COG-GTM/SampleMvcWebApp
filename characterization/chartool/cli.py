@@ -13,6 +13,28 @@ REPORTS = CHAR_DIR / "reports"
 SCENARIOS = CHAR_DIR / "scenarios"
 
 
+KNOWN_DEFECTS = Path(__file__).resolve().parents[1] / "known-defects.yaml"
+
+
+def load_known_defects(path=KNOWN_DEFECTS):
+    """{scenario: reason} for modern-target defects that are known and tracked (counted separately, never as MATCH)."""
+    import yaml
+    if not Path(path).exists():
+        return {}
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    return {d["transcript"]: d["reason"] for d in data.get("known_defects", [])}
+
+
+def classify_modern_mismatch(transcript, actual, known):
+    """MISMATCH by default; KNOWN-DEFECT when listed in known-defects.yaml; SKIPPED when the gateway refused to
+    route the center (CENTER_NOT_MODERN: the scenario's center is not on the allow-list, nothing reached modern)."""
+    if transcript["scenario"] in known:
+        return "KNOWN-DEFECT", known[transcript["scenario"]]
+    if any(s["expected"]["business_fields"].get("error") == "CENTER_NOT_MODERN" for s in actual["steps"]):
+        return "SKIPPED", "gateway: center not on routing.modern-centers (CENTER_NOT_MODERN)"
+    return "MISMATCH", None
+
+
 def dump(obj):
     return json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False, default=str) + "\n"
 
@@ -137,6 +159,7 @@ def cmd_replay(args):
     else:
         target, partner = modern_target(config, db, args)
         extra = " partner-api=%s db-state=%s" % (partner, args.db_state)
+    known = load_known_defects() if args.target == "modern" else {}
     results = []
     for t in transcripts:
         sc = {"name": t["scenario"], "group": t["group"], "channel": t["channel"], "setup_sql": t["setup_sql"],
@@ -146,8 +169,10 @@ def cmd_replay(args):
         try:
             actual = run_scenario(sc, target, db, seed_max)
             diffs = compare(t, actual, args.target)
-            results.append({"transcript": t, "actual": actual, "diffs": diffs,
-                            "status": "MISMATCH" if diffs else "MATCH"})
+            status, note = ("MISMATCH" if diffs else "MATCH"), None
+            if diffs and args.target == "modern":
+                status, note = classify_modern_mismatch(t, actual, known)
+            results.append({"transcript": t, "actual": actual, "diffs": diffs, "status": status, "note": note})
         except Unsupported as e:
             results.append({"transcript": t, "status": "SKIPPED", "diffs": [], "note": str(e)})
         except Exception as e:  # noqa: BLE001 - report and continue with the next transcript

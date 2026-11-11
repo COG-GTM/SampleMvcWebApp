@@ -1,0 +1,6 @@
+# Modern-target differences that are known and tracked. A transcript listed here that differs on --target modern
+# is reported as KNOWN-DEFECT: counted separately in the X/Y report, never as MATCH, never hidden.
+# Legacy replays ignore this file (legacy must always be Y/Y).
+known_defects:
+  - transcript: capacity_decrease_full_session_with_waitlist_admin
+    reason: "on-call defect #57 - scheduling-service rejects the reduction with 409 CAPACITY_BELOW_ACCOMMODATION_FLOOR (50005); legacy accepts it and bumps the two newest bookings"

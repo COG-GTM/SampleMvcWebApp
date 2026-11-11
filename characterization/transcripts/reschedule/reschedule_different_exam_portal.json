@@ -119,6 +119,10 @@
     },
     "status": 200
   },
+  "finding": [
+    "HB-06",
+    "HB-11"
+  ],
   "format": 1,
   "group": "reschedule",
   "legacy_baseline": {
@@ -165,5 +169,8 @@
       }
     }
   ],
-  "tags": []
+  "tags": [],
+  "tests": [
+    "CT-26"
+  ]
 }

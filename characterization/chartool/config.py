@@ -36,6 +36,7 @@ class Config:
     scheduling_database: str = field(default_factory=lambda: _env("SCHEDULING_DATABASE", "Scheduling"))
     portal_url: str = field(default_factory=lambda: _env("PORTAL_URL", "http://localhost:8080").rstrip("/"))
     booking_api_url: str = field(default_factory=lambda: _env("BOOKING_API_URL", "http://localhost:8081").rstrip("/"))
+    results_url: str = field(default_factory=lambda: _env("RESULTS_URL", "http://localhost:8082").rstrip("/"))
     capacity_sync_url: str = field(default_factory=lambda: _env("CAPACITY_SYNC_URL", "http://localhost:8083").rstrip("/"))
     scheduling_url: str = field(default_factory=lambda: _env("SCHEDULING_URL", "http://localhost:8090").rstrip("/"))
     odbc_driver: str = field(default_factory=lambda: _env("CHAR_ODBC_DRIVER", ""))

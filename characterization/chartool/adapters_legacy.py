@@ -104,9 +104,12 @@ class PortalAdapter:
                                           "legacyCode": None})
         return {"request": req, "response": resp, "business": biz, "booking_id": booking_id}
 
-    def cancel(self, booking, reason=None):
+    def cancel(self, booking, reason=None, candidate=None):
         path = "/Booking/Cancel/%d" % booking
-        req, resp, _ = self._form(path, path, {"Reason": reason or ""})
+        fields = {"Reason": reason or ""}
+        if candidate:
+            fields["CandidateNumber"] = candidate
+        req, resp, _ = self._form(path + ("?candidateNumber=%s" % candidate if candidate else ""), path, fields)
         biz = self._error_business(resp, {"outcome": "CANCELLED", "error": None, "legacyCode": None})
         return {"request": req, "response": resp, "business": biz}
 
@@ -123,6 +126,16 @@ class PortalAdapter:
         req, resp, _ = self._form(path, path, {"NewCapacity": new_capacity})
         biz = self._error_business(resp, {"outcome": "UPDATED", "error": None, "legacyCode": None})
         return {"request": req, "response": resp, "business": biz}
+
+    def search(self, center_code, probe=()):
+        """Portal session search. Only date-independent facts are kept (the page filters on today's date)."""
+        r = requests.get(self.url + "/Booking", params={"CenterCode": center_code}, timeout=self.timeout)
+        ids = {int(i) for i in re.findall(r"/Booking/Book\?sessionId=(\d+)", r.text, re.I)}
+        sel = re.search(r'<select[^>]*name="CenterCode"[^>]*>(.*?)</select>', r.text, re.S | re.I)
+        centers = [c for c in re.findall(r'<option[^>]*value="([^"]*)"', sel.group(1)) if c] if sel else []
+        req = {"method": "GET", "path": "/Booking", "query": {"CenterCode": center_code}}
+        biz = {"centerFilter": centers, "listed": {str(i): i in ids for i in probe}}
+        return {"request": req, "response": {"status": r.status_code}, "business": biz}
 
     def eligibility(self, candidate, exam_code, date):
         params = {"candidateNumber": candidate, "examCode": exam_code, "date": date}
@@ -191,6 +204,23 @@ class PartnerV1Adapter:
     def reschedule(self, booking, new_session):
         return self._call("reschedule", "POST", "/api/v1/bookings/%d/reschedule" % booking,
                           json={"newSessionId": new_session})
+
+    def sessions(self, params):
+        r = requests.get(self.url + "/api/v1/sessions", params=params, timeout=self.timeout)
+        body = json_or_text(r)
+        rows = body if isinstance(body, list) else []
+        biz = {"count": len(rows), "statuses": sorted({s.get("status") for s in rows}),
+               "sessionIds": [s.get("sessionId") for s in rows],
+               "orderedByStartsAt": [s.get("startsAt") for s in rows] == sorted(s.get("startsAt") for s in rows)}
+        req = {"method": "GET", "path": "/api/v1/sessions", "query": params}
+        return {"request": req, "response": {"status": r.status_code, "first": rows[:1]}, "business": biz}
+
+    def session(self, session):
+        r = self._call("session", "GET", "/api/v1/sessions/%d" % session)
+        body = r["response"]["body"]
+        if r["response"]["status"] < 400 and isinstance(body, dict):
+            r["business"] = {k: body.get(k) for k in ("sessionId", "status", "capacity", "seatsAvailable", "bookedSeats")}
+        return r
 
     def eligibility(self, candidate, exam_code, date):
         return self._call("eligibility", "GET", "/api/v1/candidates/%s/eligibility" % candidate,

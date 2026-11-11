@@ -1,0 +1,118 @@
+{
+  "channel": "PORTAL",
+  "description": "Portal search lists OPEN sessions only (462 listed; delivered 147 and closed 281 not) and only active centres in the filter.",
+  "expected": {
+    "business_fields": {
+      "centerFilter": [
+        "AKL01",
+        "AMS01",
+        "ATL01",
+        "BOS01",
+        "DEN01",
+        "DUB01",
+        "FRA01",
+        "LDN01",
+        "LDS01",
+        "MAN01",
+        "MEL01",
+        "NYC02",
+        "PHL01",
+        "PHX01",
+        "SEA01",
+        "SFO01",
+        "SIN01",
+        "SYD01",
+        "TOR01",
+        "VAN01"
+      ],
+      "listed": {
+        "147": false,
+        "281": false,
+        "462": true
+      }
+    },
+    "db_state": {
+      "auditLog.new": []
+    },
+    "db_state_before": {
+      "auditLog.new": []
+    },
+    "status": 200
+  },
+  "finding": [
+    "HB-10",
+    "HB-14"
+  ],
+  "format": 1,
+  "group": "contracts",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "session_search_portal",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PORTAL",
+      "expected": {
+        "business_fields": {
+          "centerFilter": [
+            "AKL01",
+            "AMS01",
+            "ATL01",
+            "BOS01",
+            "DEN01",
+            "DUB01",
+            "FRA01",
+            "LDN01",
+            "LDS01",
+            "MAN01",
+            "MEL01",
+            "NYC02",
+            "PHL01",
+            "PHX01",
+            "SEA01",
+            "SFO01",
+            "SIN01",
+            "SYD01",
+            "TOR01",
+            "VAN01"
+          ],
+          "listed": {
+            "147": false,
+            "281": false,
+            "462": true
+          }
+        },
+        "response": {
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "search",
+      "request": {
+        "method": "GET",
+        "path": "/Booking",
+        "query": {
+          "CenterCode": "BOS01"
+        }
+      },
+      "source": {
+        "centerCode": "BOS01",
+        "op": "search",
+        "probe": [
+          462,
+          147,
+          281
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-35"
+  ]
+}

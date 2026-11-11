@@ -388,6 +388,9 @@
     },
     "status": 302
   },
+  "finding": [
+    "HB-06"
+  ],
   "format": 1,
   "group": "reschedule",
   "legacy_baseline": {
@@ -434,5 +437,8 @@
       }
     }
   ],
-  "tags": []
+  "tags": [],
+  "tests": [
+    "CT-22"
+  ]
 }

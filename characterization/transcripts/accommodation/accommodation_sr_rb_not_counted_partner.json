@@ -113,6 +113,9 @@
     },
     "status": 201
   },
+  "finding": [
+    "HB-08"
+  ],
   "format": 1,
   "group": "accommodation",
   "legacy_baseline": {
@@ -242,5 +245,8 @@
   ],
   "tags": [
     "double-decrement"
+  ],
+  "tests": [
+    "CT-14"
   ]
 }

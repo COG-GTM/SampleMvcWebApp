@@ -3,8 +3,13 @@ from pathlib import Path
 
 import yaml
 
-OPS = {"book", "cancel", "reschedule", "capacity", "eligibility", "sync", "drift", "mixed_traffic"}
-CHANNELS = {"PORTAL", "PARTNER", "ADMIN", "SYSTEM"}
+import re
+
+OPS = {"book", "cancel", "reschedule", "capacity", "eligibility", "sync", "drift", "mixed_traffic",
+       "sql", "sessions", "session", "search", "result"}
+CHANNELS = {"PORTAL", "PARTNER", "ADMIN", "SYSTEM", "DB"}
+FINDING_RE = re.compile(r"^(HB-\d\d|data-ownership)$")
+TEST_RE = re.compile(r"^CT-\d\d$")
 
 
 class ScenarioError(ValueError):
@@ -23,6 +28,11 @@ def validate(sc, source=""):
     for i, step in enumerate(sc["steps"], 1):
         if step.get("op") not in OPS:
             raise ScenarioError("%s: step %d has unknown op %r" % (where, i, step.get("op")))
+    findings = sc.get("finding") or []
+    if not findings or not all(FINDING_RE.match(f) for f in findings):
+        raise ScenarioError("%s: 'finding' must list docs/as-is/hidden-behavior.md ids (HB-nn)" % where)
+    if not all(TEST_RE.match(t) for t in sc.get("tests") or []):
+        raise ScenarioError("%s: 'tests' must list docs/as-is/migration-risks.md ids (CT-nn)" % where)
     if sc.get("oddity") and not sc.get("oddity_note"):
         raise ScenarioError("%s: oddity without oddity_note" % where)
     return sc

@@ -64,6 +64,22 @@ def execute_step(target, step, db, sc, results):
         keep = {k: body[k] for k in ("examined", "updated", "skipped", "status") if isinstance(body, dict) and k in body}
         return {"request": {"method": "POST", "path": "/sync/run"}, "response": {"status": r.status_code, "body": keep},
                 "business": {"outcome": "OK" if r.status_code == 200 else "ERROR"}}
+    if op in ("sql", "result"):
+        if target.name != "legacy":
+            raise Unsupported("%s steps act on the legacy estate directly; no equivalent on target %s" % (op, target.name))
+        if op == "sql":
+            rows = db.rows("SET NOCOUNT ON; " + p["sql"])
+            res = {"request": {"sql": p["sql"]}, "response": {"rows": rows}, "business": {"rows": rows}}
+            if rows and rows[0].get("BookingId"):
+                res["booking_id"] = rows[0]["BookingId"]
+            return res
+        body = {"bookingId": int(p["booking"]), "score": p["score"], "scoredAt": p.get("scoredAt")}
+        r = requests.post(target.config.results_url + "/api/v1/results", json=body, timeout=target.config.http_timeout)
+        out = r.json() if r.headers.get("Content-Type", "").startswith("application/json") else r.text
+        return {"request": {"method": "POST", "path": "/api/v1/results", "json": body},
+                "response": {"status": r.status_code, "body": out},
+                "business": {"outcome": "INGESTED" if r.status_code == 201 else "ERROR",
+                             "passed": out.get("passed") if isinstance(out, dict) else None}}
     if op == "mixed_traffic":
         if not target.mixed_urls:
             raise Unsupported("mixed traffic needs portal + v1 endpoints (use the routing gateway)")
@@ -74,7 +90,14 @@ def execute_step(target, step, db, sc, results):
     if op == "book":
         return adapter.book(int(p["session"]), p["candidate"], p.get("accommodation"), p.get("externalRef"))
     if op == "cancel":
-        return adapter.cancel(int(p["booking"]), p.get("reason"))
+        extra = {"candidate": p["candidate"]} if p.get("candidate") else {}
+        return adapter.cancel(int(p["booking"]), p.get("reason"), **extra)
+    if op == "sessions":
+        return adapter.sessions({k: str(p[k]) for k in ("centerCode", "examCode", "from", "to") if p.get(k)})
+    if op == "session":
+        return adapter.session(int(p["session"]))
+    if op == "search":
+        return adapter.search(p["centerCode"], [int(i) for i in p.get("probe", [])])
     if op == "reschedule":
         return adapter.reschedule(int(p["booking"]), int(p["newSession"]))
     if op == "capacity":
@@ -136,6 +159,7 @@ def run_scenario(sc, target, db, seed_max):
         "scenario": sc["name"], "group": sc["group"], "channel": sc["channel"],
         "description": sc.get("description", ""), "oddity": bool(sc.get("oddity")),
         "oddity_note": sc.get("oddity_note"), "tags": sc.get("tags", []),
+        "finding": sc.get("finding", []), "tests": sc.get("tests", []),
         "modern_expected_mismatch": sc.get("modern_expected_mismatch"),
         "legacy_baseline": {"tag": LEGACY_BASELINE_TAG, "sha": LEGACY_BASELINE_SHA},
         "setup_sql": sc.get("setup_sql", []),

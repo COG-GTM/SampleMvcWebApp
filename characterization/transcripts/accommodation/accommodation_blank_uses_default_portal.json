@@ -77,6 +77,9 @@
     },
     "status": 302
   },
+  "finding": [
+    "HB-08"
+  ],
   "format": 1,
   "group": "accommodation",
   "legacy_baseline": {
@@ -126,5 +129,8 @@
   ],
   "tags": [
     "channel-disagreement"
+  ],
+  "tests": [
+    "CT-15"
   ]
 }

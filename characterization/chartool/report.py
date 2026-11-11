@@ -8,6 +8,9 @@ GROUP_ORDER = ["booking", "full_session", "duplicate_closed", "cancellation", "r
                "mixed_traffic"]
 
 
+STATUSES = ("MATCH", "MISMATCH", "KNOWN-DEFECT", "SKIPPED", "ERROR")
+
+
 def report_group(transcript):
     """Report bucket: capacity split into increase/decrease, retake eligibility split per channel."""
     group = transcript["group"]
@@ -36,14 +39,19 @@ def render(results, target, base_url, estate_sha, options):
              "- Target: `%s`%s" % (target, (" base url `%s`" % base_url) if base_url else ""),
              "- Options: `%s`" % options, "",
              "**Overall: %d/%d MATCH**" % (matched, total), "",
-             "## Totals per scenario group", "", "| Group | Result | Mismatch | Skipped | Error |", "|---|---|---|---|---|"]
+             "Status counts: %s" % ", ".join("%s %d" % (s, sum(1 for r in results if r["status"] == s))
+                                             for s in STATUSES), "",
+             "KNOWN-DEFECT = differs from the legacy transcript for a reason listed in `characterization/known-defects.yaml`;"
+             " counted separately (never as MATCH, never hidden).", "",
+             "## Totals per scenario group", "", "| Group | Result | Mismatch | Known defect | Skipped | Error |",
+             "|---|---|---|---|---|---|"]
     for g in GROUP_ORDER + sorted(set(groups) - set(GROUP_ORDER)):
         rs = groups.get(g, [])
         if not rs:
             continue
         count = lambda s: sum(1 for r in rs if r["status"] == s)  # noqa: E731
-        lines.append("| %s | %d/%d MATCH | %d | %d | %d |" % (g, count("MATCH"), len(rs), count("MISMATCH"),
-                                                             count("SKIPPED"), count("ERROR")))
+        lines.append("| %s | %d/%d MATCH | %d | %d | %d | %d |" % (g, count("MATCH"), len(rs), count("MISMATCH"),
+                                                                  count("KNOWN-DEFECT"), count("SKIPPED"), count("ERROR")))
     lines += ["", "## Per scenario", "", "| Scenario | Group | Channel | Oddity | Result | Note |", "|---|---|---|---|---|---|"]
     for r in sorted(results, key=lambda r: (GROUP_ORDER.index(report_group(r["transcript"]))
                                             if report_group(r["transcript"]) in GROUP_ORDER else 99,
@@ -52,7 +60,7 @@ def render(results, target, base_url, estate_sha, options):
         note = r.get("note") or (t.get("modern_expected_mismatch") if r["status"] == "MISMATCH" and target != "legacy" else "")
         lines.append("| %s | %s | %s | %s | %s | %s |" % (t["scenario"], report_group(t), t["channel"],
                                                        "yes" if t.get("oddity") else "", r["status"], note or ""))
-    bad = [r for r in results if r["status"] in ("MISMATCH", "ERROR")]
+    bad = [r for r in results if r["status"] in ("MISMATCH", "KNOWN-DEFECT", "ERROR")]
     if bad:
         lines += ["", "## Mismatches", ""]
     for r in bad:

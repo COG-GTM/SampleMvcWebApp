@@ -211,6 +211,10 @@
     },
     "status": 200
   },
+  "finding": [
+    "HB-05",
+    "HB-11"
+  ],
   "format": 1,
   "group": "capacity",
   "legacy_baseline": {
@@ -259,5 +263,8 @@
   "tags": [
     "decrease",
     "accommodation-floor"
+  ],
+  "tests": [
+    "CT-17"
   ]
 }

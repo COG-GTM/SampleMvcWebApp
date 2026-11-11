@@ -35,6 +35,10 @@
     },
     "status": 200
   },
+  "finding": [
+    "HB-04",
+    "HB-09"
+  ],
   "format": 1,
   "group": "retake_eligibility",
   "legacy_baseline": {
@@ -84,5 +88,8 @@
       }
     }
   ],
-  "tags": []
+  "tags": [],
+  "tests": [
+    "CT-29"
+  ]
 }

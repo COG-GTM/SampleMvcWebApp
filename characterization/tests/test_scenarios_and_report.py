@@ -91,3 +91,46 @@ def test_report_groups_and_lists_mismatches_with_sha():
     assert "| booking | 1/1 MATCH |" in text and "| retake_eligibility_partner | 0/1 MATCH |" in text
     assert LEGACY_BASELINE_SHA in text and "step1.business.eligible" in text
     assert report_group(_t({}, {}, group="capacity", tags=["increase"])) == "capacity_increase"
+
+
+def test_every_checklist_test_is_covered_or_declared_not_applicable():
+    from chartool.catalog import CHECKLIST, coverage, not_applicable
+    na = not_applicable((CHAR / "README.md").read_text(encoding="utf-8"))
+    cov = coverage(load_all(CHAR / "scenarios"))
+    missing = [ct for ct in CHECKLIST if not cov[ct] and ct not in na]
+    assert not missing, missing
+    assert not (na & {ct for ct in CHECKLIST if cov[ct]}), "covered CT also declared N/A"
+
+
+def test_every_transcript_links_a_finding_and_catalog_is_current():
+    from chartool.catalog import render
+    scenarios = load_all(CHAR / "scenarios")
+    for s in scenarios:
+        t = json.loads((CHAR / "transcripts" / s["group"] / ("%s.json" % s["name"])).read_text(encoding="utf-8"))
+        assert t["finding"] == s["finding"] and t["finding"], s["name"]
+    expected = render(scenarios, (CHAR / "README.md").read_text(encoding="utf-8"))
+    assert (CHAR / "CATALOG.md").read_text(encoding="utf-8") == expected, "run: python -m chartool.catalog"
+
+
+def test_known_defects_reference_real_transcripts():
+    from chartool.cli import load_known_defects
+    names = {s["name"] for s in load_all(CHAR / "scenarios")}
+    known = load_known_defects()
+    assert known and set(known) <= names
+    assert all("#57" in r for r in known.values())
+
+
+def test_known_defect_is_counted_separately_not_as_match():
+    from chartool.cli import classify_modern_mismatch
+    from chartool.report import render as render_report
+    t = {"scenario": "s1", "group": "capacity", "channel": "ADMIN", "tags": ["decrease"], "steps": [{"request": {}}]}
+    actual = {"steps": [{"expected": {"business_fields": {"error": "CAPACITY_BELOW_ACCOMMODATION_FLOOR"}}}]}
+    status, note = classify_modern_mismatch(t, actual, {"s1": "on-call defect #57"})
+    assert (status, note) == ("KNOWN-DEFECT", "on-call defect #57")
+    assert classify_modern_mismatch(t, actual, {})[0] == "MISMATCH"
+    routed = {"steps": [{"expected": {"business_fields": {"error": "CENTER_NOT_MODERN"}}}]}
+    assert classify_modern_mismatch(t, routed, {})[0] == "SKIPPED"
+    text, matched, total = render_report([{"transcript": t, "status": status, "note": note, "diffs": [("x", 1, 2)]}],
+                                         "modern", "http://localhost:8090", "abc", "opts")
+    assert (matched, total) == (0, 1)
+    assert "KNOWN-DEFECT 1" in text and "| 0/1 MATCH | 0 | 1 | 0 | 0 |" in text and "on-call defect #57" in text

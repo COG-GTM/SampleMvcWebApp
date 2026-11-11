@@ -1,6 +1,6 @@
 # ADR 0002: Seat-inventory rules ported into scheduling-service
 
-- Status: accepted (pending M1 transcript confirmation)
+- Status: accepted (M1 transcripts captured; see `Transcripts:` lines and `characterization/reports/`)
 - Story: MBA-3821 (M2), epic MBA-3819
 - Date: 2026-11-11
 
@@ -45,7 +45,7 @@ seats until capacity-sync runs, and `db/checks/seat-drift.sql` exists to detect 
 count removes the class of drift entirely. Test:
 `trg_Booking_SeatSync_partnerBookingTakesExactlyOneSeat_noDoubleDecrement`.
 
-Transcripts: pending M1 (MBA-3820)
+Transcripts: `book_open_session_partner`, `last_seat_negative_counter_partner`, `cancel_then_new_booker_gets_seat_partner`, `accommodation_sr_rb_not_counted_partner`, `book_inactive_center_partner`, `reschedule_same_exam_partner` (characterization/transcripts; legacy replay `characterization/reports/replay-legacy-e458238.md`)
 
 ## 2. Capacity decrease bumping booked candidates to the waitlist
 
@@ -75,7 +75,7 @@ Tests: `trg_ExamSession_Update_bumpsLatestBookedToWaitlist`,
 `usp_ChangeCapacity_increaseAddsSeats_noWaitlistPromotion`,
 `usp_CancelBooking_bookedCancellationFreesSeat_noAutoPromotion`.
 
-Transcripts: pending M1 (MBA-3820)
+Transcripts: `capacity_decrease_below_active_admin`, `capacity_raise_then_lower_admin`, `capacity_decrease_full_session_with_waitlist_admin`, `capacity_direct_update_decrease_db`, `capacity_decrease_delivered_with_attended_admin`
 
 ## 3. The two seat formulas
 
@@ -100,7 +100,7 @@ on; formula B is only the batch job's view and is what makes the job "fix" count
 direction. Test: `seatFormulas_procFormulaVsCapacitySyncFormulaDisagreeWithAccommodationSeats`,
 `seatDrift_bookedAndAttendedHoldSeats_cancelledAndWaitlistedDoNot`.
 
-Transcripts: pending M1 (MBA-3820)
+Transcripts: `mixed_traffic_then_capacity_sync`, `capacity_sync_with_accommodation_bookings`, `capacity_sync_fresh_seed_system`, `result_ingest_marks_attended_system`
 
 ## 4. Working vs calendar retake days
 
@@ -130,7 +130,7 @@ confirmed against the M1 eligibility transcripts. Tests:
 `retakeEligibility_workingDaysVariantMatchesBookingApi`, `retakeDays_calendarIsPortalAddDays`,
 `retakeDays_workingDaysIsBookingApiAddWorkingDays`.
 
-Transcripts: pending M1 (MBA-3820)
+Transcripts: `retake_*_portal` / `retake_*_partner` (inside window, boundary, outside, weekend and month-end windows, already passed, first attempt), `retake_no_show_not_counted_*`
 
 ## 5. Accommodation floor on capacity reductions (`usp_ChangeCapacity`, PR #51)
 
@@ -153,7 +153,7 @@ this: the allocation is kept as set, and only the number of accommodation seats 
 `pr51_bookedExtraTimeFloor_allowsBelowAllocationButNotBelowBookedEtSeats`, and the integration
 test `trg_ExamSession_Update_capacityDecreaseBumpsNewestBookedToWaitlist_andFloorRejectsWith50005`.
 
-Transcripts: pending M1 (MBA-3820)
+Transcripts: `capacity_below_accommodation_floor_admin` (strict rule confirmed at `legacy-baseline`: 50005), `proc_error_contract_db`; on the modern target `capacity_decrease_full_session_with_waitlist_admin` is listed in `characterization/known-defects.yaml` (on-call defect #57)
 
 ## 6. Smaller channel differences found while porting
 
@@ -168,7 +168,7 @@ request leaves it blank; booking-api and `usp_BookSeat` book without an accommod
 behave as today; the modern UI pre-fills the candidate's default in the form, so portal users keep
 the convenience and can see and change it.
 
-Transcripts: pending M1 (MBA-3820)
+Transcripts: `accommodation_blank_uses_default_portal`, `accommodation_blank_uses_default_partner`
 
 ### 6b. Reschedule to the same session
 
@@ -178,7 +178,7 @@ channel (`ReschedulePolicy`). Different-exam reschedules are rejected for every 
 `DIFFERENT_EXAM` / 50006, as in both legacy paths. Reschedule is one transaction (cancel with reason
 `Rescheduled` + book), so a failed booking leaves the original intact.
 
-Transcripts: pending M1 (MBA-3820)
+Transcripts: `reschedule_same_session_portal`, `reschedule_same_session_partner`
 
 ## Consequences
 

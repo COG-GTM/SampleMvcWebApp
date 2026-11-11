@@ -1,0 +1,1230 @@
+{
+  "channel": "SYSTEM",
+  "description": "",
+  "expected": {
+    "business_fields": {
+      "driftSessions": 112,
+      "totalDrift": 177
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "CAPACITY_SYNC",
+          "actor": "capacity-sync",
+          "detail": "trigger=MANUAL status=COMPLETED checked=285 updated=112",
+          "entity": "ExamSession",
+          "entityId": 0
+        }
+      ]
+    },
+    "db_state_before": {
+      "auditLog.new": []
+    },
+    "status": null
+  },
+  "finding": [
+    "HB-03"
+  ],
+  "format": 1,
+  "group": "mixed_traffic",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": true,
+  "oddity_note": "seat-drift.sql is clean on a fresh seed; one capacity-sync run makes every OPEN session with accommodation seats drift.",
+  "scenario": "capacity_sync_fresh_seed_system",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "SYSTEM",
+      "expected": {
+        "business_fields": {
+          "driftSessions": 0,
+          "totalDrift": 0
+        },
+        "response": {
+          "rows": []
+        },
+        "status": null
+      },
+      "op": "drift",
+      "request": {
+        "sql": "db/checks/seat-drift.sql"
+      },
+      "source": {
+        "op": "drift"
+      }
+    },
+    {
+      "channel": "SYSTEM",
+      "expected": {
+        "business_fields": {
+          "outcome": "OK"
+        },
+        "response": {
+          "body": {
+            "status": "COMPLETED"
+          },
+          "status": 200
+        },
+        "status": 200
+      },
+      "op": "sync",
+      "request": {
+        "method": "POST",
+        "path": "/sync/run"
+      },
+      "source": {
+        "op": "sync"
+      }
+    },
+    {
+      "channel": "SYSTEM",
+      "expected": {
+        "business_fields": {
+          "driftSessions": 112,
+          "totalDrift": 177
+        },
+        "response": {
+          "rows": [
+            {
+              "ActiveBookings": 12,
+              "Capacity": 28,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 14,
+              "SessionId": 152,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 20,
+              "CenterCode": "SFO01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 9,
+              "SessionId": 154,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 11,
+              "Capacity": 14,
+              "CenterCode": "LDS01",
+              "Drift": 2,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 1,
+              "SessionId": 160,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 8,
+              "CenterCode": "LDN01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 4,
+              "SessionId": 163,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 27,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 16,
+              "SessionId": 165,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 16,
+              "CenterCode": "LDN01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 14,
+              "SessionId": 460,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 18,
+              "CenterCode": "MAN01",
+              "Drift": 1,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 9,
+              "SessionId": 172,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 24,
+              "CenterCode": "LDN01",
+              "Drift": 3,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 19,
+              "SessionId": 176,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 18,
+              "CenterCode": "SYD01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 16,
+              "SessionId": 461,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 8,
+              "CenterCode": "LDN01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 6,
+              "SessionId": 179,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 16,
+              "CenterCode": "BOS01",
+              "Drift": 1,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 14,
+              "SessionId": 462,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 11,
+              "Capacity": 21,
+              "CenterCode": "SYD01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 8,
+              "SessionId": 182,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 17,
+              "CenterCode": "MEL01",
+              "Drift": 1,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 9,
+              "SessionId": 185,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 4,
+              "SessionId": 187,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 22,
+              "CenterCode": "SIN01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 13,
+              "SessionId": 189,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 10,
+              "CenterCode": "DUB01",
+              "Drift": 2,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 5,
+              "SessionId": 190,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 18,
+              "CenterCode": "FRA01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 13,
+              "SessionId": 194,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 22,
+              "Capacity": 24,
+              "CenterCode": "SYD01",
+              "Drift": 2,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 0,
+              "SessionId": 197,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 23,
+              "CenterCode": "BOS01",
+              "Drift": 2,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 13,
+              "SessionId": 198,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 16,
+              "Capacity": 29,
+              "CenterCode": "NYC02",
+              "Drift": 3,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 10,
+              "SessionId": 200,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 16,
+              "CenterCode": "NYC02",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 13,
+              "SessionId": 204,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 11,
+              "Capacity": 13,
+              "CenterCode": "SEA01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 1,
+              "SessionId": 205,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 9,
+              "CenterCode": "SIN01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 8,
+              "SessionId": 209,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 12,
+              "Capacity": 28,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 14,
+              "SessionId": 210,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 12,
+              "Capacity": 22,
+              "CenterCode": "BOS01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 8,
+              "SessionId": 213,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 20,
+              "CenterCode": "SFO01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 13,
+              "SessionId": 214,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 11,
+              "Capacity": 15,
+              "CenterCode": "DEN01",
+              "Drift": 1,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 3,
+              "SessionId": 215,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 13,
+              "Capacity": 17,
+              "CenterCode": "PHL01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 3,
+              "SessionId": 220,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 11,
+              "CenterCode": "ATL01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 1,
+              "SessionId": 223,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 27,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 16,
+              "SessionId": 227,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 10,
+              "Capacity": 18,
+              "CenterCode": "MAN01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 7,
+              "SessionId": 233,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 14,
+              "CenterCode": "LDS01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 4,
+              "SessionId": 234,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 24,
+              "CenterCode": "LDN01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 17,
+              "SessionId": 237,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 15,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 6,
+              "SessionId": 244,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 6,
+              "SessionId": 249,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 21,
+              "CenterCode": "SYD01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 12,
+              "SessionId": 251,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 10,
+              "CenterCode": "DUB01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 5,
+              "SessionId": 254,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 8,
+              "CenterCode": "NYC02",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 5,
+              "SessionId": 255,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 18,
+              "CenterCode": "FRA01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 12,
+              "SessionId": 257,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 12,
+              "Capacity": 23,
+              "CenterCode": "BOS01",
+              "Drift": 2,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 9,
+              "SessionId": 258,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 13,
+              "CenterCode": "AMS01",
+              "Drift": 1,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 10,
+              "SessionId": 262,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 12,
+              "CenterCode": "ATL01",
+              "Drift": 2,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 3,
+              "SessionId": 268,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 28,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 17,
+              "SessionId": 269,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 22,
+              "CenterCode": "BOS01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 15,
+              "SessionId": 272,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 10,
+              "Capacity": 20,
+              "CenterCode": "SFO01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 8,
+              "SessionId": 273,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 13,
+              "CenterCode": "SEA01",
+              "Drift": 1,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 11,
+              "SessionId": 278,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 11,
+              "CenterCode": "AKL01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 9,
+              "SessionId": 280,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 11,
+              "CenterCode": "ATL01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 5,
+              "SessionId": 282,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 8,
+              "CenterCode": "LDN01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 7,
+              "SessionId": 283,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 16,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 10,
+              "SessionId": 287,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 18,
+              "CenterCode": "MAN01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 9,
+              "SessionId": 292,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 10,
+              "Capacity": 25,
+              "CenterCode": "LDN01",
+              "Drift": 2,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 13,
+              "SessionId": 294,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 15,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 12,
+              "SessionId": 301,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 21,
+              "CenterCode": "SYD01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 12,
+              "SessionId": 302,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 6,
+              "Capacity": 13,
+              "CenterCode": "DEN01",
+              "Drift": 1,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 6,
+              "SessionId": 304,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 4,
+              "SessionId": 307,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 24,
+              "CenterCode": "LDN01",
+              "Drift": 3,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 17,
+              "SessionId": 308,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 14,
+              "CenterCode": "AMS01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 11,
+              "SessionId": 311,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 10,
+              "CenterCode": "DUB01",
+              "Drift": 2,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 7,
+              "SessionId": 314,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 6,
+              "Capacity": 18,
+              "CenterCode": "FRA01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 10,
+              "SessionId": 315,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 8,
+              "CenterCode": "NYC02",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 6,
+              "SessionId": 316,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 6,
+              "Capacity": 23,
+              "CenterCode": "BOS01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 15,
+              "SessionId": 318,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 13,
+              "CenterCode": "AMS01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 12,
+              "SessionId": 321,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 6,
+              "Capacity": 12,
+              "CenterCode": "LDS01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 4,
+              "SessionId": 324,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 12,
+              "CenterCode": "ATL01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 8,
+              "SessionId": 326,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 28,
+              "CenterCode": "TOR01",
+              "Drift": 2,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 22,
+              "SessionId": 329,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 6,
+              "Capacity": 20,
+              "CenterCode": "SFO01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 13,
+              "SessionId": 333,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 13,
+              "CenterCode": "SEA01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 8,
+              "SessionId": 338,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 8,
+              "CenterCode": "LDN01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 5,
+              "SessionId": 341,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 14,
+              "CenterCode": "NYC02",
+              "Drift": 1,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 10,
+              "SessionId": 343,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 16,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 11,
+              "SessionId": 344,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 27,
+              "CenterCode": "NYC02",
+              "Drift": 3,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 15,
+              "SessionId": 348,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 18,
+              "CenterCode": "MAN01",
+              "Drift": 1,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 9,
+              "SessionId": 350,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 17,
+              "CenterCode": "PHL01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 15,
+              "SessionId": 352,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 25,
+              "CenterCode": "LDN01",
+              "Drift": 3,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 13,
+              "SessionId": 353,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 11,
+              "CenterCode": "ATL01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 4,
+              "SessionId": 355,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 19,
+              "CenterCode": "FRA01",
+              "Drift": 2,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 9,
+              "SessionId": 360,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 15,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC2",
+              "SeatsAvailable": 11,
+              "SessionId": 362,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 21,
+              "CenterCode": "SYD01",
+              "Drift": 2,
+              "ExamCode": "BCB-AGL",
+              "SeatsAvailable": 10,
+              "SessionId": 363,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 13,
+              "CenterCode": "DEN01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 10,
+              "SessionId": 364,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 14,
+              "CenterCode": "AMS01",
+              "Drift": 1,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 6,
+              "SessionId": 365,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 9,
+              "SessionId": 367,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 10,
+              "Capacity": 23,
+              "CenterCode": "BOS01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 12,
+              "SessionId": 378,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 13,
+              "CenterCode": "AMS01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 5,
+              "SessionId": 380,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 12,
+              "CenterCode": "LDS01",
+              "Drift": 2,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 6,
+              "SessionId": 381,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 12,
+              "CenterCode": "AKL01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 9,
+              "SessionId": 382,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 10,
+              "CenterCode": "DUB01",
+              "Drift": 2,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 7,
+              "SessionId": 385,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 5,
+              "Capacity": 12,
+              "CenterCode": "ATL01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 6,
+              "SessionId": 386,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 9,
+              "CenterCode": "SIN01",
+              "Drift": 1,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 5,
+              "SessionId": 389,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 0,
+              "Capacity": 15,
+              "CenterCode": "MEL01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 14,
+              "SessionId": 390,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 9,
+              "Capacity": 28,
+              "CenterCode": "TOR01",
+              "Drift": 1,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 18,
+              "SessionId": 391,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 18,
+              "CenterCode": "PHL01",
+              "Drift": 1,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 10,
+              "SessionId": 399,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 20,
+              "CenterCode": "SIN01",
+              "Drift": 2,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 15,
+              "SessionId": 400,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 8,
+              "CenterCode": "NYC02",
+              "Drift": 2,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 3,
+              "SessionId": 401,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 16,
+              "CenterCode": "VAN01",
+              "Drift": 2,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 13,
+              "SessionId": 403,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 15,
+              "Capacity": 27,
+              "CenterCode": "NYC02",
+              "Drift": 3,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 9,
+              "SessionId": 408,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "HPI-ACC1",
+              "SeatsAvailable": 7,
+              "SessionId": 409,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 17,
+              "CenterCode": "PHL01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 12,
+              "SessionId": 412,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 13,
+              "Capacity": 25,
+              "CenterCode": "LDN01",
+              "Drift": 3,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 9,
+              "SessionId": 413,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 14,
+              "CenterCode": "NYC02",
+              "Drift": 1,
+              "ExamCode": "BCB-PM100",
+              "SeatsAvailable": 11,
+              "SessionId": 415,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 19,
+              "CenterCode": "FRA01",
+              "Drift": 2,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 16,
+              "SessionId": 418,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 13,
+              "CenterCode": "DEN01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 9,
+              "SessionId": 422,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 10,
+              "CenterCode": "PHX01",
+              "Drift": 1,
+              "ExamCode": "HPI-TAX1",
+              "SeatsAvailable": 7,
+              "SessionId": 425,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 9,
+              "CenterCode": "SIN01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 6,
+              "SessionId": 432,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 23,
+              "CenterCode": "BOS01",
+              "Drift": 1,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 18,
+              "SessionId": 433,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 20,
+              "CenterCode": "MAN01",
+              "Drift": 1,
+              "ExamCode": "BCB-PM200",
+              "SeatsAvailable": 11,
+              "SessionId": 437,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 4,
+              "Capacity": 12,
+              "CenterCode": "LDS01",
+              "Drift": 2,
+              "ExamCode": "CTA-SEC2",
+              "SeatsAvailable": 6,
+              "SessionId": 440,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 3,
+              "Capacity": 10,
+              "CenterCode": "DUB01",
+              "Drift": 2,
+              "ExamCode": "MHL-RN2",
+              "SeatsAvailable": 5,
+              "SessionId": 442,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 1,
+              "Capacity": 12,
+              "CenterCode": "AKL01",
+              "Drift": 1,
+              "ExamCode": "MHL-PHT",
+              "SeatsAvailable": 10,
+              "SessionId": 443,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 2,
+              "Capacity": 9,
+              "CenterCode": "SIN01",
+              "Drift": 1,
+              "ExamCode": "CTA-NET1",
+              "SeatsAvailable": 6,
+              "SessionId": 445,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 8,
+              "Capacity": 15,
+              "CenterCode": "NYC02",
+              "Drift": 1,
+              "ExamCode": "MHL-RN1",
+              "SeatsAvailable": 6,
+              "SessionId": 446,
+              "StartsAt": "<now>"
+            },
+            {
+              "ActiveBookings": 7,
+              "Capacity": 15,
+              "CenterCode": "MEL01",
+              "Drift": 1,
+              "ExamCode": "CTA-CLD3",
+              "SeatsAvailable": 7,
+              "SessionId": 449,
+              "StartsAt": "<now>"
+            }
+          ]
+        },
+        "status": null
+      },
+      "op": "drift",
+      "request": {
+        "sql": "db/checks/seat-drift.sql"
+      },
+      "source": {
+        "op": "drift"
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-10",
+    "CT-37"
+  ]
+}

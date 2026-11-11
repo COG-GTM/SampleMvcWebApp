@@ -175,6 +175,9 @@
     },
     "status": 302
   },
+  "finding": [
+    "HB-05"
+  ],
   "format": 1,
   "group": "capacity",
   "legacy_baseline": {
@@ -373,5 +376,8 @@
   "tags": [
     "decrease",
     "bump"
+  ],
+  "tests": [
+    "CT-18"
   ]
 }

@@ -4,6 +4,8 @@ group: retake_eligibility
 scenarios:
 - name: retake_inside_window_portal
   channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Fail on Fri 2026-10-30; check 2026-11-20 (21 days later): both channels refuse.'
   candidates:
   - NW00000950
@@ -29,6 +31,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
 - name: retake_inside_window_partner
   channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Fail on Fri 2026-10-30; check 2026-11-20 (21 days later): both channels refuse.'
   candidates:
   - NW00000950
@@ -54,6 +58,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
 - name: retake_day_before_calendar_boundary_portal
   channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Check Sat 2026-11-28, day 29: both channels refuse.'
   candidates:
   - NW00000951
@@ -79,6 +85,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
 - name: retake_day_before_calendar_boundary_partner
   channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Check Sat 2026-11-28, day 29: both channels refuse.'
   candidates:
   - NW00000951
@@ -104,6 +112,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
 - name: retake_calendar_boundary_portal
   channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Check Sun 2026-11-29 = attempt + 30 calendar days: portal allows, partner (30 working days) refuses.'
   candidates:
   - NW00000952
@@ -129,6 +139,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
 - name: retake_calendar_boundary_partner
   channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Check Sun 2026-11-29 = attempt + 30 calendar days: portal allows, partner (30 working days) refuses.'
   candidates:
   - NW00000952
@@ -154,6 +166,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
 - name: retake_weekend_span_between_rules_portal
   channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Check Thu 2026-12-10: portal allows, partner still refuses (working-day boundary is 2026-12-11).'
   candidates:
   - NW00000953
@@ -179,6 +193,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
 - name: retake_weekend_span_between_rules_partner
   channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Check Thu 2026-12-10: portal allows, partner still refuses (working-day boundary is 2026-12-11).'
   candidates:
   - NW00000953
@@ -204,6 +220,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
 - name: retake_working_day_boundary_portal
   channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Check Fri 2026-12-11 = attempt + 30 working days: both allow.'
   candidates:
   - NW00000954
@@ -229,6 +247,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
 - name: retake_working_day_boundary_partner
   channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Check Fri 2026-12-11 = attempt + 30 working days: both allow.'
   candidates:
   - NW00000954
@@ -254,6 +274,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
 - name: retake_outside_window_portal
   channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Check 2027-01-15, well outside the window: both allow.'
   candidates:
   - NW00000955
@@ -279,6 +301,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
 - name: retake_outside_window_partner
   channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Check 2027-01-15, well outside the window: both allow.'
   candidates:
   - NW00000955
@@ -304,6 +328,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel's earliestRetakeDate mismatches.
 - name: retake_month_end_boundary_portal
   channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Fail on Thu 2026-10-01; check Sat 2026-10-31 (month end, +30 calendar days): portal allows, partner refuses until 2026-11-12.'
   candidates:
   - NW00000956
@@ -329,6 +355,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
 - name: retake_month_end_boundary_partner
   channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-30]
   description: 'Fail on Thu 2026-10-01; check Sat 2026-10-31 (month end, +30 calendar days): portal allows, partner refuses until 2026-11-12.'
   candidates:
   - NW00000956
@@ -354,6 +382,8 @@ scenarios:
   modern_expected_mismatch: ADR 0002 - one retake rule for both channels; the losing channel mismatches.
 - name: retake_already_passed_portal
   channel: PORTAL
+  finding: [HB-04, HB-09]
+  tests: [CT-29]
   description: 'Candidate passed on 2026-10-30: both channels refuse with ALREADY_PASSED.'
   candidates:
   - NW00000957
@@ -372,6 +402,8 @@ scenarios:
     \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
 - name: retake_already_passed_partner
   channel: PARTNER
+  finding: [HB-04, HB-09]
+  tests: [CT-29]
   description: 'Candidate passed on 2026-10-30: both channels refuse with ALREADY_PASSED.'
   candidates:
   - NW00000957
@@ -390,6 +422,8 @@ scenarios:
     \ 3, '2026-10-30T09:00:00'), 'NW_SCORES_CTA_CHAR.csv', DATEADD(DAY, 3, '2026-10-30T09:00:00'));"
 - name: retake_first_attempt_portal
   channel: PORTAL
+  finding: [HB-04]
+  tests: [CT-28]
   description: 'Candidate with no prior result: both channels allow (FIRST_ATTEMPT).'
   candidates:
   - NW00000958
@@ -401,6 +435,8 @@ scenarios:
     date: '2026-11-20'
 - name: retake_first_attempt_partner
   channel: PARTNER
+  finding: [HB-04]
+  tests: [CT-28]
   description: 'Candidate with no prior result: both channels allow (FIRST_ATTEMPT).'
   candidates:
   - NW00000958

@@ -77,6 +77,9 @@
     },
     "status": 302
   },
+  "finding": [
+    "HB-01"
+  ],
   "format": 1,
   "group": "booking",
   "legacy_baseline": {
@@ -124,5 +127,9 @@
       }
     }
   ],
-  "tags": []
+  "tags": [],
+  "tests": [
+    "CT-01",
+    "CT-37"
+  ]
 }

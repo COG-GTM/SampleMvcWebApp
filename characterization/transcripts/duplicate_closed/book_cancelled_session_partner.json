@@ -101,6 +101,9 @@
     },
     "status": 409
   },
+  "finding": [
+    "HB-11"
+  ],
   "format": 1,
   "group": "duplicate_closed",
   "legacy_baseline": {
@@ -151,5 +154,8 @@
       }
     }
   ],
-  "tags": []
+  "tags": [],
+  "tests": [
+    "CT-06"
+  ]
 }

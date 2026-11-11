@@ -2,6 +2,8 @@ group: accommodation
 scenarios:
   - name: accommodation_capacity_exhausted_portal
     channel: PORTAL
+    finding: [HB-08]
+    tests: [CT-13]
     description: Session 462 has AccommodationCapacity 1; ET25 succeeds, the next ET50 fails with usp_BookSeat 50003.
     sessions: [462]
     steps:
@@ -9,6 +11,8 @@ scenarios:
       - {op: book, session: 462, candidate: NW00000902, accommodation: ET50}
   - name: accommodation_capacity_exhausted_partner
     channel: PARTNER
+    finding: [HB-08]
+    tests: [CT-13]
     oddity: true
     oddity_note: Every partner booking (ET25, SR, RB alike) takes two seats from SeatsAvailable (double decrement); the portal takes one.
     modern_expected_mismatch: ADR 0002 - derived seat count, no double decrement.
@@ -20,6 +24,8 @@ scenarios:
       - {op: book, session: 462, candidate: NW00000902, accommodation: ET50}
   - name: accommodation_capacity_two_seats_portal
     channel: PORTAL
+    finding: [HB-08]
+    tests: [CT-13]
     description: Session 198 has AccommodationCapacity 2; two extra-time bookings succeed, the third fails (N=2).
     sessions: [198]
     steps:
@@ -28,6 +34,8 @@ scenarios:
       - {op: book, session: 198, candidate: NW00000904, accommodation: ET25}
   - name: accommodation_sr_rb_not_counted_portal
     channel: PORTAL
+    finding: [HB-08]
+    tests: [CT-14]
     description: SR and RB bookings on session 462 do not consume the single accommodation seat; a following ET25 still succeeds.
     sessions: [462]
     steps:
@@ -36,6 +44,8 @@ scenarios:
       - {op: book, session: 462, candidate: NW00000904, accommodation: ET25}
   - name: accommodation_sr_rb_not_counted_partner
     channel: PARTNER
+    finding: [HB-08]
+    tests: [CT-14]
     oddity: true
     oddity_note: Every partner booking (ET25, SR, RB alike) takes two seats from SeatsAvailable (double decrement); the portal takes one.
     modern_expected_mismatch: ADR 0002 - derived seat count, no double decrement.
@@ -48,6 +58,8 @@ scenarios:
       - {op: book, session: 462, candidate: NW00000904, accommodation: ET25}
   - name: accommodation_blank_uses_default_portal
     channel: PORTAL
+    finding: [HB-08]
+    tests: [CT-15]
     oddity: true
     oddity_note: Portal fills a blank accommodation with the candidate's DefaultAccommodationCode (ET50 for NW00000903), so the booking consumes the accommodation seat; booking-api books it without accommodation.
     modern_expected_mismatch: ADR 0002 section 6a - the API books exactly what it is sent (the modern UI pre-fills the default instead).
@@ -59,6 +71,8 @@ scenarios:
   - name: accommodation_blank_uses_default_partner
     modern_expected_mismatch: ADR 0002 section 1 - derived seat count, no double decrement.
     channel: PARTNER
+    finding: [HB-08]
+    tests: [CT-15]
     oddity: true
     oddity_note: booking-api books a blank accommodation as none even when the candidate has a DefaultAccommodationCode; the portal substitutes the default (and the double decrement applies).
     description: NW00000903 (default ET50) books session 462 with accommodationCode null via booking-api.

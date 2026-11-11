@@ -58,3 +58,21 @@ with 409 `SAME_SESSION` (`reschedule_same_session_*`).
 | `accommodation_blank_uses_default_partner` | accommodation | booking-api books a blank accommodation as none even when the candidate has a DefaultAccommodationCode; the portal substitutes the default (and the double decrement applies). |
 | `mixed_traffic_then_capacity_sync` | mixed_traffic | Mixed portal/partner traffic leaves seat drift (partner double decrement); capacity-sync rewrites SeatsAvailable with a formula the drift check disagrees with. |
 | `capacity_sync_with_accommodation_bookings` | mixed_traffic | capacity-sync subtracts AccommodationCapacity and counts only non-ET bookings, so a correct session drifts after the nightly sync. |
+| `cancel_then_new_booker_gets_seat_portal` | cancellation | A seat freed on a session with a waitlist goes to the next new booker, not to waitlist position 1. |
+| `cancel_then_new_booker_gets_seat_partner` | cancellation | Partner cancel frees a seat that the next partner booking takes (and double-decrements); nobody on the waitlist is promoted. |
+| `last_seat_negative_counter_partner` | booking | A partner booking of the last seat drives SeatsAvailable to -1 (Java decrement + trigger); sequential stand-in for the CT-08 race. |
+| `capacity_sync_fresh_seed_system` | mixed_traffic | seat-drift.sql is clean on a fresh seed; one capacity-sync run makes every OPEN session with accommodation seats drift. |
+| `direct_sql_cancel_and_import_db` | contracts | A direct UPDATE to CANCELLED leaves SeatsAvailable unchanged; a direct multi-row IMPORT insert decrements per BOOKED row with no capacity, duplicate or waitlist checks. |
+| `accommodation_pool_not_held_back_portal` | accommodation | Standard bookings filled full session 153 including its 2 accommodation seats, so an ET50 candidate is waitlisted. |
+| `accommodation_pool_not_held_back_partner` | accommodation | booking-api also waitlists an ET50 candidate on a session whose accommodation seats were taken by standard bookings. |
+| `capacity_9999_admin` | capacity | A hand-posted capacity of 9999 is accepted (Range(0, 500) on the form model does not stop it server-side); -1 is rejected. |
+| `capacity_direct_update_decrease_db` | capacity | A plain UPDATE of ExamSession.Capacity (no proc, no app) still demotes the newest BOOKED rows - the trigger does it. |
+| `capacity_direct_update_increase_db` | capacity | A plain UPDATE raising Capacity leaves SeatsAvailable unchanged (only usp_ChangeCapacity adds the delta) and promotes nobody. |
+| `capacity_decrease_delivered_with_attended_admin` | capacity | Capacity of DELIVERED session 147 (6 ATTENDED + 5 BOOKED) can still be lowered to 8; nobody is bumped because only BOOKED rows count, SeatsAvailable floors at 0. |
+| `cancel_on_delivered_session_portal` | cancellation | A booking on DELIVERED (past) session 147 can still be cancelled through the portal and its seat is released. |
+| `cancel_on_delivered_session_partner` | cancellation | booking-api also cancels a booking on a DELIVERED (past) session. |
+| `cancel_other_candidates_booking_portal` | cancellation | Portal cancel has no ownership check - NW00000901 cancels NW00000900's booking 3586. |
+| `book_passed_candidate_proc_db` | booking | usp_BookSeat alone books a candidate who already passed the exam - retake rules live only in the apps. |
+| `book_inactive_center_portal` | booking | With SEA01 marked inactive it disappears from the portal's centre filter, yet its session 205 is still bookable. |
+| `book_inactive_center_partner` | booking | booking-api books session 205 of inactive centre SEA01 (and double-decrements). |
+| `result_ingest_marks_attended_system` | mixed_traffic | Ingesting a result flips booking 3319 to ATTENDED as a side effect without touching SeatsAvailable; seat-drift stays clean because it counts ATTENDED as held. |

@@ -270,6 +270,9 @@
     },
     "status": null
   },
+  "finding": [
+    "HB-03"
+  ],
   "format": 1,
   "group": "mixed_traffic",
   "legacy_baseline": {
@@ -1568,5 +1571,8 @@
     "drift",
     "capacity-sync",
     "accommodation"
+  ],
+  "tests": [
+    "CT-11"
   ]
 }

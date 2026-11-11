@@ -629,6 +629,10 @@
     },
     "status": 302
   },
+  "finding": [
+    "HB-07",
+    "HB-01"
+  ],
   "format": 1,
   "group": "cancellation",
   "legacy_baseline": {
@@ -674,5 +678,9 @@
   ],
   "tags": [
     "no-auto-promotion"
+  ],
+  "tests": [
+    "CT-03",
+    "CT-04"
   ]
 }

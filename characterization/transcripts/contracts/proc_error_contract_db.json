@@ -1,0 +1,541 @@
+{
+  "channel": "DB",
+  "description": "Each usp_* error raised directly - error number, severity, state and message text.",
+  "expected": {
+    "business_fields": {
+      "rows": [
+        {
+          "message": "Booking 3586 cannot be moved to session 191.",
+          "number": 50000,
+          "severity": 16,
+          "state": 6
+        }
+      ]
+    },
+    "db_state": {
+      "auditLog.new": [
+        {
+          "action": "BOOK",
+          "actor": "sa",
+          "detail": "session=462 status=BOOKED",
+          "entity": "Booking",
+          "entityId": "new#1"
+        }
+      ],
+      "bookings.198": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T18:26:00",
+          "bookingId": 1836,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000662",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T03:57:00",
+          "bookingId": 1837,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000190",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T13:28:00",
+          "bookingId": 1838,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000599",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019803",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T21:19:00",
+          "bookingId": 1839,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000127",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019804",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T11:50:00",
+          "bookingId": 1840,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000536",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T21:21:00",
+          "bookingId": 1841,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000064",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-198-6",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:52:00",
+          "bookingId": 1842,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000473",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-30T14:10:00",
+          "bookingId": 3435,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000790",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.281": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:49:00",
+          "bookingId": 2292,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000575",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": "ET50",
+          "bookedAt": "<now>",
+          "bookingId": "new#1",
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000903",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.198": {
+        "AccommodationCapacity": 2,
+        "Capacity": 23,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "examSession.281": {
+        "AccommodationCapacity": 1,
+        "Capacity": 17,
+        "SeatsAvailable": 16,
+        "Status": "CLOSED"
+      },
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 14,
+        "Status": "OPEN"
+      },
+      "waitlist.198": [],
+      "waitlist.281": [],
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.198": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-07T18:26:00",
+          "bookingId": 1836,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000662",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T03:57:00",
+          "bookingId": 1837,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000190",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T13:28:00",
+          "bookingId": 1838,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000599",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019803",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-08T21:19:00",
+          "bookingId": 1839,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000127",
+          "channel": "PARTNER",
+          "externalRef": "PTR-0019804",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T11:50:00",
+          "bookingId": 1840,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000536",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-09T21:21:00",
+          "bookingId": 1841,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000064",
+          "channel": "IMPORT",
+          "externalRef": "IMP202611-198-6",
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:52:00",
+          "bookingId": 1842,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000473",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        },
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-30T14:10:00",
+          "bookingId": 3435,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000790",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.281": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-11-10T06:49:00",
+          "bookingId": 2292,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000575",
+          "channel": "PORTAL",
+          "externalRef": null,
+          "status": "BOOKED"
+        }
+      ],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.198": {
+        "AccommodationCapacity": 2,
+        "Capacity": 23,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "examSession.281": {
+        "AccommodationCapacity": 1,
+        "Capacity": 17,
+        "SeatsAvailable": 16,
+        "Status": "CLOSED"
+      },
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.198": [],
+      "waitlist.281": [],
+      "waitlist.462": []
+    },
+    "status": null
+  },
+  "finding": [
+    "HB-11"
+  ],
+  "format": 1,
+  "group": "contracts",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "proc_error_contract_db",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "DB",
+      "expected": {
+        "business_fields": {
+          "rows": [
+            {
+              "message": "Session 281 is not open for booking.",
+              "number": 50000,
+              "severity": 16,
+              "state": 1
+            }
+          ]
+        },
+        "response": {
+          "rows": [
+            {
+              "message": "Session 281 is not open for booking.",
+              "number": 50000,
+              "severity": 16,
+              "state": 1
+            }
+          ]
+        },
+        "status": null
+      },
+      "op": "sql",
+      "request": {
+        "sql": "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000901'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 281, @CandidateId = @c, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      },
+      "source": {
+        "op": "sql",
+        "sql": "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000901'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 281, @CandidateId = @c, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      }
+    },
+    {
+      "channel": "DB",
+      "expected": {
+        "business_fields": {
+          "rows": [
+            {
+              "message": "Candidate 900 already has an active booking on session 462.",
+              "number": 50000,
+              "severity": 16,
+              "state": 2
+            }
+          ]
+        },
+        "response": {
+          "rows": [
+            {
+              "message": "Candidate 900 already has an active booking on session 462.",
+              "number": 50000,
+              "severity": 16,
+              "state": 2
+            }
+          ]
+        },
+        "status": null
+      },
+      "op": "sql",
+      "request": {
+        "sql": "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000900'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 462, @CandidateId = @c, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      },
+      "source": {
+        "op": "sql",
+        "sql": "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000900'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 462, @CandidateId = @c, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      }
+    },
+    {
+      "channel": "DB",
+      "expected": {
+        "business_fields": {
+          "rows": [
+            {
+              "message": "BOOKED",
+              "number": 0
+            }
+          ]
+        },
+        "response": {
+          "rows": [
+            {
+              "message": "BOOKED",
+              "number": 0
+            }
+          ]
+        },
+        "status": null
+      },
+      "op": "sql",
+      "request": {
+        "sql": "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000903'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 462, @CandidateId = @c, @AccommodationCode = 'ET50', @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      },
+      "source": {
+        "op": "sql",
+        "sql": "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000903'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 462, @CandidateId = @c, @AccommodationCode = 'ET50', @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      }
+    },
+    {
+      "channel": "DB",
+      "expected": {
+        "business_fields": {
+          "rows": [
+            {
+              "message": "No accommodation seat available on session 462.",
+              "number": 50000,
+              "severity": 16,
+              "state": 3
+            }
+          ]
+        },
+        "response": {
+          "rows": [
+            {
+              "message": "No accommodation seat available on session 462.",
+              "number": 50000,
+              "severity": 16,
+              "state": 3
+            }
+          ]
+        },
+        "status": null
+      },
+      "op": "sql",
+      "request": {
+        "sql": "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000963'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 462, @CandidateId = @c, @AccommodationCode = 'ET25', @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      },
+      "source": {
+        "op": "sql",
+        "sql": "DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000963'), @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_BookSeat @SessionId = 462, @CandidateId = @c, @AccommodationCode = 'ET25', @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      }
+    },
+    {
+      "channel": "DB",
+      "expected": {
+        "business_fields": {
+          "rows": [
+            {
+              "message": "Invalid capacity 1 for session 198.",
+              "number": 50000,
+              "severity": 16,
+              "state": 5
+            }
+          ]
+        },
+        "response": {
+          "rows": [
+            {
+              "message": "Invalid capacity 1 for session 198.",
+              "number": 50000,
+              "severity": 16,
+              "state": 5
+            }
+          ]
+        },
+        "status": null
+      },
+      "op": "sql",
+      "request": {
+        "sql": "BEGIN TRY EXEC dbo.usp_ChangeCapacity @SessionId = 198, @NewCapacity = 1; SELECT 0 AS number END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      },
+      "source": {
+        "op": "sql",
+        "sql": "BEGIN TRY EXEC dbo.usp_ChangeCapacity @SessionId = 198, @NewCapacity = 1; SELECT 0 AS number END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      }
+    },
+    {
+      "channel": "DB",
+      "expected": {
+        "business_fields": {
+          "rows": [
+            {
+              "message": "Booking 3586 cannot be moved to session 191.",
+              "number": 50000,
+              "severity": 16,
+              "state": 6
+            }
+          ]
+        },
+        "response": {
+          "rows": [
+            {
+              "message": "Booking 3586 cannot be moved to session 191.",
+              "number": 50000,
+              "severity": 16,
+              "state": 6
+            }
+          ]
+        },
+        "status": null
+      },
+      "op": "sql",
+      "request": {
+        "sql": "DECLARE @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_RescheduleBooking @BookingId = 3586, @NewSessionId = 191, @NewBookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      },
+      "source": {
+        "op": "sql",
+        "sql": "DECLARE @b INT, @s VARCHAR(12); BEGIN TRY EXEC dbo.usp_RescheduleBooking @BookingId = 3586, @NewSessionId = 191, @NewBookingId = @b OUTPUT, @ResultStatus = @s OUTPUT; SELECT 0 AS number, @s AS message END TRY BEGIN CATCH IF XACT_STATE() <> 0 ROLLBACK; SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity, ERROR_STATE() AS state, ERROR_MESSAGE() AS message END CATCH"
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-33",
+    "CT-06",
+    "CT-07",
+    "CT-13",
+    "CT-17",
+    "CT-26"
+  ]
+}

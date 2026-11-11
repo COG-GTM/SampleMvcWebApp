@@ -388,6 +388,10 @@
     },
     "status": 200
   },
+  "finding": [
+    "HB-06",
+    "HB-01"
+  ],
   "format": 1,
   "group": "reschedule",
   "legacy_baseline": {
@@ -437,5 +441,8 @@
   ],
   "tags": [
     "double-decrement"
+  ],
+  "tests": [
+    "CT-23"
   ]
 }

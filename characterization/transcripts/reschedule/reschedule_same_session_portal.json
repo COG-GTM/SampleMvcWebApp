@@ -84,6 +84,9 @@
     },
     "status": 302
   },
+  "finding": [
+    "HB-06"
+  ],
   "format": 1,
   "group": "reschedule",
   "legacy_baseline": {
@@ -132,5 +135,8 @@
   ],
   "tags": [
     "channel-disagreement"
+  ],
+  "tests": [
+    "CT-24"
   ]
 }

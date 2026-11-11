@@ -1,0 +1,118 @@
+{
+  "channel": "PARTNER",
+  "description": "",
+  "expected": {
+    "business_fields": {
+      "error": "VALIDATION",
+      "legacyCode": null,
+      "outcome": "ERROR",
+      "seatsAvailable": 15,
+      "waitlistPosition": null
+    },
+    "db_state": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "db_state_before": {
+      "auditLog.new": [],
+      "bookings.462": [
+        {
+          "accommodation": null,
+          "bookedAt": "2026-10-11T16:47:00",
+          "bookingId": 3586,
+          "cancelReason": null,
+          "cancelledAt": null,
+          "candidate": "NW00000900",
+          "channel": "PARTNER",
+          "externalRef": "PTR-U00703",
+          "status": "BOOKED"
+        }
+      ],
+      "examSession.462": {
+        "AccommodationCapacity": 1,
+        "Capacity": 16,
+        "SeatsAvailable": 15,
+        "Status": "OPEN"
+      },
+      "waitlist.462": []
+    },
+    "status": 400
+  },
+  "finding": [
+    "HB-08"
+  ],
+  "format": 1,
+  "group": "accommodation",
+  "legacy_baseline": {
+    "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
+    "tag": "legacy-baseline"
+  },
+  "modern_expected_mismatch": null,
+  "oddity": false,
+  "oddity_note": null,
+  "scenario": "accommodation_unknown_code_partner",
+  "setup_sql": [],
+  "steps": [
+    {
+      "channel": "PARTNER",
+      "expected": {
+        "business_fields": {
+          "error": "VALIDATION",
+          "legacyCode": null,
+          "outcome": "ERROR",
+          "seatsAvailable": 15,
+          "waitlistPosition": null
+        },
+        "response": {
+          "body": {
+            "error": "VALIDATION",
+            "message": "Unknown accommodationCode XX"
+          },
+          "status": 400
+        },
+        "status": 400
+      },
+      "op": "book",
+      "request": {
+        "json": {
+          "accommodationCode": "XX",
+          "candidateNumber": "NW00000901",
+          "externalRef": "NAN-REF-0044",
+          "sessionId": 462
+        },
+        "method": "POST",
+        "path": "/api/v1/bookings"
+      },
+      "source": {
+        "accommodation": "XX",
+        "candidate": "NW00000901",
+        "externalRef": "NAN-REF-0044",
+        "op": "book",
+        "session": 462
+      }
+    }
+  ],
+  "tags": [],
+  "tests": [
+    "CT-14"
+  ]
+}

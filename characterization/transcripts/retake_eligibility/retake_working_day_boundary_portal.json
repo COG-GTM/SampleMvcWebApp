@@ -35,6 +35,9 @@
     },
     "status": 200
   },
+  "finding": [
+    "HB-04"
+  ],
   "format": 1,
   "group": "retake_eligibility",
   "legacy_baseline": {
@@ -92,5 +95,8 @@
   "tags": [
     "channel-disagreement",
     "working-days"
+  ],
+  "tests": [
+    "CT-30"
   ]
 }
