@@ -149,6 +149,27 @@ public final class SessionCapacity {
     }
 
     /**
+     * results-service ingestion: a BOOKED booking becomes ATTENDED (still holds its seat). Recording attendance
+     * again is a no-op; any other status is rejected like results-service's {@code BOOKING_NOT_ACTIVE}.
+     *
+     * @return true when the status changed
+     */
+    public boolean attend(long bookingId) {
+        int idx = indexOf(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking " + bookingId + " is not on session " + sessionId));
+        BookingSlot b = bookings.get(idx);
+        if (b.status() == BookingStatus.ATTENDED) {
+            return false;
+        }
+        if (b.status() != BookingStatus.BOOKED) {
+            throw new SchedulingRuleException(RuleViolation.BOOKING_NOT_ACTIVE,
+                    "Booking " + bookingId + " is " + b.status() + ", cannot record attendance");
+        }
+        bookings.set(idx, b.withStatus(BookingStatus.ATTENDED));
+        return true;
+    }
+
+    /**
      * db/procs/022_usp_ChangeCapacity.sql + db/triggers/033_trg_ExamSession_Update.sql.
      *
      * <p>Validates the new capacity against {@code floorPolicy}. On a decrease below the seats held, the

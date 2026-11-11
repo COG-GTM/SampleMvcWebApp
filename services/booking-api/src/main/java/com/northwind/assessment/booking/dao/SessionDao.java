@@ -79,11 +79,6 @@ public class SessionDao {
                 "SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = ?", Integer.class, sessionId);
     }
 
-    public void decrementSeatsAvailable(int sessionId) {
-        jdbcTemplate.update("UPDATE dbo.ExamSession SET SeatsAvailable = SeatsAvailable - 1, LastModified = GETDATE() "
-                + "WHERE SessionId = ?", sessionId);
-    }
-
     private static final RowMapper<SessionInfo> SESSION_MAPPER = new RowMapper<SessionInfo>() {
         public SessionInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
             SessionInfo s = new SessionInfo();

@@ -415,4 +415,25 @@ class GatewayIntegrationTest {
                 .bodyValue("{\"newSessionId\":100}").exchange().expectStatus().isForbidden();
         client.get().uri("/api/v2/sessions/200").exchange().expectStatus().isOk();
     }
+
+    @Test
+    void relayModeRoutesWritesForEveryCenterToModernWhileReadsStayLegacy() throws Exception {
+        Files.writeString(configFile, "routing.modern-centers=\nrouting.modern-write-centers=*\nrouting.coexistence-mode=relay\n");
+        client.post().uri("/actuator/refresh").exchange().expectStatus().isOk();
+        assertThat(allowList.get().modernWriteCenters()).containsExactly("*");
+        scheduling.stubFor(post("/api/v2/bookings").willReturn(aResponse().withStatus(201)
+                .withHeader("Content-Type", "application/json").withBody("{\"bookingId\":50000009,\"status\":\"BOOKED\"}")));
+
+        EntityExchangeResult<String> w = postBooking(200);
+        assertThat(w.getResponseHeaders().getFirst("X-Route")).isEqualTo("modern");
+        bookingApi.verify(0, postRequestedFor(anyUrl()));
+        client.post().uri("/api/v2/bookings").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"sessionId\":200,\"candidateNumber\":\"NW00000901\"}").exchange()
+                .expectStatus().isCreated().expectHeader().valueEquals("X-Route", "modern");
+
+        client.get().uri("/api/v1/sessions/200").exchange().expectStatus().isOk()
+                .expectHeader().valueEquals("X-Route", "legacy");
+        client.get().uri("/Booking/MyBookings?centerCode=NYC01&candidateNumber=NW00000901").exchange()
+                .expectStatus().isOk().expectHeader().valueEquals("X-Route", "legacy");
+    }
 }

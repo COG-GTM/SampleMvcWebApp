@@ -6,8 +6,8 @@
     Waitlist rows out of AssessmentDelivery with this login.  db_datareader only: the
     login cannot write to AssessmentDelivery.
 
-    Not part of db/apply.sh (apply.sh drops AssessmentDelivery, which drops the database
-    user but not the server login).  Re-run this script after every ./db/apply.sh:
+    Applied by db/apply.sh after the seed (since MBA-3823; apply.sh drops AssessmentDelivery,
+    which drops the database user but not the server login).  To re-apply by hand:
 
       sqlcmd -S localhost,1433 -U sa -P "$AD_SA_PASSWORD" -C -b -i db/security/035_sched_import_login.sql
 

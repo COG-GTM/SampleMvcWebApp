@@ -7,7 +7,9 @@
 #
 # The service owns the Scheduling database (created by Flyway on first start) and imports
 # reference data, sessions, bookings and waitlists from AssessmentDelivery with the read-only
-# ad_sched_import login (db/security/035_sched_import_login.sql). It never writes to AssessmentDelivery.
+# ad_sched_import login (db/security/035_sched_import_login.sql). Since MBA-3823 it is the single writer of
+# bookings and seats: every change is written to its outbox and the relay projects it into AssessmentDelivery
+# as ad_sched_relay (the only login db/security/040_single_writer.sql leaves write access to).
 #
 # Environment overrides:
 #   MSSQL_CONTAINER (mssql)  MSSQL_SA_PASSWORD (dev default, same as run-legacy.sh)  MSSQL_IMAGE
@@ -16,6 +18,8 @@
 #                 when it does not exist yet.
 #   SKIP_BUILD=1  reuse services/scheduling-service/target/scheduling-service.jar
 #   SCHEDULING_IMPORT_ON_STARTUP (true)  import all centers at startup (idempotent)
+#   SCHEDULING_RELAY_ENABLED (true)      run the outbox relay into AssessmentDelivery
+#   RECONCILIATION_REPORT_DIR (<repo>/reports)  where reconcile writes reconciliation-<timestamp>.md
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -78,8 +82,9 @@ prepare_legacy_db() {
         log "creating AssessmentDelivery with db/apply.sh (drops it if present)"
         SQLCMD="$SQLCMD" AD_SA_PASSWORD="$MSSQL_SA_PASSWORD" bash "$ROOT/db/apply.sh" >/dev/null
     fi
-    log "ensuring the read-only importer login (db/security/035_sched_import_login.sql)"
+    log "ensuring the importer grants and single-writer DENYs (db/security/035, 040)"
     sa_sql -i "$ROOT/db/security/035_sched_import_login.sql" >/dev/null
+    sa_sql -i "$ROOT/db/security/040_single_writer.sql" >/dev/null
 }
 
 build() {
@@ -104,6 +109,7 @@ cmd_start() {
     [ -f "$RUN_DIR/.gitignore" ] || echo "*" > "$RUN_DIR/.gitignore"
     log "starting scheduling-service on :$PORT (log: .run/scheduling-service.log)"
     SCHEDULING_IMPORT_ON_STARTUP="${SCHEDULING_IMPORT_ON_STARTUP:-true}" SCHEDULING_DB_PASSWORD="$MSSQL_SA_PASSWORD" \
+    SCHEDULING_RELAY_ENABLED="${SCHEDULING_RELAY_ENABLED:-true}" RECONCILIATION_REPORT_DIR="${RECONCILIATION_REPORT_DIR:-$ROOT/reports}" \
         nohup "$JAVA_HOME/bin/java" ${JAVA_OPTS:-} -jar "$jar" > "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
     for _ in $(seq 1 120); do

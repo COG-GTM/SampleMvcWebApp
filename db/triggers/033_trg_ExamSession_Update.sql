@@ -2,6 +2,9 @@
     trg_ExamSession_Update - maintains ExamSession.LastModified.
     (Not every caller remembers to set it - the Java services in particular.)
     2014-11
+    2026-11  MBA-3823: for the scheduling-service outbox relay (session context writer = scheduling-relay)
+             only LastModified is stamped; the waitlist bump on a capacity decrease and the SeatsAvailable
+             recompute are skipped because the relay writes exactly what scheduling-service decided.
 */
 USE AssessmentDelivery;
 GO
@@ -20,6 +23,8 @@ BEGIN
        SET s.LastModified = GETDATE()
       FROM dbo.ExamSession s
       JOIN inserted i ON i.SessionId = s.SessionId;
+
+    IF CAST(SESSION_CONTEXT(N'writer') AS NVARCHAR(64)) = N'scheduling-relay' RETURN;
 
     IF UPDATE(Capacity)
     BEGIN

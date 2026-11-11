@@ -2,8 +2,11 @@
 # mixed-traffic.sh - smoke/load script that exercises both booking channels.
 #
 #   PORTAL channel  : EXEC dbo.usp_BookSeat / usp_CancelBooking through sqlcmd (same call the portal makes),
-#                     or POST $PORTAL_URL/Booking/Book when PORTAL_URL is set (Windows box running the portal)
-#   PARTNER channel : booking-api REST on $BOOKING_API_URL (default http://localhost:8081)
+#                     or POST $PORTAL_URL/Booking/Book when PORTAL_URL is set (Windows box running the portal),
+#                     or, when ROUTING_URL is set (post-MBA-3823 single writer), POST/DELETE
+#                     $ROUTING_URL/api/v2/bookings with channel PORTAL (what the portal's modern deep link does)
+#   PARTNER channel : booking-api REST on $BOOKING_API_URL (default http://localhost:8081); since MBA-3823
+#                     booking-api forwards its writes through the routing layer to scheduling-service
 #
 # Run it on a freshly seeded database (scripts/run-legacy.sh). Inputs are picked by query so
 # repeated runs on a fresh seed book the same candidates onto the same sessions.
@@ -12,6 +15,8 @@
 #   PORTAL_BOOKINGS (20)  PARTNER_BOOKINGS (20)  CANCELS (3 per channel)  SESSIONS (4)
 #   FIRST_CANDIDATE (901)   - candidates NW00000901.. are left unbooked by the seed
 #   MSSQL_SA_PASSWORD, BOOKING_API_URL, PORTAL_URL
+#   ROUTING_URL           - routing gateway (e.g. http://localhost:8000); portal writes go to scheduling-service
+#   RELAY_SETTLE_SECONDS (3) - with ROUTING_URL, wait this long for the outbox relay before the summary
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -22,6 +27,8 @@ SESSIONS="${SESSIONS:-4}"
 FIRST_CANDIDATE="${FIRST_CANDIDATE:-901}"
 BOOKING_API_URL="${BOOKING_API_URL:-http://localhost:8081}"
 PORTAL_URL="${PORTAL_URL:-}"
+ROUTING_URL="${ROUTING_URL:-}"
+RELAY_SETTLE_SECONDS="${RELAY_SETTLE_SECONDS:-3}"
 MSSQL_SA_PASSWORD="${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}"
 
 MSSQL_CONTAINER="${MSSQL_CONTAINER:-mssql}"
@@ -69,7 +76,11 @@ portal_ok=0; portal_fail=0; partner_ok=0; partner_fail=0
 
 book_portal() {  # book_portal <candidateId> <candidateNumber> <sessionId>
     local out
-    if [ -n "$PORTAL_URL" ]; then
+    if [ -n "$ROUTING_URL" ]; then
+        out="$(curl -s -f -H 'Content-Type: application/json' -X POST "$ROUTING_URL/api/v2/bookings" \
+                -d "{\"sessionId\":$3,\"candidateNumber\":\"$2\",\"channel\":\"PORTAL\"}" \
+            | grep -o '"bookingId" *: *[0-9]*' | grep -o '[0-9]*$' || true)"
+    elif [ -n "$PORTAL_URL" ]; then
         if curl -s -f -o /dev/null -X POST "$PORTAL_URL/Booking/Book" \
                 --data-urlencode "SessionId=$3" --data-urlencode "CandidateNumber=$2"; then
             out="$(sql "SELECT TOP 1 BookingId FROM dbo.Booking WHERE SessionId = $3 AND CandidateId = $1 ORDER BY BookingId DESC")"
@@ -121,6 +132,11 @@ log "partner: $partner_ok ok, $partner_fail failed"
 # --- cancels: the first few bookings on each channel ---------------------
 c_portal=0; c_partner=0
 for ((k = 0; k < CANCELS && k < ${#PORTAL_IDS[@]}; k++)); do
+    if [ -n "$ROUTING_URL" ]; then
+        code="$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$ROUTING_URL/api/v2/bookings/${PORTAL_IDS[$k]}?reason=mixed-traffic")"
+        [ "$code" = "200" ] && c_portal=$((c_portal + 1))
+        continue
+    fi
     sql "EXEC dbo.usp_CancelBooking @BookingId = ${PORTAL_IDS[$k]}, @Reason = N'mixed-traffic', @Actor = 'portal'" >/dev/null \
         && c_portal=$((c_portal + 1))
 done
@@ -131,6 +147,10 @@ done
 log "cancelled: $c_portal portal, $c_partner partner"
 
 # --- summary ---------------------------------------------------------------
+if [ -n "$ROUTING_URL" ]; then
+    log "waiting ${RELAY_SETTLE_SECONDS}s for the outbox relay to project into AssessmentDelivery"
+    sleep "$RELAY_SETTLE_SECONDS"
+fi
 log "session summary (SessionId|Capacity|SeatsAvailable|Booked):"
 sql "SELECT s.SessionId, s.Capacity, s.SeatsAvailable,
         (SELECT COUNT(*) FROM dbo.Booking b WHERE b.SessionId = s.SessionId AND b.Status IN ('BOOKED','ATTENDED'))

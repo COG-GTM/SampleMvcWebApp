@@ -18,7 +18,8 @@ import org.springframework.stereotype.Component;
 import com.northwind.assessment.gateway.config.RoutingProperties;
 
 /**
- * Holds the current allow-list. Each (re)load reads {@code routing.modern-centers}, {@code routing.test-centers}
+ * Holds the current allow-list. Each (re)load reads {@code routing.modern-centers},
+ * {@code routing.modern-write-centers}, {@code routing.test-centers}
  * and {@code routing.coexistence-mode} from the allow-list file ({@code routing.config-file}) when it exists and
  * defines them, otherwise from the Spring Environment. Reloads happen on {@code POST /actuator/refresh}
  * ({@link EnvironmentChangeEvent}) and when {@link com.northwind.assessment.gateway.config.ConfigFileWatcher}
@@ -42,14 +43,14 @@ public class AllowListHolder {
         this.environment = environment;
         this.file = java.nio.file.Paths.get(props.getConfigFile()).toAbsolutePath();
         AllowList initial = read();
-        List<String> errors = AllowListPolicy.violations(initial.modernCenters(), initial.testCenters(),
+        List<String> errors = AllowListPolicy.violations(initial.centersFor(true), initial.testCenters(),
                 initial.coexistenceMode());
         if (!errors.isEmpty()) {
             throw new IllegalStateException("Refusing to start: " + String.join("; ", errors));
         }
         current.set(initial);
-        log.info("routing allow-list modern-centers={} test-centers={} coexistence-mode={}",
-                initial.modernCenters(), initial.testCenters(), initial.coexistenceMode());
+        log.info("routing allow-list modern-centers={} modern-write-centers={} test-centers={} coexistence-mode={}",
+                initial.modernCenters(), initial.modernWriteCenters(), initial.testCenters(), initial.coexistenceMode());
     }
 
     public AllowList get() {
@@ -81,7 +82,7 @@ public class AllowListHolder {
                     current.get().modernCenters(), lastRejection);
             return false;
         }
-        List<String> errors = AllowListPolicy.violations(next.modernCenters(), next.testCenters(),
+        List<String> errors = AllowListPolicy.violations(next.centersFor(true), next.testCenters(),
                 next.coexistenceMode());
         if (!errors.isEmpty()) {
             lastRejection = String.join("; ", errors);
@@ -92,8 +93,9 @@ public class AllowListHolder {
         lastRejection = null;
         AllowList prev = current.getAndSet(next);
         if (!prev.equals(next)) {
-            log.info("routing allow-list changed modern-centers={} -> {} (coexistence-mode={})",
-                    prev.modernCenters(), next.modernCenters(), next.coexistenceMode());
+            log.info("routing allow-list changed modern-centers={} -> {}, modern-write-centers={} -> {} (coexistence-mode={})",
+                    prev.modernCenters(), next.modernCenters(), prev.modernWriteCenters(), next.modernWriteCenters(),
+                    next.coexistenceMode());
         }
         return true;
     }
@@ -115,10 +117,12 @@ public class AllowListHolder {
         Binder binder = Binder.get(env);
         Set<String> modern = AllowListPolicy.normalize(
                 binder.bind("routing.modern-centers", Bindable.listOf(String.class)).orElse(List.of()));
+        Set<String> write = AllowListPolicy.normalize(
+                binder.bind("routing.modern-write-centers", Bindable.listOf(String.class)).orElse(List.of()));
         Set<String> test = AllowListPolicy.normalize(
                 binder.bind("routing.test-centers", Bindable.listOf(String.class)).orElse(List.of("BOS01", "SEA01", "AKL01")));
         String mode = binder.bind("routing.coexistence-mode", String.class).orElse("none");
-        return new AllowList(modern, test, mode);
+        return new AllowList(modern, write, test, mode);
     }
 
     private java.util.Properties readFile() {

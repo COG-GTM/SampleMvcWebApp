@@ -27,6 +27,22 @@ class StartupGuardTest {
     }
 
     @Test
+    void refusesAllCenterWritesUnlessRelay() {
+        assertThatThrownBy(() -> run("--routing.modern-write-centers=*").close())
+                .hasStackTraceContaining("Refusing to start")
+                .hasStackTraceContaining("routing.coexistence-mode=relay");
+    }
+
+    @Test
+    void startsWithAllCenterWritesInRelayMode() {
+        try (ConfigurableApplicationContext ctx = run("--routing.modern-write-centers=*",
+                "--routing.coexistence-mode=relay")) {
+            assertThat(ctx.getBean(AllowListHolder.class).get().modernWriteCenters()).containsExactly("*");
+            assertThat(ctx.getBean(AllowListHolder.class).get().modernCenters()).isEmpty();
+        }
+    }
+
+    @Test
     void startsWithTestCentersOnly() {
         try (ConfigurableApplicationContext ctx = run("--routing.modern-centers=bos01, akl01")) {
             assertThat(ctx.getBean(AllowListHolder.class).get().modernCenters()).containsExactlyInAnyOrder("BOS01", "AKL01");

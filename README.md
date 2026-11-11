@@ -96,7 +96,14 @@ Local development only:
 
 | Login | Password | Used by |
 |---|---|---|
-| `ad_app` | `Northw1nd!Dev2011` | portal and Java services (created by `db/schema/000_create_database.sql`) |
+| `ad_portal` | `P0rtal!Dev2026` | .NET portal (`Web.config`) |
+| `ad_booking_api` | `B00king!Dev2026` | booking-api |
+| `ad_results` | `Resu1ts!Dev2026` | results-service |
+| `ad_capacity_sync` | `Capac1ty!Dev2026` | capacity-sync |
+| `ad_sched_import` | `Sch3d!Imp0rt2026` | scheduling-service bootstrap import (read-only, `db/security/035`) |
+| `ad_sched_relay` | `Sch3d!Re1ay2026` | scheduling-service outbox relay: the only login that may write `Booking`, `Waitlist` and the `ExamSession` seat columns |
+
+Logins are created by `db/schema/000_create_database.sql`; `db/security/040_single_writer.sql` (MBA-3823) denies booking/seat writes to every login except `ad_sched_relay`.
 | `sa` | `Str0ng!Passw0rd` (override with `AD_SA_PASSWORD`) | the apply/run scripts |
 
 There is no sign-in in the portal: candidates are picked by candidate number.

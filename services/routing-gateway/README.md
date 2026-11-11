@@ -57,7 +57,7 @@ booking-api writes them (Jackson pretty printer, v1 field order, explicit nulls,
 
 **Decision** (`RouteDecider`, a pure class): booking id `>= routing.modern-booking-id-floor` (50,000,000) or
 `bookingOrigin=MODERN` -> modern regardless of the allow-list (in-flight modern bookings are never orphaned);
-else center on `routing.modern-centers` -> modern; else legacy. Every routed response gets `X-Route: legacy|modern`
+else center on `routing.modern-centers` (writes: also `routing.modern-write-centers`; `*` = every center) -> modern; else legacy. Every routed response gets `X-Route: legacy|modern`
 and one log line `route=<legacy|modern> center=<code|-> reason=... method=... path=... status=...` (logger `routing`).
 
 **Failure behaviour.** With an empty allow-list no lookup is made (modern-range booking ids aside), so the gateway
@@ -68,11 +68,22 @@ endpoint returns (60 s for center/session); booking lookups are not cached unles
 
 ## Allow-list and rollback
 
+**M4 (single writer).** `config/routing.properties` ships `routing.modern-write-centers=*` and
+`routing.coexistence-mode=relay`: every booking/capacity write (v1 partner API, portal form posts, direct `/api/v2`)
+goes to scheduling-service, which commits it with an outbox event; the relay projects it into `AssessmentDelivery`
+as `ad_sched_relay`, so legacy reads (portal pages, v1 GETs) keep rendering from the legacy tables. The legacy logins
+are DENYed booking/seat writes (`db/security/040_single_writer.sql`), so removing `*` no longer gives a working
+legacy write path; roll back by restoring the pre-M4 database grants first.
+Portal form posts are not applied in place: like any routed center, a booking/cancel/reschedule/capacity POST answers
+303 to the pre-filled modern deep link (table above) and the user confirms there; the portal's own EF6 write would be
+denied by 040. Applying the form inside the portal needs the .NET portal to call `/api/v2` itself (Windows, later story).
+
 | Property | Default | Meaning |
 |---|---|---|
 | `routing.modern-centers` | *(empty)* | `TestCenter.CenterCode`s whose booking/capacity traffic goes to scheduling-service |
 | `routing.test-centers` | `BOS01,SEA01,AKL01` | seeded centers that count as test/demo centers |
-| `routing.coexistence-mode` | `none` | `relay` once the M4 outbox relay is live |
+| `routing.modern-write-centers` | *(empty)* | centers whose booking/capacity **writes** go to scheduling-service while reads stay legacy; `*` = all centers (M4 sets `*` in `config/routing.properties`) |
+| `routing.coexistence-mode` | `none` | `relay` once the M4 outbox relay is live (M4 sets it in `config/routing.properties`) |
 | `routing.config-file` | `config/routing.properties` | watched allow-list file (the start script passes `$ROUTING_CONFIG_FILE`, default `services/routing-gateway/config/routing.properties`; do not repeat `--routing.config-file` in `GATEWAY_ARGS`, Spring would join both values) |
 | `routing.watch-interval` | `1s` | file poll interval |
 | `routing.*-url` | `localhost:8080/8081/8082/8083/8090` | upstreams |
@@ -86,7 +97,7 @@ refresh): the next request for that center goes to legacy, no restart. Measured 
 may be allow-listed. Test/demo centers are `BOS01` (Harborview Testing Centre, NA-EAST; the contract's example
 center and C1 in the functional tests), `SEA01` (Puget Testing Rooms, NA-WEST) and `AKL01` (Waitemata Exam Rooms,
 APAC), the latter two among the lowest-volume seeded centers in their regions; all three have open future sessions.
-`NYC02` (a production center) is C2 in the tests. Change `routing.test-centers` to redefine it. If `routing.modern-centers` contains any other center and
+`NYC02` (a production center) is C2 in the tests. Change `routing.test-centers` to redefine it. If `routing.modern-centers` or `routing.modern-write-centers` contains any other center (or `*`) and
 `routing.coexistence-mode` is not `relay`, the gateway **refuses to start**; a refresh that would introduce such a
 center is rejected (logged at ERROR) and the previous list stays in force.
 
