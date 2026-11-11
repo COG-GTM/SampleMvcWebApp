@@ -1,0 +1,4 @@
+# ad48c47f25949df3cc2333a8cd0656aa0b0cdb9d | 2026-11-11T23:35:12Z
+# sqlcmd -S localhost,1433 -E -C -d AssessmentDelivery -W -s '|' -i db/checks/seat-drift.sql
+Changed database context to 'AssessmentDelivery'.
+

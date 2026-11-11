@@ -1,0 +1,8 @@
+# legacy-baseline e458238da39c991b51d8f670f6d0c463b51b372f | 2026-11-11T23:26:13Z
+# sqlcmd -S localhost,1433 -E -C -d AssessmentDelivery -W -s '|' -i db/checks/seat-drift.sql
+Changed database context to 'AssessmentDelivery'.
+SessionId|ExamCode|CenterCode|StartsAt|Capacity|SeatsAvailable|ActiveBookings|Drift
+---------|--------|----------|--------|--------|--------------|--------------|-----
+155|HPI-ACC2|DUB01|2026-11-12 13:30:00.000|16|1|8|7
+158|BCB-AGL|LDS01|2026-11-14 09:00:00.000|11|0|7|4
+

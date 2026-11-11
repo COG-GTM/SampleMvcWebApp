@@ -1,0 +1,3 @@
+# ad48c47f25949df3cc2333a8cd0656aa0b0cdb9d | 2026-11-11T23:34:50Z
+# RESEED_BACKUP_PATH=<seed backup> "$BASH" services/scheduling-service/scripts/reseed-scheduling-db.sh
+exit=0

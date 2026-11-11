@@ -1,0 +1,4 @@
+# ad48c47f25949df3cc2333a8cd0656aa0b0cdb9d | 2026-11-11T23:35:12Z
+# curl -s http://localhost:8090/internal/reconciliation
+{"generatedAt":"2026-11-11T23:35:12","sessionsCompared":462,"bookingsCompared":3627,"sessionMismatches":[],"bookingMismatches":[],"seatDrift":[],"reportFile":"C:\\Users\\Administrator\\repos\\SampleMvcWebApp\\reports\\reconciliation-20261111-233512.md"}
+HTTP 200
