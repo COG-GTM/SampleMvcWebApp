@@ -308,7 +308,9 @@ class SchedulingServiceIntegrationTest {
         jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor, LoggedAt) VALUES "
                 + "('ExamSession', 0, 'CAPACITY_SYNC', 'trigger=SCHEDULED status=COMPLETED checked=4242 updated=7', "
                 + "'capacity-sync-legacy', '2026-11-01T02:00:00')");
-        assertThat(importer.seedReconcilerRuns(false)).isPositive();
+        post("/api/v1/reconciler/runs?sessionIds=" + session(1, 0), null, null);
+        assertThat(importer.seedReconcilerRuns(jdbc)).isPositive();
+        assertThat(importer.seedReconcilerRuns(jdbc)).isZero();
         JsonNode runs = get("/api/v1/reconciler/runs?from=2026-11-01T00:00:00&to=2026-11-02T00:00:00");
         JsonNode seeded = null;
         for (JsonNode r : runs) {

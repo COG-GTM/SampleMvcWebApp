@@ -95,7 +95,7 @@ public class LegacyImporter implements SmartInitializingSingleton {
             for (int i = 0; i < COPIES.size(); i++) {
                 counts[i] = copy(src, COPIES.get(i));
             }
-            seedReconcilerRuns(!replace);
+            seedReconcilerRuns(src);
             jdbc.update("INSERT INTO dbo.ImportRun (Sessions, Bookings, WaitlistRows, AuditRows, Attempts) VALUES (?, ?, ?, ?, ?)",
                     counts[0], counts[1], counts[2], counts[3], counts[4]);
         });
@@ -136,16 +136,14 @@ public class LegacyImporter implements SmartInitializingSingleton {
     private static final java.util.regex.Pattern SYNC_DETAIL = java.util.regex.Pattern.compile(
             "trigger=(\\S+) status=(\\S+) checked=(\\d+) updated=(\\d+)");
 
-    /** Pre-cutover capacity-sync runs exist only as CAPACITY_SYNC audit rows; rebuild run history from them. */
-    public int seedReconcilerRuns(boolean onlyIfEmpty) {
-        if (onlyIfEmpty) {
-            Integer existing = jdbc.queryForObject("SELECT COUNT(*) FROM dbo.ReconcilerRun", Integer.class);
-            if (existing != null && existing > 0) {
-                return 0;
-            }
-        }
+    /**
+     * Pre-cutover capacity-sync runs exist only as CAPACITY_SYNC audit rows in {@code legacy}; rebuild run history from
+     * them. Runs already present (same trigger, start time, counts, actor) are skipped, so re-imports are idempotent
+     * and service-generated runs never block the legacy history.
+     */
+    public int seedReconcilerRuns(JdbcTemplate legacy) {
         List<Object[]> runs = new ArrayList<>();
-        for (Map<String, Object> a : jdbc.queryForList("SELECT Detail, Actor, LoggedAt FROM dbo.AuditLog "
+        for (Map<String, Object> a : legacy.queryForList("SELECT Detail, Actor, LoggedAt FROM dbo.AuditLog "
                 + "WHERE EntityName = 'ExamSession' AND Action = 'CAPACITY_SYNC' ORDER BY AuditId")) {
             java.util.regex.Matcher m = SYNC_DETAIL.matcher(String.valueOf(a.get("Detail")));
             if (!m.find()) {
@@ -155,11 +153,15 @@ public class LegacyImporter implements SmartInitializingSingleton {
             runs.add(new Object[] {m.group(1), status.length() > 10 ? status.substring(0, 10) : status, a.get("LoggedAt"),
                     a.get("LoggedAt"), Integer.valueOf(m.group(3)), Integer.valueOf(m.group(4)), a.get("Actor")});
         }
-        if (!runs.isEmpty()) {
-            jdbc.batchUpdate("INSERT INTO dbo.ReconcilerRun (TriggerType, Status, StartedAt, FinishedAt, Checked, Updated, "
-                    + "Skipped, Actor) VALUES (?, ?, ?, ?, ?, ?, 0, ?)", runs);
+        int seeded = 0;
+        for (Object[] r : runs) {
+            seeded += jdbc.update("INSERT INTO dbo.ReconcilerRun (TriggerType, Status, StartedAt, FinishedAt, Checked, Updated, "
+                    + "Skipped, Actor) SELECT ?, ?, ?, ?, ?, ?, 0, ? WHERE NOT EXISTS (SELECT 1 FROM dbo.ReconcilerRun x "
+                    + "WHERE x.TriggerType = ? AND x.StartedAt = CAST(? AS DATETIME) AND x.Checked = ? AND x.Updated = ? "
+                    + "AND ISNULL(x.Actor, '') = ISNULL(?, ''))",
+                    r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[0], r[2], r[4], r[5], r[6]);
         }
-        LOG.info("Seeded {} reconciler runs from legacy CAPACITY_SYNC audit rows", runs.size());
-        return runs.size();
+        LOG.info("Seeded {} reconciler runs from legacy CAPACITY_SYNC audit rows", seeded);
+        return seeded;
     }
 }
