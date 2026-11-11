@@ -10,9 +10,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,10 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -43,7 +37,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * MBA-3829 acceptance criteria AC1-AC6 against a real SQL Server, through the HTTP API: seat offers, the held seat,
  * accept with position compaction, decline / expiry progression, the ET25 skip, two seats at once, concurrency,
  * and the relay into dbo.Booking / dbo.Waitlist with reconciliation at 0. The relay is drained explicitly and the
- * expiry job is triggered by hand against a movable clock.
+ * expiry job is triggered by hand after backdating {@code expires_at}.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class WaitlistOfferIT extends SqlServerTestBase {
@@ -57,39 +51,6 @@ class WaitlistOfferIT extends SqlServerTestBase {
         registry.add("scheduling.relay.enabled", () -> "false");
         registry.add("scheduling.waitlist.expiry-enabled", () -> "false");
         registry.add("scheduling.waitlist.offer-ttl", () -> "PT24H");
-    }
-
-    /** System clock plus an offset the tests move forward to reach {@code expires_at}. */
-    static final class MovableClock extends Clock {
-        private volatile Duration offset = Duration.ZERO;
-
-        void advance(Duration d) {
-            offset = offset.plus(d);
-        }
-
-        @Override
-        public ZoneId getZone() {
-            return ZoneId.systemDefault();
-        }
-
-        @Override
-        public Clock withZone(ZoneId zone) {
-            return this;
-        }
-
-        @Override
-        public Instant instant() {
-            return Instant.now().plus(offset);
-        }
-    }
-
-    @TestConfiguration
-    static class ClockConfig {
-        @Bean
-        @Primary
-        MovableClock movableClock() {
-            return new MovableClock();
-        }
     }
 
     @Autowired
@@ -108,7 +69,7 @@ class WaitlistOfferIT extends SqlServerTestBase {
     SeatOfferExpiryJob expiryJob;
 
     @Autowired
-    MovableClock clock;
+    Clock clock;
 
     @BeforeEach
     void drainEarlierEvents() {
@@ -237,8 +198,11 @@ class WaitlistOfferIT extends SqlServerTestBase {
         assertThat(seatsAvailable(s.sessionId())).isZero();
 
         // expiry: accepting at/after expires_at is rejected before the job runs, then the job expires it
-        clock.advance(Duration.ofHours(25));
+        // backdate expires_at instead of moving the clock: outbox created_at must stay monotonic for the other ITs
         long secondId = id(second, "offerId");
+        java.time.LocalDateTime now = java.time.LocalDateTime.now(clock);
+        db.update("UPDATE seat_offer SET offered_at = ?, expires_at = ? WHERE offer_id = ?",
+                java.sql.Timestamp.valueOf(now.minusHours(25)), java.sql.Timestamp.valueOf(now.minusMinutes(1)), secondId);
         ResponseEntity<Map<String, Object>> late = post("/api/v2/offers/" + secondId + "/accept");
         assertThat(late.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(late.getBody()).containsEntry("error", "OFFER_EXPIRED");
