@@ -355,6 +355,9 @@ class GatewayIntegrationTest {
                 .expectStatus().isCreated().expectHeader().valueEquals("X-Route", "modern");
         scheduling.verify(postRequestedFor(urlEqualTo("/api/v2/bookings"))
                 .withRequestBody(matchingJsonPath("$.sessionId", equalTo("100"))));
+        client.post().uri("/api/v1/bookings").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"sessionId\":100.0,\"candidateNumber\":\"NW00000901\"}").exchange()
+                .expectStatus().isCreated().expectHeader().valueEquals("X-Route", "modern");
         bookingApi.verify(0, postRequestedFor(urlEqualTo("/api/v1/bookings")));
         client.delete().uri("/api/v1/bookings/99999999999999999999").exchange()
                 .expectHeader().valueEquals("X-Route", "legacy");

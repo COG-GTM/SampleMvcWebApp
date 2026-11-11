@@ -16,14 +16,14 @@ final class Ids {
         }
     }
 
-    /** sessionId as the services' JSON binding accepts it: a number or a numeric string; null otherwise */
+    /** sessionId as booking-api's Jackson binding coerces it: any number (truncated) or an integer string; else null */
     static Long sessionId(JsonNode req) {
         JsonNode n = req == null ? null : req.get("sessionId");
         if (n == null || n.isNull()) {
             return null;
         }
-        if (n.isIntegralNumber()) {
-            return n.canConvertToLong() ? n.asLong() : null;
+        if (n.isNumber()) {
+            return n.canConvertToLong() ? n.longValue() : null; // 100.0 binds as 100 in booking-api (float-as-int)
         }
         return n.isTextual() ? parseLong(n.asText()) : null;
     }
