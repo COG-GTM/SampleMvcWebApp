@@ -24,7 +24,7 @@ stored procedures, endpoints, routes): [docs/SYSTEM_OVERVIEW.md](docs/SYSTEM_OVE
   candidates / centre admins          partner booking channels       centre score files
              |                                  |                            |
      Portal :8080 (IIS Express)        booking-api :8081            results-service :8082
-             |  usp_BookSeat, EF6               |  JDBC                      |  JDBC
+             |  EF6 (reads)                     |  JDBC                      |  JDBC
              +----------------------+-----------+----------------------------+
                                     |
                      SQL Server :1433  AssessmentDelivery  <---  capacity-sync :8083 (02:00 nightly)
@@ -84,7 +84,7 @@ The portal is Windows-only (.NET Framework 4.8).
 
 | What | URL |
 |---|---|
-| Portal | http://localhost:8080/ - `/Admin/Centers`, `/Admin/Sessions/Roster/{id}?format=csv`, `/Booking`, `/Booking/MyBookings?candidateNumber=`, `/Eligibility`, `/Results` |
+| Portal | http://localhost:8080/ - `/Admin/Centers`, `/Admin/Sessions?centerId=`, `/Admin/Sessions/Roster/{id}?format=csv`, `/Eligibility`, `/Results` (booking pages retired: `/Booking/*` via the gateway :8000 -> `/app`) |
 | booking-api | http://localhost:8081/api/v1/sessions |
 | results-service | http://localhost:8082/api/v1/results/candidate/NW00000001 |
 | capacity-sync | http://localhost:8083/sync/last (`POST /sync/run` to run now) |
@@ -96,7 +96,14 @@ Local development only:
 
 | Login | Password | Used by |
 |---|---|---|
-| `ad_app` | `Northw1nd!Dev2011` | portal and Java services (created by `db/schema/000_create_database.sql`) |
+| `ad_portal` | `P0rtal!Dev2026` | .NET portal (`Web.config`) |
+| `ad_booking_api` | `B00king!Dev2026` | booking-api |
+| `ad_results` | `Resu1ts!Dev2026` | results-service |
+| `ad_capacity_sync` | `Capac1ty!Dev2026` | capacity-sync |
+| `ad_sched_import` | `Sch3d!Imp0rt2026` | scheduling-service bootstrap import (read-only, `db/security/035`) |
+| `ad_sched_relay` | `Sch3d!Re1ay2026` | scheduling-service outbox relay: the only login that may write `Booking`, `Waitlist` and the `ExamSession` seat columns |
+
+Logins are created by `db/schema/000_create_database.sql`; `db/security/040_single_writer.sql` (MBA-3823) denies booking/seat writes to every login except `ad_sched_relay`.
 | `sa` | `Str0ng!Passw0rd` (override with `AD_SA_PASSWORD`) | the apply/run scripts |
 
 There is no sign-in in the portal: candidates are picked by candidate number.
@@ -143,9 +150,8 @@ sqlcmd -S localhost,1433 -U sa -P "Str0ng!Passw0rd" -C -W -i db\checks\seat-drif
 ```
 
 `scripts/mixed-traffic.ps1` (Windows) and `scripts/mixed-traffic.sh` (Linux) are smoke/load scripts that
-book and cancel a batch of seats through both channels on a freshly seeded database - the portal
-(`/Booking/Book` over HTTP on Windows) and booking-api REST - then print a session summary and the
-`seat-drift.sql` row count.
+book and cancel a batch of seats through booking-api REST on a freshly seeded database (the portal
+channel was retired in MBA-3824) - then print a session summary and the `seat-drift.sql` row count.
 
 ## Azure configuration
 

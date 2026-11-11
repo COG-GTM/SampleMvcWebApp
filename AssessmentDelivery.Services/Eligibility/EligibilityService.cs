@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using AssessmentDelivery.Business.Rules;
 using AssessmentDelivery.Data.DataClasses;
+using AssessmentDelivery.Data.DataClasses.Entities;
 using AssessmentDelivery.Services.Common;
 
 namespace AssessmentDelivery.Services.Eligibility
@@ -15,6 +18,11 @@ namespace AssessmentDelivery.Services.Eligibility
         {
             _db = db;
             _rules = rules;
+        }
+
+        public IList<Exam> ListPublishedExams()
+        {
+            return _db.Exams.AsNoTracking().Where(e => e.IsPublished).OrderBy(e => e.ExamCode).ToList();
         }
 
         public RetakeDecision Check(string candidateNumber, string examCode, DateTime date)

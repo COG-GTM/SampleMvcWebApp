@@ -11,7 +11,7 @@ export default function Book() {
   const navigate = useNavigate();
   const sessionId = Number(params.get('sessionId'));
   const session = useLoad(() => api.session(sessionId), [sessionId]);
-  const [candidate, setCandidate] = useState(rememberedCandidate());
+  const [candidate, setCandidate] = useState((params.get('candidateNumber') ?? '').toUpperCase() || rememberedCandidate());
   const [touched, setTouched] = useState(false);
   const [accommodation, setAccommodation] = useState('');
   const prefilledAccommodation = useRef<string | null>(null);

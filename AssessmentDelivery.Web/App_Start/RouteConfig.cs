@@ -9,13 +9,6 @@ namespace AssessmentDelivery.Web
         {
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
-            //centre admin capacity panel - URL agreed with ops (see docs/SYSTEM_OVERVIEW.md)
-            routes.MapRoute(
-                name: "AdminCapacity",
-                url: "Admin/Sessions/Capacity/{id}",
-                defaults: new { controller = "Admin", action = "Capacity" }
-            );
-
             //proctor check-in roster download (read-only)
             routes.MapRoute(
                 name: "AdminRoster",

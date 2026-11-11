@@ -60,41 +60,6 @@ namespace AssessmentDelivery.Web.Controllers
             return View(new SessionsViewModel { Center = center, Sessions = _admin.ListSessions(center.TestCenterId) });
         }
 
-        public ActionResult Capacity(int id)
-        {
-            var model = BuildCapacityModel(id);
-            if (model == null) return HttpNotFound();
-            model.NewCapacity = model.Session.Capacity;
-            return View(model);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Capacity(int id, int? newCapacity)
-        {
-            var model = BuildCapacityModel(id);
-            if (model == null) return HttpNotFound();
-
-            if (!newCapacity.HasValue)
-            {
-                ModelState.AddModelError("NewCapacity", "Enter the new capacity");
-                return View(model);
-            }
-            try
-            {
-                _admin.ChangeCapacity(id, newCapacity.Value, "portal-admin");
-            }
-            catch (PortalException ex)
-            {
-                model.NewCapacity = newCapacity.Value;
-                ModelState.AddModelError("", ex.Message);
-                return View(model);
-            }
-
-            TempData["message"] = "Capacity updated";
-            return RedirectToAction("Capacity", new { id });
-        }
-
         /// <summary>
         /// GET /Admin/Sessions/Roster/{id}?format=csv - proctor check-in roster, read-only
         /// </summary>
@@ -109,18 +74,6 @@ namespace AssessmentDelivery.Web.Controllers
 
             var fileName = RosterCsvBuilder.BuildFileName(roster.CenterCode, roster.ExamCode, DateTime.Now);
             return File(RosterCsvBuilder.Build(roster.Lines), "text/csv", fileName);
-        }
-
-        private CapacityViewModel BuildCapacityModel(int sessionId)
-        {
-            var row = _admin.GetSessionRow(sessionId);
-            if (row == null) return null;
-            return new CapacityViewModel
-            {
-                Session = row,
-                CenterId = row.TestCenterId,
-                CenterName = row.CenterName
-            };
         }
     }
 }

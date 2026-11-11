@@ -29,7 +29,7 @@ namespace AssessmentDelivery.Business.Rosters
         public static IList<RosterLine> Arrange(IEnumerable<RosterLine> lines)
         {
             var list = (lines ?? Enumerable.Empty<RosterLine>()).Where(l => l != null).ToList();
-            var booked = list.Where(l => SeatCounter.HoldsSeat(l.BookingStatus));
+            var booked = list.Where(l => l.BookingStatus == BookingStatus.Booked || l.BookingStatus == BookingStatus.Attended);
             var waitlisted = list.Where(l => l.BookingStatus == BookingStatus.Waitlisted);
             return SortByName(booked).Concat(SortByName(waitlisted)).ToList();
         }

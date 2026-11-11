@@ -22,7 +22,7 @@ Routes are listed in [docs/SYSTEM_OVERVIEW.md](../docs/SYSTEM_OVERVIEW.md#portal
   (`run-portal.ps1` installs the 2022 Build Tools if no MSBuild is found)
 - IIS Express 10 (installed by the script if missing)
 - SQL Server (Express or Developer) listening on `localhost,1433` with SQL authentication, with
-  `db/schema/*.sql` then `db/procs/*.sql` applied. The portal connects as the dev login `ad_app`
+  `db/schema/*.sql` then `db/procs/*.sql` applied. The portal connects as the dev login `ad_portal`
   (connection string `AssessmentDelivery` in `Web.config`).
 
 ## Run
@@ -66,11 +66,15 @@ node run.mjs          # env: BASE_URL (default http://localhost:8080), SQL_SERVE
 
 ## Notes
 
-- Writes that touch seats go through the stored procedures (`usp_BookSeat`, `usp_CancelBooking`,
-  `usp_RescheduleBooking`, `usp_ChangeCapacity`); messages raised by the procs are shown on screen.
-  Editing a centre's name/active flag is a plain EF update.
-- Bookings made by partners through booking-api (channel `PARTNER`) and imported bookings show up in
-  *My bookings* next to portal bookings.
+- The booking and capacity pages were retired in MBA-3824: scheduling-service is the only writer of
+  bookings and seats, and the routing gateway (:8000) redirects `/Booking/*` and
+  `/Admin/Sessions/Capacity/{id}` to the modern UI (`/app/...`). The portal's Bookings tab, quick
+  candidate lookup and the Capacity link on the admin session list point at those modern pages
+  (`Portal.ModernUiBaseUrl`, empty = same origin as the portal, i.e. behind the gateway).
+- What is left is read-only over the relay-projected tables (`/Admin/Sessions`, `/Eligibility`,
+  `/Results`), plus editing a centre's name/active flag (a plain EF update).
+  `scripts/check-retired-booking.sh` (CI) and `RetiredBookingGuardTests` fail if C# booking writes,
+  `SeatsAvailable` updates or the dropped booking procs reappear.
 - *Download roster (CSV)* on each session row (`/Admin/Sessions/Roster/{id}?format=csv`) returns the
   proctor check-in list: BOOKED/ATTENDED candidates, then the WAITLISTED ones with their waitlist
   position, each group by last/first name. UTF-8 with BOM, RFC 4180 quoting, read-only (no procs, no

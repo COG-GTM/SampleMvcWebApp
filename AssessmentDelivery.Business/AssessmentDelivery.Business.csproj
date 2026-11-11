@@ -56,11 +56,11 @@
     <Compile Include="Rosters\RosterCsvBuilder.cs" />
     <Compile Include="Rosters\RosterLine.cs" />
     <Compile Include="Rules\AccommodationCodes.cs" />
+    <Compile Include="Rules\BookingStatus.cs" />
     <Compile Include="Rules\IRetakeRules.cs" />
     <Compile Include="Rules\PriorAttempt.cs" />
     <Compile Include="Rules\RetakeDecision.cs" />
     <Compile Include="Rules\RetakeRules.cs" />
-    <Compile Include="Rules\SeatCounter.cs" />
     <Compile Include="Startup\BizLayerInitialise.cs" />
     <Compile Include="Startup\BizLayerModule.cs" />
   </ItemGroup>

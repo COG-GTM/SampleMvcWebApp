@@ -41,6 +41,28 @@ public class BookingRepository {
                 .param(candidateId).query(BookingRepository::mapView).list();
     }
 
+    /**
+     * Scheduling booking id for an id a client holds: a Scheduling id, or an AssessmentDelivery {@code BookingId}
+     * (imported bookings keep it, modern bookings get one on first relay and store it in legacy_booking_id),
+     * so v1 / legacy URLs keep working.
+     */
+    public Optional<Long> resolve(long id) {
+        return jdbc.sql("SELECT TOP 1 booking_id FROM booking WHERE booking_id = ? OR legacy_booking_id = ? "
+                        + "ORDER BY CASE WHEN booking_id = ? THEN 0 ELSE 1 END")
+                .params(id, id, id).query(Long.class).optional();
+    }
+
+    public void markAttended(long bookingId, LocalDateTime now) {
+        jdbc.sql("UPDATE booking SET status = 'ATTENDED', last_modified = ? WHERE booking_id = ?")
+                .params(now, bookingId).update();
+    }
+
+    /** Write-back of the AssessmentDelivery id assigned by the relay; first assignment wins. */
+    public int setLegacyBookingId(long bookingId, int legacyBookingId) {
+        return jdbc.sql("UPDATE booking SET legacy_booking_id = ? WHERE booking_id = ? AND legacy_booking_id IS NULL")
+                .params(legacyBookingId, bookingId).update();
+    }
+
     public Optional<Integer> sessionIdOf(long bookingId) {
         return jdbc.sql("SELECT session_id FROM booking WHERE booking_id = ?").param(bookingId).query(Integer.class).optional();
     }
@@ -93,10 +115,11 @@ public class BookingRepository {
     }
 
     public Optional<RouteView> routeOfBooking(long bookingId) {
-        return jdbc.sql("SELECT s.center_id, c.center_code, s.session_id, b.booking_id, b.origin FROM booking b "
+        return jdbc.sql("SELECT TOP 1 s.center_id, c.center_code, s.session_id, b.booking_id, b.origin FROM booking b "
                         + "JOIN exam_session s ON s.session_id = b.session_id "
-                        + "JOIN test_center_snapshot c ON c.center_id = s.center_id WHERE b.booking_id = ?")
-                .param(bookingId)
+                        + "JOIN test_center_snapshot c ON c.center_id = s.center_id "
+                        + "WHERE b.booking_id = ? OR b.legacy_booking_id = ? ORDER BY CASE WHEN b.booking_id = ? THEN 0 ELSE 1 END")
+                .params(bookingId, bookingId, bookingId)
                 .query((rs, n) -> new RouteView(rs.getInt(1), rs.getString(2), rs.getInt(3), rs.getLong(4), rs.getString(5)))
                 .optional();
     }

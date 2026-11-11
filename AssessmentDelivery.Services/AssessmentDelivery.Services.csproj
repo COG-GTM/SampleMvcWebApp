@@ -65,14 +65,7 @@
     <Compile Include="Admin\CenterListItem.cs" />
     <Compile Include="Admin\IAdminService.cs" />
     <Compile Include="Admin\SessionRoster.cs" />
-    <Compile Include="Booking\BookingListItem.cs" />
-    <Compile Include="Booking\BookingOutcome.cs" />
-    <Compile Include="Booking\BookingService.cs" />
-    <Compile Include="Booking\IBookingService.cs" />
-    <Compile Include="Booking\SessionListItem.cs" />
-    <Compile Include="Booking\SessionSearchCriteria.cs" />
     <Compile Include="Common\PortalException.cs" />
-    <Compile Include="Common\SqlErrorHelper.cs" />
     <Compile Include="Eligibility\EligibilityService.cs" />
     <Compile Include="Eligibility\IEligibilityService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
