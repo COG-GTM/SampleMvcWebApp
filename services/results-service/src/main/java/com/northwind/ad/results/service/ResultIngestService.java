@@ -42,7 +42,8 @@ public class ResultIngestService {
     }
 
     /**
-     * @param insertAllowed false only re-checks a row (replayed score file): returns NOT_IMPORTED instead of inserting
+     * @param insertAllowed false only re-checks a row (replayed score file): returns NOT_IMPORTED instead of
+     *                      inserting, and a conflict is not audited again (it was audited on the first upload)
      */
     @Transactional
     public IngestOutcome ingest(int bookingId, int score, Date scoredAt, String sourceFile, boolean insertAllowed) {
@@ -64,7 +65,7 @@ public class ResultIngestService {
         }
         Map<String, Object> existing = findStored(bookingId);
         if (existing != null) {
-            return compareWithStored(existing, bookingId, score, scoredAt, sourceFile);
+            return compareWithStored(existing, bookingId, score, scoredAt, sourceFile, insertAllowed);
         }
         if (!insertAllowed) {
             return new IngestOutcome(IngestOutcome.Status.NOT_IMPORTED, bookingId, null, score, scoredAt,
@@ -90,7 +91,7 @@ public class ResultIngestService {
                 throw new ApiException(HttpStatus.CONFLICT, "DUPLICATE_RESULT",
                         "A result already exists for booking " + bookingId);
             }
-            return compareWithStored(existing, bookingId, score, scoredAt, sourceFile);
+            return compareWithStored(existing, bookingId, score, scoredAt, sourceFile, true);
         }
         jdbc.update("UPDATE dbo.Booking SET Status = 'ATTENDED', LastModified = GETDATE() "
                 + "WHERE BookingId = ? AND Status = 'BOOKED'", bookingId);
@@ -109,7 +110,7 @@ public class ResultIngestService {
     }
 
     private IngestOutcome compareWithStored(Map<String, Object> stored, int bookingId, int score, Date scoredAt,
-                                            String sourceFile) {
+                                            String sourceFile, boolean audit) {
         int resultId = ((Number) stored.get("ResultId")).intValue();
         int storedScore = ((Number) stored.get("Score")).intValue();
         Date storedScoredAt = (Date) stored.get("ScoredAt");
@@ -120,11 +121,13 @@ public class ResultIngestService {
             return new IngestOutcome(IngestOutcome.Status.DUPLICATE, bookingId, resultId, score, scoredAt,
                     storedScore, storedScoredAt, passed);
         }
-        jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
+        if (audit) {
+            jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
                 "Result", resultId, "DUPLICATE_REJECTED", "booking=" + bookingId
                         + " stored=" + storedScore + "@" + format(storedScoredAt)
                         + " submitted=" + score + "@" + (scoredAt != null ? format(scoredAt) : "now")
                         + (sourceFile != null ? " file=" + sourceFile : ""), actor);
+        }
         LOG.warn("Conflicting result for booking {} rejected: stored {} submitted {}", bookingId, storedScore, score);
         return new IngestOutcome(IngestOutcome.Status.CONFLICT, bookingId, resultId, score, scoredAt,
                 storedScore, storedScoredAt, passed);
