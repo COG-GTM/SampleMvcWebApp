@@ -56,7 +56,7 @@ class Sampler(threading.Thread):
 
     def summary(self):
         s = self.samples
-        return {'samples': len(s), 'seconds': s[-1]['t'] if s else 0, 'maxRawDrift': max([x['raw'] for x in s] or [0]),
+        return {'samples': len(s), 'seconds': round(time.time() - self.t0, 1), 'maxRawDrift': max([x['raw'] for x in s] or [0]),
                 'maxUnexplainedDrift': max([x['unexplained'] for x in s] or [0]),
                 'maxDupWaitlistPositions': max([x['dup'] for x in s] or [0]), 'samplerErrors': self.errors[:5],
                 'series': [(x['t'], x['raw'], x['unexplained']) for x in s]}
@@ -64,11 +64,11 @@ class Sampler(threading.Thread):
 
 def cat_drift(c):
     n_sessions = int(os.environ.get('E2E_LOAD_SESSIONS', '6'))
-    ops = int(os.environ.get('E2E_LOAD_OPS', '240'))
+    ops = int(os.environ.get('E2E_LOAD_OPS', '640'))
     workers = int(os.environ.get('E2E_LOAD_WORKERS', '8'))
     ids = [c.session(5, 10, 2) for _ in range(n_sessions)]
     pool = c.candidates(int(os.environ.get('E2E_LOAD_CANDIDATES', '40')))
-    sampler = Sampler(c.t, ids, float(os.environ.get('E2E_SAMPLE_INTERVAL', '0.25')))
+    sampler = Sampler(c.t, ids, float(os.environ.get('E2E_SAMPLE_INTERVAL', '0.1')))
     sampler.sample()
     c.rec.eq('baseline drift on the load sessions is 0', sampler.samples[0]['raw'], 0)
     stats = {'portalBook': 0, 'partnerBook': 0, 'cancel': 0, 'attend': 0, 'reschedule': 0, 'rejected': {}, 'transport': 0}
@@ -136,9 +136,11 @@ def cat_drift(c):
     c.rec.check('no transport / 5xx failures under load', stats['transport'] == 0, stats['rejected'])
     c.rec.check('unexplained seat drift 0 at every sample (max raw %d, all HB-01 partner inserts)' % summ['maxRawDrift'],
                 summ['maxUnexplainedDrift'] == 0, [x for x in sampler.samples if x['unexplained']][:3])
-    rows = c.t.drift()
-    stray = {k: v for k, v in rows.items() if k not in final or v != final[k][1]}
-    c.rec.check('full seat-drift check over every session after load: only the HB-01-explained load rows', not stray, stray)
+    full = Sampler(c.t, None)
+    full.sample()
+    stray = {k: v for k, v in full.samples[-1]['per'].items() if v[0] != v[1]}
+    c.rec.check('full seat-drift check over every session after load: every drift row is HB-01-explained '
+                '(%d rows, all raw == partner BOOKED inserts)' % len(full.samples[-1]['per']), not stray, stray)
 
 
 def main():

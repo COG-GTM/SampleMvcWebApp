@@ -17,7 +17,8 @@ def portal_code(o):
     m = (o.message or '')
     for needle, code in (('is not open for booking', 'SESSION_NOT_OPEN'), ('already has an active booking', 'DUPLICATE_BOOKING'),
                          ('No accommodation seat', 'NO_ACCOMMODATION_SEAT'), ('cannot be cancelled', 'NOT_CANCELLABLE'),
-                         ('Invalid capacity', 'INVALID_CAPACITY'), ('cannot be moved', 'DIFFERENT_EXAM'),
+                         ('Invalid capacity', 'INVALID_CAPACITY'), ('Capacity cannot be negative', 'INVALID_CAPACITY'),
+                         ('cannot be moved', 'DIFFERENT_EXAM'),
                          ('was not found', 'CANDIDATE_NOT_FOUND'), ('Unknown accommodation code', 'VALIDATION'),
                          ('Enter the new capacity', 'VALIDATION'), ('Choose the new session', 'VALIDATION'),
                          ('Not eligible', 'NOT_ELIGIBLE')):
