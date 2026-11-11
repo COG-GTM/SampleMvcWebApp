@@ -257,14 +257,10 @@ paths:
             schema: {$ref: '#/components/schemas/BookRequest'}
       responses:
         '201':
-          description: Booked or waitlisted
+          description: 'Booked or waitlisted. An identical Idempotency-Key replay returns the original 201 and body, with header Idempotent-Replayed = true'
           headers:
             Location: {schema: {type: string}}
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/BookingResult'}
-        '200':
-          description: 'Idempotent replay of an earlier identical request (header Idempotent-Replayed = true)'
+            Idempotent-Replayed: {schema: {type: boolean}, description: 'present and true only on a replay'}
           content:
             application/json:
               schema: {$ref: '#/components/schemas/BookingResult'}
