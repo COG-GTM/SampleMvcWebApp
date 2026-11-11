@@ -27,7 +27,12 @@ behaviour by accident.
 
 ## How a scenario runs
 
-1. **Known state.** `capture --fresh-seed` runs `db/apply.ps1` (Windows) / `db/apply.sh` (Linux), which
+1. **Known state.** `capture --fresh-seed` runs `db/apply.ps1` (Windows) / `db/apply.sh` (Linux) **as they are
+   at `legacy-baseline`** (the tag's `db/` and `scripts/` are extracted with `git archive` into the
+   git-ignored `characterization/.legacy-baseline/`, or set `LEGACY_ROOT` to a checkout of the tag; later
+   stories on this branch change both, e.g. M5 drops the booking procs). `scripts/mixed-traffic.*` and
+   `db/checks/seat-drift.sql` come from the same tree. It then re-runs this branch's dev helper `db/security/035_sched_import_login.sql`
+   (apply drops that database user; `--target modern` needs it to re-import). The rebuild
    drops and re-seeds `AssessmentDelivery` from `db/seed/040`-`049` (seed "now" = 2026-11-10), then copies
    it to `AssessmentDelivery_CharBaseline`. Before **every** scenario the harness restores the
    `AssessmentDelivery` tables from that pristine copy (same rows, same identity seeds; ~1 s instead of
@@ -112,6 +117,10 @@ Windows host via `PORTAL_URL`.
 ./replay --target modern --base-url http://localhost:8000       # routing gateway (M3), centers allow-listed
 ./replay --target modern --base-url http://localhost:8090 --db-state scheduling
 ```
+
+`--target legacy` must point at an estate running from `legacy-baseline` (step 4 above): on the current
+`assessment-delivery-demo` head M5 (#65) has dropped the booking procs and redirects the portal booking URLs to
+`/app`, and M4 (#61) makes scheduling-service the single writer, so only the modern target is meaningful there.
 
 Exit code 0 only when every transcript matches. The report lists MATCH/MISMATCH/SKIPPED/ERROR per
 scenario, X/Y MATCH per group (booking, full session, duplicate/closed, cancellation, reschedule, capacity

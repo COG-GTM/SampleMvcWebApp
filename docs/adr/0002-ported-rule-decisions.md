@@ -185,6 +185,6 @@ Transcripts: `reschedule_same_session_portal`, `reschedule_same_session_partner`
 - One codebase owns seat inventory; no trigger or batch job rewrites counts behind it.
 - Partner seat counts and partner retake dates change (sections 1 and 4): call these out to the
   gateway (M3) and partner-facing release notes.
-- When M1 lands, run `characterization/replay --target modern --base-url http://localhost:8090`,
-  fill in the transcript ids above, and link every failing transcript to a section here or to a
-  follow-up bug.
+- M1 transcript ids are filled in above. `characterization/replay --target modern --base-url <url>`
+  writes `characterization/reports/replay-modern-<sha>.md`; link every failing transcript to a section
+  here, to `characterization/known-defects.yaml`, or to a follow-up bug (M6).

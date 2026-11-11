@@ -8,6 +8,7 @@ import requests
 
 from . import LEGACY_BASELINE_SHA, LEGACY_BASELINE_TAG, TRANSCRIPT_FORMAT
 from .adapters_modern import Unsupported
+from .db import legacy_tree
 from .normalize import IdMap, deep_norm
 from .snapshot import all_booking_ids, normalize_state
 
@@ -26,7 +27,7 @@ def run_mixed_traffic(config, step, portal_url, booking_api_url):
                AD_SA_PASSWORD=config.sa_password, SQLCMD=config.sqlcmd)
     for key, value in (step.get("env") or {}).items():
         env[key] = str(value)
-    root = config.repo_root
+    root = legacy_tree(config)
     if sys.platform.startswith("win"):
         cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
                str(root / "scripts" / "mixed-traffic.ps1")]
@@ -53,7 +54,7 @@ def execute_step(target, step, db, sc, results):
     channel = step.get("channel") or sc["channel"]
     p = {k: resolve(v, db, results) for k, v in step.items()}
     if op == "drift":
-        rows = target.state.drift(target.config.repo_root)
+        rows = target.state.drift(legacy_tree(target.config))
         return {"request": {"sql": "db/checks/seat-drift.sql"}, "response": {"rows": rows},
                 "business": {"driftSessions": len(rows), "totalDrift": sum(r["Drift"] for r in rows)}}
     if op == "sync":

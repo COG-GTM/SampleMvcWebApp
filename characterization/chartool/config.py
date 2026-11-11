@@ -42,4 +42,5 @@ class Config:
     odbc_driver: str = field(default_factory=lambda: _env("CHAR_ODBC_DRIVER", ""))
     sqlcmd: str = field(default_factory=lambda: resolve_sqlcmd(_env("SQLCMD", "")))
     repo_root: Path = REPO_ROOT
+    legacy_root: str = field(default_factory=lambda: _env("LEGACY_ROOT", ""))
     http_timeout: float = 60.0

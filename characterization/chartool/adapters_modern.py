@@ -59,7 +59,8 @@ class V2Adapter:
             "sessionId": session, "candidateNumber": candidate, "accommodationCode": accommodation or None,
             "externalRef": external_ref, "channel": self.channel})
 
-    def cancel(self, booking, reason=None):
+    def cancel(self, booking, reason=None, candidate=None):
+        """`candidate` is the portal's (unchecked) owner field; /api/v2 has no such parameter, so it is not sent."""
         return self._call("cancel", "DELETE", "/api/v2/bookings/%d" % booking,
                           params={"reason": reason} if reason else None)
 

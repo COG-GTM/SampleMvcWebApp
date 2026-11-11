@@ -1,7 +1,13 @@
 """SQL Server access: batches, the per-scenario reset from a pristine copy, and small query helpers."""
+import io
 import re
+import shutil
 import subprocess
 import sys
+import tarfile
+from pathlib import Path
+
+from . import LEGACY_BASELINE_SHA
 
 try:
     import pyodbc
@@ -78,17 +84,46 @@ class Db:
         return self.scalar("SELECT GETDATE() AS now")
 
 
+def legacy_tree(config):
+    """db/ and scripts/ exactly as they are at the legacy-baseline tag (later stories change both, e.g. M5 drops the
+    booking procs and points the traffic script at /app).
+
+    LEGACY_ROOT (a checkout of the tag) overrides; otherwise both folders are extracted with `git archive` into the
+    git-ignored characterization/.legacy-baseline/.
+    """
+    if config.legacy_root:
+        return Path(config.legacy_root)
+    out = config.repo_root / "characterization" / ".legacy-baseline"
+    marker = out / ("." + LEGACY_BASELINE_SHA)
+    if not marker.exists():
+        shutil.rmtree(out, ignore_errors=True)
+        out.mkdir(parents=True)
+        tar = subprocess.run(["git", "-C", str(config.repo_root), "archive", "--format=tar", LEGACY_BASELINE_SHA,
+                              "db", "scripts"], check=True, stdout=subprocess.PIPE).stdout
+        with tarfile.open(fileobj=io.BytesIO(tar)) as tf:
+            tf.extractall(out)
+        marker.touch()
+    return out
+
+
 def apply_seed(config):
-    """Rebuild AssessmentDelivery with the repo's db/apply script (drops the database)."""
+    """Rebuild AssessmentDelivery with db/apply from legacy-baseline (drops the database)."""
     root = config.repo_root
+    db_dir = legacy_tree(config) / "db"
     if sys.platform.startswith("win"):
-        cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(root / "db" / "apply.ps1"),
+        cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(db_dir / "apply.ps1"),
                "-Sqlcmd", config.sqlcmd]
     else:
-        cmd = ["bash", str(root / "db" / "apply.sh")]
+        cmd = ["bash", str(db_dir / "apply.sh")]
     env = dict(__import__("os").environ, AD_SA_PASSWORD=config.sa_password, AD_SQL_SERVER=config.sql_server,
                SQLCMD=config.sqlcmd)
     subprocess.run(cmd, check=True, env=env, stdout=subprocess.DEVNULL)
+    # apply drops the database user of scheduling-service's read-only importer (its login survives); re-grant it
+    # (dev helper from the current branch, not in legacy-baseline) so --target modern can re-import after a reset.
+    importer = root / "db" / "security" / "035_sched_import_login.sql"
+    if importer.exists():
+        subprocess.run([config.sqlcmd, "-S", config.sql_server, "-U", "sa", "-P", config.sa_password, "-C", "-b",
+                        "-i", str(importer)], check=True, stdout=subprocess.DEVNULL)
 
 
 def table_columns(db, database, table):

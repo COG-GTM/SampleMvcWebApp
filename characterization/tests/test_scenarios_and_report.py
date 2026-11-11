@@ -134,3 +134,9 @@ def test_known_defect_is_counted_separately_not_as_match():
                                          "modern", "http://localhost:8090", "abc", "opts")
     assert (matched, total) == (0, 1)
     assert "KNOWN-DEFECT 1" in text and "| 0/1 MATCH | 0 | 1 | 0 | 0 |" in text and "on-call defect #57" in text
+
+
+def test_legacy_tree_override(tmp_path):
+    from chartool import db
+    from chartool.config import Config
+    assert db.legacy_tree(Config(legacy_root=str(tmp_path))) == tmp_path
