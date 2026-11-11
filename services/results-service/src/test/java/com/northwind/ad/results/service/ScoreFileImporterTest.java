@@ -100,4 +100,16 @@ public class ScoreFileImporterTest {
         assertEquals(0, r.getRowsRead());
         verify(ingestService, never()).ingest(anyInt(), anyInt(), any(Date.class), anyString(), any(Integer.class));
     }
+
+    @Test
+    public void longFileNameIsCutToTheColumnWidth() throws Exception {
+        byte[] bytes = "candidateNumber,sessionId,score,scoredAt\n".getBytes(StandardCharsets.UTF_8);
+        StringBuilder name = new StringBuilder();
+        while (name.length() < 250) {
+            name.append("NW_SCORES_");
+        }
+        UploadReport r = importer.importFile(name.append(".csv").toString(), bytes);
+        assertEquals(ScoreFileImporter.MAX_FILE_NAME, r.getFileName().length());
+        assertTrue(name.toString().startsWith(r.getFileName()));
+    }
 }

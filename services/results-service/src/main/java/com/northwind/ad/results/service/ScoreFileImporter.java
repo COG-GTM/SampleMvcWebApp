@@ -35,6 +35,9 @@ public class ScoreFileImporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(ScoreFileImporter.class);
 
+    /** Result.SourceFile and ResultUpload.FileName are NVARCHAR(200). */
+    static final int MAX_FILE_NAME = 200;
+
     private final CsvRowParser parser = new CsvRowParser();
 
     @Autowired
@@ -52,6 +55,9 @@ public class ScoreFileImporter {
     }
 
     public UploadReport importFile(String fileName, byte[] content) throws IOException {
+        if (fileName != null && fileName.length() > MAX_FILE_NAME) {
+            fileName = fileName.substring(0, MAX_FILE_NAME);
+        }
         UploadReport report = new UploadReport();
         report.setFileName(fileName);
         report.setSha256(FileHash.sha256Hex(content));
