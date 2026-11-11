@@ -79,8 +79,13 @@ class GatewayIntegrationTest {
         if (u.startsWith("/api/v2/centers/BOS01/sessions")) {
             return Stub.Answer.json(200, "[{\"sessionId\":154,\"centerCode\":\"BOS01\",\"startsAt\":\"2026-11-12T09:00:00\",\"waitlistCount\":0}]");
         }
+        if (u.equals("/app") || u.startsWith("/app?")) {
+            // like Spring MVC's trailing-slash redirect: absolute, pointing at the upstream's own host
+            return Stub.Answer.redirect(302, SCHEDULING.url() + "/app/" + (u.contains("?") ? u.substring(u.indexOf('?')) : ""));
+        }
         return new Stub.Answer(200, "text/html", "<div id=root>modern " + u + "</div>");
     }
+
 
     static void writeConfig(String centers) {
         try {
@@ -117,6 +122,17 @@ class GatewayIntegrationTest {
                 .expectStatus().isOk().expectHeader().valueEquals("X-Route", "legacy");
         web.get().uri("/Eligibility?candidateNumber=NW00000001&examCode=AZ-104").exchange()
                 .expectStatus().isOk().expectHeader().valueEquals("X-Route", "legacy");
+    }
+
+    /** MBA-3825: /app without the slash must keep the browser on the gateway, not send it to scheduling-service's host. */
+    @Test
+    void appWithoutTrailingSlashStaysOnTheGateway() {
+        web.get().uri("/app").exchange()
+                .expectStatus().isFound().expectHeader().valueEquals("X-Route", "modern")
+                .expectHeader().valueEquals("Location", "/app/");
+        web.get().uri("/app?candidateNumber=NW00000901").exchange()
+                .expectStatus().isFound().expectHeader().valueEquals("Location", "/app/?candidateNumber=NW00000901");
+        web.get().uri("/app/").exchange().expectStatus().isOk().expectHeader().valueEquals("X-Route", "modern");
     }
 
     /** MBA-3824: the portal pages are gone, so their URLs redirect for every centre, not only allow-listed ones. */

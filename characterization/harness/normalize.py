@@ -6,8 +6,12 @@
 * Run-time timestamps (GETDATE()/now() columns such as BookedAt, CancelledAt, LastModified,
   LoggedAt, AddedAt, startedAt) that are not older than the scenario start become ``<now>``.
   Seed timestamps and domain dates (StartsAt, earliestRetakeDate, ...) are never touched.
+  The scenario start comes from the DB clock (truncated to the second) while some targets stamp rows with
+  their own clock (the modern service's JVM), so a run-time value may sit a moment before it or carry a UTC
+  offset: offsets are converted to local time and values up to ``CLOCK_SKEW`` before the start still count.
 """
 import re
+from datetime import datetime, timedelta
 
 ID_KINDS = {
     "bookingid": "booking", "newbookingid": "booking", "oldbookingid": "booking", "originalbookingid": "booking",
@@ -16,6 +20,7 @@ ID_KINDS = {
 VOLATILE_TS = {"bookedat", "cancelledat", "lastmodified", "loggedat", "addedat", "receivedat", "startedat",
                "finishedat", "createdat", "updatedat", "timestamp", "lastrunat", "ranat"}
 TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}")
+CLOCK_SKEW = timedelta(seconds=30)
 NUM_IN_TEXT_RE = re.compile(r"(?<![\w.-])(\d{3,})(?![\w.-])")
 
 
@@ -23,7 +28,7 @@ class Normalizer:
     def __init__(self, baseline, scenario_start):
         """baseline: {"booking": max id, ...}; scenario_start: 'YYYY-MM-DDTHH:MM:SS' from the DB clock."""
         self.baseline = baseline
-        self.start = scenario_start.replace(" ", "T")[:19] if scenario_start else None
+        self.start = _parse(scenario_start) if scenario_start else None
         self.ids = {}  # (kind, raw id) -> placeholder
         self.counters = {}
 
@@ -47,7 +52,8 @@ class Normalizer:
     def timestamp(self, value):
         if not isinstance(value, str) or not TS_RE.match(value) or not self.start:
             return value
-        return "<now>" if value.replace(" ", "T")[:19] >= self.start else value
+        ts = _parse(value)
+        return "<now>" if ts is not None and ts >= self.start - CLOCK_SKEW else value
 
     def text(self, value):
         """Replace raw new booking ids that appear inside free text (portal alerts, API messages)."""
@@ -74,3 +80,18 @@ class Normalizer:
         if isinstance(obj, str):
             return self.text(obj)
         return obj
+
+
+def _parse(value):
+    """Local naive datetime for 'YYYY-MM-DD[T ]HH:MM[:SS[.fff]][Z|+hh:mm]'; None if it is not one."""
+    v = value.strip().replace(" ", "T", 1)
+    if v.endswith(("Z", "z")):
+        v = v[:-1] + "+00:00"
+    m = re.match(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?)(?:\.\d+)?([+-]\d{2}:?\d{2})?$", v)
+    if not m:
+        return None
+    try:
+        ts = datetime.fromisoformat(m.group(1) + (m.group(2) or ""))
+    except ValueError:
+        return None
+    return ts.astimezone().replace(tzinfo=None) if ts.tzinfo else ts

@@ -15,9 +15,17 @@ final class Stub {
     record Call(String method, String uri, String body) {
     }
 
-    record Answer(int status, String contentType, String body) {
+    record Answer(int status, String contentType, String body, String location) {
+        Answer(int status, String contentType, String body) {
+            this(status, contentType, body, null);
+        }
+
         static Answer json(int status, String body) {
             return new Answer(status, "application/json", body);
+        }
+
+        static Answer redirect(int status, String location) {
+            return new Answer(status, "text/plain", "", location);
         }
     }
 
@@ -49,6 +57,9 @@ final class Stub {
         Answer a = handler.apply(call);
         byte[] out = a.body().getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", a.contentType());
+        if (a.location() != null) {
+            ex.getResponseHeaders().set("Location", a.location());
+        }
         ex.sendResponseHeaders(a.status(), out.length == 0 ? -1 : out.length);
         if (out.length > 0) {
             ex.getResponseBody().write(out);

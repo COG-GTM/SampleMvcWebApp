@@ -10,7 +10,7 @@ from .config import SCENARIO_DIR, TRANSCRIPT_DIR
 from .db import Db, SqlError, log
 from .normalize import Normalizer
 from .steps import Steps
-from .web import wait_until_up
+from .web import Client, wait_settled, wait_until_up
 
 STEP_TYPES = {"portal_book", "portal_cancel", "portal_reschedule", "portal_capacity", "portal_eligibility",
               "api_book", "api_cancel", "api_reschedule", "api_eligibility", "api_get", "capacity_sync",
@@ -67,6 +67,13 @@ class Runner:
         elif mode == "command":
             self.db_or_none_cmd(self.t.reseed_cmd)
         self.warm_up()
+        self.settle()
+
+    def settle(self):
+        """Wait for an asynchronous writer (the modern outbox relay) to finish projecting into the snapshot DB."""
+        if self.t.settle_url:
+            client = Client()
+            wait_settled(lambda: client.json_call("GET", self.t.settle_url).json())
 
     def db_or_none_cmd(self, cmd):
         self.db.run_command(cmd)
@@ -131,11 +138,13 @@ class Runner:
                 norm.register("booking", res["saved"])
             setup_log.append({"name": st.get("name", kind), "request": res["request"],
                               "status": res["response"].get("status") if isinstance(res["response"], dict) else None})
+        self.settle()
         before = snapshot.take(self.db, sessions, candidates, base["audit"]) if use_db else None
         steps_out = []
         for st in sc["steps"]:
             kind, res = self._exec(st, vars_, sessions, candidates)
             entry = {"name": st.get("name", kind), "request": res["request"], "response": res["response"]}
+            self.settle()
             if use_db and sessions:
                 entry["sessions_after"] = snapshot.session_counters(self.db, sessions)
             steps_out.append(entry)

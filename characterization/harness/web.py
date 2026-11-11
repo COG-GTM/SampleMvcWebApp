@@ -105,3 +105,20 @@ def wait_until_up(url, attempts=30, delay=2.0):
             last = exc
         time.sleep(delay)
     raise RuntimeError(f"{url} not healthy: {last if not isinstance(last, Response) else last.status}")
+
+
+def wait_settled(fetch, timeout=60.0, delay=0.25, clock=time.monotonic, sleep=time.sleep):
+    """Poll fetch() (a JSON dict) until its ``pending`` count is 0, e.g. an outbox relay that projects writes
+    into the database the snapshots read (scheduling-service ``GET /internal/relay``)."""
+    deadline = clock() + timeout
+    last = None
+    while True:
+        try:
+            last = fetch()
+            if int(last.get("pending", 0)) == 0:
+                return last
+        except Exception as exc:  # restarting service, restore in progress, ...
+            last = exc
+        if clock() >= deadline:
+            raise RuntimeError(f"target did not settle within {timeout:.0f}s: {last}")
+        sleep(delay)
