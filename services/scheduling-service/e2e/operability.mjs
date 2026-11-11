@@ -108,8 +108,9 @@ await step('booking traffic incl. business errors', async () => {
   ctx.bookingId = booked.json.bookingId;
   const dup = await call('POST', '/api/v2/bookings', { sessionId: a.sessionId, candidateNumber }, { 'X-Request-Id': `${runId}-dup` });
   expect(dup.status === 409 && dup.headers.get('x-request-id') === `${runId}-dup`, `duplicate 409 + echoed X-Request-Id, got ${dup.status}`);
-  await ok('POST', `/api/v2/bookings/${ctx.bookingId}/reschedule`, { newSessionId: b.sessionId }, { 'X-Request-Id': `${runId}-res` });
-  await ok('DELETE', `/api/v2/bookings/${ctx.bookingId}?reason=functional-test`, null, { 'X-Request-Id': `${runId}-can` });
+  const moved = await ok('POST', `/api/v2/bookings/${ctx.bookingId}/reschedule`, { newSessionId: b.sessionId }, { 'X-Request-Id': `${runId}-res` });
+  ctx.rescheduledId = moved.json.bookingId;
+  await ok('DELETE', `/api/v2/bookings/${ctx.rescheduledId}?reason=functional-test`, null, { 'X-Request-Id': `${runId}-can` });
   const s = (await ok('GET', `/api/v2/sessions/${a.sessionId}`)).json;
   await ok('PUT', `/api/v2/sessions/${a.sessionId}/capacity`, { newCapacity: s.capacity + 1, actor: 'functional-test' });
   await ok('PUT', `/api/v2/sessions/${a.sessionId}/capacity`, { newCapacity: s.capacity, actor: 'functional-test' });
@@ -117,7 +118,7 @@ await step('booking traffic incl. business errors', async () => {
   expect(missing.status === 404, `unknown booking 404, got ${missing.status}`);
   const generated = await call('GET', `/api/v2/sessions/${a.sessionId}`);
   expect(/^[0-9a-f]{32}$/.test(generated.headers.get('x-request-id') ?? ''), 'generated X-Request-Id');
-  return `candidate ${candidateNumber}, booking ${ctx.bookingId}: session ${a.sessionId} -> ${b.sessionId}, center ${CENTER}`;
+  return `candidate ${candidateNumber}, booking ${ctx.bookingId} -> ${ctx.rescheduledId}: session ${a.sessionId} -> ${b.sessionId}, center ${CENTER}`;
 });
 
 await step('Prometheus exposes booking and outbox series', async () => {
