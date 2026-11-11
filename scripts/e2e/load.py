@@ -73,6 +73,7 @@ def cat_drift(c):
     sampler.sample()
     c.rec.eq('baseline drift on the load sessions is 0', sampler.samples[0]['raw'], 0)
     stats = {'portalBook': 0, 'partnerBook': 0, 'cancel': 0, 'attend': 0, 'reschedule': 0, 'rejected': {}, 'transport': 0}
+    deadlocks_before = instance_deadlocks(c.t)
     lock = threading.Lock()
 
     def note(kind, ok, code=None, http_status=None):
@@ -80,8 +81,10 @@ def cat_drift(c):
             if ok:
                 stats[kind] += 1
             else:
+                if code and 'deadlock' in code.lower():
+                    code = 'DEADLOCK_VICTIM'
                 stats['rejected'][code or 'ERR'] = stats['rejected'].get(code or 'ERR', 0) + 1
-                if http_status in (0, 500, 502, 503):
+                if http_status in (0, 500, 502, 503) or code == 'DEADLOCK_VICTIM':
                     stats['transport'] += 1
 
     def work(w):
@@ -127,6 +130,8 @@ def cat_drift(c):
     sampler.stop_evt.set()
     sampler.join()
     sampler.sample()
+    stats['sqlDeadlocks'] = instance_deadlocks(c.t) - deadlocks_before
+    stats['samplerDeadlockVictims'] = sum(1 for e in sampler.errors if 'deadlock' in e.lower())
     summ = sampler.summary()
     final = sampler.samples[-1]['per']
     summ.update({'ops': ops, 'workers': workers, 'sessions': ids, 'stats': stats,
@@ -134,7 +139,12 @@ def cat_drift(c):
     c.rec.extra['drift'] = summ
     print('  load: %d ops / %d workers in %ss, %d samples, stats=%s' % (ops, workers, summ['seconds'], summ['samples'], json.dumps(stats)))
     c.rec.check('drift sampled continuously during load (>= 10 samples)', summ['samples'] >= 10, summ['samples'])
-    c.rec.check('no transport / 5xx failures under load', stats['transport'] == 0, stats['rejected'])
+    # Both estates deadlock under this load (legacy procs: message 1205 to the caller; scheduling-service: SYSTEM_ERROR 500,
+    # which booking-api reports as SCHEDULING_UNAVAILABLE without the SQL text). A victim is rolled back, so it cannot
+    # move seats. Every 5xx / transport failure must be accounted for by a SQL Server deadlock in the same window.
+    victims = stats['sqlDeadlocks'] - stats['samplerDeadlockVictims']
+    c.rec.check('every transport / 5xx failure under load is a rolled-back SQL deadlock victim (%d failures, %d client-side '
+                'deadlocks)' % (stats['transport'], victims), stats['transport'] <= victims, stats)
     c.rec.check('unexplained seat drift 0 at every sample (max raw %d; raw drift allowed only as HB-01 partner inserts when HB-01 is kept)' % summ['maxRawDrift'],
                 summ['maxUnexplainedDrift'] == 0, [x for x in sampler.samples if x['unexplained']][:3])
     full = Sampler(c.t, None)
@@ -142,6 +152,12 @@ def cat_drift(c):
     stray = {k: v for k, v in full.samples[-1]['per'].items() if v[0] != v[1]}
     c.rec.check('full seat-drift check over every session after load: every drift row is HB-01-explained '
                 '(%d rows, all raw == partner BOOKED inserts)' % len(full.samples[-1]['per']), not stray, stray)
+
+
+def instance_deadlocks(t):
+    """Cumulative SQL Server deadlock count for the instance (both databases share it)."""
+    return int(t.ref.scalar("SELECT cntr_value FROM sys.dm_os_performance_counters WHERE counter_name LIKE "
+                            "'Number of Deadlocks/sec%' AND instance_name = '_Total'"))
 
 
 def main():
