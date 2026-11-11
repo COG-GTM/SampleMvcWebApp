@@ -1,0 +1,696 @@
+openapi: 3.0.3
+info:
+  title: scheduling-service API
+  version: 0.1.0-phase0
+  description: |
+    Contract for `services/scheduling-service` (Java 21, Spring Boot 3), the future owner of `ExamSession`,
+    `Booking` and `Waitlist`. Derived from the Phase 0 inventory (`docs/to-be/scheduling-boundary.md`) and pinned
+    by `services/scheduling-contract-tests`. Narrative, error mapping and decisions are in
+    `docs/to-be/scheduling-service-contract.md`.
+
+    Conventions:
+    - JSON, UTF-8. Timestamps are center-local wall-clock `yyyy-MM-ddTHH:mm:ss` with no offset, as stored in
+      the legacy DB (HB-25). Dates are `yyyy-MM-dd`.
+    - Errors use `Error` with a stable `error` code. `legacyState` carries the RAISERROR state (1-6) of the
+      legacy proc whose failure this replaces, so Phase 2 callers can keep their message mapping.
+    - Every command (POST) accepts `Idempotency-Key`. `X-Actor` names the audit actor (`portal`,
+      `portal-admin`, `booking-api`, `results-service`), preserving today's AuditLog actors (HB-17).
+    - `channel` (`PORTAL` | `PARTNER` | `IMPORT`) selects the legacy per-channel semantics described in the narrative.
+servers:
+  - url: http://localhost:8084/api/v1
+tags:
+  - name: sessions
+  - name: bookings
+  - name: waitlist
+  - name: attendance
+  - name: eligibility
+  - name: reference-data
+  - name: reconciler
+paths:
+  /sessions:
+    get:
+      tags: [sessions]
+      operationId: searchSessions
+      summary: Search sessions (portal FindOpenSessions / admin Load / booking-api SessionDao.find)
+      description: |
+        No status filter unless `status` is given (booking-api lists every status, HB-13). The portal passes
+        `status=OPEN`. `to` is inclusive of the whole day. Started sessions are not excluded (HB-31).
+        Default sort `startsAt,sessionId` (booking-api); the portal passes `sort=startsAt,centerCode`.
+      parameters:
+        - {name: status, in: query, schema: {type: array, items: {$ref: '#/components/schemas/SessionStatus'}}, style: form, explode: false}
+        - {name: examCode, in: query, schema: {type: string}}
+        - {name: examId, in: query, schema: {type: integer}}
+        - {name: centerCode, in: query, schema: {type: string}}
+        - {name: testCenterId, in: query, schema: {type: integer}}
+        - {name: from, in: query, schema: {type: string, format: date}, description: 'StartsAt >= from (start of day)'}
+        - {name: to, in: query, schema: {type: string, format: date}, description: 'StartsAt < to + 1 day'}
+        - {name: excludeSessionId, in: query, schema: {type: integer}, description: 'reschedule targets (portal P-B11)'}
+        - {name: minSeatsAvailable, in: query, schema: {type: integer}}
+        - {name: include, in: query, schema: {type: array, items: {type: string, enum: [counts]}}, style: form, explode: false, description: 'adds bookedSeats and waitlistCount (portal admin Load)'}
+        - {name: sort, in: query, schema: {type: string, enum: ['startsAt,sessionId', 'startsAt,centerCode'], default: 'startsAt,sessionId'}}
+        - {name: limit, in: query, schema: {type: integer, default: 500, maximum: 500}}
+      responses:
+        '200':
+          description: Sessions
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Session'}}
+  /sessions/summary:
+    get:
+      tags: [sessions]
+      operationId: sessionSummary
+      summary: Per-centre session counts (portal AdminService.ListCenters)
+      parameters:
+        - {name: groupBy, in: query, required: true, schema: {type: string, enum: [testCenter]}}
+      responses:
+        '200':
+          description: Counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [testCenterId, sessionCount, openSessionCount]
+                  properties:
+                    testCenterId: {type: integer}
+                    sessionCount: {type: integer}
+                    openSessionCount: {type: integer}
+  /sessions/{sessionId}:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    get:
+      tags: [sessions]
+      operationId: getSession
+      summary: Session detail with counts (portal GetSession, booking-api GET /sessions/{id})
+      responses:
+        '200':
+          description: Session; `bookedSeats` = BOOKED + ATTENDED bookings, `waitlistCount` = Waitlist rows
+          headers:
+            ETag: {schema: {type: string}, description: 'session version; usable as If-Match on capacity changes'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Session'}
+        '404': {$ref: '#/components/responses/SessionNotFound'}
+  /sessions/{sessionId}/capacity:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    post:
+      tags: [sessions]
+      operationId: changeCapacity
+      summary: Change capacity (replaces usp_ChangeCapacity + trg_ExamSession_Update demotion)
+      description: |
+        Locks the session row. `SeatsAvailable += newCapacity - oldCapacity`, floored at 0. On a cut, the newest
+        BOOKED rows (BookedAt DESC, BookingId DESC) are demoted to WAITLISTED with new Waitlist rows, and seats are
+        recounted as `Capacity - BOOKED` (HB-05). Writes a CAPACITY audit row. Only `newCapacity < 0` and
+        `newCapacity < accommodationCapacity` are rejected; there is no upper bound (HB-23).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Actor'
+        - {name: If-Match, in: header, schema: {type: string}, description: 'optional optimistic check against the session ETag'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newCapacity]
+              properties:
+                newCapacity: {type: integer}
+      responses:
+        '200':
+          description: Capacity changed
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CapacityChangeResult'}
+        '404': {$ref: '#/components/responses/SessionNotFound'}
+        '412': {$ref: '#/components/responses/PreconditionFailed'}
+        '422':
+          description: 'INVALID_CAPACITY (legacyState 5: "Invalid capacity %d for session %d.")'
+          content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+  /sessions/capacity-audit:
+    get:
+      tags: [sessions]
+      operationId: capacityAudit
+      summary: Capacity change history (replaces usp_GetCapacityAudit, portal capacity-audit page)
+      parameters:
+        - {name: testCenterId, in: query, required: true, schema: {type: integer}}
+        - {name: sessionId, in: query, schema: {type: integer}}
+        - {name: from, in: query, schema: {type: string, format: date-time}}
+        - {name: to, in: query, schema: {type: string, format: date-time}}
+        - {name: page, in: query, schema: {type: integer, default: 1}}
+        - {name: pageSize, in: query, schema: {type: integer, default: 50}}
+      responses:
+        '200':
+          description: Audit page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalRows: {type: integer}
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        auditId: {type: integer, format: int64}
+                        loggedAt: {type: string}
+                        actor: {type: string}
+                        sessionId: {type: integer}
+                        examCode: {type: string}
+                        sessionStartsAt: {type: string}
+                        roomName: {type: string}
+                        oldCapacity: {type: integer, nullable: true}
+                        newCapacity: {type: integer, nullable: true}
+                        delta: {type: integer, nullable: true}
+                        currentCapacity: {type: integer}
+                        currentSeatsAvailable: {type: integer}
+                        detail: {type: string}
+  /sessions/{sessionId}/waitlist:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    get:
+      tags: [waitlist]
+      operationId: getWaitlist
+      summary: Waitlist rows for a session, ordered by position
+      description: |
+        Positions are not compacted after cancellations (gaps, HB-06) and nobody is promoted automatically.
+        A WAITLISTED booking may have no Waitlist row (HB-28); such bookings are returned with `position: null`.
+      responses:
+        '200':
+          description: Waitlist
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/WaitlistEntry'}}
+        '404': {$ref: '#/components/responses/SessionNotFound'}
+  /sessions/{sessionId}/roster:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    get:
+      tags: [sessions]
+      operationId: getRoster
+      summary: Session roster (portal Admin roster export, MBA-3826)
+      description: |
+        BOOKED, ATTENDED and WAITLISTED bookings with candidate fields from the Candidate replica. Seat holders
+        first, then waitlisted; each group by LastName, FirstName (case-insensitive), CandidateNumber.
+        `waitlistPosition` = MIN(Waitlist.Position) for the booking, null if none.
+      parameters:
+        - {name: format, in: query, schema: {type: string, enum: [json, csv], default: json}}
+      responses:
+        '200':
+          description: Roster
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Roster'}
+            text/csv:
+              schema: {type: string}
+        '404': {$ref: '#/components/responses/SessionNotFound'}
+  /bookings:
+    get:
+      tags: [bookings]
+      operationId: searchBookings
+      summary: Booking queries (portal candidate bookings, booking-api findByCandidate, results-service findBookingId)
+      parameters:
+        - {name: candidateId, in: query, schema: {type: integer}}
+        - {name: candidateNumber, in: query, schema: {type: string}, description: 'trimmed and upper-cased (portal FindCandidate)'}
+        - {name: sessionId, in: query, schema: {type: integer}}
+        - {name: status, in: query, schema: {type: array, items: {$ref: '#/components/schemas/BookingStatus'}}, style: form, explode: false}
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: ['bookedAt,desc', 'sessionStartsAt,desc', 'bookingId,desc']
+            default: 'bookedAt,desc'
+          description: |
+            `bookedAt,desc` = BookedAt DESC, BookingId DESC (booking-api). `sessionStartsAt,desc` = StartsAt DESC,
+            BookingId DESC (portal). `bookingId,desc` with `limit=1` reproduces results-service findBookingId.
+        - {name: limit, in: query, schema: {type: integer}}
+      responses:
+        '200':
+          description: Bookings
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Booking'}}
+        '400': {$ref: '#/components/responses/Validation'}
+    post:
+      tags: [bookings]
+      operationId: book
+      summary: Book a seat or join the waitlist (replaces usp_BookSeat and booking-api's direct INSERT path)
+      description: |
+        Locks the session row for every channel (legacy portal semantics, `UPDLOCK, HOLDLOCK`). Checks, in order:
+        session OPEN (no StartsAt check, HB-31), no active BOOKED/WAITLISTED booking for this candidate on this
+        session (per session only, HB-21), accommodation seat for ET25/ET50 (BOOKED+ATTENDED ET bookings <
+        AccommodationCapacity). Then BOOKED if SeatsAvailable > 0, else WAITLISTED with Position = MAX+1.
+        Does NOT check retake eligibility (HB-08): callers do, as today.
+        `accommodationCode` is taken literally; the portal resolves blank to the candidate default before
+        calling (HB-09). Seat accounting per channel: see narrative section 6.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Actor'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/BookRequest'}
+      responses:
+        '201':
+          description: Booked or waitlisted
+          headers:
+            Location: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/BookingResult'}
+        '200':
+          description: 'Idempotent replay of an earlier identical request (header Idempotent-Replayed = true)'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/BookingResult'}
+        '400': {$ref: '#/components/responses/Validation'}
+        '404':
+          description: SESSION_NOT_FOUND or CANDIDATE_NOT_FOUND (not in the Candidate replica)
+          content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+        '409':
+          description: |
+            SESSION_NOT_OPEN (legacyState 1), DUPLICATE_BOOKING (legacyState 2), NO_ACCOMMODATION_SEAT (legacyState 3)
+          content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+        '422': {$ref: '#/components/responses/IdempotencyKeyReused'}
+  /bookings/{bookingId}:
+    parameters:
+      - $ref: '#/components/parameters/BookingId'
+    get:
+      tags: [bookings]
+      operationId: getBooking
+      summary: Booking detail (portal GetBooking, booking-api BookingDao.findById, results-service RS-01)
+      responses:
+        '200':
+          description: Booking
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Booking'}
+        '404': {$ref: '#/components/responses/BookingNotFound'}
+  /bookings/{bookingId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/BookingId'
+    post:
+      tags: [bookings]
+      operationId: cancelBooking
+      summary: Cancel (replaces usp_CancelBooking)
+      description: |
+        Locks the booking row. BOOKED -> CANCELLED and SeatsAvailable + 1; WAITLISTED -> CANCELLED and its
+        Waitlist row deleted (no promotion, positions keep gaps, HB-06). Any booking id is accepted, including
+        bookings on delivered or past sessions (HB-22).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Actor'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: {type: string, maxLength: 200}
+      responses:
+        '200':
+          description: Cancelled
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Booking'}
+        '404': {$ref: '#/components/responses/BookingNotFound'}
+        '409':
+          description: 'NOT_CANCELLABLE (legacyState 4: "Booking %d cannot be cancelled.")'
+          content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+  /bookings/{bookingId}/reschedule:
+    parameters:
+      - $ref: '#/components/parameters/BookingId'
+    post:
+      tags: [bookings]
+      operationId: rescheduleBooking
+      summary: Move a booking to another session of the same exam (replaces usp_RescheduleBooking and booking-api reschedule)
+      description: |
+        `channel=PORTAL`: usp_RescheduleBooking semantics, one transaction, cancel then book; the new booking is
+        written with channel PORTAL and no externalRef (HB-10). `channel=PARTNER`: booking-api semantics (HB-11):
+        SAME_SESSION check, cancel then the partner book path, new booking keeps PARTNER and externalRef.
+        Either way the result is a new BookingId; the old booking is CANCELLED.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Actor'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newSessionId, channel]
+              properties:
+                newSessionId: {type: integer}
+                channel: {$ref: '#/components/schemas/Channel'}
+      responses:
+        '201':
+          description: Rescheduled
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/BookingResult'}
+        '404':
+          description: BOOKING_NOT_FOUND or SESSION_NOT_FOUND
+          content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+        '409':
+          description: |
+            DIFFERENT_EXAM (legacyState 6), SAME_SESSION (partner only), NOT_CANCELLABLE (4), SESSION_NOT_OPEN (1),
+            DUPLICATE_BOOKING (2), NO_ACCOMMODATION_SEAT (3). Any failure leaves the original booking untouched.
+          content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+  /bookings/{bookingId}/attendance:
+    parameters:
+      - $ref: '#/components/parameters/BookingId'
+    post:
+      tags: [attendance]
+      operationId: markAttended
+      summary: Mark attended (replaces results-service UPDATE Booking SET Status='ATTENDED')
+      description: |
+        BOOKED -> ATTENDED (LastModified bumped); ATTENDED -> unchanged, 200 (idempotent). CANCELLED or WAITLISTED
+        -> 409 BOOKING_NOT_ACTIVE. No StartsAt or session-status check: future and cancelled sessions are accepted
+        (HB-18). Seats and waitlist are not touched. The optional `result` block records the attempt outcome used
+        by retake eligibility (narrative section 7); `passed` is frozen as sent (HB-18).
+      parameters:
+        - $ref: '#/components/parameters/Actor'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                result:
+                  type: object
+                  required: [resultId, score, passed]
+                  properties:
+                    resultId: {type: integer}
+                    score: {type: integer}
+                    passed: {type: boolean}
+                    scoredAt: {type: string}
+      responses:
+        '200':
+          description: Attended (transition happened or booking was already ATTENDED)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Booking'
+                  - type: object
+                    properties:
+                      transitioned: {type: boolean, description: 'false when the booking was already ATTENDED'}
+        '404': {$ref: '#/components/responses/BookingNotFound'}
+        '409':
+          description: BOOKING_NOT_ACTIVE (status CANCELLED or WAITLISTED)
+          content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+  /eligibility/retake:
+    get:
+      tags: [eligibility]
+      operationId: retakeEligibility
+      summary: Retake eligibility (recommended placement, narrative section 7)
+      description: |
+        Attempts = recorded attendance results for (candidate, exam); session date = the session's StartsAt.
+        `policy=PORTAL_CALENDAR_DAYS` reproduces AssessmentDelivery.Business RetakeRules (calendar days from the
+        latest attempt date). `policy=PARTNER_WORKING_DAYS` reproduces booking-api RetakeEligibilityService
+        (Mon-Fri working days from the first row ordered StartsAt DESC, ResultId DESC). Divergence is intentional
+        (HB-07) and pinned by RetakeEligibilityContractTest.
+      parameters:
+        - {name: candidateNumber, in: query, required: true, schema: {type: string}}
+        - {name: examCode, in: query, required: true, schema: {type: string}}
+        - {name: date, in: query, schema: {type: string, format: date}, description: 'defaults to today (center-local)'}
+        - {name: policy, in: query, required: true, schema: {type: string, enum: [PORTAL_CALENDAR_DAYS, PARTNER_WORKING_DAYS]}}
+      responses:
+        '200':
+          description: Decision
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RetakeDecision'}
+        '404':
+          description: CANDIDATE_NOT_FOUND or EXAM_NOT_FOUND
+          content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+  /reference/{entity}/{id}:
+    parameters:
+      - {name: entity, in: path, required: true, schema: {type: string, enum: [exams, test-centers, rooms, candidates]}}
+      - {name: id, in: path, required: true, schema: {type: integer}, description: 'legacy identity value (ExamId, TestCenterId, RoomId or CandidateId)'}
+    put:
+      tags: [reference-data]
+      operationId: upsertReference
+      summary: Upsert one replicated reference row (fed by the AssessmentDelivery change feed)
+      description: |
+        Last-writer-wins by `sourceVersion` (monotonic per row: SQL Server rowversion or change-tracking version).
+        A PUT with a lower or equal version is acknowledged and ignored (204). No FKs to the source DB.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ReferenceUpsert'}
+      responses:
+        '200': {description: 'Applied'}
+        '204': {description: 'Stale version ignored'}
+        '400': {$ref: '#/components/responses/Validation'}
+    get:
+      tags: [reference-data]
+      operationId: getReference
+      summary: Read a replicated reference row (diagnostics, drift checks)
+      responses:
+        '200':
+          description: Row
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReferenceUpsert'}
+        '404': {description: 'Not replicated'}
+  /reference/status:
+    get:
+      tags: [reference-data]
+      operationId: referenceStatus
+      summary: Replication lag and row counts per entity (staleness monitoring)
+      responses:
+        '200':
+          description: Status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    entity: {type: string}
+                    rows: {type: integer}
+                    lastAppliedVersion: {type: integer, format: int64}
+                    lastAppliedAt: {type: string, format: date-time}
+                    lagSeconds: {type: integer}
+                    stale: {type: boolean}
+  /reconciler/runs:
+    get:
+      tags: [reconciler]
+      operationId: listReconcilerRuns
+      summary: Seat reconciler runs (replaces capacity-sync /sync/last and CAPACITY_SYNC audit rows)
+      parameters:
+        - {name: from, in: query, schema: {type: string, format: date-time}}
+        - {name: to, in: query, schema: {type: string, format: date-time}}
+        - {name: max, in: query, schema: {type: integer, default: 50}}
+      responses:
+        '200':
+          description: Runs, newest first
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/ReconcilerRun'}}
+    post:
+      tags: [reconciler]
+      operationId: triggerReconcilerRun
+      summary: Trigger a reconciler run now (replaces capacity-sync POST /sync)
+      parameters:
+        - $ref: '#/components/parameters/Actor'
+      responses:
+        '200':
+          description: Run finished (status may be FAILED; legacy reported failures as 200, HB-20)
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReconcilerRun'}
+        '409': {description: 'A run is already in progress'}
+components:
+  parameters:
+    SessionId: {name: sessionId, in: path, required: true, schema: {type: integer}}
+    BookingId: {name: bookingId, in: path, required: true, schema: {type: integer}}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema: {type: string, maxLength: 64}
+      description: |
+        Client-generated key (UUID). Stored with a hash of the request for 7 days. Same key + same request =>
+        the original status and body are replayed with `Idempotent-Replayed: true` and no side effects. Same key +
+        different request => 422. `externalRef` is NOT an idempotency key (HB-12).
+    Actor:
+      name: X-Actor
+      in: header
+      required: false
+      schema: {type: string, maxLength: 60}
+      description: Audit actor. Defaults to the authenticated client id.
+  responses:
+    Validation:
+      description: VALIDATION (or INVALID_ACCOMMODATION_CODE)
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    SessionNotFound:
+      description: SESSION_NOT_FOUND
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    BookingNotFound:
+      description: BOOKING_NOT_FOUND
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    PreconditionFailed:
+      description: VERSION_MISMATCH (If-Match did not match the session ETag)
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    IdempotencyKeyReused:
+      description: IDEMPOTENCY_KEY_REUSED (same key, different request)
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+  schemas:
+    Channel:
+      type: string
+      enum: [PORTAL, PARTNER, IMPORT]
+    SessionStatus:
+      type: string
+      description: free text in legacy (VARCHAR(12)); values seen are OPEN, CLOSED, CANCELLED, DELIVERED
+      enum: [OPEN, CLOSED, CANCELLED, DELIVERED]
+    BookingStatus:
+      type: string
+      enum: [BOOKED, WAITLISTED, CANCELLED, ATTENDED]
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error: {type: string, example: SESSION_NOT_OPEN}
+        message: {type: string, example: Session 42 is not open for booking.}
+        legacyState: {type: integer, minimum: 1, maximum: 6, nullable: true, description: 'RAISERROR state of the legacy proc error this replaces (all were message 50000, severity 16; HB-14)'}
+    Session:
+      type: object
+      required: [sessionId, examId, examCode, testCenterId, centerCode, roomId, startsAt, capacity, accommodationCapacity, seatsAvailable, status]
+      properties:
+        sessionId: {type: integer}
+        examId: {type: integer}
+        examCode: {type: string}
+        examTitle: {type: string}
+        durationMinutes: {type: integer}
+        testCenterId: {type: integer}
+        centerCode: {type: string}
+        centerName: {type: string}
+        city: {type: string}
+        roomId: {type: integer}
+        roomName: {type: string}
+        startsAt: {type: string, example: '2027-03-10T09:30:00'}
+        capacity: {type: integer}
+        accommodationCapacity: {type: integer}
+        seatsAvailable: {type: integer, description: 'denormalised counter exactly as maintained (may drift, HB-01..HB-03)'}
+        status: {$ref: '#/components/schemas/SessionStatus'}
+        bookedSeats: {type: integer, nullable: true, description: 'BOOKED + ATTENDED; on detail, or with include=counts'}
+        waitlistCount: {type: integer, nullable: true, description: 'Waitlist rows; on detail, or with include=counts'}
+        lastModified: {type: string}
+    Booking:
+      type: object
+      required: [bookingId, sessionId, candidateId, candidateNumber, status, channel, bookedAt]
+      properties:
+        bookingId: {type: integer}
+        sessionId: {type: integer}
+        candidateId: {type: integer}
+        candidateNumber: {type: string}
+        examId: {type: integer}
+        examCode: {type: string}
+        examTitle: {type: string}
+        centerName: {type: string}
+        sessionStartsAt: {type: string}
+        status: {$ref: '#/components/schemas/BookingStatus'}
+        accommodationCode: {type: string, nullable: true}
+        channel: {$ref: '#/components/schemas/Channel'}
+        externalRef: {type: string, nullable: true, maxLength: 40}
+        bookedAt: {type: string}
+        cancelledAt: {type: string, nullable: true}
+        cancelReason: {type: string, nullable: true}
+        waitlistPosition: {type: integer, nullable: true}
+    BookRequest:
+      type: object
+      required: [sessionId, channel]
+      properties:
+        sessionId: {type: integer}
+        candidateId: {type: integer, description: 'one of candidateId / candidateNumber is required'}
+        candidateNumber: {type: string}
+        accommodationCode: {type: string, nullable: true, enum: [ET25, ET50, SR, RB, null]}
+        channel: {$ref: '#/components/schemas/Channel'}
+        externalRef: {type: string, nullable: true, maxLength: 40}
+    BookingResult:
+      type: object
+      required: [bookingId, status]
+      properties:
+        bookingId: {type: integer}
+        status: {type: string, enum: [BOOKED, WAITLISTED]}
+        waitlistPosition: {type: integer, nullable: true}
+        cancelledBookingId: {type: integer, nullable: true, description: 'reschedule only'}
+    CapacityChangeResult:
+      type: object
+      properties:
+        sessionId: {type: integer}
+        oldCapacity: {type: integer}
+        newCapacity: {type: integer}
+        seatsAvailable: {type: integer}
+        demotedBookingIds: {type: array, items: {type: integer}}
+    WaitlistEntry:
+      type: object
+      properties:
+        waitlistId: {type: integer, nullable: true}
+        bookingId: {type: integer}
+        candidateId: {type: integer}
+        candidateNumber: {type: string}
+        position: {type: integer, nullable: true}
+        addedAt: {type: string, nullable: true}
+    Roster:
+      type: object
+      properties:
+        sessionId: {type: integer}
+        centerCode: {type: string}
+        examCode: {type: string}
+        startsAt: {type: string}
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              candidateNumber: {type: string}
+              lastName: {type: string}
+              firstName: {type: string}
+              email: {type: string}
+              bookingStatus: {$ref: '#/components/schemas/BookingStatus'}
+              accommodationCode: {type: string, nullable: true}
+              channel: {$ref: '#/components/schemas/Channel'}
+              bookedAt: {type: string}
+              waitlistPosition: {type: integer, nullable: true}
+    RetakeDecision:
+      type: object
+      required: [eligible, reason, policy]
+      properties:
+        eligible: {type: boolean}
+        reason: {type: string, description: 'PORTAL_CALENDAR_DAYS: the portal text ("No previous attempts", ...). PARTNER_WORKING_DAYS: FIRST_ATTEMPT, ALREADY_PASSED, RETAKE_WAIT_NOT_ELAPSED, RETAKE_ALLOWED'}
+        earliestRetakeDate: {type: string, format: date, nullable: true}
+        policy: {type: string, enum: [PORTAL_CALENDAR_DAYS, PARTNER_WORKING_DAYS]}
+    ReferenceUpsert:
+      type: object
+      required: [sourceVersion, data]
+      properties:
+        sourceVersion: {type: integer, format: int64}
+        deleted: {type: boolean, default: false}
+        data:
+          type: object
+          description: |
+            exams: ExamId, ExamCode, Title, DurationMinutes, PassingScore, RetakeWaitDays, IsPublished.
+            test-centers: TestCenterId, CenterCode, Name, City, Region, TimeZone, IsActive.
+            rooms: RoomId, TestCenterId, RoomName, SeatCount, AccommodationSeats, IsActive.
+            candidates: CandidateId, CandidateNumber, FirstName, LastName, Email, DefaultAccommodationCode.
+          additionalProperties: true
+    ReconcilerRun:
+      type: object
+      properties:
+        runId: {type: integer}
+        trigger: {type: string, enum: [SCHEDULED, MANUAL]}
+        status: {type: string, enum: [OK, FAILED]}
+        startedAt: {type: string, format: date-time}
+        finishedAt: {type: string, format: date-time}
+        checked: {type: integer}
+        updated: {type: integer}
+        skipped: {type: integer, description: 'lost compare-and-set'}
+        error: {type: string, nullable: true}
