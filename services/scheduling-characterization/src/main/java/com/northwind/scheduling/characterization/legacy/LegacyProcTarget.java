@@ -19,18 +19,18 @@ import java.util.stream.Collectors;
 
 import com.microsoft.sqlserver.jdbc.SQLServerError;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.northwind.scheduling.characterization.target.Capability;
-import com.northwind.scheduling.characterization.target.ErrorCondition;
-import com.northwind.scheduling.characterization.target.Fixtures;
-import com.northwind.scheduling.characterization.target.Model.AuditEntry;
-import com.northwind.scheduling.characterization.target.Model.BookingState;
-import com.northwind.scheduling.characterization.target.Model.ExamSessionState;
-import com.northwind.scheduling.characterization.target.Model.WaitlistEntry;
-import com.northwind.scheduling.characterization.target.Outcome;
-import com.northwind.scheduling.characterization.target.RawStorageAccess;
-import com.northwind.scheduling.characterization.target.SchedulingError;
-import com.northwind.scheduling.characterization.target.SchedulingTarget;
-import com.northwind.scheduling.characterization.target.SeatDriftCheck;
+import com.northwind.scheduling.characterization.spi.Capability;
+import com.northwind.scheduling.characterization.spi.ErrorCondition;
+import com.northwind.scheduling.characterization.spi.Fixtures;
+import com.northwind.scheduling.characterization.spi.Model.AuditEntry;
+import com.northwind.scheduling.characterization.spi.Model.BookingState;
+import com.northwind.scheduling.characterization.spi.Model.ExamSessionState;
+import com.northwind.scheduling.characterization.spi.Model.WaitlistEntry;
+import com.northwind.scheduling.characterization.spi.Outcome;
+import com.northwind.scheduling.characterization.spi.RawStorageAccess;
+import com.northwind.scheduling.characterization.spi.SchedulingError;
+import com.northwind.scheduling.characterization.spi.SchedulingTarget;
+import com.northwind.scheduling.characterization.spi.SeatDriftCheck;
 
 /**
  * Legacy target: EXECs the real procs in db/procs over JDBC as the shared {@code ad_app} login, so the triggers in

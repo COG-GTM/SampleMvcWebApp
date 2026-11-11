@@ -1,6 +1,6 @@
 package com.northwind.scheduling.characterization.scenarios;
 
-import static com.northwind.scheduling.characterization.target.ErrorCondition.BOOKING_NOT_CANCELLABLE;
+import static com.northwind.scheduling.characterization.spi.ErrorCondition.BOOKING_NOT_CANCELLABLE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test;
 
 import com.northwind.scheduling.characterization.support.CharacterizationTest;
 import com.northwind.scheduling.characterization.support.Scenario;
-import com.northwind.scheduling.characterization.target.Model.AuditEntry;
-import com.northwind.scheduling.characterization.target.Model.BookingState;
-import com.northwind.scheduling.characterization.target.Outcome;
+import com.northwind.scheduling.characterization.spi.Model.AuditEntry;
+import com.northwind.scheduling.characterization.spi.Model.BookingState;
+import com.northwind.scheduling.characterization.spi.Outcome;
 
 /** db/procs/021_usp_CancelBooking.sql */
 @DisplayName("021 usp_CancelBooking")

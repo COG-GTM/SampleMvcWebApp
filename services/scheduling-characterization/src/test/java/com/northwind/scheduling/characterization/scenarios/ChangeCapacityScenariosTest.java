@@ -1,6 +1,6 @@
 package com.northwind.scheduling.characterization.scenarios;
 
-import static com.northwind.scheduling.characterization.target.ErrorCondition.INVALID_CAPACITY;
+import static com.northwind.scheduling.characterization.spi.ErrorCondition.INVALID_CAPACITY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
@@ -9,10 +9,10 @@ import org.junit.jupiter.api.Test;
 
 import com.northwind.scheduling.characterization.support.CharacterizationTest;
 import com.northwind.scheduling.characterization.support.Scenario;
-import com.northwind.scheduling.characterization.target.Model.AuditEntry;
-import com.northwind.scheduling.characterization.target.Model.ExamSessionState;
-import com.northwind.scheduling.characterization.target.Model.SessionSpec;
-import com.northwind.scheduling.characterization.target.Outcome;
+import com.northwind.scheduling.characterization.spi.Model.AuditEntry;
+import com.northwind.scheduling.characterization.spi.Model.ExamSessionState;
+import com.northwind.scheduling.characterization.spi.Model.SessionSpec;
+import com.northwind.scheduling.characterization.spi.Outcome;
 
 /** db/procs/022_usp_ChangeCapacity.sql (delta math, zero floor, validation). Demotion: CapacityDemotionScenariosTest. */
 @DisplayName("022 usp_ChangeCapacity")

@@ -13,10 +13,10 @@ import org.junit.jupiter.api.Test;
 import com.northwind.scheduling.characterization.support.CharacterizationTest;
 import com.northwind.scheduling.characterization.support.DriftLedger;
 import com.northwind.scheduling.characterization.support.Scenario;
-import com.northwind.scheduling.characterization.target.Capability;
-import com.northwind.scheduling.characterization.target.Model.SeatDrift;
-import com.northwind.scheduling.characterization.target.Model.SessionSpec;
-import com.northwind.scheduling.characterization.target.StateDerivedSeatDriftCheck;
+import com.northwind.scheduling.characterization.spi.Capability;
+import com.northwind.scheduling.characterization.spi.Model.SeatDrift;
+import com.northwind.scheduling.characterization.spi.Model.SessionSpec;
+import com.northwind.scheduling.characterization.spi.StateDerivedSeatDriftCheck;
 
 /** db/checks/seat-drift.sql as an invariant (also run after every test by SeatDriftInvariantExtension). */
 @DisplayName("Seat drift (db/checks/seat-drift.sql)")

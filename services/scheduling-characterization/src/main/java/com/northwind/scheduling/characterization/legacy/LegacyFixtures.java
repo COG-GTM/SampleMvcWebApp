@@ -4,8 +4,8 @@ import java.time.LocalDateTime;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.northwind.scheduling.characterization.target.Fixtures;
-import com.northwind.scheduling.characterization.target.Model.SessionSpec;
+import com.northwind.scheduling.characterization.spi.Fixtures;
+import com.northwind.scheduling.characterization.spi.Model.SessionSpec;
 
 /**
  * Fixture rows in a dedicated test centre / room. Codes carry a per-run token so the suite can also run against an

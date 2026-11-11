@@ -1,8 +1,8 @@
 package com.northwind.scheduling.characterization.scenarios;
 
-import static com.northwind.scheduling.characterization.target.ErrorCondition.DUPLICATE_ACTIVE_BOOKING;
-import static com.northwind.scheduling.characterization.target.ErrorCondition.NO_ACCOMMODATION_SEAT;
-import static com.northwind.scheduling.characterization.target.ErrorCondition.SYSTEM_ERROR;
+import static com.northwind.scheduling.characterization.spi.ErrorCondition.DUPLICATE_ACTIVE_BOOKING;
+import static com.northwind.scheduling.characterization.spi.ErrorCondition.NO_ACCOMMODATION_SEAT;
+import static com.northwind.scheduling.characterization.spi.ErrorCondition.SYSTEM_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
@@ -21,11 +21,11 @@ import org.junit.jupiter.api.Test;
 import com.northwind.scheduling.characterization.support.CharacterizationTest;
 import com.northwind.scheduling.characterization.support.Race;
 import com.northwind.scheduling.characterization.support.Scenario;
-import com.northwind.scheduling.characterization.target.Capability;
-import com.northwind.scheduling.characterization.target.Model.BookingState;
-import com.northwind.scheduling.characterization.target.Model.SessionSpec;
-import com.northwind.scheduling.characterization.target.Outcome;
-import com.northwind.scheduling.characterization.target.StateDerivedSeatDriftCheck;
+import com.northwind.scheduling.characterization.spi.Capability;
+import com.northwind.scheduling.characterization.spi.Model.BookingState;
+import com.northwind.scheduling.characterization.spi.Model.SessionSpec;
+import com.northwind.scheduling.characterization.spi.Outcome;
+import com.northwind.scheduling.characterization.spi.StateDerivedSeatDriftCheck;
 
 /**
  * Concurrency scenarios implied by {@code WITH (UPDLOCK, HOLDLOCK)} on ExamSession in 020/022 and on Booking in 021.

@@ -4,8 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.northwind.scheduling.characterization.target.Model.SeatDrift;
-import com.northwind.scheduling.characterization.target.SchedulingTarget;
+import com.northwind.scheduling.characterization.spi.Model.SeatDrift;
+import com.northwind.scheduling.characterization.spi.SchedulingTarget;
 
 /**
  * Drift the invariant tolerates: the baseline of the freshly provisioned database (captured once, before any

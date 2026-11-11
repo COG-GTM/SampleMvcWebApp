@@ -36,7 +36,7 @@ Fixtures: every scenario creates its own exam, candidates and sessions (sessions
 
 ## Target abstraction (how Phase 1 plugs in)
 
-All scenarios are written against `com.northwind.scheduling.characterization.target` (in `src/main/java`):
+All scenarios are written against `com.northwind.scheduling.characterization.spi` (in `src/main/java`):
 
 | Type | Role |
 |---|---|
@@ -64,7 +64,7 @@ plus the proc's message template, because the state alone is ambiguous: Msg 266 
 3. Optionally implement `RawStorageAccess` against the new tables and declare `RAW_STORAGE`. Scenarios that need a
    capability the target does not declare are reported as skipped, not failed.
 4. Add a `SchedulingTargetProvider` whose `name()` is the new `-Dtarget` value, list it in
-   `src/main/resources/META-INF/services/com.northwind.scheduling.characterization.target.SchedulingTargetProvider`, and
+   `src/main/resources/META-INF/services/com.northwind.scheduling.characterization.spi.SchedulingTargetProvider`, and
    (optionally) add a `target-<name>` Maven profile.
 5. Run `mvn -B verify -Dtarget=<name>`. Do not edit the scenarios.
 

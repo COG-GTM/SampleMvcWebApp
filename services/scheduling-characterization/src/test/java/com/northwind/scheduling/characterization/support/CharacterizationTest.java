@@ -7,16 +7,16 @@ import java.util.List;
 
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import com.northwind.scheduling.characterization.target.Capability;
-import com.northwind.scheduling.characterization.target.ErrorCondition;
-import com.northwind.scheduling.characterization.target.Model.BookingState;
-import com.northwind.scheduling.characterization.target.Model.ExamSessionState;
-import com.northwind.scheduling.characterization.target.Model.SessionSpec;
-import com.northwind.scheduling.characterization.target.Model.WaitlistEntry;
-import com.northwind.scheduling.characterization.target.Outcome;
-import com.northwind.scheduling.characterization.target.RawStorageAccess;
-import com.northwind.scheduling.characterization.target.SchedulingTarget;
-import com.northwind.scheduling.characterization.target.SchedulingTargets;
+import com.northwind.scheduling.characterization.spi.Capability;
+import com.northwind.scheduling.characterization.spi.ErrorCondition;
+import com.northwind.scheduling.characterization.spi.Model.BookingState;
+import com.northwind.scheduling.characterization.spi.Model.ExamSessionState;
+import com.northwind.scheduling.characterization.spi.Model.SessionSpec;
+import com.northwind.scheduling.characterization.spi.Model.WaitlistEntry;
+import com.northwind.scheduling.characterization.spi.Outcome;
+import com.northwind.scheduling.characterization.spi.RawStorageAccess;
+import com.northwind.scheduling.characterization.spi.SchedulingTarget;
+import com.northwind.scheduling.characterization.spi.SchedulingTargets;
 
 /** Base class: target selection, fixtures, assertion helpers and the after-each seat-drift invariant. */
 @ExtendWith(SeatDriftInvariantExtension.class)

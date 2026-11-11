@@ -11,9 +11,9 @@ import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-import com.northwind.scheduling.characterization.target.Model.SeatDrift;
-import com.northwind.scheduling.characterization.target.SchedulingTarget;
-import com.northwind.scheduling.characterization.target.SchedulingTargets;
+import com.northwind.scheduling.characterization.spi.Model.SeatDrift;
+import com.northwind.scheduling.characterization.spi.SchedulingTarget;
+import com.northwind.scheduling.characterization.spi.SchedulingTargets;
 
 /**
  * Runs the target's seat-drift check (legacy: db/checks/seat-drift.sql) after every test and fails the test unless

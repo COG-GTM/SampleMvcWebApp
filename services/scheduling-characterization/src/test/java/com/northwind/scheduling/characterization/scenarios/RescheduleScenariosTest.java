@@ -1,10 +1,10 @@
 package com.northwind.scheduling.characterization.scenarios;
 
-import static com.northwind.scheduling.characterization.target.ErrorCondition.BOOKING_NOT_CANCELLABLE;
-import static com.northwind.scheduling.characterization.target.ErrorCondition.DUPLICATE_ACTIVE_BOOKING;
-import static com.northwind.scheduling.characterization.target.ErrorCondition.NO_ACCOMMODATION_SEAT;
-import static com.northwind.scheduling.characterization.target.ErrorCondition.RESCHEDULE_NOT_ALLOWED;
-import static com.northwind.scheduling.characterization.target.ErrorCondition.SESSION_NOT_OPEN;
+import static com.northwind.scheduling.characterization.spi.ErrorCondition.BOOKING_NOT_CANCELLABLE;
+import static com.northwind.scheduling.characterization.spi.ErrorCondition.DUPLICATE_ACTIVE_BOOKING;
+import static com.northwind.scheduling.characterization.spi.ErrorCondition.NO_ACCOMMODATION_SEAT;
+import static com.northwind.scheduling.characterization.spi.ErrorCondition.RESCHEDULE_NOT_ALLOWED;
+import static com.northwind.scheduling.characterization.spi.ErrorCondition.SESSION_NOT_OPEN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
@@ -13,10 +13,10 @@ import org.junit.jupiter.api.Test;
 
 import com.northwind.scheduling.characterization.support.CharacterizationTest;
 import com.northwind.scheduling.characterization.support.Scenario;
-import com.northwind.scheduling.characterization.target.Model.AuditEntry;
-import com.northwind.scheduling.characterization.target.Model.BookingState;
-import com.northwind.scheduling.characterization.target.Model.SessionSpec;
-import com.northwind.scheduling.characterization.target.Outcome;
+import com.northwind.scheduling.characterization.spi.Model.AuditEntry;
+import com.northwind.scheduling.characterization.spi.Model.BookingState;
+import com.northwind.scheduling.characterization.spi.Model.SessionSpec;
+import com.northwind.scheduling.characterization.spi.Outcome;
 
 /** db/procs/023_usp_RescheduleBooking.sql (cancel + new booking in one transaction). */
 @DisplayName("023 usp_RescheduleBooking")

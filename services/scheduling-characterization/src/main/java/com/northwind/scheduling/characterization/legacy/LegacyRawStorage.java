@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.northwind.scheduling.characterization.target.RawStorageAccess;
+import com.northwind.scheduling.characterization.spi.RawStorageAccess;
 
 /** Direct row writes against the legacy tables (the triggers in db/triggers fire as for any other writer). */
 final class LegacyRawStorage implements RawStorageAccess {

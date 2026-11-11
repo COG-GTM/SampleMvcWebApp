@@ -8,8 +8,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.northwind.scheduling.characterization.target.Model.SeatDrift;
-import com.northwind.scheduling.characterization.target.SeatDriftCheck;
+import com.northwind.scheduling.characterization.spi.Model.SeatDrift;
+import com.northwind.scheduling.characterization.spi.SeatDriftCheck;
 
 /** Executes the repo's db/checks/seat-drift.sql verbatim (batch by batch) and maps its rows. */
 final class LegacySeatDriftSqlCheck implements SeatDriftCheck {

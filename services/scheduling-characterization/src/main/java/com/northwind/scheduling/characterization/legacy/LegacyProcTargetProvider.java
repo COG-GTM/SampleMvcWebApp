@@ -1,7 +1,7 @@
 package com.northwind.scheduling.characterization.legacy;
 
-import com.northwind.scheduling.characterization.target.SchedulingTarget;
-import com.northwind.scheduling.characterization.target.SchedulingTargetProvider;
+import com.northwind.scheduling.characterization.spi.SchedulingTarget;
+import com.northwind.scheduling.characterization.spi.SchedulingTargetProvider;
 
 /** {@code -Dtarget=legacy}. */
 public final class LegacyProcTargetProvider implements SchedulingTargetProvider {
