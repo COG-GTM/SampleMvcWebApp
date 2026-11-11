@@ -7,7 +7,14 @@ public enum OutboxEventType {
     BookingCancelled("CANCEL"),
     BookingRescheduled("RESCHEDULE"),
     AttendanceRecorded("ATTEND"),
-    CapacityChanged("CAPACITY");
+    CapacityChanged("CAPACITY"),
+    /** MBA-3829 (ADR 0003): a waitlisted booking was offered a freed seat; the seat is held while PENDING. */
+    SeatOffered("OFFER"),
+    SeatOfferAccepted("OFFER_ACCEPT"),
+    /** The candidate declined: the waitlisted booking is cancelled and later positions move up. */
+    SeatOfferDeclined("OFFER_DECLINE"),
+    /** Not accepted before expires_at: like a decline, recorded by the expiry job. */
+    SeatOfferExpired("OFFER_EXPIRE");
 
     private final String auditAction;
 

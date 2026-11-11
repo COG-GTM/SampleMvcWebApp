@@ -104,14 +104,31 @@ public class BookingRepository {
     }
 
     public List<WaitlistView> waitlist(int sessionId) {
-        return jdbc.sql("SELECT w.position, w.booking_id, c.candidate_number, c.first_name, c.last_name, w.added_at "
-                        + "FROM waitlist_entry w LEFT JOIN candidate_snapshot c ON c.candidate_id = w.candidate_id "
+        return jdbc.sql("SELECT w.position, w.booking_id, c.candidate_number, c.first_name, c.last_name, w.added_at, "
+                        + "       b.accommodation_code "
+                        + "FROM waitlist_entry w JOIN booking b ON b.booking_id = w.booking_id "
+                        + "LEFT JOIN candidate_snapshot c ON c.candidate_id = w.candidate_id "
                         + "WHERE w.session_id = ? ORDER BY w.position")
                 .param(sessionId)
                 .query((rs, n) -> new WaitlistView(rs.getInt(1), rs.getLong(2), rs.getString(3),
                         rs.getString(4) == null ? null : rs.getString(4) + " " + rs.getString(5),
-                        rs.getTimestamp(6).toLocalDateTime()))
+                        rs.getTimestamp(6).toLocalDateTime(), rs.getString(7)))
                 .list();
+    }
+
+    /** Accepted seat offer (ADR 0003): the waitlisted booking now holds a seat. */
+    public void markBooked(long bookingId, LocalDateTime now) {
+        jdbc.sql("UPDATE booking SET status = 'BOOKED', last_modified = ? WHERE booking_id = ? AND status = 'WAITLISTED'")
+                .params(now, bookingId).update();
+    }
+
+    public void updateWaitlistPosition(long bookingId, int position) {
+        jdbc.sql("UPDATE waitlist_entry SET position = ? WHERE booking_id = ?").params(position, bookingId).update();
+    }
+
+    public Optional<Integer> waitlistEntryIdOf(long bookingId) {
+        return jdbc.sql("SELECT waitlist_entry_id FROM waitlist_entry WHERE booking_id = ?").param(bookingId)
+                .query(Integer.class).optional();
     }
 
     public Optional<RouteView> routeOfBooking(long bookingId) {

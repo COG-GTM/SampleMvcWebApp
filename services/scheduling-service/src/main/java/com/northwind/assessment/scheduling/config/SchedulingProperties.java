@@ -2,12 +2,14 @@ package com.northwind.assessment.scheduling.config;
 
 import com.northwind.assessment.scheduling.domain.AccommodationFloorPolicy;
 import com.northwind.assessment.scheduling.domain.RetakeDayCounting;
+import com.northwind.assessment.scheduling.domain.WaitlistOfferPolicy;
+import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.Name;
 
 @ConfigurationProperties("scheduling")
 public record SchedulingProperties(Datasource datasource, Legacy legacy, @Name("import") Import importer, Rules rules,
-                                   Relay relay, Reconciliation reconciliation) {
+                                   Relay relay, Reconciliation reconciliation, Waitlist waitlist) {
 
     public SchedulingProperties {
         datasource = datasource == null ? new Datasource(true) : datasource;
@@ -16,6 +18,18 @@ public record SchedulingProperties(Datasource datasource, Legacy legacy, @Name("
         rules = rules == null ? new Rules(null, null) : rules;
         relay = relay == null ? new Relay(false, null, null, null, 200, 100) : relay;
         reconciliation = reconciliation == null ? new Reconciliation(null) : reconciliation;
+        waitlist = waitlist == null ? new Waitlist(null, true, 0) : waitlist;
+    }
+
+    /**
+     * Waitlist auto-offer (MBA-3829, ADR 0003): how long a seat offer stays PENDING (ISO-8601, default PT24H) and
+     * the expiry job (on by default, every {@code expiryPollMs}).
+     */
+    public record Waitlist(Duration offerTtl, boolean expiryEnabled, long expiryPollMs) {
+        public Waitlist {
+            offerTtl = offerTtl == null ? WaitlistOfferPolicy.DEFAULT_TTL : offerTtl;
+            expiryPollMs = expiryPollMs <= 0 ? 60_000 : expiryPollMs;
+        }
     }
 
     public record Datasource(boolean createDatabase) {

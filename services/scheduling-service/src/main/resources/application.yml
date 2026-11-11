@@ -39,6 +39,12 @@ scheduling:
     password: ${RELAY_DB_PASSWORD:Sch3d!Re1ay2026}
     poll-interval-ms: ${SCHEDULING_RELAY_POLL_MS:200}
     batch-size: 100
+  waitlist:
+    # MBA-3829 (ADR 0003): how long a waitlist seat offer holds its seat (ISO-8601 duration)
+    offer-ttl: ${SCHEDULING_WAITLIST_OFFER_TTL:PT24H}
+    # job that expires PENDING offers past expires_at and offers the seat to the next candidate
+    expiry-enabled: ${SCHEDULING_WAITLIST_EXPIRY_ENABLED:true}
+    expiry-poll-ms: ${SCHEDULING_WAITLIST_EXPIRY_POLL_MS:60000}
   reconciliation:
     report-dir: ${RECONCILIATION_REPORT_DIR:reports}
   rules:

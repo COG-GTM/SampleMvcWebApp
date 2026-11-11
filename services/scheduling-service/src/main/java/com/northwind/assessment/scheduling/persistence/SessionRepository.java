@@ -2,6 +2,8 @@ package com.northwind.assessment.scheduling.persistence;
 
 import com.northwind.assessment.scheduling.domain.BookingSlot;
 import com.northwind.assessment.scheduling.domain.BookingStatus;
+import com.northwind.assessment.scheduling.domain.PendingOffer;
+import com.northwind.assessment.scheduling.domain.SeatKind;
 import com.northwind.assessment.scheduling.domain.SessionCapacity;
 import com.northwind.assessment.scheduling.domain.SessionStatus;
 import com.northwind.assessment.scheduling.domain.WaitlistSlot;
@@ -26,7 +28,8 @@ public class SessionRepository {
           + "       (SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id AND b.status IN ('BOOKED','ATTENDED')) AS booked_seats, "
           + "       (SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id AND b.status IN ('BOOKED','ATTENDED') "
           + "                                         AND b.accommodation_code IN ('ET25','ET50')) AS accommodation_used, "
-          + "       (SELECT COUNT(*) FROM waitlist_entry w WHERE w.session_id = s.session_id) AS waitlist_count "
+          + "       (SELECT COUNT(*) FROM waitlist_entry w WHERE w.session_id = s.session_id) AS waitlist_count, "
+          + "       (SELECT COUNT(*) FROM seat_offer o WHERE o.session_id = s.session_id AND o.status = 'PENDING') AS offered_seats "
           + "FROM exam_session s "
           + "LEFT JOIN exam_snapshot e ON e.exam_id = s.exam_id "
           + "LEFT JOIN test_center_snapshot c ON c.center_id = s.center_id "
@@ -66,13 +69,23 @@ public class SessionRepository {
     }
 
     /**
-     * Loads the seat inventory of a session with an update lock on its row, so concurrent bookings,
-     * cancellations, capacity changes and imports of the same session serialise (the legacy procs use
+     * Loads the seat inventory of a session (bookings, waitlist, PENDING seat offers) with an update lock on its
+     * row, so concurrent bookings, cancellations, capacity changes, offer decisions and imports of the same
+     * session serialise (the legacy procs use
      * UPDLOCK on ExamSession the same way). Must run inside a transaction.
      */
     public Optional<SessionCapacity> lockForUpdate(int sessionId) {
+        return load(sessionId, "WITH (UPDLOCK, ROWLOCK, HOLDLOCK) ");
+    }
+
+    /** Unlocked snapshot of the seat inventory, for reads (e.g. the waitlist offer states). */
+    public Optional<SessionCapacity> snapshot(int sessionId) {
+        return load(sessionId, "");
+    }
+
+    private Optional<SessionCapacity> load(int sessionId, String lockHint) {
         Optional<Object[]> row = jdbc.sql("SELECT exam_id, status, capacity, accommodation_capacity "
-                        + "FROM exam_session WITH (UPDLOCK, ROWLOCK, HOLDLOCK) WHERE session_id = ?")
+                        + "FROM exam_session " + lockHint + "WHERE session_id = ?")
                 .param(sessionId)
                 .query((rs, n) -> new Object[] {rs.getInt(1), rs.getString(2), rs.getInt(3), rs.getInt(4)})
                 .optional();
@@ -90,8 +103,14 @@ public class SessionRepository {
                 .param(sessionId)
                 .query((rs, n) -> new WaitlistSlot(rs.getLong(1), rs.getInt(2)))
                 .list();
+        List<PendingOffer> offers = jdbc.sql("SELECT offer_id, booking_id, seat_kind, offered_at, expires_at FROM seat_offer "
+                        + "WHERE session_id = ? AND status = 'PENDING'")
+                .param(sessionId)
+                .query((rs, n) -> new PendingOffer(rs.getLong(1), rs.getLong(2), SeatKind.valueOf(rs.getString(3)),
+                        rs.getTimestamp(4).toLocalDateTime(), rs.getTimestamp(5).toLocalDateTime()))
+                .list();
         return Optional.of(new SessionCapacity(sessionId, (Integer) r[0], SessionStatus.valueOf((String) r[1]),
-                (Integer) r[2], (Integer) r[3], bookings, waitlist));
+                (Integer) r[2], (Integer) r[3], bookings, waitlist, offers));
     }
 
     public Optional<Integer> examIdOf(int sessionId) {
@@ -122,6 +141,6 @@ public class SessionRepository {
                 rs.getString("title"), rs.getInt("center_id"), rs.getString("center_code"), rs.getString("center_name"),
                 rs.getString("room_name"), rs.getTimestamp("starts_at").toLocalDateTime(), rs.getInt("capacity"),
                 rs.getInt("accommodation_capacity"), rs.getString("status"), rs.getInt("booked_seats"),
-                rs.getInt("accommodation_used"), rs.getInt("waitlist_count"));
+                rs.getInt("accommodation_used"), rs.getInt("waitlist_count"), rs.getInt("offered_seats"));
     }
 }

@@ -30,9 +30,22 @@ public final class SeatFormulas {
         return Math.max(0, capacity - seatsHeld(bookings));
     }
 
+    /**
+     * Formula A with waitlist auto-offer (ADR 0003): a PENDING seat offer holds its seat, so
+     * {@code Capacity - (BOOKED + ATTENDED) - PENDING offers}, never below 0.
+     */
+    public static int seatsAvailable(int capacity, Collection<BookingSlot> bookings, int pendingOffers) {
+        return Math.max(0, capacity - seatsHeld(bookings) - pendingOffers);
+    }
+
     /** Formula A from a pre-computed count of seats held. */
     public static int seatsAvailable(int capacity, int seatsHeld) {
         return Math.max(0, capacity - seatsHeld);
+    }
+
+    /** Formula A from pre-computed counts of seats held and pending seat offers (ADR 0003). */
+    public static int seatsAvailable(int capacity, int seatsHeld, int pendingOffers) {
+        return Math.max(0, capacity - seatsHeld - pendingOffers);
     }
 
     /**

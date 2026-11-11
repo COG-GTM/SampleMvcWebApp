@@ -2,6 +2,7 @@ package com.northwind.assessment.scheduling.web;
 
 import com.northwind.assessment.scheduling.domain.RuleViolation;
 import com.northwind.assessment.scheduling.domain.SchedulingRuleException;
+import com.northwind.assessment.scheduling.domain.WaitlistOfferState;
 import com.northwind.assessment.scheduling.persistence.BookingRepository;
 import com.northwind.assessment.scheduling.persistence.ReferenceRepository;
 import com.northwind.assessment.scheduling.persistence.SessionRepository;
@@ -10,9 +11,12 @@ import com.northwind.assessment.scheduling.service.BookingCommand;
 import com.northwind.assessment.scheduling.service.BookingResult;
 import com.northwind.assessment.scheduling.service.NotFoundException;
 import com.northwind.assessment.scheduling.service.SchedulingService;
+import com.northwind.assessment.scheduling.service.SeatOfferService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -35,10 +39,12 @@ public class SchedulingApiController {
     private final SessionRepository sessions;
     private final BookingRepository bookings;
     private final ReferenceRepository reference;
+    private final SeatOfferService offers;
 
     public SchedulingApiController(SchedulingService service, SessionRepository sessions, BookingRepository bookings,
-                                   ReferenceRepository reference) {
+                                   ReferenceRepository reference, SeatOfferService offers) {
         this.service = service;
+        this.offers = offers;
         this.sessions = sessions;
         this.bookings = bookings;
         this.reference = reference;
@@ -83,7 +89,8 @@ public class SchedulingApiController {
     @GetMapping("/sessions/{sessionId}/waitlist")
     public List<Json.WaitlistEntry> waitlist(@PathVariable int sessionId) {
         sessions.find(sessionId).orElseThrow(() -> sessionNotFound(sessionId));
-        return bookings.waitlist(sessionId).stream().map(Json.WaitlistEntry::of).toList();
+        Map<Long, WaitlistOfferState> states = offers.waitlistStates(sessionId);
+        return bookings.waitlist(sessionId).stream().map(w -> Json.WaitlistEntry.of(w, states.get(w.bookingId()))).toList();
     }
 
     @PutMapping("/sessions/{sessionId}/capacity")
@@ -127,7 +134,48 @@ public class SchedulingApiController {
 
     @GetMapping("/candidates/{candidateNumber}/bookings")
     public List<Json.Booking> candidateBookings(@PathVariable String candidateNumber) {
-        return bookings.byCandidate(service.candidate(candidateNumber).candidateId()).stream().map(Json.Booking::of).toList();
+        int candidateId = service.candidate(candidateNumber).candidateId();
+        Map<Long, Views.OfferView> pending = new HashMap<>();
+        offers.byCandidate(candidateId).stream().filter(o -> "PENDING".equals(o.status()))
+                .forEach(o -> pending.put(o.bookingId(), o));
+        return bookings.byCandidate(candidateId).stream().map(b -> Json.Booking.of(b, pending.get(b.bookingId()))).toList();
+    }
+
+    /** Every seat offer the candidate received, newest first (ADR 0003). */
+    @GetMapping("/candidates/{candidateNumber}/offers")
+    public List<Json.Offer> candidateOffers(@PathVariable String candidateNumber) {
+        return offers.byCandidate(service.candidate(candidateNumber).candidateId()).stream().map(Json.Offer::of).toList();
+    }
+
+    @GetMapping("/offers/{offerId}")
+    public Json.Offer offer(@PathVariable long offerId) {
+        return Json.Offer.of(offers.find(offerId));
+    }
+
+    @PostMapping("/offers/{offerId}/accept")
+    public Json.Offer acceptOffer(@PathVariable long offerId, @RequestBody(required = false) Json.OfferDecisionRequest body) {
+        return Json.Offer.of(offers.accept(offerId, body == null ? null : body.actor()));
+    }
+
+    @PostMapping("/offers/{offerId}/decline")
+    public Json.Offer declineOffer(@PathVariable long offerId, @RequestBody(required = false) Json.OfferDecisionRequest body) {
+        return Json.Offer.of(offers.decline(offerId, body == null ? null : body.actor()));
+    }
+
+    /** Alias of {@code /offers/{offerId}/accept} for the booking's pending offer. */
+    @PostMapping("/bookings/{bookingId}/offer/accept")
+    public Json.Offer acceptBookingOffer(@PathVariable long bookingId,
+                                         @RequestBody(required = false) Json.OfferDecisionRequest body) {
+        long offerId = offers.pendingForBooking(service.resolve(bookingId)).offerId();
+        return acceptOffer(offerId, body);
+    }
+
+    /** Alias of {@code /offers/{offerId}/decline} for the booking's pending offer. */
+    @PostMapping("/bookings/{bookingId}/offer/decline")
+    public Json.Offer declineBookingOffer(@PathVariable long bookingId,
+                                          @RequestBody(required = false) Json.OfferDecisionRequest body) {
+        long offerId = offers.pendingForBooking(service.resolve(bookingId)).offerId();
+        return declineOffer(offerId, body);
     }
 
     @GetMapping("/candidates/{candidateNumber}/eligibility")
