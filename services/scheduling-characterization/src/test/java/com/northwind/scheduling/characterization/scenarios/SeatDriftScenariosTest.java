@@ -1,6 +1,7 @@
 package com.northwind.scheduling.characterization.scenarios;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.Comparator;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.northwind.scheduling.characterization.support.CharacterizationTest;
 import com.northwind.scheduling.characterization.support.DriftLedger;
 import com.northwind.scheduling.characterization.support.Scenario;
+import com.northwind.scheduling.characterization.target.Capability;
 import com.northwind.scheduling.characterization.target.Model.SeatDrift;
 import com.northwind.scheduling.characterization.target.Model.SessionSpec;
 import com.northwind.scheduling.characterization.target.StateDerivedSeatDriftCheck;
@@ -23,6 +25,8 @@ class SeatDriftScenariosTest extends CharacterizationTest {
     @Test
     @Scenario(id = "SD-01", covers = "seat-drift.sql on the freshly provisioned seed (db/apply.sh incl. 049_seed_finalise) returns no rows", refs = "HB-30")
     void seedBaselineIsClean() {
+        // a pre-existing database (-Dlegacy.jdbcUrl) may carry drift; the invariant then tolerates it as baseline
+        assumeTrue(target.supports(Capability.FRESH_DATABASE), "target did not provision a fresh database");
         assertThat(DriftLedger.baseline()).isEmpty();
     }
 

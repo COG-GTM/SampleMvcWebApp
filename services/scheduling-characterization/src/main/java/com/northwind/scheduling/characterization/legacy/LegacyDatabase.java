@@ -111,6 +111,11 @@ public final class LegacyDatabase implements AutoCloseable {
         return DriverManager.getConnection(jdbcUrl, user, password);
     }
 
+    /** True when this run provisioned the database itself (Testcontainers + db/apply.sh). */
+    public boolean provisionedByRun() {
+        return container != null;
+    }
+
     public String jdbcUrl() {
         return jdbcUrl;
     }

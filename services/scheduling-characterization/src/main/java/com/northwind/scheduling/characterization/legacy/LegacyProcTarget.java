@@ -63,7 +63,11 @@ public final class LegacyProcTarget implements SchedulingTarget {
 
     @Override
     public Set<Capability> capabilities() {
-        return EnumSet.of(Capability.RAW_STORAGE, Capability.LEGACY_SQL_SEMANTICS);
+        EnumSet<Capability> caps = EnumSet.of(Capability.RAW_STORAGE, Capability.LEGACY_SQL_SEMANTICS);
+        if (db.provisionedByRun()) {
+            caps.add(Capability.FRESH_DATABASE);
+        }
+        return caps;
     }
 
     // ---- connections ----------------------------------------------------------------------------
