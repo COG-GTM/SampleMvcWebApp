@@ -73,3 +73,7 @@ on top of the same domain rules.
   `RT-08..RT-11`. Calling `POST /api/v2/internal/import/sessions?mode=reset` after setup fixes them manually.
 - **FU-3 (retire capacity-sync):** once M4 makes scheduling-service the single writer, capacity-sync and
   `ExamSession.SeatsAvailable` can be removed. `MX-*` should then be re-recorded against the derived seat counts.
+- **FU-4 (identity before exposure):** like the legacy portal and booking-api, `/api/v2` has no authentication yet
+  ([MR-16](../as-is/migration-risks.md), HB-22). Capacity changes, cancel/reschedule by booking id, candidate lookups
+  and `POST /api/v2/internal/import/sessions` must be put behind identity (admin role, candidate ownership, internal-only
+  network or the M3 gateway) before the service is exposed beyond dev/replay.
