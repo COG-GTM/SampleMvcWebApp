@@ -104,7 +104,7 @@ starts a run by hand and `GET /sync/last` shows the last run.
 
 | Area | Routes |
 |---|---|
-| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=`, `/Admin/Sessions/Capacity/{id}` (calls usp_ChangeCapacity) |
+| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=`, `/Admin/Sessions/Capacity/{id}` (calls usp_ChangeCapacity), `/Admin/Sessions/Roster/{id}?format=csv` (read-only roster download) |
 | Candidate booking | `/Booking` (find sessions), `/Booking/Book`, `/Booking/MyBookings?candidateNumber=`, `/Booking/Cancel/{id}`, `/Booking/Reschedule/{id}` |
 | Retake eligibility | `/Eligibility?candidateNumber=&examCode=&date=` |
 | Results | `/Results?candidateNumber=` |

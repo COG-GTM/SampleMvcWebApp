@@ -16,6 +16,13 @@ namespace AssessmentDelivery.Web
                 defaults: new { controller = "Admin", action = "Capacity" }
             );
 
+            //exam-day roster download for proctors (CSV)
+            routes.MapRoute(
+                name: "AdminRoster",
+                url: "Admin/Sessions/Roster/{id}",
+                defaults: new { controller = "Admin", action = "Roster" }
+            );
+
             routes.MapRoute(
                 name: "Default",
                 url: "{controller}/{action}/{id}",
