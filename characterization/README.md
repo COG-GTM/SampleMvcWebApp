@@ -94,6 +94,9 @@ characterization/replay --target modern --base-url http://localhost:9000 \
 `--portal-url` / `--api-url` / `--sync-url` override each one. With `--compare all` (default) the modern
 target must expose an `AssessmentDelivery`-compatible DB through `--sql-server` / `--database` so the DB
 snapshots can be compared; `--compare http` compares only the HTTP responses and rendered fields.
+The scenario state is still built the legacy way in both modes: setup `sql`, `db_proc` / `db_query` steps and
+the mixed-traffic session selection run against `--sql-server` / `--database`, so that DB must accept the
+legacy `AssessmentDelivery` statements (or the scenario must be skipped).
 
 ## Adding a scenario
 

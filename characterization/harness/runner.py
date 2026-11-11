@@ -45,7 +45,9 @@ def validate(sc):
 class Runner:
     def __init__(self, target):
         self.t = target
-        self.db = Db(target) if target.compare == "all" or target.reseed in ("restore", "apply") else None
+        # Needed even with --compare http: setup SQL, db_proc/db_query steps and mixed-traffic session
+        # selection run against --sql-server whatever is compared.
+        self.db = Db(target)
         self.steps = Steps(target, self.db)
         self.backup = None
 
@@ -67,7 +69,7 @@ class Runner:
         self.warm_up()
 
     def db_or_none_cmd(self, cmd):
-        Db(self.t).run_command(cmd)
+        self.db.run_command(cmd)
 
     def warm_up(self):
         # A restore kills pooled connections in the portal (ADO.NET) and the Java services; burn the
@@ -108,7 +110,7 @@ class Runner:
 
     def run(self, sc):
         self.reseed()
-        use_db = self.db is not None and self.t.compare == "all"
+        use_db = self.t.compare == "all"
         base = snapshot.baseline(self.db) if use_db else {"now": None}
         norm = Normalizer(base, base.get("now"))
         sessions = set(sc.get("sessions", []))
