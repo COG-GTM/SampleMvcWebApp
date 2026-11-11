@@ -2,7 +2,6 @@
 # changes, update the inventory row and this file together. Phase 2 rewiring is EXPECTED to break rows here.
 P-E01|AssessmentDelivery.Services/Eligibility/EligibilityService.cs|32|var attempts = _db.Results
 P-E01|AssessmentDelivery.Services/Eligibility/EligibilityService.cs|34|.Select(r => new PriorAttempt { SessionDate = r.Session.StartsAt, Passed = r.Passed, Score = r.Score })
-P-R01|AssessmentDelivery.Services/Results/ResultsService.cs|21|.OrderByDescending(r => r.Session.StartsAt)
 BA-17|services/booking-api/src/main/java/com/northwind/assessment/booking/service/RetakeEligibilityService.java|60|Integer days = jdbcTemplate.queryForObject("SELECT RetakeWaitDays FROM dbo.Exam WHERE ExamId = ?",
 BA-18|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/ResultDao.java|27|+ "FROM dbo.Result r JOIN dbo.ExamSession s ON s.SessionId = r.SessionId "
 RS-01|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|55|+ "FROM dbo.Booking b JOIN dbo.ExamSession s ON s.SessionId = b.SessionId "
