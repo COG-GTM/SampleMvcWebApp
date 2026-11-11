@@ -123,6 +123,20 @@ namespace AssessmentDelivery.Services.Scheduling
         [JsonProperty("lines")] public List<ApiRosterLine> Lines { get; set; }
     }
 
+    public class ApiReconcilerRun
+    {
+        [JsonProperty("runId")] public int RunId { get; set; }
+        [JsonProperty("trigger")] public string Trigger { get; set; }
+        [JsonProperty("status")] public string Status { get; set; }
+        [JsonProperty("startedAt")] public DateTime StartedAt { get; set; }
+        [JsonProperty("finishedAt")] public DateTime? FinishedAt { get; set; }
+        [JsonProperty("checked")] public int Checked { get; set; }
+        [JsonProperty("updated")] public int Updated { get; set; }
+        [JsonProperty("skipped")] public int Skipped { get; set; }
+        [JsonProperty("error")] public string Error { get; set; }
+        [JsonProperty("actor")] public string Actor { get; set; }
+    }
+
     public class ApiError
     {
         [JsonProperty("error")] public string Error { get; set; }

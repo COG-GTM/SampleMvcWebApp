@@ -91,15 +91,25 @@ namespace AssessmentDelivery.Tests.UnitTests
         }
 
         [Test]
-        public void CapacityAuditSendsIsoDatesWithAnInclusiveToDay()
+        public void ReconcilerRunsSendsTheDateTimeRange()
+        {
+            RespondOnce(200, "[]");
+            new SchedulingClient(_baseUrl).ListReconcilerRuns(new DateTime(2026, 10, 12), new DateTime(2026, 11, 12), 51);
+
+            Assert.AreEqual("GET", _method);
+            Assert.AreEqual("/api/v1/reconciler/runs?from=2026-10-12T00%3A00%3A00&to=2026-11-12T00%3A00%3A00&max=51", _path);
+        }
+
+        [Test]
+        public void CapacityAuditSendsTheContractDateTimeRangeWithAnExclusiveTo()
         {
             RespondOnce(200, "{\"rows\":[],\"total\":0}");
             new SchedulingClient(_baseUrl).GetCapacityAudit(20, new DateTime(2026, 10, 12), new DateTime(2026, 11, 12), 164, 1, 50);
 
             Assert.AreEqual("GET", _method);
             StringAssert.StartsWith("/api/v1/sessions/capacity-audit?", _path);
-            StringAssert.Contains("from=2026-10-12&", _path);
-            StringAssert.Contains("to=2026-11-11&", _path);
+            StringAssert.Contains("from=2026-10-12T00%3A00%3A00&", _path);
+            StringAssert.Contains("to=2026-11-12T00%3A00%3A00&", _path);
             StringAssert.Contains("sessionId=164", _path);
         }
 

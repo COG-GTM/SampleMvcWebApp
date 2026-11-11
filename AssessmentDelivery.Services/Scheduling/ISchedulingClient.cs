@@ -15,6 +15,7 @@ namespace AssessmentDelivery.Services.Scheduling
         ApiCapacityChangeResult ChangeCapacity(int sessionId, int newCapacity, string actor);
         ApiCapacityAuditPage GetCapacityAudit(int testCenterId, DateTime from, DateTime to, int? sessionId, int page, int pageSize);
         ApiRoster GetRoster(int sessionId);
+        IList<ApiReconcilerRun> ListReconcilerRuns(DateTime from, DateTime toExclusive, int max);
 
         IList<ApiBooking> SearchBookings(int candidateId, string sort);
         ApiBooking GetBooking(int bookingId);
