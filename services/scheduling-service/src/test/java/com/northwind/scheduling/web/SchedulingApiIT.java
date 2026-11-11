@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
@@ -31,6 +32,8 @@ class SchedulingApiIT extends SqlServerTestBase {
     private static final ParameterizedTypeReference<List<Map<String, Object>>> LIST = new ParameterizedTypeReference<>() {
     };
 
+    @LocalServerPort
+    int port;
     @Autowired
     TestRestTemplate http;
     @Autowired
@@ -180,5 +183,17 @@ class SchedulingApiIT extends SqlServerTestBase {
         Map<String, Object> run = http.exchange("/api/v2/internal/import/sessions", HttpMethod.POST, null, MAP).getBody();
         assertThat(run).containsEntry("mode", "MERGE").containsEntry("centers", 2).containsEntry("sessions", 0);
         assertThat(get("/api/v1/bookings/" + v1.get("bookingId"))).containsEntry("status", "BOOKED"); // merge keeps inventory
+    }
+
+    @Test
+    void rootAndAppRedirectToSpa() throws Exception {
+        java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                .followRedirects(java.net.http.HttpClient.Redirect.NEVER).build();
+        for (String path : List.of("/", "/app")) {
+            java.net.http.HttpResponse<Void> r = client.send(java.net.http.HttpRequest.newBuilder(
+                    java.net.URI.create("http://localhost:" + port + path)).build(), java.net.http.HttpResponse.BodyHandlers.discarding());
+            assertThat(r.statusCode()).as(path).isEqualTo(302);
+            assertThat(r.headers().firstValue("Location")).as(path).hasValueSatisfying(l -> assertThat(l).endsWith("/app/"));
+        }
     }
 }
