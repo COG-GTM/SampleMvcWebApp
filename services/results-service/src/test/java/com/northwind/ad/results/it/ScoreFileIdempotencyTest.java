@@ -190,7 +190,7 @@ public class ScoreFileIdempotencyTest extends AbstractResultsIT {
 
     @Test
     @SuppressWarnings("rawtypes")
-    public void replayAuditsAConflictThatWasNotAuditedOnTheFirstUpload() {
+    public void replayAuditsAConflictThatWasNotAuditedOnTheFirstUpload() throws Exception {
         Fixture f = newBooking();
         jdbc.update("UPDATE dbo.Booking SET Status = 'CANCELLED' WHERE BookingId = ?", f.bookingId);
         String file = csv(f.csvRow(999, "2026-11-10T07:30:00"));
@@ -206,9 +206,28 @@ public class ScoreFileIdempotencyTest extends AbstractResultsIT {
         assertEquals(HttpStatus.CREATED, rest.postForEntity("/api/v1/results", post, Map.class).getStatusCode());
         int resultId = ((Number) result(f.bookingId).get("ResultId")).intValue();
 
-        ResponseEntity<Map> replay = upload("NWTEST_LATE_BOOKING.csv", file);
-        assertEquals(Boolean.TRUE, replay.getBody().get("alreadyUploaded"));
-        assertEquals(1, num(replay.getBody(), "conflicts"));
+        // concurrent replays: each reports the conflict, exactly one audits it
+        final String content = file;
+        final CountDownLatch go = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+        List<Future<ResponseEntity<Map>>> replays = new ArrayList<Future<ResponseEntity<Map>>>();
+        for (int i = 0; i < 4; i++) {
+            replays.add(pool.submit(new Callable<ResponseEntity<Map>>() {
+                @Override
+                public ResponseEntity<Map> call() throws Exception {
+                    go.await();
+                    return upload("NWTEST_LATE_BOOKING.csv", content);
+                }
+            }));
+        }
+        go.countDown();
+        for (Future<ResponseEntity<Map>> replay : replays) {
+            ResponseEntity<Map> r = replay.get(60, TimeUnit.SECONDS);
+            assertEquals(HttpStatus.OK, r.getStatusCode());
+            assertEquals(Boolean.TRUE, r.getBody().get("alreadyUploaded"));
+            assertEquals(1, num(r.getBody(), "conflicts"));
+        }
+        pool.shutdown();
         assertEquals(1, auditCount(resultId, "DUPLICATE_REJECTED"));
 
         upload("NWTEST_LATE_BOOKING.csv", file);

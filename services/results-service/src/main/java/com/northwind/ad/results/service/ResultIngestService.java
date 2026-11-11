@@ -103,7 +103,14 @@ public class ResultIngestService {
                 null, null, passed);
     }
 
-    private boolean alreadyAudited(int resultId, String detail) {
+    // serialises concurrent replays of the same result until commit, so only one of them writes the audit row
+    private boolean lockAndCheckAudited(int resultId, String detail) {
+        Integer lock = jdbc.queryForObject("DECLARE @r INT; EXEC @r = sp_getapplock @Resource = ?, "
+                + "@LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 10000; SELECT @r",
+                Integer.class, "ResultAudit:" + resultId);
+        if (lock == null || lock < 0) {
+            throw new IllegalStateException("could not lock audit for result " + resultId + " (" + lock + ")");
+        }
         return jdbc.queryForObject("SELECT COUNT(*) FROM dbo.AuditLog WHERE EntityName = 'Result' AND EntityId = ? "
                 + "AND Action = 'DUPLICATE_REJECTED' AND Detail = ?", Integer.class, resultId, detail) > 0;
     }
@@ -130,7 +137,7 @@ public class ResultIngestService {
                 + " stored=" + storedScore + "@" + format(storedScoredAt)
                 + " submitted=" + score + "@" + (scoredAt != null ? format(scoredAt) : "now")
                 + (sourceFile != null ? " file=" + sourceFile : "");
-        if (audit || !alreadyAudited(resultId, detail)) {
+        if (audit || !lockAndCheckAudited(resultId, detail)) {
             jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
                     "Result", resultId, "DUPLICATE_REJECTED", detail, actor);
         }
