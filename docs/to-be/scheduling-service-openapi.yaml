@@ -28,6 +28,12 @@ tags:
   - name: reconciler
 paths:
   /sessions:
+    post:
+      tags: [sessions]
+      operationId: createSession
+      summary: 'Phase 1 addition: create an ExamSession (admin and fixtures; legacy was a direct INSERT)'
+      responses:
+        '201': {description: '{"sessionId": n}'}
     get:
       tags: [sessions]
       operationId: searchSessions
@@ -505,6 +511,42 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/ReconcilerRun'}
         '409': {description: 'A run is already in progress'}
+  /reference/sync:
+    post:
+      tags: [reference]
+      operationId: syncReference
+      summary: 'Phase 1 addition: force a Change Tracking catch-up (full=true resyncs every entity)'
+      parameters:
+        - {name: full, in: query, schema: {type: boolean, default: false}}
+      responses:
+        '200': {description: '{"applied": n}'}
+  /audit:
+    get:
+      tags: [sessions]
+      operationId: auditByEntity
+      summary: 'Phase 1 addition: AuditLog rows for one entity'
+      parameters:
+        - {name: entityName, in: query, required: true, schema: {type: string, enum: [Booking, ExamSession]}}
+        - {name: entityId, in: query, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: 'AuditEntry[] (auditId, entityName, entityId, action, detail, actor, loggedAt)'}
+  /admin/import:
+    post:
+      tags: [admin]
+      operationId: importLegacy
+      summary: 'Phase 1 addition: re-run the initial import from AssessmentDelivery (403 unless scheduling.import.api-enabled=true)'
+      parameters:
+        - {name: replace, in: query, schema: {type: boolean, default: false}}
+      responses:
+        '200': {description: 'ImportResult counts'}
+        '403': {description: disabled}
+  /admin/storage/bookings:
+    post:
+      tags: [admin]
+      operationId: storageInsertBookings
+      summary: 'Phase 1 addition (scheduling.storage-api.enabled=true only): legacy direct INSERT into Booking with the trg_Booking_SeatSync accounting'
+      responses:
+        '200': {description: '{"bookingIds": [...]}'}
 components:
   parameters:
     SessionId: {name: sessionId, in: path, required: true, schema: {type: integer}}
