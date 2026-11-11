@@ -1,6 +1,6 @@
 package com.northwind.assessment.booking.util;
 
-import java.text.ParseException;
+import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -22,11 +22,13 @@ public final class DateUtils {
         }
         SimpleDateFormat f = new SimpleDateFormat(ISO_DATE);
         f.setLenient(false);
-        try {
-            return f.parse(s.trim());
-        } catch (ParseException e) {
+        String t = s.trim();
+        ParsePosition pos = new ParsePosition(0);
+        Date d = f.parse(t, pos);
+        if (d == null || pos.getIndex() != t.length()) {
             throw new IllegalArgumentException("Invalid date '" + s + "', expected " + ISO_DATE);
         }
+        return d;
     }
 
     public static String formatIsoDate(Date d) {
