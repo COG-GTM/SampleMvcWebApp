@@ -87,8 +87,9 @@ public class AttendanceAfterCommitTest extends AbstractResultsIT {
         Fixture other = newBooking();
         LegacyDbSchedulingStub.attendFailure = "503";
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, post(f.bookingId, 700).getStatusCode());
+        // conflicting score while attendance is still unconfirmed: audited, and the completion attempt gets 503 again
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, post(f.bookingId, 650).getStatusCode());
         LegacyDbSchedulingStub.attendFailure = null;
-        assertEquals(HttpStatus.CONFLICT, post(f.bookingId, 650).getStatusCode());
         Integer resultId = (Integer) result(f.bookingId).get("ResultId");
         assertEquals(1, auditCount(resultId, "DUPLICATE_REJECTED"));
         jdbc.update("UPDATE dbo.Booking SET Status = 'CANCELLED' WHERE BookingId = ?", f.bookingId);
@@ -100,6 +101,19 @@ public class AttendanceAfterCommitTest extends AbstractResultsIT {
         assertEquals(0, resultCount(f.bookingId));
         assertEquals(0, auditCount(resultId));
         assertEquals(HttpStatus.CREATED, post(other.bookingId, 700).getStatusCode());
+    }
+
+    @Test
+    public void confirmedResultIsKeptWhenItsBookingIsLaterCancelled() {
+        Fixture f = newBooking();
+        assertEquals(HttpStatus.CREATED, post(f.bookingId, 700).getStatusCode());
+        Integer resultId = (Integer) result(f.bookingId).get("ResultId");
+        jdbc.update("UPDATE dbo.Booking SET Status = 'CANCELLED' WHERE BookingId = ?", f.bookingId);
+
+        assertEquals(HttpStatus.CONFLICT, post(f.bookingId, 700).getStatusCode());
+
+        assertEquals(1, resultCount(f.bookingId));
+        assertEquals(1, auditCount(resultId, "INGEST"));
     }
 
     @Test

@@ -50,6 +50,8 @@ when the booking is already ATTENDED; score-file rows commit one by one (HB-19).
   transaction and the error is returned, so nothing is recorded (same outcome as legacy).
 - 503: the Result stays committed and the booking stays BOOKED. Resending the same result (REST or score file) finds
   the stored Result, reports DUPLICATE, and completes the attendance call with the stored values (idempotent).
+  `Result.AttendancePending` (`db/schema/018`) is 1 until scheduling-service confirms; a resend that finds the booking
+  CANCELLED/WAITLISTED removes only a pending Result (confirmed Results are never removed).
 
 **scheduling-service unavailable during ingest.** Connect/read failures and 5xx map to 503
 `SCHEDULING_UNAVAILABLE`.

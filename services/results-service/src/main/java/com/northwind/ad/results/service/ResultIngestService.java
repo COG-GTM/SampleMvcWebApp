@@ -47,6 +47,7 @@ public class ResultIngestService {
      * If scheduling-service does not answer (503 SCHEDULING_UNAVAILABLE) the Result stays committed and the booking
      * stays BOOKED; resending the same result (REST or score file) is a DUPLICATE that completes the attendance call,
      * or, if the booking was cancelled meanwhile, removes the unconfirmed Result and returns 409 BOOKING_NOT_ACTIVE.
+     * Result.AttendancePending marks a Result whose attendance call is not confirmed yet (db/schema/018).
      * Idempotent per booking (UQ_Result_Booking): resubmitting the stored score is a DUPLICATE no-op, a different score
      * is a CONFLICT that leaves the stored row as is and writes a DUPLICATE_REJECTED audit row.
      * @param scoredAt null for REST posts without scoredAt: stored as now, and a replay matches on score alone
@@ -72,8 +73,8 @@ public class ResultIngestService {
         String status = b.getStatus();
         if (!"BOOKED".equals(status) && !"ATTENDED".equals(status)) {
             Map<String, Object> pending = findStored(bookingId);
-            if (pending != null) {
-                // only a Result whose attendance call got a 503 can sit on a booking that was cancelled meanwhile
+            if (pending != null && Boolean.TRUE.equals(pending.get("AttendancePending"))) {
+                // its attendance call got a 503 and the booking was cancelled meanwhile; confirmed Results are kept
                 LOG.warn("Booking {} is {}: removing its unconfirmed result {}", bookingId, status, pending.get("ResultId"));
                 removeResult(((Number) pending.get("ResultId")).intValue());
             }
@@ -81,31 +82,32 @@ public class ResultIngestService {
                     "Booking " + bookingId + " is " + status + ", cannot record a result");
         }
         final boolean[] lostRace = new boolean[1];
+        final boolean[] pendingStored = new boolean[1];
         IngestOutcome outcome = tx().execute(new TransactionCallback<IngestOutcome>() {
             @Override
             public IngestOutcome doInTransaction(TransactionStatus txStatus) {
-                return record(b, score, scoredAt, sourceFile, insertAllowed, lostRace);
+                return record(b, score, scoredAt, sourceFile, insertAllowed, lostRace, pendingStored);
             }
         });
         if (outcome.getStatus() == IngestOutcome.Status.CREATED) {
             attendCreated(outcome);
-        } else if ("BOOKED".equals(status) && !lostRace[0] && outcome.getResultId() != null
-                && (outcome.getStatus() == IngestOutcome.Status.DUPLICATE
-                    || outcome.getStatus() == IngestOutcome.Status.CONFLICT)) {
-            // a stored Result on a still-BOOKED booking: an earlier ingest committed but its attendance call failed
+        } else if (pendingStored[0] && !lostRace[0]) {
+            // an earlier ingest committed this Result but its attendance call was not confirmed
             // (not after a lost insert race: the concurrent winner is making that call itself)
             LOG.info("Completing attendance for booking {} from stored result {}", bookingId, outcome.getResultId());
             scheduling.markAttended(bookingId, outcome.getResultId(), outcome.getStoredScore(),
                     Boolean.TRUE.equals(outcome.getPassed()), outcome.getStoredScoredAt());
+            confirmAttendance(outcome.getResultId());
         }
         return outcome;
     }
 
     private IngestOutcome record(BookingView b, int score, Date scoredAt, String sourceFile, boolean insertAllowed,
-                                 boolean[] lostRace) {
+                                 boolean[] lostRace, boolean[] pendingStored) {
         int bookingId = b.getBookingId();
         Map<String, Object> existing = findStored(bookingId);
         if (existing != null) {
+            pendingStored[0] = Boolean.TRUE.equals(existing.get("AttendancePending"));
             return compareWithStored(existing, bookingId, score, scoredAt, sourceFile, insertAllowed);
         }
         if (!insertAllowed) {
@@ -121,7 +123,7 @@ public class ResultIngestService {
             resultId = jdbc.queryForObject(
                     "SET NOCOUNT ON; "
               + "INSERT INTO dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, "
-              + "SessionStartsAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?); SELECT CAST(SCOPE_IDENTITY() AS INT);",
+              + "SessionStartsAt, AttendancePending) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1); SELECT CAST(SCOPE_IDENTITY() AS INT);",
                 Integer.class, bookingId, b.getCandidateId(), b.getExamId(), b.getSessionId(), score,
                 passed, new Timestamp(storedAt.getTime()), sourceFile, startsAt(b));
         } catch (DuplicateKeyException e) {
@@ -159,6 +161,11 @@ public class ResultIngestService {
             removeResult(resultId);
             throw e;
         }
+        confirmAttendance(resultId);
+    }
+
+    private void confirmAttendance(int resultId) {
+        jdbc.update("UPDATE dbo.Result SET AttendancePending = 0 WHERE ResultId = ?", resultId);
     }
 
     /** Compensates an unconfirmed Result: deletes it with every audit row that references it (INGEST, DUPLICATE_REJECTED). */
@@ -207,7 +214,7 @@ public class ResultIngestService {
 
     private Map<String, Object> findStored(int bookingId) {
         List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT ResultId, Score, ScoredAt, Passed FROM dbo.Result WHERE BookingId = ?", bookingId);
+                "SELECT ResultId, Score, ScoredAt, Passed, AttendancePending FROM dbo.Result WHERE BookingId = ?", bookingId);
         return rows.isEmpty() ? null : rows.get(0);
     }
 
