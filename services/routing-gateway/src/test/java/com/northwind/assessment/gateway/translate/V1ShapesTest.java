@@ -9,8 +9,12 @@ import org.junit.jupiter.api.Test;
 class V1ShapesTest {
 
     private static String v1(String v2Json, java.util.List<String> fields) throws Exception {
-        return new String(V1Shapes.write(V1Shapes.project(V1Shapes.parse(v2Json.getBytes()), fields)),
-                StandardCharsets.UTF_8);
+        return lf(V1Shapes.write(V1Shapes.project(V1Shapes.parse(v2Json.getBytes()), fields)));
+    }
+
+    /** Jackson's pretty printer ends lines with the platform separator (CRLF on Windows); compare with LF. */
+    private static String lf(byte[] json) {
+        return new String(json, StandardCharsets.UTF_8).replace("\r\n", "\n");
     }
 
     @Test
@@ -54,9 +58,8 @@ class V1ShapesTest {
 
     @Test
     void sessionListUsesBookingApiArrayFormatAndNullBookedSeats() throws Exception {
-        String out = new String(V1Shapes.write(V1Shapes.sessionList(V1Shapes.parse(
-                "[{\"sessionId\":7,\"bookedSeats\":3,\"accommodationUsed\":0,\"waitlistCount\":2}]".getBytes()))),
-                StandardCharsets.UTF_8);
+        String out = lf(V1Shapes.write(V1Shapes.sessionList(V1Shapes.parse(
+                "[{\"sessionId\":7,\"bookedSeats\":3,\"accommodationUsed\":0,\"waitlistCount\":2}]".getBytes()))));
         assertThat(out).startsWith("[ {\n  \"sessionId\" : 7,").contains("\"bookedSeats\" : null\n} ]")
                 .doesNotContain("waitlistCount").doesNotContain("accommodationUsed");
     }

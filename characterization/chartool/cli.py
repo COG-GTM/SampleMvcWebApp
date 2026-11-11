@@ -3,6 +3,7 @@ import argparse
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from . import LEGACY_BASELINE_SHA
@@ -27,6 +28,10 @@ def load_known_defects(path=KNOWN_DEFECTS):
 
 
 CLASSIFICATION = Path(__file__).resolve().parents[1] / "modern-classification.yaml"
+
+# M4 relay bookkeeping in AssessmentDelivery (db/schema/011_relay_tables.sql), restarted with every scenario reset
+RELAY_RESET_SQL = "DELETE FROM dbo.RelayBookingMap; DELETE FROM dbo.RelayCheckpoint;"
+RELAY_SETTLE_SECONDS = 30
 
 
 def load_classification(path=CLASSIFICATION):
@@ -155,17 +160,44 @@ def modern_target(config, db, args):
     base_reset = legacy_reset_fn(db, config)
 
     def reset(sc):
-        base_reset(sc)
         if args.modern_reset_cmd:
+            base_reset(sc)
             subprocess.run(args.modern_reset_cmd, shell=True, check=True)
             return
-        # Re-import the freshly reset legacy state into scheduling-service (contract item 4).
-        # Pending outbox rows from the previous scenario would be relayed (M4) into the freshly reset legacy DB.
+        # Pending outbox rows from the previous scenario would be relayed (M4) into the freshly reset legacy DB,
+        # so the Scheduling side is cleared first.
         sched.run_script("IF OBJECT_ID('dbo.outbox_event') IS NOT NULL DELETE FROM dbo.outbox_event; "
                          "DELETE FROM waitlist_entry; DELETE FROM capacity_change; DELETE FROM booking; "
                          "DELETE FROM exam_session;")
+        base_reset(sc)
+        # The restored Booking table reuses legacy ids, so the relay's id map and checkpoints must restart too
+        # (otherwise UQ_RelayBookingMap_Legacy rejects the next projected booking and the relay stalls).
+        db.run_script(RELAY_RESET_SQL)
+        # Re-import the freshly reset legacy state into scheduling-service (contract item 4).
         r = requests.post(config.scheduling_url + "/internal/import/sessions", timeout=300)
         r.raise_for_status()
+
+    def settle():
+        # db-state legacy reads AssessmentDelivery, which the M4 relay updates asynchronously: drain it first.
+        if args.db_state != "legacy":
+            return
+        deadline = time.monotonic() + RELAY_SETTLE_SECONDS
+        while True:
+            requests.post(config.scheduling_url + "/internal/relay/run", timeout=config.http_timeout)
+            pending = sched.scalar("SELECT COUNT(*) FROM dbo.outbox_event WHERE relayed_at IS NULL")
+            if not pending:
+                return
+            if time.monotonic() > deadline:
+                raise RuntimeError("outbox relay did not drain: %s event(s) pending after %ss"
+                                   % (pending, RELAY_SETTLE_SECONDS))
+            time.sleep(0.2)
+    def legacy_booking_id(booking_id):
+        # db-state legacy sees the relay's projection: map the scheduling-service id to its legacy dbo.Booking id
+        if args.db_state != "legacy":
+            return booking_id
+        mapped = db.scalar("SELECT LegacyBookingId FROM dbo.RelayBookingMap WHERE ModernBookingId = ?", (booking_id,))
+        return booking_id if mapped is None else mapped
+
     # Behind the routing gateway (v1 served) every legacy entry point has a route: /sync/** -> capacity-sync,
     # /api/v1/results/** -> results-service, /api/v1/** -> booking-api v1 translation, /api/v2/** -> scheduling-service.
     gateway = partner_api == "v1"
@@ -173,7 +205,8 @@ def modern_target(config, db, args):
     print("[char] modern target %s (partner calls via %s, db-state %s)" % (args.base_url, partner_api, args.db_state))
     return Target("modern", config, adapters, state, reset, sync_url=args.base_url if gateway else None, mixed_urls=mixed,
                   results_url=args.base_url if gateway else None,
-                  routing_url=args.base_url if gateway else None), partner_api
+                  routing_url=args.base_url if gateway else None, settle_fn=settle,
+                  booking_id_fn=legacy_booking_id), partner_api
 
 
 def cmd_capture(args):

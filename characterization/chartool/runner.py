@@ -51,13 +51,17 @@ class Target:
     """name: legacy|modern; adapters: channel -> adapter; state: LegacyState/SchedulingState."""
 
     def __init__(self, name, config, adapters, state, reset_fn, sync_url=None, mixed_urls=None, results_url=None,
-                 routing_url=None):
+                 routing_url=None, settle_fn=None, booking_id_fn=None):
         self.name, self.config, self.adapters, self.state = name, config, adapters, state
         self.reset_fn, self.sync_url, self.mixed_urls = reset_fn, sync_url, mixed_urls
         # results_url: where `result` steps POST /api/v1/results (legacy results-service, or the gateway route to it)
         # routing_url: set for the modern target behind the routing gateway (mixed traffic uses the modern write path)
         self.results_url = results_url or (config.results_url if name == "legacy" else None)
         self.routing_url = routing_url
+        # settle_fn: called after every step, before the DB state is read (modern + M4 relay: drain the outbox)
+        self.settle_fn = settle_fn or (lambda: None)
+        # booking_id_fn: response booking id -> the id the state reader sees (modern ids -> legacy ids via the relay map)
+        self.booking_id_fn = booking_id_fn or (lambda i: i)
 
 
 def execute_step(target, step, db, sc, results):
@@ -137,6 +141,9 @@ def run_scenario(sc, target, db, seed_max):
     for step in sc["steps"]:
         res = execute_step(target, step, db, sc, results)
         results.append(res)
+        target.settle_fn()
+        if res.get("booking_id") is not None:
+            res["state_booking_id"] = target.booking_id_fn(res["booking_id"])
         sessions = sorted(set(sc["sessions"]) | set(state.sessions_with_new_bookings(pre["Booking"])))
         after = state.read(sessions, sc["candidates"], pre["AuditLog"])
         biz = res["business"]
@@ -146,7 +153,7 @@ def run_scenario(sc, target, db, seed_max):
             if sid is not None and int(sid) in after["sessions"]:
                 biz["seatsAvailable"] = after["sessions"][int(sid)]["SeatsAvailable"]
         if step["op"] in ("book", "reschedule"):
-            biz["waitlistPosition"] = _waitlist_position(after, res.get("booking_id"))
+            biz["waitlistPosition"] = _waitlist_position(after, res.get("state_booking_id"))
         if step["op"] == "capacity":
             prev = raw_steps[-1][1] if raw_steps else before
             was = {b["BookingId"]: b["Status"] for b in prev["bookings"]}
@@ -156,10 +163,12 @@ def run_scenario(sc, target, db, seed_max):
     final = raw_steps[-1][1]
     idmap = IdMap(seed_max, pre["Booking"])
     idmap.add(all_booking_ids(before) + all_booking_ids(final) +
-              [r.get("booking_id") for r in results if r.get("booking_id")])
+              [r.get("state_booking_id") for r in results if r.get("state_booking_id")])
     steps_out = []
     for step, (res, _after) in zip(sc["steps"], raw_steps):
         biz = dict(res["business"])
+        if res.get("booking_id") is not None and biz.get("bookingId") == res["booking_id"]:
+            biz["bookingId"] = res["state_booking_id"]
         if "bumped" in biz:
             biz["bumped"] = [idmap.label(i) for i in biz["bumped"]]
         steps_out.append({

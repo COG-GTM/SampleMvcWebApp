@@ -146,7 +146,7 @@ class GatewayIntegrationTest {
         EntityExchangeResult<String> r = postBooking(100);
         assertThat(r.getStatus().value()).isEqualTo(201);
         assertThat(r.getResponseHeaders().getFirst("X-Route")).isEqualTo("legacy");
-        assertThat(r.getResponseBody()).isEqualTo(LEGACY_BOOKED);
+        assertThat(lf(r.getResponseBody())).isEqualTo(LEGACY_BOOKED);
         bookingApi.verify(postRequestedFor(urlEqualTo("/api/v1/bookings"))
                 .withRequestBody(equalToJson("{\"sessionId\":100,\"candidateNumber\":\"NW00000901\"}")));
         scheduling.verify(0, anyRequestedFor(anyUrl()));
@@ -165,7 +165,7 @@ class GatewayIntegrationTest {
         assertThat(r.getStatus().value()).isEqualTo(201);
         assertThat(r.getResponseHeaders().getFirst("X-Route")).isEqualTo("modern");
         assertThat(r.getResponseHeaders().getFirst("Content-Type")).isEqualTo("application/json;charset=UTF-8");
-        assertThat(r.getResponseBody()).isEqualTo("{\n  \"bookingId\" : 50000007,\n  \"status\" : \"BOOKED\"\n}");
+        assertThat(lf(r.getResponseBody())).isEqualTo("{\n  \"bookingId\" : 50000007,\n  \"status\" : \"BOOKED\"\n}");
         scheduling.verify(postRequestedFor(urlEqualTo("/api/v2/bookings")).withRequestBody(equalToJson(
                 "{\"sessionId\":100,\"candidateNumber\":\"NW00000901\",\"accommodationCode\":null,"
                         + "\"externalRef\":null,\"channel\":\"PARTNER\"}")));
@@ -177,7 +177,7 @@ class GatewayIntegrationTest {
         setAllowList("BOS01");
         EntityExchangeResult<String> r = postBooking(200);
         assertThat(r.getResponseHeaders().getFirst("X-Route")).isEqualTo("legacy");
-        assertThat(r.getResponseBody()).isEqualTo(LEGACY_BOOKED);
+        assertThat(lf(r.getResponseBody())).isEqualTo(LEGACY_BOOKED);
         scheduling.verify(0, postRequestedFor(urlPathEqualTo("/api/v2/bookings")));
     }
 
@@ -188,7 +188,7 @@ class GatewayIntegrationTest {
                 .withBody("{\"error\":\"DUPLICATE_BOOKING\",\"message\":\"Candidate already booked\",\"legacyCode\":50002}")));
         EntityExchangeResult<String> r = postBooking(100);
         assertThat(r.getStatus().value()).isEqualTo(409);
-        assertThat(r.getResponseBody())
+        assertThat(lf(r.getResponseBody()))
                 .isEqualTo("{\n  \"error\" : \"DUPLICATE_BOOKING\",\n  \"message\" : \"Candidate already booked\"\n}");
     }
 
@@ -201,7 +201,7 @@ class GatewayIntegrationTest {
                 .expectBody(String.class).returnResult();
         assertThat(r.getStatus().value()).isEqualTo(200);
         assertThat(r.getResponseHeaders().getFirst("X-Route")).isEqualTo("modern");
-        assertThat(r.getResponseBody()).contains("\"cancelReason\" : \"Cancelled by partner\"")
+        assertThat(lf(r.getResponseBody())).contains("\"cancelReason\" : \"Cancelled by partner\"")
                 .doesNotContain("origin");
         scheduling.verify(deleteRequestedFor(urlPathEqualTo("/api/v2/bookings/50000001"))
                 .withQueryParam("reason", equalTo("Cancelled by partner")));
@@ -217,7 +217,7 @@ class GatewayIntegrationTest {
                 .expectBody(String.class).returnResult();
         assertThat(r.getStatus().value()).isEqualTo(200);
         assertThat(r.getResponseHeaders().getFirst("X-Route")).isEqualTo("modern");
-        assertThat(r.getResponseBody()).isEqualTo("{\n  \"bookingId\" : 50000002,\n  \"status\" : \"BOOKED\"\n}");
+        assertThat(lf(r.getResponseBody())).isEqualTo("{\n  \"bookingId\" : 50000002,\n  \"status\" : \"BOOKED\"\n}");
         scheduling.verify(postRequestedFor(urlEqualTo("/api/v2/bookings/50000001/reschedule"))
                 .withRequestBody(equalToJson("{\"newSessionId\":201}")));
     }
@@ -498,5 +498,10 @@ class GatewayIntegrationTest {
         client.get().uri("/Booking/MyBookings?centerCode=NYC01&candidateNumber=NW00000901").exchange()
                 .expectStatus().isFound().expectHeader().valueEquals("X-Route", "modern")
                 .expectHeader().valueEquals("Location", "/app/my-bookings?candidateNumber=NW00000901");
+    }
+
+    /** Jackson pretty-prints with the platform line separator (CRLF on Windows); the assertions use LF. */
+    private static String lf(String body) {
+        return body == null ? null : body.replace("\r\n", "\n");
     }
 }
