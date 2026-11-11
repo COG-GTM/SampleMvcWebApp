@@ -7,7 +7,7 @@ import yaml
 
 from . import mixed, snapshot
 from .config import SCENARIO_DIR, TRANSCRIPT_DIR
-from .db import Db, log
+from .db import Db, SqlError, log
 from .normalize import Normalizer
 from .steps import Steps
 from .web import wait_until_up
@@ -111,7 +111,15 @@ class Runner:
     def run(self, sc):
         self.reseed()
         use_db = self.t.compare == "all"
-        base = snapshot.baseline(self.db) if use_db else {"now": None}
+        try:
+            # The seed's max identity values tell seeded ids (kept literal) from new ones (placeholders),
+            # also in setup SQL / step requests under --compare http.
+            base = snapshot.baseline(self.db)
+        except SqlError:
+            if use_db:
+                raise
+            log("no legacy-compatible DB baseline: every numeric id will be normalized as new")
+            base = {"now": None}
         norm = Normalizer(base, base.get("now"))
         sessions = set(sc.get("sessions", []))
         candidates = set(sc.get("candidates", []))
