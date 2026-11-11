@@ -64,6 +64,9 @@ class GatewayIntegrationTest {
             return Stub.Answer.json(201, "{\"bookingId\":50000001,\"status\":\"BOOKED\",\"waitlistPosition\":null,"
                     + "\"booking\":{\"bookingId\":50000001},\"session\":{\"sessionId\":154}}");
         }
+        if (c.method().equals("POST") && u.equals("/api/v2/bookings/50000001/reschedule")) {
+            return Stub.Answer.json(200, "{\"bookingId\":50000002,\"status\":\"BOOKED\",\"booking\":{\"bookingId\":50000002}}");
+        }
         if (c.method().equals("DELETE") && u.startsWith("/api/v2/bookings/50000001")) {
             return Stub.Answer.json(200, "{\"bookingId\":50000001,\"sessionId\":154,\"candidateNumber\":\"NW00000901\","
                     + "\"candidateName\":\"A\",\"status\":\"CANCELLED\",\"channel\":\"PARTNER\",\"bookedAt\":\"2026-11-10T08:00:00\"}");
@@ -202,5 +205,42 @@ class GatewayIntegrationTest {
                 .expectStatus().isCreated().expectHeader().valueEquals("X-Route", "modern");
         web.put().uri("/api/v2/sessions/200/capacity").contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(Map.of("capacity", 5)).exchange().expectStatus().isForbidden();
+    }
+
+    @Test
+    void internalSchedulingEndpointsAreNotExposed() {
+        web.post().uri("/api/v2/internal/import/sessions?mode=reset").exchange()
+                .expectStatus().isNotFound().expectBody().jsonPath("$.error").isEqualTo("NOT_FOUND");
+        web.get().uri("/api/v2//Internal/routing/resolve?centerCode=BOS01").exchange().expectStatus().isNotFound();
+    }
+
+    @Test
+    void v2WritesWhoseCentreCannotBeResolvedAreRefused() {
+        web.post().uri("/api/v2/bookings").contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of("sessionId", 999, "candidateNumber", "NW00000901")).exchange()
+                .expectStatus().isForbidden().expectBody().jsonPath("$.error").isEqualTo("CENTER_NOT_MODERN");
+    }
+
+    @Test
+    void reschedulesNeverMoveABookingOntoASeatTheOtherSideOwns() {
+        String toChi01 = "{\"newSessionId\":200}";
+        String toBos01 = "{\"newSessionId\":154}";
+        web.post().uri("/api/v1/bookings/50000001/reschedule").contentType(MediaType.APPLICATION_JSON).bodyValue(toChi01)
+                .exchange().expectStatus().isForbidden().expectHeader().valueEquals("X-Route", "modern")
+                .expectBody().jsonPath("$.error").isEqualTo("CENTER_NOT_MODERN");
+        web.post().uri("/api/v1/bookings/50000001/reschedule").contentType(MediaType.APPLICATION_JSON).bodyValue(toBos01)
+                .exchange().expectStatus().isOk().expectHeader().valueEquals("X-Route", "modern")
+                .expectBody().json("{\"bookingId\":50000002,\"status\":\"BOOKED\"}", true);
+        web.post().uri("/api/v1/bookings/1200/reschedule").contentType(MediaType.APPLICATION_JSON).bodyValue(toBos01)
+                .exchange().expectStatus().isForbidden().expectHeader().valueEquals("X-Route", "legacy")
+                .expectBody().jsonPath("$.error").isEqualTo("CENTER_IS_MODERN");
+        writeConfig("");
+        long deadline = System.currentTimeMillis() + 5000;
+        while (System.currentTimeMillis() < deadline && !"legacy".equals(web.get().uri("/Booking?CenterCode=BOS01")
+                .exchange().returnResult(String.class).getResponseHeaders().getFirst("X-Route"))) {
+            Thread.yield();
+        }
+        web.post().uri("/api/v1/bookings/50000001/reschedule").contentType(MediaType.APPLICATION_JSON).bodyValue(toBos01)
+                .exchange().expectStatus().isOk().expectHeader().valueEquals("X-Route", "modern");
     }
 }

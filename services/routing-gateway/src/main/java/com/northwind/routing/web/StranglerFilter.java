@@ -13,6 +13,8 @@ import com.northwind.routing.route.RouteDecider;
 import com.northwind.routing.route.RouteDecision;
 import com.northwind.routing.translate.ModernV1Client;
 import com.northwind.routing.translate.V1Shapes;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -28,6 +30,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
@@ -41,6 +44,8 @@ import reactor.core.publisher.Mono;
  */
 @Component
 public class StranglerFilter implements GlobalFilter, Ordered {
+
+    static final String CENTER_IS_MODERN = "CENTER_IS_MODERN";
 
     public static final String X_ROUTE = "X-Route";
     private static final Logger log = LoggerFactory.getLogger(StranglerFilter.class);
@@ -124,12 +129,39 @@ public class StranglerFilter implements GlobalFilter, Ordered {
             Lookup key = m.needsBody()
                     ? Lookup.of(Lookup.Kind.SESSION_ID, ModernApiWriteGuard.number(body, "sessionId"))
                     : m.lookup();
-            return decide(key).flatMap(d -> d.modern() ? serveV1(cached, m, body, d) : forward(cached, chain, d));
+            return decide(key).flatMap(d -> m.op() == ApiRoutes.V1Op.RESCHEDULE
+                    ? reschedule(cached, chain, m, body, d)
+                    : d.modern() ? serveV1(cached, m, body, d) : forward(cached, chain, d));
         });
+    }
+
+    /** A reschedule must not move a booking onto a seat the other side owns. */
+    private Mono<Void> reschedule(ServerWebExchange ex, GatewayFilterChain chain, ApiRoutes.V1 m,
+                                  Map<String, Object> body, RouteDecision d) {
+        if (d.modern()) {
+            return guard.deniedCenter(new ApiRoutes.V2Write(ApiRoutes.V2Op.RESCHEDULE, m.id()), body).flatMap(denied ->
+                    denied.isPresent()
+                            ? writeJson(ex, HttpStatus.FORBIDDEN.value(), V1Shapes.error(ModernApiWriteGuard.CENTER_NOT_MODERN,
+                                    ModernApiWriteGuard.message(denied.get())), d)
+                            : serveV1(ex, m, body, d));
+        }
+        Lookup destination = Lookup.of(Lookup.Kind.SESSION_ID, ModernApiWriteGuard.number(body, "newSessionId"));
+        if (allowList.isEmpty() || !destination.present()) {
+            return forward(ex, chain, d);
+        }
+        return resolver.resolve(destination).flatMap(c -> c.filter(allowList::contains).isPresent()
+                ? writeJson(ex, HttpStatus.FORBIDDEN.value(), V1Shapes.error(CENTER_IS_MODERN, "Centre " + c.get()
+                        + " is on routing.modern-centers; a legacy booking cannot be moved onto its sessions"), d)
+                : forward(ex, chain, d));
     }
 
     private Mono<Void> modern(ServerWebExchange ex, GatewayFilterChain chain) {
         ServerHttpRequest req = ex.getRequest();
+        if (internalPath(req.getPath().value())) {
+            return writeJson(ex, HttpStatus.NOT_FOUND.value(), V1Shapes.error("NOT_FOUND",
+                    "scheduling-service internal endpoints are not exposed through the gateway"),
+                    RouteDecision.modern(null, "internal endpoint blocked"));
+        }
         Optional<ApiRoutes.V2Write> write = ApiRoutes.matchV2Write(req.getMethod().name(), req.getPath().value());
         if (write.isEmpty()) {
             return forward(ex, chain, RouteDecision.modern(null, "modern path"));
@@ -141,11 +173,16 @@ public class StranglerFilter implements GlobalFilter, Ordered {
                 if (denied.isPresent()) {
                     RouteDecision d = RouteDecision.modern(denied.get(), ModernApiWriteGuard.CENTER_NOT_MODERN);
                     return writeJson(cached, HttpStatus.FORBIDDEN.value(), V1Shapes.error(ModernApiWriteGuard.CENTER_NOT_MODERN,
-                            "Centre " + denied.get() + " is not on routing.modern-centers; its seat inventory is still owned by legacy"), d);
+                            ModernApiWriteGuard.message(denied.get())), d);
                 }
                 return forward(cached, chain, RouteDecision.modern(null, "modern write"));
             });
         });
+    }
+
+    static boolean internalPath(String rawPath) {
+        String p = UriUtils.decode(rawPath, StandardCharsets.UTF_8).replaceAll(";[^/]*", "").replaceAll("/{2,}", "/");
+        return p.toLowerCase(Locale.ROOT).startsWith("/api/v2/internal");
     }
 
     /** Resolves the request's centre (only when it can matter) and applies {@link RouteDecider}. */

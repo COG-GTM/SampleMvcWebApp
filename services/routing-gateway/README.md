@@ -70,7 +70,8 @@ Requests without a centre key (e.g. `/Booking/MyBookings?candidateNumber=`, `/ap
 
 The centre is resolved through scheduling-service `GET /api/v2/internal/routing/resolve?centerCode=|centerId=|sessionId=|bookingId=`
 (reads its snapshots; cached for `routing.resolve-cache-ttl`, 30 s). If the lookup fails the request goes to
-legacy. With an **empty allow-list no lookups are made and no request bodies are read**: the gateway is a
+legacy (writes through the v2 guard below are refused instead). `/api/v2/internal/**` (resolver, snapshot
+import/reset) is never proxied: the gateway answers `404` for it. With an **empty allow-list no lookups are made and no request bodies are read**: the gateway is a
 transparent proxy (verified by replaying the M1 transcripts through :8000, see the PR).
 
 **Ownership by booking origin.** scheduling-service raises its booking identity to
@@ -82,7 +83,11 @@ rule above.
 **Modern write guard.** v2 writes that reach scheduling-service through :8000 (`POST /api/v2/bookings`,
 `DELETE /api/v2/bookings/{id}`, `POST /api/v2/bookings/{id}/reschedule`, `PUT /api/v2/sessions/{id}/capacity`)
 are refused with `403 {"error":"CENTER_NOT_MODERN"}` when the centre is not allow-listed (modern-owned bookings
-excepted), so the modern UI cannot take seats legacy still owns.
+excepted), so the modern UI cannot take seats legacy still owns. The guard fails closed: if a centre cannot be
+resolved (lookup outage, unknown id) the write is refused with the same 403. A reschedule must also land on an
+allow-listed centre; the one exception is a modern-owned booking moving within its own centre after that centre
+was rolled back. The same rule applies to v1 reschedules (`403 CENTER_NOT_MODERN`), and a legacy booking cannot be
+moved onto an allow-listed centre's session (`403 CENTER_IS_MODERN`).
 
 Every request is logged as `route=legacy|modern center=<code|-> METHOD path (reason)` and the response carries
 `X-Route: legacy|modern`.
