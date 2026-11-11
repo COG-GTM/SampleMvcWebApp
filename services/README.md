@@ -8,7 +8,7 @@ contract (tables, procs, routes).
 |---|---|---|
 | `booking-api` | 8081 | Partner booking channel: sessions, bookings, cancel/reschedule, retake eligibility |
 | `results-service` | 8082 | Score ingestion (single result or CSV upload from centres) and candidate results |
-| `capacity-sync` | 8083 | Nightly (02:00) re-sync of `ExamSession.SeatsAvailable`, plus manual trigger |
+| ~~`capacity-sync`~~ | ~~8083~~ | Retired. The seat reconciler now runs inside `scheduling-service` (`/api/v1/reconciler/runs`); see [`capacity-sync/README.md`](capacity-sync/README.md) |
 
 Stack: Java 8, Spring Boot 1.5.22, Spring MVC, `JdbcTemplate` (no ORM), mssql-jdbc 7.4 (jre8), JUnit 4.
 
@@ -40,7 +40,6 @@ By hand, against a database that is already there:
 ```bash
 java -jar services/booking-api/target/booking-api.jar
 java -jar services/results-service/target/results-service.jar
-java -jar services/capacity-sync/target/capacity-sync.jar
 ```
 
 `scripts/mixed-traffic.sh` books a batch of seats through both channels (portal via `usp_BookSeat`,
@@ -135,16 +134,8 @@ Idempotency (MBA-3827). A booking holds at most one result (`UQ_Result_Booking`)
 - Rows still commit one by one (HB-19): a bad, duplicate or conflicting row never rolls back the
   good rows of the same file. `skipped = rowsRead - imported`.
 
-### capacity-sync :8083
+### capacity-sync :8083 (retired)
 
-| Method | Path | |
-|---|---|---|
-| POST | `/sync/run` | run the seat re-sync now |
-| GET | `/sync/last` | last run (status, trigger, startedAt, finishedAt, sessionsChecked, sessionsUpdated) |
-
-```bash
-curl -X POST http://localhost:8083/sync/run
-curl http://localhost:8083/sync/last
-```
-
-Every run (scheduled or manual) writes one `AuditLog` row.
+Retired in Phase 2 of the scheduling-service migration. `POST /sync/run` is replaced by
+`POST http://localhost:8084/api/v1/reconciler/runs` and `GET /sync/last` by `GET .../reconciler/runs?max=1`.
+See [`capacity-sync/README.md`](capacity-sync/README.md).

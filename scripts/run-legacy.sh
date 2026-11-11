@@ -20,7 +20,8 @@ RUN_DIR="$ROOT/.run"
 MSSQL_CONTAINER="${MSSQL_CONTAINER:-mssql}"
 MSSQL_IMAGE="${MSSQL_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}"
 export MSSQL_SA_PASSWORD="${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}"
-SERVICES="booking-api:8081 results-service:8082 capacity-sync:8083"
+# capacity-sync (:8083) is retired: its seat reconciler lives in scheduling-service (services/capacity-sync/README.md)
+SERVICES="booking-api:8081 results-service:8082"
 
 log() { echo "[run-legacy] $*"; }
 die() { echo "[run-legacy] ERROR: $*" >&2; exit 1; }
@@ -152,7 +153,6 @@ print_urls() {
 
   booking-api      http://localhost:8081/api/v1/sessions
   results-service  http://localhost:8082/api/v1/results/candidate/{candidateNumber}
-  capacity-sync    http://localhost:8083/sync/last
   SQL Server       localhost,1433  db AssessmentDelivery  login ad_app
 
   logs and pids:   .run/
