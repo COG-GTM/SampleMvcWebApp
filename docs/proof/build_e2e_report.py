@@ -203,7 +203,8 @@ def build(data: dict, base: Path) -> str:
     env_rows = "".join(f"<tr><td>{E(e['worker'])}</td><td>{E(e.get('role', ''))}</td><td>{E(e.get('env', ''))}</td>"
                        f"<td>{'<a href=' + chr(34) + E(e['url']) + chr(34) + '>session</a>' if str(e.get('url', '')).startswith('https://') else ''}</td></tr>" for e in m["workers"])
     prs = "".join(f'<li><a href="https://github.com/COG-GTM/SampleMvcWebApp/pull/{p["n"]}">#{p["n"]}</a> {E(p["title"])}</li>' for p in m["prs"])
-    mism = "".join(f"<li>{E(x)}</li>" for x in data.get("mismatches", [])) or "<li>None. Every difference is either ADR-approved, a retired legacy surface or the documented on-call demo defect.</li>"
+    mism = "".join(f"<li>{E(x)}</li>" for x in data.get("mismatches", [])) or (
+        "<li>" + E(f"{counts['MISMATCH']} scenario(s) classified MISMATCH - see the matrix above.") + "</li>" if counts["MISMATCH"] else "") or "<li>None. Every difference is either ADR-approved, a retired legacy surface or the documented on-call demo defect.</li>"
     filt = "".join(f'<button data-f="{c}">{c} ({counts[c]})</button>' for c in CLASSES)
     legend = ('<div class="legend"><span><i style="background:var(--match)"></i>MATCH</span><span><i style="background:var(--adr)"></i>APPROVED DIFFERENCE</span>'
               '<span><i style="background:var(--known)"></i>KNOWN DEFECT</span><span><i style="background:var(--mismatch)"></i>MISMATCH</span>'
