@@ -26,13 +26,16 @@ public abstract class AbstractResultsIT {
     @Autowired
     protected TestRestTemplate rest;
 
+    /** sa: fixtures write dbo.Booking, which results-service's login is denied (040_single_writer.sql). */
+    protected final JdbcTemplate sa = SqlServerDb.saJdbc();
+
     /** A fresh BOOKED booking with no result. */
     protected Fixture newBooking() {
         String candidateNumber = String.format("NW%08d", NEXT_CANDIDATE.getAndIncrement());
-        int sessionId = jdbc.queryForObject(
+        int sessionId = sa.queryForObject(
                 "SELECT TOP 1 SessionId FROM dbo.ExamSession WHERE Status = 'OPEN' AND SeatsAvailable > 0 "
               + "ORDER BY SessionId", Integer.class);
-        int bookingId = jdbc.queryForObject(
+        int bookingId = sa.queryForObject(
                 "SET NOCOUNT ON; INSERT INTO dbo.Booking (SessionId, CandidateId, Status, Channel) "
               + "SELECT ?, CandidateId, 'BOOKED', 'PARTNER' FROM dbo.Candidate WHERE CandidateNumber = ?; "
               + "SELECT CAST(SCOPE_IDENTITY() AS INT);", Integer.class, sessionId, candidateNumber);

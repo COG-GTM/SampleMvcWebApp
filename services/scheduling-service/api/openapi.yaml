@@ -16,6 +16,7 @@ info:
     |---|---|---|
     | `VALIDATION` | 400 | null |
     | `BAD_REQUEST` | 400 | null |
+    | `UNAUTHORIZED` | 401 | null |
     | `CANDIDATE_NOT_FOUND` | 404 | null |
     | `SESSION_NOT_FOUND` | 404 | null |
     | `BOOKING_NOT_FOUND` | 404 | null |
@@ -233,6 +234,81 @@ paths:
                 $ref: "#/components/schemas/ApiError"
           description: "Not found: BOOKING_NOT_FOUND"
       summary: Get a booking
+      tags:
+      - Bookings
+  /api/v2/bookings/{bookingId}/attendance:
+    post:
+      operationId: attendance
+      parameters:
+      - in: path
+        name: bookingId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Failed to convert value of type 'java.lang.String' to
+                      required type 'int'
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: BAD_REQUEST"
+        "401":
+          content:
+            application/json:
+              examples:
+                UNAUTHORIZED:
+                  summary: UNAUTHORIZED
+                  value:
+                    error: UNAUTHORIZED
+                    legacyCode: null
+                    message: X-Service-Token missing or invalid
+              schema:
+                $ref: "#/components/schemas/ServiceTokenError"
+          description: "Unauthorized: UNAUTHORIZED"
+        "404":
+          content:
+            application/json:
+              examples:
+                BOOKING_NOT_FOUND:
+                  summary: BOOKING_NOT_FOUND
+                  value:
+                    error: BOOKING_NOT_FOUND
+                    legacyCode: null
+                    message: Booking 99999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: BOOKING_NOT_FOUND"
+        "409":
+          content:
+            application/json:
+              examples:
+                NOT_CANCELLABLE:
+                  summary: NOT_CANCELLABLE (legacy 50004)
+                  value:
+                    error: NOT_CANCELLABLE
+                    legacyCode: 50004
+                    message: Booking 1201 is CANCELLED
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Rule violation: NOT_CANCELLABLE"
+      security:
+      - serviceToken: []
+      summary: Record attendance (BOOKED -> ATTENDED; already ATTENDED is a no-op).
+        Called by results-service on result ingestion
       tags:
       - Bookings
   /api/v2/bookings/{bookingId}/reschedule:
@@ -1172,6 +1248,32 @@ components:
           example: 163
       required:
       - newSessionId
+    ServiceTokenError:
+      type: object
+      description: 401 body when X-Service-Token is missing or invalid
+      properties:
+        error:
+          type: string
+          description: Symbolic error code (booking-api vocabulary)
+          enum:
+          - UNAUTHORIZED
+          example: UNAUTHORIZED
+        legacyCode:
+          type: integer
+          format: int32
+          description: "50000 + legacy proc RAISERROR state (ODD-11): 50001..50006,\
+            \ see the table in the API description; null when the rule had no proc\
+            \ error. Present on /api/v2 rule errors, absent for BAD_REQUEST and on\
+            \ /api/v1."
+          nullable: true
+          example: null
+        message:
+          type: string
+          description: Human-readable message
+          example: X-Service-Token missing or invalid
+      required:
+      - error
+      - message
     SessionDto:
       type: object
       properties:
@@ -1281,3 +1383,10 @@ components:
       - candidateName
       - candidateNumber
       - position
+  securitySchemes:
+    serviceToken:
+      description: Service credential (scheduling.attendance.service-token); results-service
+        only
+      in: header
+      name: X-Service-Token
+      type: apiKey

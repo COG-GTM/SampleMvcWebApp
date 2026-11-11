@@ -2,6 +2,9 @@ package com.northwind.ad.results.it;
 
 import java.io.File;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+
 import org.springframework.boot.test.util.EnvironmentTestUtils;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -11,7 +14,8 @@ import org.testcontainers.utility.MountableFile;
 
 /**
  * One SQL Server 2022 container per test JVM, built with the real db/apply.sh
- * (schema, procs, triggers, seed). The service connects as ad_app, like in production.
+ * (schema, procs, triggers, seed, security). The service connects as ad_results, like in production, so the
+ * MBA-3823 write denial (db/security/040_single_writer.sql) applies; fixtures write as sa.
  */
 public final class SqlServerDb {
 
@@ -54,14 +58,28 @@ public final class SqlServerDb {
                 + ";databaseName=AssessmentDelivery";
     }
 
-    /** Points the Spring datasource at the container as ad_app. */
+    private static JdbcTemplate sa;
+
+    /** sysadmin connection for fixtures (results-service's own login may not write dbo.Booking). */
+    public static synchronized JdbcTemplate saJdbc() {
+        if (sa == null) {
+            DriverManagerDataSource ds = new DriverManagerDataSource(jdbcUrl(), "sa", SA_PASSWORD);
+            ds.setDriverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            sa = new JdbcTemplate(ds);
+        }
+        return sa;
+    }
+
+    /** Points the Spring datasource at the container as ad_results and attendance at the scheduling stub. */
     public static class Initializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
         @Override
         public void initialize(ConfigurableApplicationContext ctx) {
             EnvironmentTestUtils.addEnvironment(ctx,
                     "spring.datasource.url=" + jdbcUrl(),
-                    "spring.datasource.username=ad_app",
-                    "spring.datasource.password=Northw1nd!Dev2011");
+                    "spring.datasource.username=ad_results",
+                    "spring.datasource.password=Resu1ts!Dev2026",
+                    "results.scheduling.base-url=" + SchedulingStub.get().baseUrl(),
+                    "scheduling.service-token=" + SchedulingStub.TOKEN);
         }
     }
 }

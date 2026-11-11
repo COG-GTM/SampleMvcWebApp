@@ -32,8 +32,26 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<Map<String, Object>> handleDb(DataAccessException ex) {
+        if (isPermissionDenied(ex)) {
+            // MBA-3823: db/security/040_single_writer.sql denies booking/seat writes to ad_booking_api
+            log.warn("Legacy write denied: {}", ex.getMostSpecificCause().getMessage());
+            return body(HttpStatus.FORBIDDEN, "LEGACY_WRITE_DENIED", "Booking and capacity writes are owned by "
+                    + "scheduling-service; send them through the routing gateway (:8000)");
+        }
         log.error("Database error", ex);
         return body(HttpStatus.INTERNAL_SERVER_ERROR, "DB_ERROR", ex.getMostSpecificCause().getMessage());
+    }
+
+    // SQL Server 229/230: The <permission> permission was denied on the object/column
+    static boolean isPermissionDenied(DataAccessException ex) {
+        Throwable t = ex.getMostSpecificCause();
+        if (t instanceof java.sql.SQLException) {
+            int code = ((java.sql.SQLException) t).getErrorCode();
+            if (code == 229 || code == 230) {
+                return true;
+            }
+        }
+        return t != null && t.getMessage() != null && t.getMessage().contains("permission was denied");
     }
 
     static ResponseEntity<Map<String, Object>> body(HttpStatus status, String error, String message) {

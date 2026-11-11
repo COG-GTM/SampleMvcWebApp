@@ -126,32 +126,49 @@ jq -c 'select(.operation) | {durationMs,operation,centerCode,sessionId,traceId}'
    is down. Bookings already in `Scheduling` keep working; snapshot refresh (`POST /api/v2/internal/import/sessions`)
    and reference reads that need legacy fail until it is back.
 
-### Outbox lag (after M4)
+### Outbox lag (relay, MBA-3823)
 
-Not applicable until M4 adds the outbox and the `scheduling_outbox_lag_seconds` / `scheduling_outbox_pending` gauges.
-Then: lag rising with pending rising means the relay is stuck or the legacy write-back target is down (check its
-readiness and relay ERROR logs by `traceId`); lag rising with pending flat means one poison message (find the oldest
-pending row and its error). While lag is high, legacy channels see stale availability: consider rolling the affected
-centres back (§5) until the relay catches up.
+Every booking/capacity change writes an `outbox_event` row in the same transaction (`event_seq` = order). The relay
+(`com.northwind.scheduling.relay`, login `ad_sched_relay`, `scheduling.relay.*` / `SCHEDULING_RELAY_*`) polls every
+`scheduling.relay.poll-ms` (250 ms) and applies each event to `AssessmentDelivery` in one transaction, recording the
+event id in `dbo.RelayCheckpoint` ([ADR 0003](../adr/0003-single-writer-outbox-relay.md)). Gauges:
+`scheduling_outbox_pending`, `scheduling_outbox_lag_seconds`; `GET /internal/relay` shows
+`total/pending/lastSeq/lastRelayedSeq/oldestPendingAt` plus applied/skipped counters.
+
+- Lag rising with pending rising: the relay is stuck or `AssessmentDelivery` is down/locked. Check the relay WARN logs
+  (`relay poll failed`, `relay event ... failed`) and SQL Server.
+- Lag rising with pending flat: one poison event. `SELECT TOP 5 event_seq, event_type, attempts, last_error FROM
+  outbox_event WHERE relayed_at IS NULL ORDER BY event_seq` in `Scheduling`. Fix the cause and let it retry; never
+  delete outbox rows.
+- Restarting the service (or killing it mid-batch) is safe: an event already checkpointed is skipped, so replays write
+  nothing twice.
+- While lag is high, legacy readers (portal pages, booking-api `GET`, results) show stale availability. Writes are not
+  affected (scheduling-service is the only writer).
 
 ### Non-zero reconciliation report
 
-The legacy estate has no single seat formula and several writers drift `ExamSession.SeatsAvailable`
-([MR-01, MR-02](../as-is/migration-risks.md), HB-01..HB-05, nightly capacity-sync masking partner drift MR-17), so a
-difference between modern and legacy availability is expected for some sessions and is not by itself an incident.
+`GET /internal/reconciliation` (or `java -jar target/scheduling-service-*.jar reconcile`, exit 0 only when
+clean) compares every session (Capacity, SeatsAvailable, BOOKED/ATTENDED/WAITLISTED, accommodation
+seats used) and every booking (session, status, accommodation code) between `Scheduling` and `AssessmentDelivery`,
+runs `db/checks/seat-drift.sql`, and writes `reports/reconciliation-<timestamp>.md`. It replaces capacity-sync's
+nightly recompute, which is disabled (`capacity.sync.enabled=false`, HB-03, MR-17).
 
-1. Run the legacy drift check: `sqlcmd -C -S localhost -U sa -d AssessmentDelivery -i db/checks/seat-drift.sql` and
-   compare the listed sessions with `GET /api/v2/sessions/{id}` (modern availability is derived from bookings,
-   [ADR 0002](../adr/0002-ported-rule-decisions.md)).
-2. Sessions that differ only by legacy counter drift: record them, no action on the modern side.
-3. Bookings present on one side only, or a session over capacity in `Scheduling`: stop new modern bookings for that
-   centre (roll back, §5), keep the evidence (`bookingId`, `traceId` from the logs), and escalate to the scheduling
-   owners. Do not hand-edit `Scheduling` rows.
-4. For a centre that is not (yet) served by modern, refresh its snapshot with
-   `curl -X POST 'localhost:8090/api/v2/internal/import/sessions?mode=merge'` (never `mode=reset` in production: it
-   re-copies the inventory).
+With the relay live and the legacy write denial in place (`db/security/040_single_writer.sql`) the expected result is
+0 mismatches and 0 drift rows. If not:
+
+1. Check relay lag first (above). Mismatches that disappear once `pending` is 0 are lag, not drift.
+2. A legacy-only booking or a SeatsAvailable/count difference after the relay caught up means something wrote
+   `AssessmentDelivery` outside the relay: check that `040_single_writer.sql` is applied
+   (`SELECT * FROM sys.database_permissions WHERE state = 'D'`) and that no component still uses `sa` or `ad_app`.
+   Legacy writers otherwise reintroduce HB-01..HB-05 drift ([MR-01, MR-02](../as-is/migration-risks.md)).
+3. A modern-only booking: the relay has not applied it yet or failed on it (see poison event above).
+4. Do not hand-edit either database; keep the report and escalate to the scheduling owners.
 
 ## 5. Roll a centre back to legacy (routing allow-list, M3)
+
+> **Single writer (MBA-3823).** Once `db/security/040_single_writer.sql` is applied, routing a centre back to legacy
+> only moves its *reads*: legacy booking/capacity writes stay denied for every centre, so the steps below do not restore
+> legacy writes on their own. To hand writes back to legacy use §6 (it is all-or-nothing, not per centre).
 
 Which backend serves a centre is decided by the routing allow-list `scheduling.routing.modern-centers`
 (env `SCHEDULING_ROUTING_MODERN_CENTERS`, comma-separated centre codes, `*` = all; everything else goes to
@@ -170,3 +187,40 @@ Which backend serves a centre is decided by the routing allow-list `scheduling.r
 3. Verify: `routing/resolve` returns `"target":"legacy"`, and `rate(scheduling_booking_duration_seconds_count{centerCode="SFO01"}[5m])`
    drops to 0 while legacy portal/booking-api traffic for the centre resumes.
 4. Bookings taken by modern for that centre stay in `Scheduling`; reconcile them (§4) before routing the centre back.
+
+## 6. Single-writer cutover and rollback (MBA-3823)
+
+> Attendance credential. `POST /api/v2/bookings/{id}/attendance` answers 401 unless `X-Service-Token` equals
+> `scheduling.attendance.service-token` (`SCHEDULING_ATTENDANCE_SERVICE_TOKEN`; unset = all refused). results-service must send the
+> same value (`SCHEDULING_SERVICE_TOKEN`). If they differ, result ingestion fails with 502 `SCHEDULING_UNAVAILABLE`; check with
+> `curl -i -X POST -H "X-Service-Token: $SCHEDULING_SERVICE_TOKEN" http://localhost:8090/api/v2/bookings/0/attendance`
+> (401 = mismatch, 404 `BOOKING_NOT_FOUND` = token accepted; booking 0 never exists, so nothing is written). The gateway returns 404 for attendance on :8000, so results-service calls :8090 directly.
+
+Cutover (order matters: bookings legacy takes between the snapshot and the denial would be missing from `Scheduling`,
+because the importer only copies bookings when the `Scheduling` DB has no sessions or on a RESET import):
+
+1. Apply `db/security/036_component_logins.sql` and `db/security/040_single_writer.sql` (legacy writes now fail with a
+   permission error; booking-api answers `403 LEGACY_WRITE_DENIED`).
+2. Re-import with the legacy estate quiesced: drop/recreate the `Scheduling` DB (or run the RESET import) and start
+   scheduling-service with the relay on. The import emits `InventoryBaselined`, which the relay projects once.
+3. `GET /internal/reconciliation` must report 0 mismatches and 0 seat-drift rows.
+4. Only then set `routing.coexistence-mode=relay` and `routing.modern-centers=*` in the gateway.
+
+Rollback to legacy writes (all centres at once):
+
+1. Set `routing.modern-centers=` (empty) in the gateway so no new centre-routed writes reach scheduling-service; wait
+   for `GET /internal/relay` `pending` = 0 so every modern change is in `AssessmentDelivery` (same `BookingId`s).
+2. Revoke the denial: for each legacy login, `REVOKE INSERT, UPDATE, DELETE ON dbo.Booking / dbo.Waitlist`,
+   `REVOKE UPDATE ON dbo.ExamSession (Capacity, SeatsAvailable, AccommodationCapacity)` and
+   `REVOKE EXECUTE` on the four booking procedures (the inverse of `040_single_writer.sql`).
+3. Hand attendance back: set `results.scheduling.base-url=` (empty) in results-service and restart it, so
+   `AttendanceRecorder` uses the legacy direct `UPDATE` again (it needs step 2).
+4. Hand the modern-owned ids back: the gateway routes any `BookingId >= routing.modern-booking-id-floor` to
+   scheduling-service regardless of the allow-list, so raise the floor above every id in use (e.g.
+   `routing.modern-booking-id-floor=9223372036854775807`); those bookings are then served by legacy, which already holds
+   them from the relay. The floor is read at gateway startup (only `routing.modern-centers` hot-reloads), so restart
+   the gateway after editing it. Verify `GET :8000/api/v1/bookings/<a 5000xxxx id>` answers with `X-Route: legacy`.
+5. Only now stop scheduling-service and, if seat recomputation is wanted again, set `capacity.sync.enabled=true` in
+   capacity-sync. Legacy drift (HB-01..HB-05) returns with the legacy writers.
+6. Before routing writes to modern again, restore `routing.modern-booking-id-floor=50000000` (gateway restart) and
+   repeat the cutover from step 2: `Scheduling` must be re-imported.

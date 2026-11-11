@@ -7,6 +7,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class SchedulingServiceApplication {
     public static void main(String[] args) {
+        if (args.length > 0 && "reconcile".equals(args[0])) {
+            System.exit(com.northwind.scheduling.reconciliation.ReconcileCommand.run(SchedulingServiceApplication.class, args));
+        }
         SpringApplication.run(SchedulingServiceApplication.class, args);
     }
 }

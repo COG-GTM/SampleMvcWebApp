@@ -10,18 +10,6 @@ IF DB_ID('AssessmentDelivery') IS NULL
     CREATE DATABASE AssessmentDelivery;
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'ad_app')
-    CREATE LOGIN ad_app WITH PASSWORD = 'Northw1nd!Dev2011', CHECK_POLICY = OFF;
-GO
-
-USE AssessmentDelivery;
-GO
-
-IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'ad_app')
-BEGIN
-    CREATE USER ad_app FOR LOGIN ad_app;
-    ALTER ROLE db_datareader ADD MEMBER ad_app;
-    ALTER ROLE db_datawriter ADD MEMBER ad_app;
-    GRANT EXECUTE TO ad_app;
-END
-GO
+-- MBA-3823: the shared ad_app login (docs/as-is HB-28, MR-07) is retired. Each component now has its
+-- own login, created after the tables exist by db/security/036_component_logins.sql; legacy write denial
+-- for the single-writer coexistence is db/security/040_single_writer.sql.

@@ -329,6 +329,8 @@ function Find-ServiceJvm([string]$name) {
 }
 
 function Start-Services([string]$jdk) {
+    # MBA-3823: results-service sends this as X-Service-Token (same dev value as run-scheduling-service.ps1)
+    if (-not $env:SCHEDULING_SERVICE_TOKEN) { $env:SCHEDULING_SERVICE_TOKEN = 'dev-attendance-token-not-for-prod' }
     $java = Join-Path $jdk 'bin\java.exe'
     foreach ($s in $services) {
         $jar = Join-Path $root "services\$($s.Name)\target\$($s.Name).jar"
@@ -453,7 +455,7 @@ function Show-Urls {
   booking-api      http://localhost:8081/api/v1/sessions
   results-service  http://localhost:8082/api/v1/results/candidate/{candidateNumber}
   capacity-sync    http://localhost:8083/sync/last
-  SQL Server       $server  database AssessmentDelivery  login ad_app
+  SQL Server       $server  database AssessmentDelivery  logins ad_portal / ad_booking_api / ad_results / ad_capacity_sync (writes denied: 040_single_writer.sql)
 
   logs and pids:   .run\
   stop:            scripts\run-legacy.ps1 -Stop

@@ -72,6 +72,23 @@ scheduling:
   # Same vocabulary as legacy CK_Booking_Channel so the M4 outbox can write it back unchanged.
   default-channel: PORTAL
   actor: ${SCHEDULING_ACTOR:scheduling-service}
+  # MBA-3823: service credential for POST /api/v2/bookings/{id}/attendance (header X-Service-Token, results-service).
+  # No default: unset = every attendance call is refused (fail closed); the run scripts set a dev value.
+  attendance:
+    service-token: ${SCHEDULING_ATTENDANCE_SERVICE_TOKEN:}
+  # MBA-3823 outbox relay: projects every outbox_event into AssessmentDelivery as ad_sched_relay
+  # (db/security/036_component_logins.sql). Local-dev password like scheduling.legacy; Azure uses the env var.
+  relay:
+    enabled: ${SCHEDULING_RELAY_ENABLED:true}
+    url: ${SCHEDULING_RELAY_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=AssessmentDelivery;encrypt=true;trustServerCertificate=true}
+    username: ${SCHEDULING_RELAY_DB_USER:ad_sched_relay}
+    password: ${SCHEDULING_RELAY_DB_PASSWORD:Sch3dRelay!Dev2026}
+    poll-ms: ${SCHEDULING_RELAY_POLL_MS:250}
+    batch-size: ${SCHEDULING_RELAY_BATCH_SIZE:200}
+  # GET /internal/reconciliation and the `reconcile` CLI write reports/reconciliation-<ts>.md
+  reconciliation:
+    report-dir: ${SCHEDULING_RECONCILIATION_REPORT_DIR:reports}
+    seat-drift-sql: ${SCHEDULING_SEAT_DRIFT_SQL:db/checks/seat-drift.sql}
 
 logging:
   level:

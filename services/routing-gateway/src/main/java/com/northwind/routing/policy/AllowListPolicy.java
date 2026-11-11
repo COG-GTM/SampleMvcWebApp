@@ -9,10 +9,13 @@ import java.util.Set;
  * Coexistence guard (MBA-3822). Until M4 (relay of writes between the two databases) is live, only the
  * demo/test centres in {@code routing.test-centers} may be allow-listed; any other centre is refused unless
  * {@code routing.coexistence-mode=relay}. See services/routing-gateway/README.md.
+ * <p>MBA-3823 sets {@code relay}: scheduling-service is the single writer and its outbox relay keeps the legacy
+ * tables in step, so any centre, or {@code *} for all of them, may be allow-listed.
  */
 public final class AllowListPolicy {
 
     public static final String RELAY = "relay";
+    public static final String ALL = "*";
 
     private AllowListPolicy() {
     }

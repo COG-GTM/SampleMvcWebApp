@@ -192,13 +192,13 @@ public class ScoreFileIdempotencyTest extends AbstractResultsIT {
     @SuppressWarnings("rawtypes")
     public void replayAuditsAConflictThatWasNotAuditedOnTheFirstUpload() throws Exception {
         Fixture f = newBooking();
-        jdbc.update("UPDATE dbo.Booking SET Status = 'CANCELLED' WHERE BookingId = ?", f.bookingId);
+        sa.update("UPDATE dbo.Booking SET Status = 'CANCELLED' WHERE BookingId = ?", f.bookingId);
         String file = csv(f.csvRow(999, "2026-11-10T07:30:00"));
         ResponseEntity<Map> first = upload("NWTEST_LATE_BOOKING.csv", file);
         assertEquals(1, ((List) first.getBody().get("errors")).size());
 
         // the booking becomes active and gets a different score through the REST API
-        jdbc.update("UPDATE dbo.Booking SET Status = 'BOOKED' WHERE BookingId = ?", f.bookingId);
+        sa.update("UPDATE dbo.Booking SET Status = 'BOOKED' WHERE BookingId = ?", f.bookingId);
         Map<String, Object> post = new java.util.HashMap<String, Object>();
         post.put("bookingId", f.bookingId);
         post.put("score", 610);

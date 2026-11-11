@@ -1,0 +1,42 @@
+# MBA-3823 attendance service-token live check, 2026-11-11T22:04:39Z, head 5c4dcbd
+
+$ curl -X POST :8000/api/v2/bookings {sessionId:154, candidateNumber:NW00000960}
+HTTP/1.1 201 Created
+X-Route: modern
+{"bookingId":50000004,"status":"BOOKED","waitlistPosition":null,"booking":{"bookingId":50000004,"sessionId":154,"candidateNumber":"NW00000960","candidateName":"Amelia Zielinski","examCode":"MHL-RN1","
+booking 50000004: Scheduling=BOOKED  legacy=BOOKED
+
+$ curl -X POST :8090/api/v2/bookings/50000004/attendance   (no token)
+HTTP/1.1 401 
+{"error":"UNAUTHORIZED","message":"X-Service-Token missing or invalid","legacyCode":null}
+
+$ curl -X POST :8090/api/v2/bookings/50000004/attendance -H 'X-Service-Token: wrong'
+HTTP/1.1 401 
+{"error":"UNAUTHORIZED","message":"X-Service-Token missing or invalid","legacyCode":null}
+
+$ curl -X POST :8000/api/v2/bookings/50000004/attendance   (no token, via gateway)
+HTTP/1.1 404 Not Found
+X-Route: modern
+{"error":"NOT_FOUND","message":"scheduling-service internal endpoints are not exposed through the gateway"}
+
+$ curl -X POST :8000/api/v2/bookings/50000004/attendance -H 'X-Service-Token: <dev token>'   (valid token, via gateway)
+HTTP/1.1 404 Not Found
+X-Route: modern
+{"error":"NOT_FOUND","message":"scheduling-service internal endpoints are not exposed through the gateway"}
+after rejected calls: Scheduling=BOOKED  legacy=BOOKED  AttendanceRecorded events for 50000004=0
+
+$ curl -X POST :8000/api/v1/results {bookingId:50000004, score:72}
+HTTP/1.1 201 Created
+X-Route: legacy
+{
+after result: Scheduling=ATTENDED  legacy=ATTENDED  AttendanceRecorded events for 50000004=1
+legacy audit: Booking|ATTENDED|scheduling-service
+
+$ curl :8090/internal/relay
+{"total":8,"pending":0,"lastSeq":8,"lastRelayedSeq":8,"oldestPendingAt":null}
+
+$ curl :8090/internal/reconciliation
+{'generatedAt': '2026-11-11T22:04:45', 'sessionsCompared': 462, 'bookingsCompared': 3591, 'sessionMismatches': 0, 'bookingMismatches': 0, 'seatDrift': 0, 'reportFile': 'C:\\Users\\Administrator\\repos\\SampleMvcWebApp\\reports\\reconciliation-20261111-220445.md'}
+
+$ sqlcmd -d AssessmentDelivery -i db/checks/seat-drift.sql
+rows: 0

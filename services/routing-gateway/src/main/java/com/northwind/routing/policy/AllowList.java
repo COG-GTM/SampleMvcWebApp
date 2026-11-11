@@ -39,8 +39,10 @@ public class AllowList implements ApplicationListener<EnvironmentChangeEvent> {
         return centers.isEmpty();
     }
 
+    /** {@code *} (only permitted with {@code routing.coexistence-mode=relay}, MBA-3823) matches every centre. */
     public boolean contains(String centerCode) {
-        return centerCode != null && centers.contains(centerCode.trim().toUpperCase(Locale.ROOT));
+        return centerCode != null && (centers.contains(AllowListPolicy.ALL)
+                || centers.contains(centerCode.trim().toUpperCase(Locale.ROOT)));
     }
 
     @Override

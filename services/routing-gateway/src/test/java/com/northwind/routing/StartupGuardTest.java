@@ -21,7 +21,7 @@ class StartupGuardTest {
 
     @Test
     void refusesProductionCentreWithoutRelay() {
-        assertThatThrownBy(() -> start("--routing.modern-centers=LON01"))
+        assertThatThrownBy(() -> start("--routing.modern-centers=LON01", "--routing.coexistence-mode=none"))
                 .hasRootCauseInstanceOf(IllegalStateException.class)
                 .rootCause().hasMessageContaining("LON01").hasMessageContaining("coexistence-mode=relay");
     }

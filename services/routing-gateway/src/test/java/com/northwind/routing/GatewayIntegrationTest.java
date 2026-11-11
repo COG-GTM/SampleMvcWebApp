@@ -22,7 +22,8 @@ import org.springframework.test.web.reactive.server.WebTestClient;
  * scheduling-service (:8090). BOS01 is allow-listed, CHI01 is not.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"routing.config-poll-interval=200ms", "routing.resolve-cache-ttl=0s"})
+        properties = {"routing.config-poll-interval=200ms", "routing.resolve-cache-ttl=0s",
+                "routing.coexistence-mode=none"})
 class GatewayIntegrationTest {
 
     static final Path CONFIG;
@@ -212,6 +213,14 @@ class GatewayIntegrationTest {
         web.post().uri("/api/v2/internal/import/sessions?mode=reset").exchange()
                 .expectStatus().isNotFound().expectBody().jsonPath("$.error").isEqualTo("NOT_FOUND");
         web.get().uri("/api/v2//Internal/routing/resolve?centerCode=BOS01").exchange().expectStatus().isNotFound();
+    }
+
+    @Test
+    void attendanceIsNotExposedThroughTheGateway() {
+        web.post().uri("/api/v2/bookings/50000001/attendance").header("X-Service-Token", "anything").exchange()
+                .expectStatus().isNotFound().expectHeader().valueEquals("X-Route", "modern")
+                .expectBody().jsonPath("$.error").isEqualTo("NOT_FOUND");
+        web.post().uri("/api/v2/bookings/1200/Attendance").exchange().expectStatus().isNotFound();
     }
 
     @Test

@@ -26,6 +26,9 @@ public class ResultIngestService {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private AttendanceRecorder attendance;
+
     @Value("${results.audit-actor:results-service}")
     private String actor;
 
@@ -93,11 +96,12 @@ public class ResultIngestService {
             }
             return compareWithStored(existing, bookingId, score, scoredAt, sourceFile, true);
         }
-        jdbc.update("UPDATE dbo.Booking SET Status = 'ATTENDED', LastModified = GETDATE() "
-                + "WHERE BookingId = ? AND Status = 'BOOKED'", bookingId);
         jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
                 "Result", resultId, "INGEST", "booking=" + bookingId + " score=" + score
                         + (sourceFile != null ? " file=" + sourceFile : ""), actor);
+        // last step before commit: scheduling-service attendance is not part of this transaction (it is idempotent,
+        // so a retry after a failed commit re-records it harmlessly)
+        attendance.recordAttended(bookingId);
         LOG.info("Result {} for booking {} score {} passed={}", resultId, bookingId, score, passed);
         return new IngestOutcome(IngestOutcome.Status.CREATED, bookingId, resultId, score, storedAt,
                 null, null, passed);

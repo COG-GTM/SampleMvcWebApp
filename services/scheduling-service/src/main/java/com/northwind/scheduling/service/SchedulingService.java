@@ -1,5 +1,8 @@
 package com.northwind.scheduling.service;
 
+import com.northwind.scheduling.outbox.OutboxEventType;
+import com.northwind.scheduling.outbox.OutboxRepository;
+
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -42,11 +45,13 @@ public class SchedulingService {
     private final AccommodationFloorPolicy floorPolicy;
     private final Clock clock;
     private final String actor;
+    private final OutboxRepository outbox;
 
     public SchedulingService(SchedulingRepository repo, RetakeEligibilityPolicy retakePolicy,
                              AccommodationFloorPolicy floorPolicy, Clock clock,
-                             @Value("${scheduling.actor:scheduling-service}") String actor) {
+                             @Value("${scheduling.actor:scheduling-service}") String actor, OutboxRepository outbox) {
         this.repo = repo;
+        this.outbox = outbox;
         this.retakePolicy = retakePolicy;
         this.floorPolicy = floorPolicy;
         this.clock = clock;
@@ -157,6 +162,10 @@ public class SchedulingService {
             position = BookingRules.nextWaitlistPosition(repo.maxWaitlistPosition(sessionId));
             repo.insertWaitlist(bookingId, position, now);
         }
+        if (rescheduledFrom == null) {
+            outbox.append(status == BookingStatus.BOOKED ? OutboxEventType.BookingCreated : OutboxEventType.BookingWaitlisted,
+                    bookingId, List.of(bookingId), List.of(sessionId), actor, "channel=" + channel);
+        }
         return new BookingOutcome(bookingId, status, position, sessionId);
     }
 
@@ -171,6 +180,30 @@ public class SchedulingService {
         if (b.status() == BookingStatus.WAITLISTED) {
             repo.deleteWaitlistEntry(bookingId);
         }
+        outbox.append(OutboxEventType.BookingCancelled, bookingId, List.of(bookingId), List.of(b.sessionId()), actor,
+                "reason=" + reason);
+        return booking(bookingId);
+    }
+
+    /**
+     * MBA-3823: results-service reports attendance here instead of updating dbo.Booking. BOOKED becomes ATTENDED
+     * (one AttendanceRecorded event); an already ATTENDED booking is a no-op, so ingestion retries are safe.
+     */
+    @Transactional
+    public Rows.Booking recordAttendance(int bookingId) {
+        Rows.Booking b = booking(bookingId);
+        repo.lockSession(b.sessionId());
+        b = booking(bookingId);
+        if (b.status() == BookingStatus.ATTENDED) {
+            return b;
+        }
+        if (b.status() != BookingStatus.BOOKED) {
+            // reuses NOT_CANCELLABLE ("booking is not BOOKED") so the published error vocabulary stays unchanged
+            throw new SchedulingException(ErrorCode.NOT_CANCELLABLE,
+                    "Booking " + bookingId + " is " + b.status() + ", cannot record attendance");
+        }
+        repo.markAttended(bookingId, now());
+        outbox.append(OutboxEventType.AttendanceRecorded, bookingId, List.of(bookingId), List.of(b.sessionId()), actor, null);
         return booking(bookingId);
     }
 
@@ -196,8 +229,11 @@ public class SchedulingService {
         if (old.status() == BookingStatus.WAITLISTED) {
             repo.deleteWaitlistEntry(bookingId);
         }
-        return book(new BookCommand(newSessionId, old.candidateNumber(), old.accommodationCode(), old.externalRef(),
-                old.channel()), bookingId);
+        BookingOutcome moved = book(new BookCommand(newSessionId, old.candidateNumber(), old.accommodationCode(),
+                old.externalRef(), old.channel()), bookingId);
+        outbox.append(OutboxEventType.BookingRescheduled, moved.bookingId(), List.of(bookingId, moved.bookingId()),
+                List.of(old.sessionId(), newSessionId), actor, "from=" + bookingId + " to=" + moved.bookingId());
+        return moved;
     }
 
     /** usp_ChangeCapacity + trg_ExamSession_Update demotion (ODD-02 kept, ODD-06 floor per ADR 0002). */
@@ -219,6 +255,10 @@ public class SchedulingService {
             repo.insertWaitlist(d.bookingId(), d.position(), now);
         }
         repo.insertCapacityChange(plan, reason, actor, now);
+        outbox.append(OutboxEventType.CapacityChanged, sessionId,
+                plan.demotions().stream().map(CapacityChange.Demotion::bookingId).toList(), List.of(sessionId), actor,
+                "capacity=" + plan.newCapacity() + " demoted=" + plan.demotions().size()
+                        + (reason == null ? "" : " reason=" + reason));
         return new CapacityOutcome(plan, session(sessionId));
     }
 }
