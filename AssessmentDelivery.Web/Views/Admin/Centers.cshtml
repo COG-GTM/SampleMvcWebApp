@@ -38,6 +38,7 @@
                     <td>@if (c.IsActive) { <span class="pill pill-open">ACTIVE</span> } else { <span class="pill pill-cancelled">INACTIVE</span> }</td>
                     <td class="nw-actions">
                         <a href="@Url.Action("Sessions", new { centerId = c.TestCenterId })">Sessions</a> |
+                        <a href="@Url.Action("CapacityAudit", new { id = c.TestCenterId })">Capacity audit</a> |
                         @Html.ActionLink("Edit", "EditCenter", new { id = c.TestCenterId })
                     </td>
                 </tr>

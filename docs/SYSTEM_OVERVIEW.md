@@ -56,6 +56,19 @@ no seat constraint.
 failed can book again only after `Exam.RetakeWaitDays` (30) days from the date of the
 last attempt (the `StartsAt` of the session the failed result belongs to).
 
+### Stored procedures (read-only, capacity audit)
+
+`db/procs/030_usp_GetCapacityAudit.sql` (MBA-3828), SELECT-only, used by the portal capacity audit page. Supported by
+`IX_AuditLog_Entity_LoggedAt (EntityName, EntityId, LoggedAt)` in `db/schema/010_tables.sql`.
+
+| Procedure | Signature | Notes |
+|---|---|---|
+| `usp_GetCapacityAudit` | `@TestCenterId, @From = NULL, @To = NULL, @SessionId = NULL, @Page = 1, @PageSize = 50` | `AuditLog` rows with `EntityName = 'ExamSession'`, `Action = 'CAPACITY'`, `EntityId > 0` joined to ExamSession/Exam/Room; newest first, OFFSET/FETCH paging with `TotalRows`. Parses `Detail` into `OldCapacity`/`NewCapacity`/`Delta` (legacy `<old> -> <new>` or the relay's `change=<old> -> <new>`, NULL when not parseable); `Actor` is the relay's `by=` user, else `AuditLog.Actor` (`RawActor`). `@From` NULL = last 30 days, `@To` exclusive |
+| `usp_GetCapacitySyncRuns` | `@From = NULL, @To = NULL` | capacity-sync runs (`Action = 'CAPACITY_SYNC'`, `EntityId = 0`), newest first, top 50, with `Trigger`/`Status`/`Checked`/`Updated`/`Reason` parsed from `Detail` |
+
+The outbox relay (`LegacyProjector.auditDetail`) writes capacity rows as
+`outbox event=N CapacityChanged session=X capacity=<new> seats=S [booking=...] change=<old> -> <new> by=<actor>`.
+
 ### Stored procedures (retired)
 
 The four booking procs below were dropped in MBA-3824 (`db/procs/090_retire_booking_procs.sql`; source in git
@@ -110,7 +123,7 @@ starts a run by hand and `GET /sync/last` shows the last run.
 
 | Area | Routes |
 |---|---|
-| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=` (read-only); capacity changes moved to the modern UI `/app/admin/sessions/{id}` |
+| Centre admin | `/Admin/Centers`, `/Admin/Sessions?centerId=` (read-only); capacity changes moved to the modern UI `/app/admin/sessions/{id}`; `/Admin/Centers/{id}/CapacityAudit?from=&to=&sessionId=&page=` (read-only, MBA-3828) lists who changed a session's capacity, when and from what to what (last 30 days by default, 50 rows per page) plus an "Automatic seat re-syncs" panel |
 | Candidate booking | retired in MBA-3824: `/Booking`, `/Booking/Book`, `/Booking/MyBookings`, `/Booking/Cancel/{id}`, `/Booking/Reschedule/{id}` redirect to `/app/...` through the routing gateway (:8000) |
 | Retake eligibility | `/Eligibility?candidateNumber=&examCode=&date=` |
 | Results | `/Results?candidateNumber=` |

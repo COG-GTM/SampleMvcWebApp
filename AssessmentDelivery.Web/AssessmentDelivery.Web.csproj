@@ -146,6 +146,7 @@
     <Content Include="favicon.ico" />
     <Content Include="Views\Web.config" />
     <Content Include="Views\_ViewStart.cshtml" />
+    <Content Include="Views\Admin\CapacityAudit.cshtml" />
     <Content Include="Views\Admin\Centers.cshtml" />
     <Content Include="Views\Admin\EditCenter.cshtml" />
     <Content Include="Views\Admin\Sessions.cshtml" />

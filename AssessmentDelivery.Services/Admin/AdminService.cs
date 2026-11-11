@@ -1,6 +1,10 @@
+using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
 using System.Data.Entity;
 using System.Linq;
+using AssessmentDelivery.Business.Audit;
 using AssessmentDelivery.Data.DataClasses;
 using AssessmentDelivery.Data.DataClasses.Entities;
 using AssessmentDelivery.Services.Common;
@@ -98,6 +102,51 @@ namespace AssessmentDelivery.Services.Admin
                     WaitlistCount = r.WaitlistCount,
                     Status = r.Status
                 }).ToList();
+        }
+
+        public IList<CapacityAuditRow> GetCapacityAudit(int centerId, DateTime from, DateTime? to, int? sessionId, int page)
+        {
+            var rows = _db.Database.SqlQuery(typeof(CapacityAuditRow),
+                    "EXEC dbo.usp_GetCapacityAudit @TestCenterId, @From, @To, @SessionId, @Page, @PageSize",
+                    IntParam("@TestCenterId", centerId),
+                    DateParam("@From", from),
+                    DateParam("@To", to),
+                    IntParam("@SessionId", sessionId),
+                    IntParam("@Page", page < 1 ? 1 : page),
+                    IntParam("@PageSize", CapacityAuditQuery.PageSize))
+                .Cast<CapacityAuditRow>()
+                .ToList();
+            foreach (var r in rows)
+            {
+                if (r.OldCapacity.HasValue && r.NewCapacity.HasValue) continue;
+                // the proc returns NULLs for anything it cannot parse; the shared parser is the second opinion
+                CapacityAuditDetail parsed;
+                if (!CapacityAuditDetail.TryParse(r.Detail, out parsed)) continue;
+                r.OldCapacity = parsed.OldCapacity;
+                r.NewCapacity = parsed.NewCapacity;
+                r.Delta = parsed.Delta;
+            }
+            return rows;
+        }
+
+        public IList<CapacitySyncRunRow> ListCapacitySyncRuns(DateTime from, DateTime? to)
+        {
+            return _db.Database.SqlQuery(typeof(CapacitySyncRunRow),
+                    "EXEC dbo.usp_GetCapacitySyncRuns @From, @To",
+                    DateParam("@From", from),
+                    DateParam("@To", to))
+                .Cast<CapacitySyncRunRow>()
+                .ToList();
+        }
+
+        private static SqlParameter IntParam(string name, int? value)
+        {
+            return new SqlParameter(name, SqlDbType.Int) { Value = (object)value ?? DBNull.Value };
+        }
+
+        private static SqlParameter DateParam(string name, DateTime? value)
+        {
+            return new SqlParameter(name, SqlDbType.DateTime) { Value = (object)value ?? DBNull.Value };
         }
     }
 }

@@ -127,4 +127,6 @@ CREATE TABLE dbo.AuditLog (
     Actor      VARCHAR(60)    NOT NULL CONSTRAINT DF_AuditLog_Actor DEFAULT (SUSER_SNAME()),
     LoggedAt   DATETIME       NOT NULL CONSTRAINT DF_AuditLog_LoggedAt DEFAULT (GETDATE())
 );
+-- capacity audit page (usp_GetCapacityAudit / usp_GetCapacitySyncRuns, MBA-3828)
+CREATE INDEX IX_AuditLog_Entity_LoggedAt ON dbo.AuditLog (EntityName, EntityId, LoggedAt);
 GO
