@@ -70,6 +70,7 @@ public class SnapshotImporter {
             List<LegacyRows.Session> fresh = source.sessions().stream().filter(s -> !have.contains(s.id())).toList();
             sessions = writer.insertSessions(fresh, started);
         }
+        writer.ensureBookingIdFloor();
         ImportReport report = new ImportReport(mode.name(), centers, rooms, exams, candidates, results, sessions, bookings,
                 waitlist, started, LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS));
         writer.recordRun(report);

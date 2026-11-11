@@ -1,0 +1,43 @@
+# routing-gateway (MBA-3822). Every value can be overridden with the env var shown.
+server:
+  port: ${SERVER_PORT:8000}
+
+spring:
+  application:
+    name: routing-gateway
+  config:
+    # the allow-list lives in a separate file so it can be edited and reloaded without a restart
+    import: optional:file:${ROUTING_CONFIG_FILE:./config/routing.properties}
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 120s
+  codec:
+    max-in-memory-size: 10MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
+
+routing:
+  portal-url: ${ROUTING_PORTAL_URL:http://localhost:8080}
+  booking-api-url: ${ROUTING_BOOKING_API_URL:http://localhost:8081}
+  results-service-url: ${ROUTING_RESULTS_SERVICE_URL:http://localhost:8082}
+  capacity-sync-url: ${ROUTING_CAPACITY_SYNC_URL:http://localhost:8083}
+  scheduling-service-url: ${ROUTING_SCHEDULING_SERVICE_URL:http://localhost:8090}
+  # file watched by ConfigFileWatcher (same file as spring.config.import above)
+  config-file: ${ROUTING_CONFIG_FILE:./config/routing.properties}
+  config-poll-interval: 1s
+  resolve-cache-ttl: 30s
+  # Until M4 only these test/demo centres may be allow-listed, unless coexistence-mode=relay (M4 sets it).
+  test-centers: BOS01,SEA01,AKL01
+  coexistence-mode: ${ROUTING_COEXISTENCE_MODE:none}
+  # bookings created by scheduling-service get ids from here up (ownership by booking origin)
+  modern-booking-id-floor: 50000000
+
+logging:
+  level:
+    com.northwind: INFO
