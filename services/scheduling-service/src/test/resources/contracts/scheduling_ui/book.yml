@@ -1,0 +1,36 @@
+description: UI booking form (api.book) sends accommodationCode null when none is chosen; 201 with booking and session.
+name: ui books a seat
+request:
+  method: POST
+  url: /api/v2/bookings
+  headers:
+    Content-Type: application/json
+  body:
+    sessionId: 154
+    candidateNumber: NW00000920
+    accommodationCode: null
+response:
+  status: 201
+  headers:
+    Content-Type: application/json
+  body:
+    bookingId: 14
+    status: BOOKED
+    waitlistPosition: null
+    booking:
+      sessionId: 154
+      candidateNumber: NW00000920
+      candidateName: First20 Last20
+      examCode: MHL-RN1
+      status: BOOKED
+      channel: PORTAL
+      accommodationCode: null
+      cancelledAt: null
+    session:
+      sessionId: 154
+      bookedSeats: 10
+      seatsAvailable: 10
+  matchers:
+    body:
+      - path: $.bookingId
+        type: by_type

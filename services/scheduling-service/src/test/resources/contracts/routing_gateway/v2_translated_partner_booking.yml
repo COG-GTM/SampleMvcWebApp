@@ -1,0 +1,30 @@
+description: |
+  v1 -> v2 translation: the gateway forwards a partner POST /api/v1/bookings as POST /api/v2/bookings with
+  channel PARTNER and builds the v1 answer from bookingId and status of the 201 body.
+name: v2 translated partner booking
+request:
+  method: POST
+  url: /api/v2/bookings
+  headers:
+    Content-Type: application/json
+  body:
+    sessionId: 154
+    candidateNumber: NW00000932
+    externalRef: GW-1002
+    channel: PARTNER
+response:
+  status: 201
+  headers:
+    Content-Type: application/json
+  body:
+    bookingId: 14
+    status: BOOKED
+    booking:
+      sessionId: 154
+      candidateNumber: NW00000932
+      channel: PARTNER
+      externalRef: GW-1002
+  matchers:
+    body:
+      - path: $.bookingId
+        type: by_type

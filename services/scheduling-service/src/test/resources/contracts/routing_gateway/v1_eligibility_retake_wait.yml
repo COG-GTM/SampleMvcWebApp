@@ -1,0 +1,18 @@
+description: |
+  Gateway v1 facade: eligibility answers exactly {eligible, reason, earliestRetakeDate} (booking-api shape).
+  NW00000939 failed MHL-RN1 on 2026-11-07; calendar-day retake rule (ODD-04, ADR 0002).
+name: v1 eligibility inside retake window
+request:
+  method: GET
+  url: /api/v1/candidates/NW00000939/eligibility
+  queryParameters:
+    examCode: MHL-RN1
+    date: "2026-12-06"
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    eligible: false
+    reason: RETAKE_WAIT_NOT_ELAPSED
+    earliestRetakeDate: "2026-12-07"
