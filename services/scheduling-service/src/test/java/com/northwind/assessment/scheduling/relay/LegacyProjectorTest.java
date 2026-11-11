@@ -7,6 +7,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.northwind.assessment.scheduling.outbox.OutboxEventType;
 import com.northwind.assessment.scheduling.outbox.OutboxPayload;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -42,13 +44,34 @@ class LegacyProjectorTest {
     }
 
     @Test
-    void auditDetail_capacityChanged_withBumpedBooking_keepsBookingTokensThenChange() {
+    void auditDetail_capacityChanged_withBumpedBooking_putsChangeBeforeBookingTokens() {
         OutboxPayload.BookingState bumped = new OutboxPayload.BookingState(77L, "LEGACY_IMPORT", 77, 42, 9, "WAITLISTED", null,
                 "PORTAL", null, T, null, null, 1);
         String d = LegacyProjector.auditDetail(19, capacityChanged(
                 Map.of("oldCapacity", 14, "newCapacity", 12, "bumpedBookingIds", List.of(77L)), List.of(bumped)), Map.of(77L, 77));
-        assertThat(d).isEqualTo("outbox event=19 CapacityChanged session=42 capacity=18 seats=5 booking=77/77 WAITLISTED "
-                + "change=14 -> 12 by=admin-ui");
+        assertThat(d).isEqualTo("outbox event=19 CapacityChanged session=42 capacity=18 seats=5 change=14 -> 12 "
+                + "booking=77/77 WAITLISTED by=admin-ui");
+    }
+
+    @Test
+    void auditDetail_capacityChanged_manyBumpedBookings_keepsChangeThroughTruncation() {
+        List<OutboxPayload.BookingState> bumped = new ArrayList<>();
+        Map<Long, Integer> legacyIds = new HashMap<>();
+        for (long id = 50_000_001L; id <= 50_000_060L; id++) {
+            bumped.add(new OutboxPayload.BookingState(id, "MODERN", null, 42, 9, "WAITLISTED", null, "PORTAL", null, T, null, null, 1));
+            legacyIds.put(id, (int) (id - 49_000_000L));
+        }
+        String d = LegacyProjector.auditDetail(22, capacityChanged(
+                Map.of("oldCapacity", 80, "newCapacity", 20, "bumpedBookingIds", List.of()), bumped), legacyIds);
+        assertThat(d).hasSize(1000).endsWith("...")
+                .startsWith("outbox event=22 CapacityChanged session=42 capacity=18 seats=5 change=80 -> 20 booking=");
+    }
+
+    @Test
+    void auditDetail_capacityChanged_multiWordActorIsKeptWhole() {
+        OutboxPayload p = capacityChanged(Map.of("oldCapacity", 20, "newCapacity", 18, "bumpedBookingIds", List.of()), List.of());
+        OutboxPayload named = new OutboxPayload(p.eventType(), p.occurredAt(), "Jane Doe", p.sessions(), p.bookings(), p.detail());
+        assertThat(LegacyProjector.auditDetail(23, named, Map.of())).endsWith(" change=20 -> 18 by=Jane Doe");
     }
 
     @Test

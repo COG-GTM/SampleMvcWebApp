@@ -136,15 +136,16 @@ public class LegacyProjector {
             sb.append(" session=").append(s.sessionId()).append(" capacity=").append(s.capacity())
                     .append(" seats=").append(s.seatsAvailable());
         }
-        for (BookingState b : p.bookings()) {
-            sb.append(" booking=").append(legacyIds.get(b.bookingId())).append('/').append(b.bookingId())
-                    .append(' ').append(b.status());
-        }
         if (OutboxEventType.CapacityChanged.name().equals(p.eventType())
                 && p.detail().get("oldCapacity") instanceof Number oldCapacity
                 && p.detail().get("newCapacity") instanceof Number newCapacity) {
-            // old -> new for the portal capacity audit page (usp_GetCapacityAudit parses "change=<old> -> <new>")
+            // old -> new for the portal capacity audit page (usp_GetCapacityAudit parses "change=<old> -> <new>");
+            // ahead of the booking tokens so the 1000-char truncation below cannot cut it off
             sb.append(" change=").append(oldCapacity.intValue()).append(" -> ").append(newCapacity.intValue());
+        }
+        for (BookingState b : p.bookings()) {
+            sb.append(" booking=").append(legacyIds.get(b.bookingId())).append('/').append(b.bookingId())
+                    .append(' ').append(b.status());
         }
         if (p.actor() != null) {
             sb.append(" by=").append(p.actor());
