@@ -1,4 +1,7 @@
+using System;
+using System.Net;
 using System.Web.Mvc;
+using AssessmentDelivery.Business.Roster;
 using AssessmentDelivery.Services.Admin;
 using AssessmentDelivery.Services.Common;
 using AssessmentDelivery.Web.Models;
@@ -90,6 +93,22 @@ namespace AssessmentDelivery.Web.Controllers
 
             TempData["message"] = "Capacity updated";
             return RedirectToAction("Capacity", new { id });
+        }
+
+        /// <summary>
+        /// GET /Admin/Sessions/Roster/{id}?format=csv - exam-day roster download. Read-only.
+        /// </summary>
+        public ActionResult Roster(int id, string format)
+        {
+            if (!string.IsNullOrEmpty(format) && !string.Equals(format, "csv", StringComparison.OrdinalIgnoreCase))
+                return new HttpStatusCodeResult(HttpStatusCode.BadRequest, "Unsupported roster format");
+
+            var roster = _admin.GetRoster(id);
+            if (roster == null) return HttpNotFound();
+
+            var csv = RosterCsv.Build(roster.Lines);
+            return File(RosterCsv.ToBytes(csv), RosterCsv.ContentType + "; charset=utf-8",
+                RosterCsv.FileName(roster.CenterCode, roster.ExamCode, DateTime.Now));
         }
 
         private CapacityViewModel BuildCapacityModel(int sessionId)
