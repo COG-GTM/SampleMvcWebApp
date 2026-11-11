@@ -101,4 +101,18 @@ public class SchedulingClientTest {
             assertEquals("SCHEDULING_UNAVAILABLE", e.getError());
         }
     }
+
+    @Test
+    public void serverErrorWithContractBodyIsStillUnavailable() {
+        server.expect(requestTo(BASE + "/bookings/1")).andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON).body("{\"error\":\"INTERNAL\",\"message\":\"java.sql.SQLException: boom\"}"));
+        try {
+            client.getBooking(1);
+            fail();
+        } catch (SchedulingException e) {
+            assertEquals("SCHEDULING_UNAVAILABLE", e.getError());
+            assertEquals(500, e.getHttpStatus());
+            assertEquals("scheduling-service returned HTTP 500", e.getMessage());
+        }
+    }
 }
