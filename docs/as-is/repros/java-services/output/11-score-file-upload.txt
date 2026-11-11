@@ -1,0 +1,57 @@
+
+$ cat NWTEST_20261211.csv
+candidateNumber,sessionId,score,scoredAt
+NW00000447,223,880,2026-12-15
+nw00000856,223,700,2026-12-15T12:00:00
+"NW00000856",223,700,2026-12-15T12:00:00
+NW00000856,223,700,2026-12-15 12:00:00
+NW00000410,153,500,2026-12-15T12:00:00
+
+$ curl -F file=@NWTEST_20261211.csv http://localhost:8082/api/v1/results/upload
+{
+  "fileName" : "NWTEST_20261211.csv",
+  "rowsRead" : 5,
+  "imported" : 2,
+  "skipped" : 3,
+  "errors" : [ {
+    "line" : 3,
+    "message" : "bad candidateNumber 'nw00000856'"
+  }, {
+    "line" : 4,
+    "message" : "bad candidateNumber '\"NW00000856\"'"
+  }, {
+    "line" : 6,
+    "message" : "no active booking for NW00000410 on session 153"
+  } ]
+}
+HTTP 200
+
+$ upload the same file again
+{
+  "fileName" : "NWTEST_20261211.csv",
+  "rowsRead" : 5,
+  "imported" : 0,
+  "skipped" : 5,
+  "errors" : [ {
+    "line" : 2,
+    "message" : "A result already exists for booking 1957"
+  }, {
+    "line" : 3,
+    "message" : "bad candidateNumber 'nw00000856'"
+  }, {
+    "line" : 4,
+    "message" : "bad candidateNumber '\"NW00000856\"'"
+  }, {
+    "line" : 5,
+    "message" : "A result already exists for booking 1958"
+  }, {
+    "line" : 6,
+    "message" : "no active booking for NW00000410 on session 153"
+  } ]
+}
+HTTP 200
+ResultId BookingId Score Passed ScoredAt SourceFile
+-------- --------- ----- ------ -------- ----------
+1446 1957 880 1 2026-12-15 00:00:00.000 NWTEST_20261211.csv
+1447 1958 700 1 2026-12-15 12:00:00.000 NWTEST_20261211.csv
+

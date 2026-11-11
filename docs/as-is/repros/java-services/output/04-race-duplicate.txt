@@ -1,0 +1,26 @@
+
+$ before
+SessionId Capacity AccCap SeatsAvailable SeatHolding ExpectedPerSeatDriftSql
+--------- -------- ------ -------------- ----------- -----------------------
+161 14 0 9 5 9
+
+
+$ 8 parallel POST /api/v1/bookings {sessionId:161,candidateNumber:NW00000908,externalRef:HB-RACE}
+201
+409
+409
+409
+409
+409
+409
+409
+BookingId Status Channel ExternalRef
+--------- ------ ------- -----------
+3595 BOOKED PARTNER HB-RACE
+
+
+$ after
+SessionId Capacity AccCap SeatsAvailable SeatHolding ExpectedPerSeatDriftSql
+--------- -------- ------ -------------- ----------- -----------------------
+161 14 0 7 6 8
+

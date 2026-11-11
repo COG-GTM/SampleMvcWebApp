@@ -1,0 +1,36 @@
+booked: {
+  "bookingId" : 3589,
+  "status" : "BOOKED"
+}
+
+$ before reschedule
+SessionId Capacity AccCap SeatsAvailable SeatHolding ExpectedPerSeatDriftSql
+--------- -------- ------ -------------- ----------- -----------------------
+155 16 0 9 5 11
+
+SessionId Capacity AccCap SeatsAvailable SeatHolding ExpectedPerSeatDriftSql
+--------- -------- ------ -------------- ----------- -----------------------
+164 19 0 9 10 9
+
+
+$ curl -X POST http://localhost:8081/api/v1/bookings/3589/reschedule -d '{"newSessionId":164}'
+{
+  "bookingId" : 3590,
+  "status" : "BOOKED"
+}
+HTTP 200
+
+$ after reschedule
+SessionId Capacity AccCap SeatsAvailable SeatHolding ExpectedPerSeatDriftSql
+--------- -------- ------ -------------- ----------- -----------------------
+155 16 0 10 4 12
+
+SessionId Capacity AccCap SeatsAvailable SeatHolding ExpectedPerSeatDriftSql
+--------- -------- ------ -------------- ----------- -----------------------
+164 19 0 7 11 8
+
+BookingId SessionId Status Channel ExternalRef CancelReason
+--------- --------- ------ ------- ----------- ------------
+3589 155 CANCELLED PARTNER HB-RS-1 Rescheduled
+3590 164 BOOKED PARTNER HB-RS-1 NULL
+

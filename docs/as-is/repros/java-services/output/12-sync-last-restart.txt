@@ -1,0 +1,38 @@
+
+$ curl -X GET http://localhost:8083/sync/last
+{
+  "status" : "COMPLETED",
+  "trigger" : "MANUAL",
+  "startedAt" : "2026-11-11T16:55:48",
+  "finishedAt" : "2026-11-11T16:55:48",
+  "sessionsChecked" : 285,
+  "sessionsUpdated" : 0,
+  "message" : null
+}
+HTTP 200
+CapacitySyncAuditRows
+---------------------
+2
+
+
+$ stop capacity-sync JVM and restart via run-legacy.ps1 -SkipDb -SkipBuild -NoPortal
+stopped pid 6012
+[run-legacy] starting capacity-sync on :8083 (log .run\capacity-sync.log)
+[run-legacy] capacity-sync up on :8083
+  capacity-sync    http://localhost:8083/sync/last
+
+$ curl -X GET http://localhost:8083/sync/last
+{
+  "status" : "NEVER_RUN",
+  "trigger" : null,
+  "startedAt" : null,
+  "finishedAt" : null,
+  "sessionsChecked" : 0,
+  "sessionsUpdated" : 0,
+  "message" : null
+}
+HTTP 200
+CapacitySyncAuditRows
+---------------------
+2
+

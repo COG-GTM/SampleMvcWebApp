@@ -1,0 +1,26 @@
+
+$ curl -X POST http://localhost:8081/api/v1/bookings -d '{"sessionId":165,"candidateNumber":"NW00000909","externalRef":"PTR-IDEM-1"}'
+{
+  "bookingId" : 3596,
+  "status" : "BOOKED"
+}
+HTTP 201
+
+$ curl -X POST http://localhost:8081/api/v1/bookings -d '{"sessionId":165,"candidateNumber":"NW00000909","externalRef":"PTR-IDEM-1"}'
+{
+  "error" : "DUPLICATE_BOOKING",
+  "message" : "Candidate NW00000909 already has an active booking on session 165"
+}
+HTTP 409
+
+$ curl -X POST http://localhost:8081/api/v1/bookings -d '{"sessionId":165,"candidateNumber":"NW00000910","externalRef":"PTR-IDEM-1"}'
+{
+  "bookingId" : 3597,
+  "status" : "BOOKED"
+}
+HTTP 201
+BookingId SessionId CandidateId Status ExternalRef
+--------- --------- ----------- ------ -----------
+3596 165 909 BOOKED PTR-IDEM-1
+3597 165 910 BOOKED PTR-IDEM-1
+

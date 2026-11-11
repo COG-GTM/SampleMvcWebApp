@@ -1,0 +1,31 @@
+
+$ before
+SessionId Capacity AccCap SeatsAvailable SeatHolding ExpectedPerSeatDriftSql
+--------- -------- ------ -------------- ----------- -----------------------
+157 16 0 5 11 5
+
+NW00000904 -> {"bookingId":3591,"status":"BOOKED"}
+
+NW00000905 -> {"bookingId":3592,"status":"BOOKED"}
+
+NW00000906 -> {"bookingId":3593,"status":"BOOKED"}
+
+NW00000907 -> {"bookingId":3594,"status":"WAITLISTED"}
+
+
+$ curl -X GET http://localhost:8081/api/v1/sessions/157
+{
+  "sessionId" : 157,
+  "examCode" : "BCB-PM200",
+  "examTitle" : "Programme Management Advanced",
+  "centerCode" : "AMS01",
+  "centerName" : "Canal Ring Testing",
+  "roomName" : "Zaal 1",
+  "startsAt" : "2026-11-13T13:30:00",
+  "capacity" : 16,
+  "accommodationCapacity" : 0,
+  "seatsAvailable" : -1,
+  "status" : "OPEN",
+  "bookedSeats" : 14
+}
+HTTP 200
