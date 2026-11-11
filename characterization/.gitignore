@@ -1,0 +1,4 @@
+reports/actual/
+PLAN.local.md
+__pycache__/
+.pytest_cache/

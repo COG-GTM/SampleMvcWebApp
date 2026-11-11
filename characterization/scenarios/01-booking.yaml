@@ -1,0 +1,144 @@
+# Booking through both channels: free seats, full session, duplicate, non-OPEN session.
+# Seed facts (README.md "Seed data"): session 154 (MHL-RN1, Capacity 20, AccommodationCapacity 2, 9 BOOKED, 11 free),
+# session 153 (BCB-AGL, full, 3 waitlisted), 263 CLOSED, 162 CANCELLED; NW00000901+ hold no bookings.
+scenarios:
+  - id: BK-01-portal-book-open-session
+    title: Portal books a free seat on an OPEN session (usp_BookSeat, Channel PORTAL, one seat taken)
+    area: booking
+    channel: portal
+    hb: [HB-01, HB-04]
+    oddity: true
+    oddity_ids: [ODD-01]
+    sessions: [154]
+    candidates: [NW00000901]
+    steps:
+      - portal_book: {session: 154, candidate: NW00000901}
+
+  - id: BK-02-api-book-open-session
+    title: booking-api books a free seat on an OPEN session (Channel PARTNER, SeatsAvailable drops by two)
+    area: booking
+    channel: api
+    hb: [HB-01]
+    oddity: true
+    oddity_ids: [ODD-01]
+    sessions: [154]
+    candidates: [NW00000902]
+    steps:
+      - api_book: {session: 154, candidate: NW00000902, external_ref: PX-1001}
+
+  - id: BK-03-portal-book-full-session
+    title: Portal books a full session - booking WAITLISTED with Waitlist position 4
+    area: booking
+    channel: portal
+    hb: [HB-06]
+    sessions: [153]
+    candidates: [NW00000904]
+    steps:
+      - portal_book: {session: 153, candidate: NW00000904}
+
+  - id: BK-04-api-book-full-session
+    title: booking-api books a full session - WAITLISTED with a Waitlist row (no seat decrement)
+    area: booking
+    channel: api
+    hb: [HB-06, HB-29]
+    sessions: [153]
+    candidates: [NW00000905]
+    steps:
+      - api_book: {session: 153, candidate: NW00000905}
+
+  - id: BK-05-portal-duplicate-booking
+    title: Portal books the same candidate twice on one session - usp_BookSeat state 2 shown as a validation message
+    area: booking
+    channel: portal
+    hb: [HB-14]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [154]
+    candidates: [NW00000906]
+    setup:
+      - portal_book: {session: 154, candidate: NW00000906}
+    steps:
+      - portal_book: {session: 154, candidate: NW00000906}
+
+  - id: BK-06-api-duplicate-booking
+    title: booking-api books the same candidate twice on one session - HTTP error mapping
+    area: booking
+    channel: api
+    hb: [HB-14]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [154]
+    candidates: [NW00000907]
+    setup:
+      - api_book: {session: 154, candidate: NW00000907}
+    steps:
+      - api_book: {session: 154, candidate: NW00000907}
+
+  - id: BK-07-db-duplicate-and-closed-error-codes
+    title: usp_BookSeat called directly - raw RAISERROR number/state for duplicate (state 2) and not-OPEN (state 1)
+    area: booking
+    channel: db
+    hb: [HB-14]
+    oddity: true
+    oddity_ids: [ODD-11]
+    sessions: [154, 263]
+    candidates: [NW00000908]
+    setup:
+      - portal_book: {session: 154, candidate: NW00000908}
+    steps:
+      - db_proc: >-
+          DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000908'), @b INT, @s VARCHAR(20);
+          EXEC dbo.usp_BookSeat @SessionId = 154, @CandidateId = @c, @AccommodationCode = NULL, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT;
+          SELECT ISNULL(@s, 'NULL');
+      - db_proc: >-
+          DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000908'), @b INT, @s VARCHAR(20);
+          EXEC dbo.usp_BookSeat @SessionId = 263, @CandidateId = @c, @AccommodationCode = NULL, @BookingId = @b OUTPUT, @ResultStatus = @s OUTPUT;
+          SELECT ISNULL(@s, 'NULL');
+
+  - id: BK-08-portal-book-closed-session
+    title: Portal books a CLOSED session (263) - rejected with usp_BookSeat state 1 message
+    area: booking
+    channel: portal
+    hb: [HB-14, HB-31]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [263]
+    candidates: [NW00000909]
+    steps:
+      - portal_book: {session: 263, candidate: NW00000909}
+
+  - id: BK-09-api-book-closed-session
+    title: booking-api books a CLOSED session (263) - HTTP error mapping
+    area: booking
+    channel: api
+    hb: [HB-14, HB-31]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [263]
+    candidates: [NW00000910]
+    steps:
+      - api_book: {session: 263, candidate: NW00000910}
+
+  - id: BK-10-portal-book-cancelled-session
+    title: Portal books a CANCELLED session (162)
+    area: booking
+    channel: portal
+    hb: [HB-14]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [162]
+    candidates: [NW00000911]
+    steps:
+      - portal_book: {session: 162, candidate: NW00000911}
+
+  - id: BK-11-api-book-cancelled-session
+    title: booking-api books a CANCELLED session (162)
+    area: booking
+    channel: api
+    hb: [HB-14]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [162]
+    candidates: [NW00000912]
+    steps:
+      - api_book: {session: 162, candidate: NW00000912}

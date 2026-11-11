@@ -1,0 +1,56 @@
+# Mixed portal + partner traffic, then capacity-sync (POST :8083/sync/run), with db/checks/seat-drift.sql before and after.
+# CapacitySyncService: SeatsAvailable = Capacity - AccommodationCapacity - standard (non-ET) BOOKED/ATTENDED;
+# seat-drift.sql expects Capacity - (BOOKED + ATTENDED) (HB-03).
+scenarios:
+  - id: MX-01-mixed-traffic-then-capacity-sync
+    title: scripts/mixed-traffic workload (20 portal + 20 partner + 3+3 cancels on 4 sessions), seat drift, sync, seat drift
+    area: mixed-traffic
+    channel: both
+    hb: [HB-01, HB-02, HB-03]
+    oddity: true
+    oddity_ids: [ODD-01, ODD-03, ODD-13]
+    sessions: [152, 154, 155, 157]   # what the deterministic selection picks at SEED_AS_OF=2026-11-10
+    steps:
+      - name: seat-drift before traffic
+        seat_drift: {}
+      - mixed_traffic: {portal_bookings: 20, partner_bookings: 20, cancels: 3, sessions: 4}
+      - name: seat-drift after traffic
+        seat_drift: {}
+      - capacity_sync: {}
+      - name: seat-drift after capacity-sync
+        seat_drift: {}
+
+  - id: MX-02-capacity-sync-on-fresh-seed
+    title: capacity-sync on a fresh seed - rewrites SeatsAvailable on sessions with an accommodation allocation, drift appears
+    area: mixed-traffic
+    channel: sync
+    hb: [HB-03]
+    oddity: true
+    oddity_ids: [ODD-03]
+    sessions: [152, 154, 155, 159]
+    steps:
+      - name: seat-drift before capacity-sync
+        seat_drift: {}
+      - capacity_sync: {}
+      - name: seat-drift after capacity-sync
+        seat_drift: {}
+
+  - id: MX-03-capacity-sync-with-accommodation-bookings
+    title: ET and standard bookings through both channels on session 163, then capacity-sync - ET seats excluded from the sync formula
+    area: mixed-traffic
+    channel: both
+    hb: [HB-03, HB-01]
+    oddity: true
+    oddity_ids: [ODD-03, ODD-01]
+    sessions: [163]
+    candidates: [NW00000941, NW00000942, NW00000944]
+    setup:
+      - portal_book: {session: 163, candidate: NW00000941, accommodation: ET25}
+      - api_book: {session: 163, candidate: NW00000942}
+      - portal_book: {session: 163, candidate: NW00000944}
+    steps:
+      - name: seat-drift before capacity-sync
+        seat_drift: {}
+      - capacity_sync: {}
+      - name: seat-drift after capacity-sync
+        seat_drift: {}

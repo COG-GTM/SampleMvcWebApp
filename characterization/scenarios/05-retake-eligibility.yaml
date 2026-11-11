@@ -1,0 +1,201 @@
+# Retake eligibility side by side: portal /Eligibility (RetakeRules.Check, calendar days) vs booking-api
+# GET /api/v1/candidates/{n}/eligibility (RetakeEligibilityService, DateUtils.addWorkingDays). Exam.RetakeWaitDays = 30.
+# Weekend case (HB-07): NW00000113 failed HPI-ACC1 on Sat 2026-11-07 -> calendar 2026-12-07, working days 2026-12-18.
+# Month-end case: setup gives NW00000950 a failed BCB-PM200 attempt on Fri 2026-10-30 (session 126)
+#   -> calendar 2026-11-29 (a Sunday), working days 2026-12-11; the window spans the Oct/Nov and Nov/Dec month ends.
+scenarios:
+  - id: RT-01-eligibility-nw00000113-2026-11-20
+    title: "Retake eligibility NW00000113 HPI-ACC1 on 2026-11-20: inside the window (both channels say not yet)"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    candidates: [NW00000113]
+    steps:
+      - portal_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-11-20"}
+      - api_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-11-20"}
+
+  - id: RT-02-eligibility-nw00000113-2026-12-06
+    title: "Retake eligibility NW00000113 HPI-ACC1 on 2026-12-06: day before the calendar boundary"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    candidates: [NW00000113]
+    steps:
+      - portal_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-06"}
+      - api_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-06"}
+
+  - id: RT-03-eligibility-nw00000113-2026-12-07
+    title: "Retake eligibility NW00000113 HPI-ACC1 on 2026-12-07: calendar boundary day (portal eligible, api not - window spans 4 weekends)"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    oddity: true
+    oddity_ids: [ODD-04]
+    candidates: [NW00000113]
+    steps:
+      - portal_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-07"}
+      - api_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-07"}
+
+  - id: RT-04-eligibility-nw00000113-2026-12-12
+    title: "Retake eligibility NW00000113 HPI-ACC1 on 2026-12-12: Saturday between the two boundaries"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    oddity: true
+    oddity_ids: [ODD-04]
+    candidates: [NW00000113]
+    steps:
+      - portal_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-12"}
+      - api_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-12"}
+
+  - id: RT-05-eligibility-nw00000113-2026-12-17
+    title: "Retake eligibility NW00000113 HPI-ACC1 on 2026-12-17: day before the working-day boundary"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    oddity: true
+    oddity_ids: [ODD-04]
+    candidates: [NW00000113]
+    steps:
+      - portal_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-17"}
+      - api_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-17"}
+
+  - id: RT-06-eligibility-nw00000113-2026-12-18
+    title: "Retake eligibility NW00000113 HPI-ACC1 on 2026-12-18: working-day boundary (both eligible)"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    candidates: [NW00000113]
+    steps:
+      - portal_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-18"}
+      - api_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-18"}
+
+  - id: RT-07-eligibility-nw00000113-2026-12-21
+    title: "Retake eligibility NW00000113 HPI-ACC1 on 2026-12-21: outside the window"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    candidates: [NW00000113]
+    steps:
+      - portal_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-21"}
+      - api_eligibility: {candidate: NW00000113, exam: HPI-ACC1, date: "2026-12-21"}
+
+  - id: RT-08-eligibility-nw00000950-2026-11-27
+    title: "Retake eligibility NW00000950 BCB-PM200 on 2026-11-27: inside a month-end-spanning window"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    candidates: [NW00000950]
+    setup:
+      - sql: >-
+          DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000950');
+          DECLARE @e INT = (SELECT ExamId FROM dbo.ExamSession WHERE SessionId = 126);
+          INSERT dbo.Booking (SessionId, CandidateId, Status, AccommodationCode, Channel, BookedAt, LastModified)
+          VALUES (126, @c, 'ATTENDED', NULL, 'IMPORT', '20261001 10:00', '20261030 12:00');
+          INSERT dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)
+          VALUES (SCOPE_IDENTITY(), @c, @e, 126, 480, 0, '20261030 12:00', 'characterization-setup.csv', '20261030 13:00');
+    steps:
+      - portal_eligibility: {candidate: NW00000950, exam: BCB-PM200, date: "2026-11-27"}
+      - api_eligibility: {candidate: NW00000950, exam: BCB-PM200, date: "2026-11-27"}
+
+  - id: RT-09-eligibility-nw00000950-2026-11-29
+    title: "Retake eligibility NW00000950 BCB-PM200 on 2026-11-29: calendar boundary on a Sunday at month end"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    oddity: true
+    oddity_ids: [ODD-04]
+    candidates: [NW00000950]
+    setup:
+      - sql: >-
+          DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000950');
+          DECLARE @e INT = (SELECT ExamId FROM dbo.ExamSession WHERE SessionId = 126);
+          INSERT dbo.Booking (SessionId, CandidateId, Status, AccommodationCode, Channel, BookedAt, LastModified)
+          VALUES (126, @c, 'ATTENDED', NULL, 'IMPORT', '20261001 10:00', '20261030 12:00');
+          INSERT dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)
+          VALUES (SCOPE_IDENTITY(), @c, @e, 126, 480, 0, '20261030 12:00', 'characterization-setup.csv', '20261030 13:00');
+    steps:
+      - portal_eligibility: {candidate: NW00000950, exam: BCB-PM200, date: "2026-11-29"}
+      - api_eligibility: {candidate: NW00000950, exam: BCB-PM200, date: "2026-11-29"}
+
+  - id: RT-10-eligibility-nw00000950-2026-11-30
+    title: "Retake eligibility NW00000950 BCB-PM200 on 2026-11-30: first day of the next month after the calendar boundary"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    oddity: true
+    oddity_ids: [ODD-04]
+    candidates: [NW00000950]
+    setup:
+      - sql: >-
+          DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000950');
+          DECLARE @e INT = (SELECT ExamId FROM dbo.ExamSession WHERE SessionId = 126);
+          INSERT dbo.Booking (SessionId, CandidateId, Status, AccommodationCode, Channel, BookedAt, LastModified)
+          VALUES (126, @c, 'ATTENDED', NULL, 'IMPORT', '20261001 10:00', '20261030 12:00');
+          INSERT dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)
+          VALUES (SCOPE_IDENTITY(), @c, @e, 126, 480, 0, '20261030 12:00', 'characterization-setup.csv', '20261030 13:00');
+    steps:
+      - portal_eligibility: {candidate: NW00000950, exam: BCB-PM200, date: "2026-11-30"}
+      - api_eligibility: {candidate: NW00000950, exam: BCB-PM200, date: "2026-11-30"}
+
+  - id: RT-11-eligibility-nw00000950-2026-12-11
+    title: "Retake eligibility NW00000950 BCB-PM200 on 2026-12-11: working-day boundary after the month end"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    candidates: [NW00000950]
+    setup:
+      - sql: >-
+          DECLARE @c INT = (SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = 'NW00000950');
+          DECLARE @e INT = (SELECT ExamId FROM dbo.ExamSession WHERE SessionId = 126);
+          INSERT dbo.Booking (SessionId, CandidateId, Status, AccommodationCode, Channel, BookedAt, LastModified)
+          VALUES (126, @c, 'ATTENDED', NULL, 'IMPORT', '20261001 10:00', '20261030 12:00');
+          INSERT dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, ReceivedAt)
+          VALUES (SCOPE_IDENTITY(), @c, @e, 126, 480, 0, '20261030 12:00', 'characterization-setup.csv', '20261030 13:00');
+    steps:
+      - portal_eligibility: {candidate: NW00000950, exam: BCB-PM200, date: "2026-12-11"}
+      - api_eligibility: {candidate: NW00000950, exam: BCB-PM200, date: "2026-12-11"}
+
+  - id: RT-12-eligibility-nw00000362-2026-12-21
+    title: "Retake eligibility NW00000362 HPI-ACC1 on 2026-12-21: candidate who already passed"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    candidates: [NW00000362]
+    steps:
+      - portal_eligibility: {candidate: NW00000362, exam: HPI-ACC1, date: "2026-12-21"}
+      - api_eligibility: {candidate: NW00000362, exam: HPI-ACC1, date: "2026-12-21"}
+
+  - id: RT-13-eligibility-nw00000901-2026-11-20
+    title: "Retake eligibility NW00000901 HPI-ACC1 on 2026-11-20: first attempt (no results)"
+    area: retake
+    channel: both
+    hb: [HB-07]
+    candidates: [NW00000901]
+    steps:
+      - portal_eligibility: {candidate: NW00000901, exam: HPI-ACC1, date: "2026-11-20"}
+      - api_eligibility: {candidate: NW00000901, exam: HPI-ACC1, date: "2026-11-20"}
+
+  - id: RT-14-portal-book-retake-between-boundaries
+    title: Portal books NW00000113 onto HPI-ACC1 session 216 (2026-12-10) - allowed by the calendar-day rule
+    area: retake
+    channel: portal
+    hb: [HB-07, HB-08]
+    oddity: true
+    oddity_ids: [ODD-04]
+    sessions: [216]
+    candidates: [NW00000113]
+    steps:
+      - portal_book: {session: 216, candidate: NW00000113}
+
+  - id: RT-15-api-book-retake-between-boundaries
+    title: booking-api books NW00000113 onto HPI-ACC1 session 216 (2026-12-10) - rejected by the working-day rule
+    area: retake
+    channel: api
+    hb: [HB-07]
+    oddity: true
+    oddity_ids: [ODD-04]
+    sessions: [216]
+    candidates: [NW00000113]
+    steps:
+      - api_book: {session: 216, candidate: NW00000113}

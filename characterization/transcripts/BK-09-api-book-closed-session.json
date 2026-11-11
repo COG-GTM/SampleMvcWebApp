@@ -1,0 +1,145 @@
+{
+  "id": "BK-09-api-book-closed-session",
+  "title": "booking-api books a CLOSED session (263) - HTTP error mapping",
+  "area": "booking",
+  "channel": "api",
+  "hb": [
+    "HB-14",
+    "HB-31"
+  ],
+  "oddity": true,
+  "oddity_ids": [
+    "ODD-12"
+  ],
+  "notes": null,
+  "seed_as_of": "2026-11-10",
+  "setup": [],
+  "before": {
+    "sessions": [
+      {
+        "SessionId": 263,
+        "ExamCode": "HPI-ACC1",
+        "StartsAt": "2027-01-01T09:00",
+        "Capacity": 29,
+        "AccommodationCapacity": 3,
+        "SeatsAvailable": 27,
+        "Status": "CLOSED",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 2,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 2217,
+        "SessionId": 263,
+        "CandidateNumber": "NW00000201",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T19:51:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T19:51:00"
+      },
+      {
+        "BookingId": 2218,
+        "SessionId": 263,
+        "CandidateNumber": "NW00000610",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0026302",
+        "BookedAt": "2026-11-10T05:22:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T05:22:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": []
+  },
+  "steps": [
+    {
+      "name": "api_book",
+      "request": {
+        "channel": "api",
+        "method": "POST",
+        "path": "/api/v1/bookings",
+        "json": {
+          "sessionId": 263,
+          "candidateNumber": "NW00000910"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": "SESSION_NOT_OPEN",
+          "message": "Session 263 is not open for booking"
+        }
+      },
+      "sessions_after": [
+        {
+          "SessionId": 263,
+          "Capacity": 29,
+          "AccommodationCapacity": 3,
+          "SeatsAvailable": 27,
+          "Status": "CLOSED"
+        }
+      ]
+    }
+  ],
+  "after": {
+    "sessions": [
+      {
+        "SessionId": 263,
+        "ExamCode": "HPI-ACC1",
+        "StartsAt": "2027-01-01T09:00",
+        "Capacity": 29,
+        "AccommodationCapacity": 3,
+        "SeatsAvailable": 27,
+        "Status": "CLOSED",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 2,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 2217,
+        "SessionId": 263,
+        "CandidateNumber": "NW00000201",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T19:51:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T19:51:00"
+      },
+      {
+        "BookingId": 2218,
+        "SessionId": 263,
+        "CandidateNumber": "NW00000610",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0026302",
+        "BookedAt": "2026-11-10T05:22:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T05:22:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": []
+  }
+}

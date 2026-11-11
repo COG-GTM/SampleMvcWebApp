@@ -1,0 +1,506 @@
+{
+  "id": "RT-14-portal-book-retake-between-boundaries",
+  "title": "Portal books NW00000113 onto HPI-ACC1 session 216 (2026-12-10) - allowed by the calendar-day rule",
+  "area": "retake",
+  "channel": "portal",
+  "hb": [
+    "HB-07",
+    "HB-08"
+  ],
+  "oddity": true,
+  "oddity_ids": [
+    "ODD-04"
+  ],
+  "notes": null,
+  "seed_as_of": "2026-11-10",
+  "setup": [],
+  "before": {
+    "sessions": [
+      {
+        "SessionId": 216,
+        "ExamCode": "HPI-ACC1",
+        "StartsAt": "2026-12-10T13:30",
+        "Capacity": 16,
+        "AccommodationCapacity": 0,
+        "SeatsAvailable": 9,
+        "Status": "OPEN",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 7,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 732,
+        "SessionId": 67,
+        "CandidateNumber": "NW00000113",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-09-29T05:41:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-04T09:00:00"
+      },
+      {
+        "BookingId": 1377,
+        "SessionId": 132,
+        "CandidateNumber": "NW00000113",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-10-31T02:01:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-04T09:00:00"
+      },
+      {
+        "BookingId": 3317,
+        "SessionId": 144,
+        "CandidateNumber": "NW00000113",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R144113",
+        "BookedAt": "2026-10-11T10:53:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T13:30:00"
+      },
+      {
+        "BookingId": 1922,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000391",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0021601",
+        "BookedAt": "2026-11-08T12:04:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T12:04:00"
+      },
+      {
+        "BookingId": 1923,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000800",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T00:55:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T00:55:00"
+      },
+      {
+        "BookingId": 1924,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000328",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-216-3",
+        "BookedAt": "2026-11-09T10:26:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T10:26:00"
+      },
+      {
+        "BookingId": 1925,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000737",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T19:57:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T19:57:00"
+      },
+      {
+        "BookingId": 1926,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000265",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T05:28:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T05:28:00"
+      },
+      {
+        "BookingId": 3469,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000457",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R216457",
+        "BookedAt": "2026-11-02T21:07:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-02T21:07:00"
+      },
+      {
+        "BookingId": 3470,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000393",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R216393",
+        "BookedAt": "2026-11-10T11:27:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T11:27:00"
+      },
+      {
+        "BookingId": 3497,
+        "SessionId": 221,
+        "CandidateNumber": "NW00000113",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R221113",
+        "BookedAt": "2026-11-10T16:07:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T16:07:00"
+      },
+      {
+        "BookingId": 3178,
+        "SessionId": 446,
+        "CandidateNumber": "NW00000113",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-06T23:54:00",
+        "CancelledAt": "2026-11-08T23:54:00",
+        "CancelReason": "Illness",
+        "LastModified": "2026-11-08T23:54:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [
+      {
+        "ResultId": 648,
+        "BookingId": 732,
+        "CandidateNumber": "NW00000113",
+        "ExamCode": "HPI-ACC1",
+        "SessionId": 67,
+        "Score": 606,
+        "Passed": false,
+        "ScoredAt": "2026-10-04T06:15:00",
+        "SourceFile": "NW_SCORES_HPI_20261004.csv"
+      },
+      {
+        "ResultId": 1206,
+        "BookingId": 1377,
+        "CandidateNumber": "NW00000113",
+        "ExamCode": "BCB-PM100",
+        "SessionId": 132,
+        "Score": 644,
+        "Passed": false,
+        "ScoredAt": "2026-11-04T06:15:00",
+        "SourceFile": "NW_SCORES_BCB_20261104.csv"
+      },
+      {
+        "ResultId": 1427,
+        "BookingId": 3317,
+        "CandidateNumber": "NW00000113",
+        "ExamCode": "HPI-ACC1",
+        "SessionId": 144,
+        "Score": 407,
+        "Passed": false,
+        "ScoredAt": "2026-11-09T06:15:00",
+        "SourceFile": "NW_SCORES_HPI_20261109.csv"
+      }
+    ],
+    "audit": []
+  },
+  "steps": [
+    {
+      "name": "portal_book",
+      "request": {
+        "channel": "portal",
+        "method": "POST",
+        "path": "/Booking/Book",
+        "form": {
+          "SessionId": 216,
+          "CandidateNumber": "NW00000113",
+          "AccommodationCode": ""
+        }
+      },
+      "response": {
+        "status": 200,
+        "path": "/Booking/MyBookings?candidateNumber=NW00000113",
+        "rendered": {
+          "heading": "My bookings",
+          "alerts": [
+            "Booking <booking:1> confirmed."
+          ],
+          "field_errors": [],
+          "cells": {
+            "Name": "Adam Gallagher",
+            "Candidate no.": "NW00000113",
+            "Email": "adam.gallagher113@example.org",
+            "Default accommodation": "none"
+          }
+        }
+      },
+      "sessions_after": [
+        {
+          "SessionId": 216,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 8,
+          "Status": "OPEN"
+        }
+      ]
+    }
+  ],
+  "after": {
+    "sessions": [
+      {
+        "SessionId": 216,
+        "ExamCode": "HPI-ACC1",
+        "StartsAt": "2026-12-10T13:30",
+        "Capacity": 16,
+        "AccommodationCapacity": 0,
+        "SeatsAvailable": 8,
+        "Status": "OPEN",
+        "LastModified": "<now>",
+        "BookedOrAttended": 8,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 732,
+        "SessionId": 67,
+        "CandidateNumber": "NW00000113",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-09-29T05:41:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-04T09:00:00"
+      },
+      {
+        "BookingId": 1377,
+        "SessionId": 132,
+        "CandidateNumber": "NW00000113",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-10-31T02:01:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-04T09:00:00"
+      },
+      {
+        "BookingId": 3317,
+        "SessionId": 144,
+        "CandidateNumber": "NW00000113",
+        "Status": "ATTENDED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R144113",
+        "BookedAt": "2026-10-11T10:53:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T13:30:00"
+      },
+      {
+        "BookingId": 1922,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000391",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0021601",
+        "BookedAt": "2026-11-08T12:04:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T12:04:00"
+      },
+      {
+        "BookingId": 1923,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000800",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T00:55:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T00:55:00"
+      },
+      {
+        "BookingId": 1924,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000328",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-216-3",
+        "BookedAt": "2026-11-09T10:26:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T10:26:00"
+      },
+      {
+        "BookingId": 1925,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000737",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T19:57:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T19:57:00"
+      },
+      {
+        "BookingId": 1926,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000265",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T05:28:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T05:28:00"
+      },
+      {
+        "BookingId": 3469,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000457",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R216457",
+        "BookedAt": "2026-11-02T21:07:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-02T21:07:00"
+      },
+      {
+        "BookingId": 3470,
+        "SessionId": 216,
+        "CandidateNumber": "NW00000393",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R216393",
+        "BookedAt": "2026-11-10T11:27:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T11:27:00"
+      },
+      {
+        "BookingId": "<booking:1>",
+        "SessionId": 216,
+        "CandidateNumber": "NW00000113",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": 3497,
+        "SessionId": 221,
+        "CandidateNumber": "NW00000113",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R221113",
+        "BookedAt": "2026-11-10T16:07:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T16:07:00"
+      },
+      {
+        "BookingId": 3178,
+        "SessionId": 446,
+        "CandidateNumber": "NW00000113",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-06T23:54:00",
+        "CancelledAt": "2026-11-08T23:54:00",
+        "CancelReason": "Illness",
+        "LastModified": "2026-11-08T23:54:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [
+      {
+        "ResultId": 648,
+        "BookingId": 732,
+        "CandidateNumber": "NW00000113",
+        "ExamCode": "HPI-ACC1",
+        "SessionId": 67,
+        "Score": 606,
+        "Passed": false,
+        "ScoredAt": "2026-10-04T06:15:00",
+        "SourceFile": "NW_SCORES_HPI_20261004.csv"
+      },
+      {
+        "ResultId": 1206,
+        "BookingId": 1377,
+        "CandidateNumber": "NW00000113",
+        "ExamCode": "BCB-PM100",
+        "SessionId": 132,
+        "Score": 644,
+        "Passed": false,
+        "ScoredAt": "2026-11-04T06:15:00",
+        "SourceFile": "NW_SCORES_BCB_20261104.csv"
+      },
+      {
+        "ResultId": 1427,
+        "BookingId": 3317,
+        "CandidateNumber": "NW00000113",
+        "ExamCode": "HPI-ACC1",
+        "SessionId": 144,
+        "Score": 407,
+        "Passed": false,
+        "ScoredAt": "2026-11-09T06:15:00",
+        "SourceFile": "NW_SCORES_HPI_20261109.csv"
+      }
+    ],
+    "audit": [
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:1>",
+        "Action": "BOOK",
+        "Detail": "session=216 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      }
+    ]
+  }
+}

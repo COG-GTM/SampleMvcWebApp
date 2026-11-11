@@ -1,0 +1,244 @@
+{
+  "id": "AC-01-portal-extra-time-over-allocation",
+  "title": "Portal fills the 1 accommodation seat with ET25, then an ET50 booking is rejected (usp_BookSeat state 3)",
+  "area": "accommodation",
+  "channel": "portal",
+  "hb": [
+    "HB-08",
+    "HB-14"
+  ],
+  "oddity": true,
+  "oddity_ids": [
+    "ODD-12"
+  ],
+  "notes": null,
+  "seed_as_of": "2026-11-10",
+  "setup": [
+    {
+      "name": "portal_book",
+      "request": {
+        "channel": "portal",
+        "method": "POST",
+        "path": "/Booking/Book",
+        "form": {
+          "SessionId": 163,
+          "CandidateNumber": "NW00000932",
+          "AccommodationCode": "ET25"
+        }
+      },
+      "status": 200
+    }
+  ],
+  "before": {
+    "sessions": [
+      {
+        "SessionId": 163,
+        "ExamCode": "MHL-RN1",
+        "StartsAt": "2026-11-17T09:00",
+        "Capacity": 8,
+        "AccommodationCapacity": 1,
+        "SeatsAvailable": 4,
+        "Status": "OPEN",
+        "LastModified": "<now>",
+        "BookedOrAttended": 4,
+        "ExtraTimeBooked": 1,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1668,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000684",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T18:11:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T18:11:00"
+      },
+      {
+        "BookingId": 1669,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000212",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T03:42:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T03:42:00"
+      },
+      {
+        "BookingId": 3356,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000625",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R163625",
+        "BookedAt": "2026-10-12T15:55:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-12T15:55:00"
+      },
+      {
+        "BookingId": "<booking:1>",
+        "SessionId": 163,
+        "CandidateNumber": "NW00000932",
+        "Status": "BOOKED",
+        "AccommodationCode": "ET25",
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": [
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:1>",
+        "Action": "BOOK",
+        "Detail": "session=163 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "name": "portal_book",
+      "request": {
+        "channel": "portal",
+        "method": "POST",
+        "path": "/Booking/Book",
+        "form": {
+          "SessionId": 163,
+          "CandidateNumber": "NW00000903",
+          "AccommodationCode": "ET50"
+        }
+      },
+      "response": {
+        "status": 200,
+        "path": "/Booking/Book",
+        "rendered": {
+          "heading": "Book a seat Session #163",
+          "alerts": [
+            "No accommodation seat available on session 163."
+          ],
+          "field_errors": [],
+          "cells": {
+            "Exam": "MHL-RN1 – Registered Nurse Licensure - Part 1",
+            "Centre": "Thameside Assessment Centre (LDN01)",
+            "Room": "Small Room",
+            "Start": "Tuesday 17 Nov 2026 09:00",
+            "Duration": "240 minutes",
+            "Seats available": "4 of 8 (accommodation capacity 1)",
+            "Status": "OPEN"
+          }
+        }
+      },
+      "sessions_after": [
+        {
+          "SessionId": 163,
+          "Capacity": 8,
+          "AccommodationCapacity": 1,
+          "SeatsAvailable": 4,
+          "Status": "OPEN"
+        }
+      ]
+    }
+  ],
+  "after": {
+    "sessions": [
+      {
+        "SessionId": 163,
+        "ExamCode": "MHL-RN1",
+        "StartsAt": "2026-11-17T09:00",
+        "Capacity": 8,
+        "AccommodationCapacity": 1,
+        "SeatsAvailable": 4,
+        "Status": "OPEN",
+        "LastModified": "<now>",
+        "BookedOrAttended": 4,
+        "ExtraTimeBooked": 1,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1668,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000684",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T18:11:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T18:11:00"
+      },
+      {
+        "BookingId": 1669,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000212",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T03:42:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T03:42:00"
+      },
+      {
+        "BookingId": 3356,
+        "SessionId": 163,
+        "CandidateNumber": "NW00000625",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R163625",
+        "BookedAt": "2026-10-12T15:55:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-12T15:55:00"
+      },
+      {
+        "BookingId": "<booking:1>",
+        "SessionId": 163,
+        "CandidateNumber": "NW00000932",
+        "Status": "BOOKED",
+        "AccommodationCode": "ET25",
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": [
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:1>",
+        "Action": "BOOK",
+        "Detail": "session=163 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      }
+    ]
+  }
+}

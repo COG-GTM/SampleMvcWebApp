@@ -1,0 +1,3942 @@
+{
+  "id": "MX-01-mixed-traffic-then-capacity-sync",
+  "title": "scripts/mixed-traffic workload (20 portal + 20 partner + 3+3 cancels on 4 sessions), seat drift, sync, seat drift",
+  "area": "mixed-traffic",
+  "channel": "both",
+  "hb": [
+    "HB-01",
+    "HB-02",
+    "HB-03"
+  ],
+  "oddity": true,
+  "oddity_ids": [
+    "ODD-01",
+    "ODD-03",
+    "ODD-13"
+  ],
+  "notes": null,
+  "seed_as_of": "2026-11-10",
+  "setup": [],
+  "before": {
+    "sessions": [
+      {
+        "SessionId": 152,
+        "ExamCode": "CTA-NET1",
+        "StartsAt": "2026-11-11T13:30",
+        "Capacity": 28,
+        "AccommodationCapacity": 2,
+        "SeatsAvailable": 16,
+        "Status": "OPEN",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 12,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      },
+      {
+        "SessionId": 154,
+        "ExamCode": "MHL-RN1",
+        "StartsAt": "2026-11-12T13:30",
+        "Capacity": 20,
+        "AccommodationCapacity": 2,
+        "SeatsAvailable": 11,
+        "Status": "OPEN",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 9,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      },
+      {
+        "SessionId": 155,
+        "ExamCode": "HPI-ACC2",
+        "StartsAt": "2026-11-12T13:30",
+        "Capacity": 16,
+        "AccommodationCapacity": 0,
+        "SeatsAvailable": 13,
+        "Status": "OPEN",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 3,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      },
+      {
+        "SessionId": 157,
+        "ExamCode": "BCB-PM200",
+        "StartsAt": "2026-11-13T13:30",
+        "Capacity": 16,
+        "AccommodationCapacity": 0,
+        "SeatsAvailable": 5,
+        "Status": "OPEN",
+        "LastModified": "2026-11-10T18:00:00",
+        "BookedOrAttended": 11,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1568,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000056",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-152-1",
+        "BookedAt": "2026-11-05T01:30:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-05T01:30:00"
+      },
+      {
+        "BookingId": 1569,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000465",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-05T11:01:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-05T11:01:00"
+      },
+      {
+        "BookingId": 1570,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000874",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015203",
+        "BookedAt": "2026-11-05T18:52:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-05T18:52:00"
+      },
+      {
+        "BookingId": 1571,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000402",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015204",
+        "BookedAt": "2026-11-06T09:23:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Candidate request",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1572,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000811",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-06T18:54:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-06T18:54:00"
+      },
+      {
+        "BookingId": 1573,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000339",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-152-6",
+        "BookedAt": "2026-11-07T04:25:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T04:25:00"
+      },
+      {
+        "BookingId": 1574,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000748",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-07T12:16:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T12:16:00"
+      },
+      {
+        "BookingId": 1575,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000276",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-07T21:47:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T21:47:00"
+      },
+      {
+        "BookingId": 1576,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000685",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T07:18:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T07:18:00"
+      },
+      {
+        "BookingId": 1577,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000213",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T20:09:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T20:09:00"
+      },
+      {
+        "BookingId": 1578,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000622",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015211",
+        "BookedAt": "2026-11-09T05:40:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T05:40:00"
+      },
+      {
+        "BookingId": 1579,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000150",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015212",
+        "BookedAt": "2026-11-09T15:11:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T15:11:00"
+      },
+      {
+        "BookingId": 1580,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000559",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T00:42:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T00:42:00"
+      },
+      {
+        "BookingId": 1606,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000118",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015401",
+        "BookedAt": "2026-11-06T09:42:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-06T09:42:00"
+      },
+      {
+        "BookingId": 1607,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000527",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-2",
+        "BookedAt": "2026-11-06T22:33:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-06T22:33:00"
+      },
+      {
+        "BookingId": 1608,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000055",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-3",
+        "BookedAt": "2026-11-07T08:04:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T08:04:00"
+      },
+      {
+        "BookingId": 1609,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000464",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-07T17:35:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T17:35:00"
+      },
+      {
+        "BookingId": 1610,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000873",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015405",
+        "BookedAt": "2026-11-08T03:06:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T03:06:00"
+      },
+      {
+        "BookingId": 1611,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000401",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T15:57:00",
+        "CancelledAt": "2026-11-10T15:57:00",
+        "CancelReason": "Candidate request",
+        "LastModified": "2026-11-10T15:57:00"
+      },
+      {
+        "BookingId": 1612,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000810",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-7",
+        "BookedAt": "2026-11-09T01:28:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T01:28:00"
+      },
+      {
+        "BookingId": 1613,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000338",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015408",
+        "BookedAt": "2026-11-09T10:59:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T10:59:00"
+      },
+      {
+        "BookingId": 1614,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000747",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T20:30:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T20:30:00"
+      },
+      {
+        "BookingId": 1615,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000275",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T04:21:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T04:21:00"
+      },
+      {
+        "BookingId": 1616,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000763",
+        "Status": "BOOKED",
+        "AccommodationCode": "SR",
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-155-1",
+        "BookedAt": "2026-11-09T09:03:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T09:03:00"
+      },
+      {
+        "BookingId": 1617,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000291",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015502",
+        "BookedAt": "2026-11-09T21:54:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Partner cancellation",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1618,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000700",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T07:25:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T07:25:00"
+      },
+      {
+        "BookingId": 3334,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000610",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-09-26T15:40:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-09-26T15:40:00"
+      },
+      {
+        "BookingId": 1636,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000824",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015701",
+        "BookedAt": "2026-11-08T05:45:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T05:45:00"
+      },
+      {
+        "BookingId": 1637,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000352",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015702",
+        "BookedAt": "2026-11-08T13:36:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T13:36:00"
+      },
+      {
+        "BookingId": 1638,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000761",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T23:07:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T23:07:00"
+      },
+      {
+        "BookingId": 1639,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000289",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-157-4",
+        "BookedAt": "2026-11-09T08:38:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Candidate request",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1640,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000698",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T21:29:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T21:29:00"
+      },
+      {
+        "BookingId": 1641,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000226",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T07:00:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T07:00:00"
+      },
+      {
+        "BookingId": 3335,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000074",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-09-30T10:14:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-09-30T10:14:00"
+      },
+      {
+        "BookingId": 3336,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000577",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R157577",
+        "BookedAt": "2026-10-01T15:07:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-01T15:07:00"
+      },
+      {
+        "BookingId": 3337,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000545",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R157545",
+        "BookedAt": "2026-10-09T14:35:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-09T14:35:00"
+      },
+      {
+        "BookingId": 3338,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000765",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R157765",
+        "BookedAt": "2026-10-09T13:45:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-09T13:45:00"
+      },
+      {
+        "BookingId": 3339,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000198",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-10-12T16:48:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-12T16:48:00"
+      },
+      {
+        "BookingId": 3340,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000481",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R157481",
+        "BookedAt": "2026-10-13T13:31:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-13T13:31:00"
+      }
+    ],
+    "waitlist": [],
+    "results": [],
+    "audit": []
+  },
+  "steps": [
+    {
+      "name": "seat-drift before traffic",
+      "request": {
+        "channel": "db",
+        "check": "db/checks/seat-drift.sql"
+      },
+      "response": {
+        "drifting_sessions": 0,
+        "total_drift": 0,
+        "rows": []
+      },
+      "sessions_after": [
+        {
+          "SessionId": 152,
+          "Capacity": 28,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 16,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 154,
+          "Capacity": 20,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 11,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 155,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 13,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 157,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 5,
+          "Status": "OPEN"
+        }
+      ]
+    },
+    {
+      "name": "mixed_traffic",
+      "request": {
+        "channel": "mixed",
+        "workload": "scripts/mixed-traffic.ps1",
+        "PORTAL_BOOKINGS": 20,
+        "PARTNER_BOOKINGS": 20,
+        "CANCELS": 3,
+        "SESSIONS": 4,
+        "FIRST_CANDIDATE": 901,
+        "SEED_AS_OF": "2026-11-10"
+      },
+      "response": {
+        "sessions": [
+          152,
+          154,
+          155,
+          157
+        ],
+        "calls": [
+          {
+            "op": "portal_book",
+            "session": 152,
+            "candidate": "NW00000901",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:1> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 154,
+            "candidate": "NW00000902",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:2>",
+              "status": "BOOKED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 155,
+            "candidate": "NW00000904",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:3> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 157,
+            "candidate": "NW00000905",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:4>",
+              "status": "BOOKED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 152,
+            "candidate": "NW00000906",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:5> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 154,
+            "candidate": "NW00000907",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:6>",
+              "status": "BOOKED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 155,
+            "candidate": "NW00000908",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:7> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 157,
+            "candidate": "NW00000909",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:8>",
+              "status": "BOOKED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 152,
+            "candidate": "NW00000910",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:9> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 154,
+            "candidate": "NW00000911",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:10>",
+              "status": "BOOKED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 155,
+            "candidate": "NW00000912",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:11> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 157,
+            "candidate": "NW00000913",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:12>",
+              "status": "BOOKED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 152,
+            "candidate": "NW00000914",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:13> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 154,
+            "candidate": "NW00000915",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:14>",
+              "status": "BOOKED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 155,
+            "candidate": "NW00000916",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:15> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 157,
+            "candidate": "NW00000917",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:16>",
+              "status": "WAITLISTED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 152,
+            "candidate": "NW00000918",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:17> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 154,
+            "candidate": "NW00000919",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:18>",
+              "status": "BOOKED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 155,
+            "candidate": "NW00000920",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:19> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 157,
+            "candidate": "NW00000921",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:20>",
+              "status": "WAITLISTED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 152,
+            "candidate": "NW00000922",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:21> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 154,
+            "candidate": "NW00000923",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:22>",
+              "status": "BOOKED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 155,
+            "candidate": "NW00000924",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:23> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 157,
+            "candidate": "NW00000925",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:24>",
+              "status": "WAITLISTED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 152,
+            "candidate": "NW00000926",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:25> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 154,
+            "candidate": "NW00000927",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:26>",
+              "status": "WAITLISTED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 155,
+            "candidate": "NW00000928",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:27> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 157,
+            "candidate": "NW00000929",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:28>",
+              "status": "WAITLISTED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 152,
+            "candidate": "NW00000930",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:29> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 154,
+            "candidate": "NW00000931",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:30>",
+              "status": "WAITLISTED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 155,
+            "candidate": "NW00000932",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:31> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 157,
+            "candidate": "NW00000933",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:32>",
+              "status": "WAITLISTED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 152,
+            "candidate": "NW00000934",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:33> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 154,
+            "candidate": "NW00000935",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:34>",
+              "status": "WAITLISTED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 155,
+            "candidate": "NW00000936",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:35> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 157,
+            "candidate": "NW00000937",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:36>",
+              "status": "WAITLISTED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 152,
+            "candidate": "NW00000938",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:37> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 154,
+            "candidate": "NW00000939",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:38>",
+              "status": "WAITLISTED"
+            }
+          },
+          {
+            "op": "portal_book",
+            "session": 155,
+            "candidate": "NW00000940",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:39> confirmed."
+            ]
+          },
+          {
+            "op": "api_book",
+            "session": 157,
+            "candidate": "NW00000941",
+            "status": 201,
+            "body": {
+              "bookingId": "<booking:40>",
+              "status": "WAITLISTED"
+            }
+          },
+          {
+            "op": "portal_cancel",
+            "bookingId": "<booking:1>",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:1> cancelled."
+            ]
+          },
+          {
+            "op": "portal_cancel",
+            "bookingId": "<booking:3>",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:3> cancelled."
+            ]
+          },
+          {
+            "op": "portal_cancel",
+            "bookingId": "<booking:5>",
+            "status": 200,
+            "alerts": [
+              "Booking <booking:5> cancelled."
+            ]
+          },
+          {
+            "op": "api_cancel",
+            "bookingId": "<booking:2>",
+            "status": 200
+          },
+          {
+            "op": "api_cancel",
+            "bookingId": "<booking:4>",
+            "status": 200
+          },
+          {
+            "op": "api_cancel",
+            "bookingId": "<booking:6>",
+            "status": 200
+          }
+        ]
+      },
+      "sessions_after": [
+        {
+          "SessionId": 152,
+          "Capacity": 28,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 8,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 154,
+          "Capacity": 20,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 1,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 155,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 4,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 157,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 0,
+          "Status": "OPEN"
+        }
+      ]
+    },
+    {
+      "name": "seat-drift after traffic",
+      "request": {
+        "channel": "db",
+        "check": "db/checks/seat-drift.sql"
+      },
+      "response": {
+        "drifting_sessions": 2,
+        "total_drift": 9,
+        "rows": [
+          {
+            "SessionId": 154,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "SFO01",
+            "StartsAt": "2026-11-12 13:30:00.000",
+            "Capacity": 20,
+            "SeatsAvailable": 1,
+            "ActiveBookings": 13,
+            "Drift": 6
+          },
+          {
+            "SessionId": 157,
+            "ExamCode": "BCB-PM200",
+            "CenterCode": "AMS01",
+            "StartsAt": "2026-11-13 13:30:00.000",
+            "Capacity": 16,
+            "SeatsAvailable": 0,
+            "ActiveBookings": 13,
+            "Drift": 3
+          }
+        ]
+      },
+      "sessions_after": [
+        {
+          "SessionId": 152,
+          "Capacity": 28,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 8,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 154,
+          "Capacity": 20,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 1,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 155,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 4,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 157,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 0,
+          "Status": "OPEN"
+        }
+      ]
+    },
+    {
+      "name": "capacity_sync",
+      "request": {
+        "channel": "sync",
+        "method": "POST",
+        "path": "/sync/run"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "COMPLETED",
+          "trigger": "MANUAL",
+          "startedAt": "<now>",
+          "finishedAt": "<now>",
+          "sessionsChecked": 285,
+          "sessionsUpdated": 113,
+          "message": null
+        }
+      },
+      "sessions_after": [
+        {
+          "SessionId": 152,
+          "Capacity": 28,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 6,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 154,
+          "Capacity": 20,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 5,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 155,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 4,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 157,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 3,
+          "Status": "OPEN"
+        }
+      ]
+    },
+    {
+      "name": "seat-drift after capacity-sync",
+      "request": {
+        "channel": "db",
+        "check": "db/checks/seat-drift.sql"
+      },
+      "response": {
+        "drifting_sessions": 112,
+        "total_drift": 177,
+        "rows": [
+          {
+            "SessionId": 152,
+            "ExamCode": "CTA-NET1",
+            "CenterCode": "TOR01",
+            "StartsAt": "2026-11-11 13:30:00.000",
+            "Capacity": 28,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 20,
+            "Drift": 2
+          },
+          {
+            "SessionId": 154,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "SFO01",
+            "StartsAt": "2026-11-12 13:30:00.000",
+            "Capacity": 20,
+            "SeatsAvailable": 5,
+            "ActiveBookings": 13,
+            "Drift": 2
+          },
+          {
+            "SessionId": 160,
+            "ExamCode": "CTA-CLD3",
+            "CenterCode": "LDS01",
+            "StartsAt": "2026-11-16 13:30:00.000",
+            "Capacity": 14,
+            "SeatsAvailable": 1,
+            "ActiveBookings": 11,
+            "Drift": 2
+          },
+          {
+            "SessionId": 163,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "LDN01",
+            "StartsAt": "2026-11-17 09:00:00.000",
+            "Capacity": 8,
+            "SeatsAvailable": 4,
+            "ActiveBookings": 3,
+            "Drift": 1
+          },
+          {
+            "SessionId": 165,
+            "ExamCode": "CTA-CLD3",
+            "CenterCode": "TOR01",
+            "StartsAt": "2026-11-18 09:00:00.000",
+            "Capacity": 27,
+            "SeatsAvailable": 16,
+            "ActiveBookings": 9,
+            "Drift": 2
+          },
+          {
+            "SessionId": 460,
+            "ExamCode": "BCB-PM100",
+            "CenterCode": "LDN01",
+            "StartsAt": "2026-11-18 15:00:00.000",
+            "Capacity": 16,
+            "SeatsAvailable": 14,
+            "ActiveBookings": 1,
+            "Drift": 1
+          },
+          {
+            "SessionId": 172,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "MAN01",
+            "StartsAt": "2026-11-20 13:30:00.000",
+            "Capacity": 18,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 8,
+            "Drift": 1
+          },
+          {
+            "SessionId": 176,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "LDN01",
+            "StartsAt": "2026-11-23 13:30:00.000",
+            "Capacity": 24,
+            "SeatsAvailable": 19,
+            "ActiveBookings": 2,
+            "Drift": 3
+          },
+          {
+            "SessionId": 461,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "SYD01",
+            "StartsAt": "2026-11-23 15:00:00.000",
+            "Capacity": 18,
+            "SeatsAvailable": 16,
+            "ActiveBookings": 1,
+            "Drift": 1
+          },
+          {
+            "SessionId": 179,
+            "ExamCode": "HPI-ACC1",
+            "CenterCode": "LDN01",
+            "StartsAt": "2026-11-24 13:30:00.000",
+            "Capacity": 8,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 1,
+            "Drift": 1
+          },
+          {
+            "SessionId": 462,
+            "ExamCode": "CTA-SEC2",
+            "CenterCode": "BOS01",
+            "StartsAt": "2026-11-24 16:00:00.000",
+            "Capacity": 16,
+            "SeatsAvailable": 14,
+            "ActiveBookings": 1,
+            "Drift": 1
+          },
+          {
+            "SessionId": 182,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "SYD01",
+            "StartsAt": "2026-11-25 09:00:00.000",
+            "Capacity": 21,
+            "SeatsAvailable": 8,
+            "ActiveBookings": 11,
+            "Drift": 2
+          },
+          {
+            "SessionId": 185,
+            "ExamCode": "CTA-CLD3",
+            "CenterCode": "MEL01",
+            "StartsAt": "2026-11-26 09:00:00.000",
+            "Capacity": 17,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 7,
+            "Drift": 1
+          },
+          {
+            "SessionId": 187,
+            "ExamCode": "CTA-NET1",
+            "CenterCode": "PHX01",
+            "StartsAt": "2026-11-27 13:30:00.000",
+            "Capacity": 10,
+            "SeatsAvailable": 4,
+            "ActiveBookings": 5,
+            "Drift": 1
+          },
+          {
+            "SessionId": 189,
+            "ExamCode": "BCB-PM200",
+            "CenterCode": "SIN01",
+            "StartsAt": "2026-11-28 13:30:00.000",
+            "Capacity": 22,
+            "SeatsAvailable": 13,
+            "ActiveBookings": 7,
+            "Drift": 2
+          },
+          {
+            "SessionId": 190,
+            "ExamCode": "HPI-TAX1",
+            "CenterCode": "DUB01",
+            "StartsAt": "2026-11-30 13:30:00.000",
+            "Capacity": 10,
+            "SeatsAvailable": 5,
+            "ActiveBookings": 3,
+            "Drift": 2
+          },
+          {
+            "SessionId": 194,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "FRA01",
+            "StartsAt": "2026-12-01 13:30:00.000",
+            "Capacity": 18,
+            "SeatsAvailable": 13,
+            "ActiveBookings": 3,
+            "Drift": 2
+          },
+          {
+            "SessionId": 197,
+            "ExamCode": "CTA-CLD3",
+            "CenterCode": "SYD01",
+            "StartsAt": "2026-12-02 13:30:00.000",
+            "Capacity": 24,
+            "SeatsAvailable": 0,
+            "ActiveBookings": 22,
+            "Drift": 2
+          },
+          {
+            "SessionId": 198,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "BOS01",
+            "StartsAt": "2026-12-03 09:00:00.000",
+            "Capacity": 23,
+            "SeatsAvailable": 13,
+            "ActiveBookings": 8,
+            "Drift": 2
+          },
+          {
+            "SessionId": 200,
+            "ExamCode": "BCB-PM200",
+            "CenterCode": "NYC02",
+            "StartsAt": "2026-12-04 09:00:00.000",
+            "Capacity": 29,
+            "SeatsAvailable": 10,
+            "ActiveBookings": 16,
+            "Drift": 3
+          },
+          {
+            "SessionId": 204,
+            "ExamCode": "HPI-ACC1",
+            "CenterCode": "NYC02",
+            "StartsAt": "2026-12-05 13:30:00.000",
+            "Capacity": 16,
+            "SeatsAvailable": 13,
+            "ActiveBookings": 2,
+            "Drift": 1
+          },
+          {
+            "SessionId": 205,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "SEA01",
+            "StartsAt": "2026-12-07 09:00:00.000",
+            "Capacity": 13,
+            "SeatsAvailable": 1,
+            "ActiveBookings": 11,
+            "Drift": 1
+          },
+          {
+            "SessionId": 209,
+            "ExamCode": "MHL-RN2",
+            "CenterCode": "SIN01",
+            "StartsAt": "2026-12-08 13:30:00.000",
+            "Capacity": 9,
+            "SeatsAvailable": 8,
+            "ActiveBookings": 0,
+            "Drift": 1
+          },
+          {
+            "SessionId": 210,
+            "ExamCode": "HPI-TAX1",
+            "CenterCode": "TOR01",
+            "StartsAt": "2026-12-09 13:30:00.000",
+            "Capacity": 28,
+            "SeatsAvailable": 14,
+            "ActiveBookings": 12,
+            "Drift": 2
+          },
+          {
+            "SessionId": 213,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "BOS01",
+            "StartsAt": "2026-12-10 13:30:00.000",
+            "Capacity": 22,
+            "SeatsAvailable": 8,
+            "ActiveBookings": 12,
+            "Drift": 2
+          },
+          {
+            "SessionId": 214,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "SFO01",
+            "StartsAt": "2026-12-10 13:30:00.000",
+            "Capacity": 20,
+            "SeatsAvailable": 13,
+            "ActiveBookings": 5,
+            "Drift": 2
+          },
+          {
+            "SessionId": 215,
+            "ExamCode": "CTA-CLD3",
+            "CenterCode": "DEN01",
+            "StartsAt": "2026-12-10 13:30:00.000",
+            "Capacity": 15,
+            "SeatsAvailable": 3,
+            "ActiveBookings": 11,
+            "Drift": 1
+          },
+          {
+            "SessionId": 220,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "PHL01",
+            "StartsAt": "2026-12-14 09:00:00.000",
+            "Capacity": 17,
+            "SeatsAvailable": 3,
+            "ActiveBookings": 13,
+            "Drift": 1
+          },
+          {
+            "SessionId": 223,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "ATL01",
+            "StartsAt": "2026-12-15 09:00:00.000",
+            "Capacity": 11,
+            "SeatsAvailable": 1,
+            "ActiveBookings": 8,
+            "Drift": 2
+          },
+          {
+            "SessionId": 227,
+            "ExamCode": "BCB-PM200",
+            "CenterCode": "TOR01",
+            "StartsAt": "2026-12-16 09:00:00.000",
+            "Capacity": 27,
+            "SeatsAvailable": 16,
+            "ActiveBookings": 9,
+            "Drift": 2
+          },
+          {
+            "SessionId": 233,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "MAN01",
+            "StartsAt": "2026-12-18 13:30:00.000",
+            "Capacity": 18,
+            "SeatsAvailable": 7,
+            "ActiveBookings": 10,
+            "Drift": 1
+          },
+          {
+            "SessionId": 234,
+            "ExamCode": "BCB-PM200",
+            "CenterCode": "LDS01",
+            "StartsAt": "2026-12-18 13:30:00.000",
+            "Capacity": 14,
+            "SeatsAvailable": 4,
+            "ActiveBookings": 8,
+            "Drift": 2
+          },
+          {
+            "SessionId": 237,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "LDN01",
+            "StartsAt": "2026-12-21 13:30:00.000",
+            "Capacity": 24,
+            "SeatsAvailable": 17,
+            "ActiveBookings": 5,
+            "Drift": 2
+          },
+          {
+            "SessionId": 244,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "VAN01",
+            "StartsAt": "2026-12-23 09:00:00.000",
+            "Capacity": 15,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 7,
+            "Drift": 2
+          },
+          {
+            "SessionId": 249,
+            "ExamCode": "HPI-TAX1",
+            "CenterCode": "PHX01",
+            "StartsAt": "2026-12-25 13:30:00.000",
+            "Capacity": 10,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 3,
+            "Drift": 1
+          },
+          {
+            "SessionId": 251,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "SYD01",
+            "StartsAt": "2026-12-26 09:00:00.000",
+            "Capacity": 21,
+            "SeatsAvailable": 12,
+            "ActiveBookings": 7,
+            "Drift": 2
+          },
+          {
+            "SessionId": 254,
+            "ExamCode": "MHL-RN2",
+            "CenterCode": "DUB01",
+            "StartsAt": "2026-12-28 13:30:00.000",
+            "Capacity": 10,
+            "SeatsAvailable": 5,
+            "ActiveBookings": 4,
+            "Drift": 1
+          },
+          {
+            "SessionId": 255,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "NYC02",
+            "StartsAt": "2026-12-29 13:30:00.000",
+            "Capacity": 8,
+            "SeatsAvailable": 5,
+            "ActiveBookings": 1,
+            "Drift": 2
+          },
+          {
+            "SessionId": 257,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "FRA01",
+            "StartsAt": "2026-12-29 13:30:00.000",
+            "Capacity": 18,
+            "SeatsAvailable": 12,
+            "ActiveBookings": 4,
+            "Drift": 2
+          },
+          {
+            "SessionId": 258,
+            "ExamCode": "CTA-SEC2",
+            "CenterCode": "BOS01",
+            "StartsAt": "2026-12-30 09:00:00.000",
+            "Capacity": 23,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 12,
+            "Drift": 2
+          },
+          {
+            "SessionId": 262,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "AMS01",
+            "StartsAt": "2026-12-31 09:00:00.000",
+            "Capacity": 13,
+            "SeatsAvailable": 10,
+            "ActiveBookings": 2,
+            "Drift": 1
+          },
+          {
+            "SessionId": 268,
+            "ExamCode": "CTA-SEC2",
+            "CenterCode": "ATL01",
+            "StartsAt": "2027-01-05 13:30:00.000",
+            "Capacity": 12,
+            "SeatsAvailable": 3,
+            "ActiveBookings": 7,
+            "Drift": 2
+          },
+          {
+            "SessionId": 269,
+            "ExamCode": "MHL-RN2",
+            "CenterCode": "TOR01",
+            "StartsAt": "2027-01-05 13:30:00.000",
+            "Capacity": 28,
+            "SeatsAvailable": 17,
+            "ActiveBookings": 9,
+            "Drift": 2
+          },
+          {
+            "SessionId": 272,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "BOS01",
+            "StartsAt": "2027-01-06 13:30:00.000",
+            "Capacity": 22,
+            "SeatsAvailable": 15,
+            "ActiveBookings": 5,
+            "Drift": 2
+          },
+          {
+            "SessionId": 273,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "SFO01",
+            "StartsAt": "2027-01-06 13:30:00.000",
+            "Capacity": 20,
+            "SeatsAvailable": 8,
+            "ActiveBookings": 10,
+            "Drift": 2
+          },
+          {
+            "SessionId": 278,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "SEA01",
+            "StartsAt": "2027-01-08 09:00:00.000",
+            "Capacity": 13,
+            "SeatsAvailable": 11,
+            "ActiveBookings": 1,
+            "Drift": 1
+          },
+          {
+            "SessionId": 280,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "AKL01",
+            "StartsAt": "2027-01-08 09:00:00.000",
+            "Capacity": 11,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 1,
+            "Drift": 1
+          },
+          {
+            "SessionId": 282,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "ATL01",
+            "StartsAt": "2027-01-11 09:00:00.000",
+            "Capacity": 11,
+            "SeatsAvailable": 5,
+            "ActiveBookings": 4,
+            "Drift": 2
+          },
+          {
+            "SessionId": 283,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "LDN01",
+            "StartsAt": "2027-01-11 09:00:00.000",
+            "Capacity": 8,
+            "SeatsAvailable": 7,
+            "ActiveBookings": 0,
+            "Drift": 1
+          },
+          {
+            "SessionId": 287,
+            "ExamCode": "BCB-PM100",
+            "CenterCode": "VAN01",
+            "StartsAt": "2027-01-13 13:30:00.000",
+            "Capacity": 16,
+            "SeatsAvailable": 10,
+            "ActiveBookings": 4,
+            "Drift": 2
+          },
+          {
+            "SessionId": 292,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "MAN01",
+            "StartsAt": "2027-01-14 13:30:00.000",
+            "Capacity": 18,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 8,
+            "Drift": 1
+          },
+          {
+            "SessionId": 294,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "LDN01",
+            "StartsAt": "2027-01-15 09:00:00.000",
+            "Capacity": 25,
+            "SeatsAvailable": 13,
+            "ActiveBookings": 10,
+            "Drift": 2
+          },
+          {
+            "SessionId": 301,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "VAN01",
+            "StartsAt": "2027-01-19 09:00:00.000",
+            "Capacity": 15,
+            "SeatsAvailable": 12,
+            "ActiveBookings": 1,
+            "Drift": 2
+          },
+          {
+            "SessionId": 302,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "SYD01",
+            "StartsAt": "2027-01-19 09:00:00.000",
+            "Capacity": 21,
+            "SeatsAvailable": 12,
+            "ActiveBookings": 7,
+            "Drift": 2
+          },
+          {
+            "SessionId": 304,
+            "ExamCode": "CTA-SEC2",
+            "CenterCode": "DEN01",
+            "StartsAt": "2027-01-21 13:30:00.000",
+            "Capacity": 13,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 6,
+            "Drift": 1
+          },
+          {
+            "SessionId": 307,
+            "ExamCode": "MHL-RN2",
+            "CenterCode": "PHX01",
+            "StartsAt": "2027-01-22 13:30:00.000",
+            "Capacity": 10,
+            "SeatsAvailable": 4,
+            "ActiveBookings": 5,
+            "Drift": 1
+          },
+          {
+            "SessionId": 308,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "LDN01",
+            "StartsAt": "2027-01-22 13:30:00.000",
+            "Capacity": 24,
+            "SeatsAvailable": 17,
+            "ActiveBookings": 4,
+            "Drift": 3
+          },
+          {
+            "SessionId": 311,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "AMS01",
+            "StartsAt": "2027-01-23 13:30:00.000",
+            "Capacity": 14,
+            "SeatsAvailable": 11,
+            "ActiveBookings": 2,
+            "Drift": 1
+          },
+          {
+            "SessionId": 314,
+            "ExamCode": "CTA-NET1",
+            "CenterCode": "DUB01",
+            "StartsAt": "2027-01-25 13:30:00.000",
+            "Capacity": 10,
+            "SeatsAvailable": 7,
+            "ActiveBookings": 1,
+            "Drift": 2
+          },
+          {
+            "SessionId": 315,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "FRA01",
+            "StartsAt": "2027-01-25 13:30:00.000",
+            "Capacity": 18,
+            "SeatsAvailable": 10,
+            "ActiveBookings": 6,
+            "Drift": 2
+          },
+          {
+            "SessionId": 316,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "NYC02",
+            "StartsAt": "2027-01-26 13:30:00.000",
+            "Capacity": 8,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 0,
+            "Drift": 2
+          },
+          {
+            "SessionId": 318,
+            "ExamCode": "BCB-PM100",
+            "CenterCode": "BOS01",
+            "StartsAt": "2027-01-27 09:00:00.000",
+            "Capacity": 23,
+            "SeatsAvailable": 15,
+            "ActiveBookings": 6,
+            "Drift": 2
+          },
+          {
+            "SessionId": 321,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "AMS01",
+            "StartsAt": "2027-01-27 09:00:00.000",
+            "Capacity": 13,
+            "SeatsAvailable": 12,
+            "ActiveBookings": 0,
+            "Drift": 1
+          },
+          {
+            "SessionId": 324,
+            "ExamCode": "BCB-PM100",
+            "CenterCode": "LDS01",
+            "StartsAt": "2027-01-29 13:30:00.000",
+            "Capacity": 12,
+            "SeatsAvailable": 4,
+            "ActiveBookings": 6,
+            "Drift": 2
+          },
+          {
+            "SessionId": 326,
+            "ExamCode": "BCB-PM100",
+            "CenterCode": "ATL01",
+            "StartsAt": "2027-02-01 13:30:00.000",
+            "Capacity": 12,
+            "SeatsAvailable": 8,
+            "ActiveBookings": 2,
+            "Drift": 2
+          },
+          {
+            "SessionId": 329,
+            "ExamCode": "CTA-NET1",
+            "CenterCode": "TOR01",
+            "StartsAt": "2027-02-02 13:30:00.000",
+            "Capacity": 28,
+            "SeatsAvailable": 22,
+            "ActiveBookings": 4,
+            "Drift": 2
+          },
+          {
+            "SessionId": 333,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "SFO01",
+            "StartsAt": "2027-02-03 13:30:00.000",
+            "Capacity": 20,
+            "SeatsAvailable": 13,
+            "ActiveBookings": 6,
+            "Drift": 1
+          },
+          {
+            "SessionId": 338,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "SEA01",
+            "StartsAt": "2027-02-05 09:00:00.000",
+            "Capacity": 13,
+            "SeatsAvailable": 8,
+            "ActiveBookings": 4,
+            "Drift": 1
+          },
+          {
+            "SessionId": 341,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "LDN01",
+            "StartsAt": "2027-02-08 09:00:00.000",
+            "Capacity": 8,
+            "SeatsAvailable": 5,
+            "ActiveBookings": 2,
+            "Drift": 1
+          },
+          {
+            "SessionId": 343,
+            "ExamCode": "CTA-SEC2",
+            "CenterCode": "NYC02",
+            "StartsAt": "2027-02-09 13:30:00.000",
+            "Capacity": 14,
+            "SeatsAvailable": 10,
+            "ActiveBookings": 3,
+            "Drift": 1
+          },
+          {
+            "SessionId": 344,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "VAN01",
+            "StartsAt": "2027-02-09 13:30:00.000",
+            "Capacity": 16,
+            "SeatsAvailable": 11,
+            "ActiveBookings": 3,
+            "Drift": 2
+          },
+          {
+            "SessionId": 348,
+            "ExamCode": "HPI-ACC1",
+            "CenterCode": "NYC02",
+            "StartsAt": "2027-02-11 09:00:00.000",
+            "Capacity": 27,
+            "SeatsAvailable": 15,
+            "ActiveBookings": 9,
+            "Drift": 3
+          },
+          {
+            "SessionId": 350,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "MAN01",
+            "StartsAt": "2027-02-11 13:30:00.000",
+            "Capacity": 18,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 8,
+            "Drift": 1
+          },
+          {
+            "SessionId": 352,
+            "ExamCode": "BCB-PM100",
+            "CenterCode": "PHL01",
+            "StartsAt": "2027-02-12 09:00:00.000",
+            "Capacity": 17,
+            "SeatsAvailable": 15,
+            "ActiveBookings": 1,
+            "Drift": 1
+          },
+          {
+            "SessionId": 353,
+            "ExamCode": "CTA-SEC2",
+            "CenterCode": "LDN01",
+            "StartsAt": "2027-02-12 09:00:00.000",
+            "Capacity": 25,
+            "SeatsAvailable": 13,
+            "ActiveBookings": 9,
+            "Drift": 3
+          },
+          {
+            "SessionId": 355,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "ATL01",
+            "StartsAt": "2027-02-13 09:00:00.000",
+            "Capacity": 11,
+            "SeatsAvailable": 4,
+            "ActiveBookings": 5,
+            "Drift": 2
+          },
+          {
+            "SessionId": 360,
+            "ExamCode": "BCB-PM100",
+            "CenterCode": "FRA01",
+            "StartsAt": "2027-02-15 09:00:00.000",
+            "Capacity": 19,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 8,
+            "Drift": 2
+          },
+          {
+            "SessionId": 362,
+            "ExamCode": "HPI-ACC2",
+            "CenterCode": "VAN01",
+            "StartsAt": "2027-02-16 09:00:00.000",
+            "Capacity": 15,
+            "SeatsAvailable": 11,
+            "ActiveBookings": 2,
+            "Drift": 2
+          },
+          {
+            "SessionId": 363,
+            "ExamCode": "BCB-AGL",
+            "CenterCode": "SYD01",
+            "StartsAt": "2027-02-16 09:00:00.000",
+            "Capacity": 21,
+            "SeatsAvailable": 10,
+            "ActiveBookings": 9,
+            "Drift": 2
+          },
+          {
+            "SessionId": 364,
+            "ExamCode": "BCB-PM100",
+            "CenterCode": "DEN01",
+            "StartsAt": "2027-02-17 13:30:00.000",
+            "Capacity": 13,
+            "SeatsAvailable": 10,
+            "ActiveBookings": 2,
+            "Drift": 1
+          },
+          {
+            "SessionId": 365,
+            "ExamCode": "CTA-SEC2",
+            "CenterCode": "AMS01",
+            "StartsAt": "2027-02-17 13:30:00.000",
+            "Capacity": 14,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 7,
+            "Drift": 1
+          },
+          {
+            "SessionId": 367,
+            "ExamCode": "CTA-NET1",
+            "CenterCode": "PHX01",
+            "StartsAt": "2027-02-18 13:30:00.000",
+            "Capacity": 10,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 0,
+            "Drift": 1
+          },
+          {
+            "SessionId": 378,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "BOS01",
+            "StartsAt": "2027-02-24 09:00:00.000",
+            "Capacity": 23,
+            "SeatsAvailable": 12,
+            "ActiveBookings": 10,
+            "Drift": 1
+          },
+          {
+            "SessionId": 380,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "AMS01",
+            "StartsAt": "2027-02-24 09:00:00.000",
+            "Capacity": 13,
+            "SeatsAvailable": 5,
+            "ActiveBookings": 7,
+            "Drift": 1
+          },
+          {
+            "SessionId": 381,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "LDS01",
+            "StartsAt": "2027-02-25 13:30:00.000",
+            "Capacity": 12,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 4,
+            "Drift": 2
+          },
+          {
+            "SessionId": 382,
+            "ExamCode": "BCB-PM100",
+            "CenterCode": "AKL01",
+            "StartsAt": "2027-02-25 13:30:00.000",
+            "Capacity": 12,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 2,
+            "Drift": 1
+          },
+          {
+            "SessionId": 385,
+            "ExamCode": "HPI-TAX1",
+            "CenterCode": "DUB01",
+            "StartsAt": "2027-02-26 13:30:00.000",
+            "Capacity": 10,
+            "SeatsAvailable": 7,
+            "ActiveBookings": 1,
+            "Drift": 2
+          },
+          {
+            "SessionId": 386,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "ATL01",
+            "StartsAt": "2027-03-01 13:30:00.000",
+            "Capacity": 12,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 5,
+            "Drift": 1
+          },
+          {
+            "SessionId": 389,
+            "ExamCode": "MHL-RN2",
+            "CenterCode": "SIN01",
+            "StartsAt": "2027-03-01 13:30:00.000",
+            "Capacity": 9,
+            "SeatsAvailable": 5,
+            "ActiveBookings": 3,
+            "Drift": 1
+          },
+          {
+            "SessionId": 390,
+            "ExamCode": "HPI-ACC1",
+            "CenterCode": "MEL01",
+            "StartsAt": "2027-03-02 09:00:00.000",
+            "Capacity": 15,
+            "SeatsAvailable": 14,
+            "ActiveBookings": 0,
+            "Drift": 1
+          },
+          {
+            "SessionId": 391,
+            "ExamCode": "HPI-TAX1",
+            "CenterCode": "TOR01",
+            "StartsAt": "2027-03-02 13:30:00.000",
+            "Capacity": 28,
+            "SeatsAvailable": 18,
+            "ActiveBookings": 9,
+            "Drift": 1
+          },
+          {
+            "SessionId": 399,
+            "ExamCode": "CTA-CLD3",
+            "CenterCode": "PHL01",
+            "StartsAt": "2027-03-05 13:30:00.000",
+            "Capacity": 18,
+            "SeatsAvailable": 10,
+            "ActiveBookings": 7,
+            "Drift": 1
+          },
+          {
+            "SessionId": 400,
+            "ExamCode": "CTA-SEC2",
+            "CenterCode": "SIN01",
+            "StartsAt": "2027-03-06 13:30:00.000",
+            "Capacity": 20,
+            "SeatsAvailable": 15,
+            "ActiveBookings": 3,
+            "Drift": 2
+          },
+          {
+            "SessionId": 401,
+            "ExamCode": "HPI-ACC1",
+            "CenterCode": "NYC02",
+            "StartsAt": "2027-03-08 13:30:00.000",
+            "Capacity": 8,
+            "SeatsAvailable": 3,
+            "ActiveBookings": 3,
+            "Drift": 2
+          },
+          {
+            "SessionId": 403,
+            "ExamCode": "CTA-SEC2",
+            "CenterCode": "VAN01",
+            "StartsAt": "2027-03-09 13:30:00.000",
+            "Capacity": 16,
+            "SeatsAvailable": 13,
+            "ActiveBookings": 1,
+            "Drift": 2
+          },
+          {
+            "SessionId": 408,
+            "ExamCode": "CTA-CLD3",
+            "CenterCode": "NYC02",
+            "StartsAt": "2027-03-11 09:00:00.000",
+            "Capacity": 27,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 15,
+            "Drift": 3
+          },
+          {
+            "SessionId": 409,
+            "ExamCode": "HPI-ACC1",
+            "CenterCode": "PHX01",
+            "StartsAt": "2027-03-11 09:00:00.000",
+            "Capacity": 10,
+            "SeatsAvailable": 7,
+            "ActiveBookings": 2,
+            "Drift": 1
+          },
+          {
+            "SessionId": 412,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "PHL01",
+            "StartsAt": "2027-03-12 09:00:00.000",
+            "Capacity": 17,
+            "SeatsAvailable": 12,
+            "ActiveBookings": 4,
+            "Drift": 1
+          },
+          {
+            "SessionId": 413,
+            "ExamCode": "BCB-PM100",
+            "CenterCode": "LDN01",
+            "StartsAt": "2027-03-12 09:00:00.000",
+            "Capacity": 25,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 13,
+            "Drift": 3
+          },
+          {
+            "SessionId": 415,
+            "ExamCode": "BCB-PM100",
+            "CenterCode": "NYC02",
+            "StartsAt": "2027-03-13 13:30:00.000",
+            "Capacity": 14,
+            "SeatsAvailable": 11,
+            "ActiveBookings": 2,
+            "Drift": 1
+          },
+          {
+            "SessionId": 418,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "FRA01",
+            "StartsAt": "2027-03-15 09:00:00.000",
+            "Capacity": 19,
+            "SeatsAvailable": 16,
+            "ActiveBookings": 1,
+            "Drift": 2
+          },
+          {
+            "SessionId": 422,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "DEN01",
+            "StartsAt": "2027-03-17 13:30:00.000",
+            "Capacity": 13,
+            "SeatsAvailable": 9,
+            "ActiveBookings": 3,
+            "Drift": 1
+          },
+          {
+            "SessionId": 425,
+            "ExamCode": "HPI-TAX1",
+            "CenterCode": "PHX01",
+            "StartsAt": "2027-03-18 13:30:00.000",
+            "Capacity": 10,
+            "SeatsAvailable": 7,
+            "ActiveBookings": 2,
+            "Drift": 1
+          },
+          {
+            "SessionId": 432,
+            "ExamCode": "BCB-PM200",
+            "CenterCode": "SIN01",
+            "StartsAt": "2027-03-22 09:00:00.000",
+            "Capacity": 9,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 2,
+            "Drift": 1
+          },
+          {
+            "SessionId": 433,
+            "ExamCode": "CTA-SEC2",
+            "CenterCode": "BOS01",
+            "StartsAt": "2027-03-23 09:00:00.000",
+            "Capacity": 23,
+            "SeatsAvailable": 18,
+            "ActiveBookings": 4,
+            "Drift": 1
+          },
+          {
+            "SessionId": 437,
+            "ExamCode": "BCB-PM200",
+            "CenterCode": "MAN01",
+            "StartsAt": "2027-03-24 13:30:00.000",
+            "Capacity": 20,
+            "SeatsAvailable": 11,
+            "ActiveBookings": 8,
+            "Drift": 1
+          },
+          {
+            "SessionId": 440,
+            "ExamCode": "CTA-SEC2",
+            "CenterCode": "LDS01",
+            "StartsAt": "2027-03-25 13:30:00.000",
+            "Capacity": 12,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 4,
+            "Drift": 2
+          },
+          {
+            "SessionId": 442,
+            "ExamCode": "MHL-RN2",
+            "CenterCode": "DUB01",
+            "StartsAt": "2027-03-26 13:30:00.000",
+            "Capacity": 10,
+            "SeatsAvailable": 5,
+            "ActiveBookings": 3,
+            "Drift": 2
+          },
+          {
+            "SessionId": 443,
+            "ExamCode": "MHL-PHT",
+            "CenterCode": "AKL01",
+            "StartsAt": "2027-03-27 13:30:00.000",
+            "Capacity": 12,
+            "SeatsAvailable": 10,
+            "ActiveBookings": 1,
+            "Drift": 1
+          },
+          {
+            "SessionId": 445,
+            "ExamCode": "CTA-NET1",
+            "CenterCode": "SIN01",
+            "StartsAt": "2027-03-29 13:30:00.000",
+            "Capacity": 9,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 2,
+            "Drift": 1
+          },
+          {
+            "SessionId": 446,
+            "ExamCode": "MHL-RN1",
+            "CenterCode": "NYC02",
+            "StartsAt": "2027-03-30 09:00:00.000",
+            "Capacity": 15,
+            "SeatsAvailable": 6,
+            "ActiveBookings": 8,
+            "Drift": 1
+          },
+          {
+            "SessionId": 449,
+            "ExamCode": "CTA-CLD3",
+            "CenterCode": "MEL01",
+            "StartsAt": "2027-03-30 09:00:00.000",
+            "Capacity": 15,
+            "SeatsAvailable": 7,
+            "ActiveBookings": 7,
+            "Drift": 1
+          }
+        ]
+      },
+      "sessions_after": [
+        {
+          "SessionId": 152,
+          "Capacity": 28,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 6,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 154,
+          "Capacity": 20,
+          "AccommodationCapacity": 2,
+          "SeatsAvailable": 5,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 155,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 4,
+          "Status": "OPEN"
+        },
+        {
+          "SessionId": 157,
+          "Capacity": 16,
+          "AccommodationCapacity": 0,
+          "SeatsAvailable": 3,
+          "Status": "OPEN"
+        }
+      ]
+    }
+  ],
+  "after": {
+    "sessions": [
+      {
+        "SessionId": 152,
+        "ExamCode": "CTA-NET1",
+        "StartsAt": "2026-11-11T13:30",
+        "Capacity": 28,
+        "AccommodationCapacity": 2,
+        "SeatsAvailable": 6,
+        "Status": "OPEN",
+        "LastModified": "<now>",
+        "BookedOrAttended": 20,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": -2
+      },
+      {
+        "SessionId": 154,
+        "ExamCode": "MHL-RN1",
+        "StartsAt": "2026-11-12T13:30",
+        "Capacity": 20,
+        "AccommodationCapacity": 2,
+        "SeatsAvailable": 5,
+        "Status": "OPEN",
+        "LastModified": "<now>",
+        "BookedOrAttended": 13,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 4,
+        "SeatDrift": -2
+      },
+      {
+        "SessionId": 155,
+        "ExamCode": "HPI-ACC2",
+        "StartsAt": "2026-11-12T13:30",
+        "Capacity": 16,
+        "AccommodationCapacity": 0,
+        "SeatsAvailable": 4,
+        "Status": "OPEN",
+        "LastModified": "<now>",
+        "BookedOrAttended": 12,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 0,
+        "SeatDrift": 0
+      },
+      {
+        "SessionId": 157,
+        "ExamCode": "BCB-PM200",
+        "StartsAt": "2026-11-13T13:30",
+        "Capacity": 16,
+        "AccommodationCapacity": 0,
+        "SeatsAvailable": 3,
+        "Status": "OPEN",
+        "LastModified": "<now>",
+        "BookedOrAttended": 13,
+        "ExtraTimeBooked": 0,
+        "Waitlisted": 7,
+        "SeatDrift": 0
+      }
+    ],
+    "bookings": [
+      {
+        "BookingId": 1568,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000056",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-152-1",
+        "BookedAt": "2026-11-05T01:30:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-05T01:30:00"
+      },
+      {
+        "BookingId": 1569,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000465",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-05T11:01:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-05T11:01:00"
+      },
+      {
+        "BookingId": 1570,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000874",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015203",
+        "BookedAt": "2026-11-05T18:52:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-05T18:52:00"
+      },
+      {
+        "BookingId": 1571,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000402",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015204",
+        "BookedAt": "2026-11-06T09:23:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Candidate request",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1572,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000811",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-06T18:54:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-06T18:54:00"
+      },
+      {
+        "BookingId": 1573,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000339",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-152-6",
+        "BookedAt": "2026-11-07T04:25:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T04:25:00"
+      },
+      {
+        "BookingId": 1574,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000748",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-07T12:16:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T12:16:00"
+      },
+      {
+        "BookingId": 1575,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000276",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-07T21:47:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T21:47:00"
+      },
+      {
+        "BookingId": 1576,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000685",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T07:18:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T07:18:00"
+      },
+      {
+        "BookingId": 1577,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000213",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T20:09:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T20:09:00"
+      },
+      {
+        "BookingId": 1578,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000622",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015211",
+        "BookedAt": "2026-11-09T05:40:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T05:40:00"
+      },
+      {
+        "BookingId": 1579,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000150",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015212",
+        "BookedAt": "2026-11-09T15:11:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T15:11:00"
+      },
+      {
+        "BookingId": 1580,
+        "SessionId": 152,
+        "CandidateNumber": "NW00000559",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T00:42:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T00:42:00"
+      },
+      {
+        "BookingId": "<booking:1>",
+        "SessionId": 152,
+        "CandidateNumber": "NW00000901",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": "<now>",
+        "CancelReason": "mixed-traffic",
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:5>",
+        "SessionId": 152,
+        "CandidateNumber": "NW00000906",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": "<now>",
+        "CancelReason": "mixed-traffic",
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:9>",
+        "SessionId": 152,
+        "CandidateNumber": "NW00000910",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:13>",
+        "SessionId": 152,
+        "CandidateNumber": "NW00000914",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:17>",
+        "SessionId": 152,
+        "CandidateNumber": "NW00000918",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:21>",
+        "SessionId": 152,
+        "CandidateNumber": "NW00000922",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:25>",
+        "SessionId": 152,
+        "CandidateNumber": "NW00000926",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:29>",
+        "SessionId": 152,
+        "CandidateNumber": "NW00000930",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:33>",
+        "SessionId": 152,
+        "CandidateNumber": "NW00000934",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:37>",
+        "SessionId": 152,
+        "CandidateNumber": "NW00000938",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": 1606,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000118",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015401",
+        "BookedAt": "2026-11-06T09:42:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-06T09:42:00"
+      },
+      {
+        "BookingId": 1607,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000527",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-2",
+        "BookedAt": "2026-11-06T22:33:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-06T22:33:00"
+      },
+      {
+        "BookingId": 1608,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000055",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-3",
+        "BookedAt": "2026-11-07T08:04:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T08:04:00"
+      },
+      {
+        "BookingId": 1609,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000464",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-07T17:35:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-07T17:35:00"
+      },
+      {
+        "BookingId": 1610,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000873",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015405",
+        "BookedAt": "2026-11-08T03:06:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T03:06:00"
+      },
+      {
+        "BookingId": 1611,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000401",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T15:57:00",
+        "CancelledAt": "2026-11-10T15:57:00",
+        "CancelReason": "Candidate request",
+        "LastModified": "2026-11-10T15:57:00"
+      },
+      {
+        "BookingId": 1612,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000810",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-154-7",
+        "BookedAt": "2026-11-09T01:28:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T01:28:00"
+      },
+      {
+        "BookingId": 1613,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000338",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015408",
+        "BookedAt": "2026-11-09T10:59:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T10:59:00"
+      },
+      {
+        "BookingId": 1614,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000747",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T20:30:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T20:30:00"
+      },
+      {
+        "BookingId": 1615,
+        "SessionId": 154,
+        "CandidateNumber": "NW00000275",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T04:21:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T04:21:00"
+      },
+      {
+        "BookingId": "<booking:2>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000902",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0001",
+        "BookedAt": "<now>",
+        "CancelledAt": "<now>",
+        "CancelReason": "mixed-traffic",
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:6>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000907",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0003",
+        "BookedAt": "<now>",
+        "CancelledAt": "<now>",
+        "CancelReason": "mixed-traffic",
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:10>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000911",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0005",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:14>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000915",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0007",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:18>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000919",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0009",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:22>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000923",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0011",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:26>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000927",
+        "Status": "WAITLISTED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0013",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:30>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000931",
+        "Status": "WAITLISTED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0015",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:34>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000935",
+        "Status": "WAITLISTED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0017",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:38>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000939",
+        "Status": "WAITLISTED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0019",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": 1616,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000763",
+        "Status": "BOOKED",
+        "AccommodationCode": "SR",
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-155-1",
+        "BookedAt": "2026-11-09T09:03:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T09:03:00"
+      },
+      {
+        "BookingId": 1617,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000291",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015502",
+        "BookedAt": "2026-11-09T21:54:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Partner cancellation",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1618,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000700",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T07:25:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T07:25:00"
+      },
+      {
+        "BookingId": 3334,
+        "SessionId": 155,
+        "CandidateNumber": "NW00000610",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-09-26T15:40:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-09-26T15:40:00"
+      },
+      {
+        "BookingId": "<booking:3>",
+        "SessionId": 155,
+        "CandidateNumber": "NW00000904",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": "<now>",
+        "CancelReason": "mixed-traffic",
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:7>",
+        "SessionId": 155,
+        "CandidateNumber": "NW00000908",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:11>",
+        "SessionId": 155,
+        "CandidateNumber": "NW00000912",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:15>",
+        "SessionId": 155,
+        "CandidateNumber": "NW00000916",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:19>",
+        "SessionId": 155,
+        "CandidateNumber": "NW00000920",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:23>",
+        "SessionId": 155,
+        "CandidateNumber": "NW00000924",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:27>",
+        "SessionId": 155,
+        "CandidateNumber": "NW00000928",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:31>",
+        "SessionId": 155,
+        "CandidateNumber": "NW00000932",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:35>",
+        "SessionId": 155,
+        "CandidateNumber": "NW00000936",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:39>",
+        "SessionId": 155,
+        "CandidateNumber": "NW00000940",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": 1636,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000824",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015701",
+        "BookedAt": "2026-11-08T05:45:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T05:45:00"
+      },
+      {
+        "BookingId": 1637,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000352",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-0015702",
+        "BookedAt": "2026-11-08T13:36:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T13:36:00"
+      },
+      {
+        "BookingId": 1638,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000761",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-08T23:07:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-08T23:07:00"
+      },
+      {
+        "BookingId": 1639,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000289",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "IMPORT",
+        "ExternalRef": "IMP202611-157-4",
+        "BookedAt": "2026-11-09T08:38:00",
+        "CancelledAt": "2026-11-10T18:00:00",
+        "CancelReason": "Candidate request",
+        "LastModified": "2026-11-10T18:00:00"
+      },
+      {
+        "BookingId": 1640,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000698",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-09T21:29:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-09T21:29:00"
+      },
+      {
+        "BookingId": 1641,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000226",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-11-10T07:00:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-11-10T07:00:00"
+      },
+      {
+        "BookingId": 3335,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000074",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-09-30T10:14:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-09-30T10:14:00"
+      },
+      {
+        "BookingId": 3336,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000577",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R157577",
+        "BookedAt": "2026-10-01T15:07:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-01T15:07:00"
+      },
+      {
+        "BookingId": 3337,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000545",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R157545",
+        "BookedAt": "2026-10-09T14:35:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-09T14:35:00"
+      },
+      {
+        "BookingId": 3338,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000765",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R157765",
+        "BookedAt": "2026-10-09T13:45:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-09T13:45:00"
+      },
+      {
+        "BookingId": 3339,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000198",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PORTAL",
+        "ExternalRef": null,
+        "BookedAt": "2026-10-12T16:48:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-12T16:48:00"
+      },
+      {
+        "BookingId": 3340,
+        "SessionId": 157,
+        "CandidateNumber": "NW00000481",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "PTR-R157481",
+        "BookedAt": "2026-10-13T13:31:00",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "2026-10-13T13:31:00"
+      },
+      {
+        "BookingId": "<booking:4>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000905",
+        "Status": "CANCELLED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0002",
+        "BookedAt": "<now>",
+        "CancelledAt": "<now>",
+        "CancelReason": "mixed-traffic",
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:8>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000909",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0004",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:12>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000913",
+        "Status": "BOOKED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0006",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:16>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000917",
+        "Status": "WAITLISTED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0008",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:20>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000921",
+        "Status": "WAITLISTED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0010",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:24>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000925",
+        "Status": "WAITLISTED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0012",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:28>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000929",
+        "Status": "WAITLISTED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0014",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:32>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000933",
+        "Status": "WAITLISTED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0016",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:36>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000937",
+        "Status": "WAITLISTED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0018",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      },
+      {
+        "BookingId": "<booking:40>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000941",
+        "Status": "WAITLISTED",
+        "AccommodationCode": null,
+        "Channel": "PARTNER",
+        "ExternalRef": "MT-0020",
+        "BookedAt": "<now>",
+        "CancelledAt": null,
+        "CancelReason": null,
+        "LastModified": "<now>"
+      }
+    ],
+    "waitlist": [
+      {
+        "WaitlistId": "<waitlist:1>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000927",
+        "BookingId": "<booking:26>",
+        "Position": 1,
+        "AddedAt": "<now>"
+      },
+      {
+        "WaitlistId": "<waitlist:2>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000931",
+        "BookingId": "<booking:30>",
+        "Position": 2,
+        "AddedAt": "<now>"
+      },
+      {
+        "WaitlistId": "<waitlist:3>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000935",
+        "BookingId": "<booking:34>",
+        "Position": 3,
+        "AddedAt": "<now>"
+      },
+      {
+        "WaitlistId": "<waitlist:4>",
+        "SessionId": 154,
+        "CandidateNumber": "NW00000939",
+        "BookingId": "<booking:38>",
+        "Position": 4,
+        "AddedAt": "<now>"
+      },
+      {
+        "WaitlistId": "<waitlist:5>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000917",
+        "BookingId": "<booking:16>",
+        "Position": 1,
+        "AddedAt": "<now>"
+      },
+      {
+        "WaitlistId": "<waitlist:6>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000921",
+        "BookingId": "<booking:20>",
+        "Position": 2,
+        "AddedAt": "<now>"
+      },
+      {
+        "WaitlistId": "<waitlist:7>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000925",
+        "BookingId": "<booking:24>",
+        "Position": 3,
+        "AddedAt": "<now>"
+      },
+      {
+        "WaitlistId": "<waitlist:8>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000929",
+        "BookingId": "<booking:28>",
+        "Position": 4,
+        "AddedAt": "<now>"
+      },
+      {
+        "WaitlistId": "<waitlist:9>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000933",
+        "BookingId": "<booking:32>",
+        "Position": 5,
+        "AddedAt": "<now>"
+      },
+      {
+        "WaitlistId": "<waitlist:10>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000937",
+        "BookingId": "<booking:36>",
+        "Position": 6,
+        "AddedAt": "<now>"
+      },
+      {
+        "WaitlistId": "<waitlist:11>",
+        "SessionId": 157,
+        "CandidateNumber": "NW00000941",
+        "BookingId": "<booking:40>",
+        "Position": 7,
+        "AddedAt": "<now>"
+      }
+    ],
+    "results": [],
+    "audit": [
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:1>",
+        "Action": "BOOK",
+        "Detail": "session=152 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:2>",
+        "Action": "BOOK",
+        "Detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0001",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:3>",
+        "Action": "BOOK",
+        "Detail": "session=155 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:4>",
+        "Action": "BOOK",
+        "Detail": "session=157 status=BOOKED channel=PARTNER ref=MT-0002",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:5>",
+        "Action": "BOOK",
+        "Detail": "session=152 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:6>",
+        "Action": "BOOK",
+        "Detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0003",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:7>",
+        "Action": "BOOK",
+        "Detail": "session=155 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:8>",
+        "Action": "BOOK",
+        "Detail": "session=157 status=BOOKED channel=PARTNER ref=MT-0004",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:9>",
+        "Action": "BOOK",
+        "Detail": "session=152 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:10>",
+        "Action": "BOOK",
+        "Detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0005",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:11>",
+        "Action": "BOOK",
+        "Detail": "session=155 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:12>",
+        "Action": "BOOK",
+        "Detail": "session=157 status=BOOKED channel=PARTNER ref=MT-0006",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:13>",
+        "Action": "BOOK",
+        "Detail": "session=152 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:14>",
+        "Action": "BOOK",
+        "Detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0007",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:15>",
+        "Action": "BOOK",
+        "Detail": "session=155 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:16>",
+        "Action": "BOOK",
+        "Detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0008",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:17>",
+        "Action": "BOOK",
+        "Detail": "session=152 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:18>",
+        "Action": "BOOK",
+        "Detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0009",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:19>",
+        "Action": "BOOK",
+        "Detail": "session=155 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:20>",
+        "Action": "BOOK",
+        "Detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0010",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:21>",
+        "Action": "BOOK",
+        "Detail": "session=152 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:22>",
+        "Action": "BOOK",
+        "Detail": "session=154 status=BOOKED channel=PARTNER ref=MT-0011",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:23>",
+        "Action": "BOOK",
+        "Detail": "session=155 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:24>",
+        "Action": "BOOK",
+        "Detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0012",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:25>",
+        "Action": "BOOK",
+        "Detail": "session=152 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:26>",
+        "Action": "BOOK",
+        "Detail": "session=154 status=WAITLISTED channel=PARTNER ref=MT-0013",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:27>",
+        "Action": "BOOK",
+        "Detail": "session=155 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:28>",
+        "Action": "BOOK",
+        "Detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0014",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:29>",
+        "Action": "BOOK",
+        "Detail": "session=152 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:30>",
+        "Action": "BOOK",
+        "Detail": "session=154 status=WAITLISTED channel=PARTNER ref=MT-0015",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:31>",
+        "Action": "BOOK",
+        "Detail": "session=155 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:32>",
+        "Action": "BOOK",
+        "Detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0016",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:33>",
+        "Action": "BOOK",
+        "Detail": "session=152 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:34>",
+        "Action": "BOOK",
+        "Detail": "session=154 status=WAITLISTED channel=PARTNER ref=MT-0017",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:35>",
+        "Action": "BOOK",
+        "Detail": "session=155 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:36>",
+        "Action": "BOOK",
+        "Detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0018",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:37>",
+        "Action": "BOOK",
+        "Detail": "session=152 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:38>",
+        "Action": "BOOK",
+        "Detail": "session=154 status=WAITLISTED channel=PARTNER ref=MT-0019",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:39>",
+        "Action": "BOOK",
+        "Detail": "session=155 status=BOOKED",
+        "Actor": "ad_app",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:40>",
+        "Action": "BOOK",
+        "Detail": "session=157 status=WAITLISTED channel=PARTNER ref=MT-0020",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:1>",
+        "Action": "CANCEL",
+        "Detail": "mixed-traffic",
+        "Actor": "portal",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:3>",
+        "Action": "CANCEL",
+        "Detail": "mixed-traffic",
+        "Actor": "portal",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:5>",
+        "Action": "CANCEL",
+        "Detail": "mixed-traffic",
+        "Actor": "portal",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:2>",
+        "Action": "CANCEL",
+        "Detail": "mixed-traffic",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:4>",
+        "Action": "CANCEL",
+        "Detail": "mixed-traffic",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "Booking",
+        "EntityId": "<booking:6>",
+        "Action": "CANCEL",
+        "Detail": "mixed-traffic",
+        "Actor": "booking-api",
+        "LoggedAt": "<now>"
+      },
+      {
+        "EntityName": "ExamSession",
+        "EntityId": 0,
+        "Action": "CAPACITY_SYNC",
+        "Detail": "trigger=MANUAL status=COMPLETED checked=285 updated=113",
+        "Actor": "capacity-sync",
+        "LoggedAt": "<now>"
+      }
+    ]
+  }
+}

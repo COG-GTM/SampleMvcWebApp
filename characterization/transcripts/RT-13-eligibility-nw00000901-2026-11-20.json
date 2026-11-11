@@ -1,0 +1,81 @@
+{
+  "id": "RT-13-eligibility-nw00000901-2026-11-20",
+  "title": "Retake eligibility NW00000901 HPI-ACC1 on 2026-11-20: first attempt (no results)",
+  "area": "retake",
+  "channel": "both",
+  "hb": [
+    "HB-07"
+  ],
+  "oddity": null,
+  "oddity_ids": null,
+  "notes": null,
+  "seed_as_of": "2026-11-10",
+  "setup": [],
+  "before": {
+    "sessions": [],
+    "bookings": [],
+    "waitlist": [],
+    "results": [],
+    "audit": []
+  },
+  "steps": [
+    {
+      "name": "portal_eligibility",
+      "request": {
+        "channel": "portal",
+        "method": "GET",
+        "path": "/Eligibility?candidateNumber=NW00000901&examCode=HPI-ACC1&date=2026-11-20"
+      },
+      "response": {
+        "status": 200,
+        "path": "/Eligibility?candidateNumber=NW00000901&examCode=HPI-ACC1&date=2026-11-20",
+        "rendered": {
+          "heading": "Retake eligibility",
+          "alerts": [],
+          "field_errors": [],
+          "cells": {
+            "Candidate": "NW00000901",
+            "Exam": "HPI-ACC1",
+            "Proposed date": "20 Nov 2026",
+            "Eligible": "YES",
+            "Reason": "No previous attempts",
+            "Earliest retake date": "n/a"
+          }
+        },
+        "eligibility": {
+          "eligible": "YES",
+          "reason": "No previous attempts",
+          "earliestRetakeDate": "n/a"
+        }
+      }
+    },
+    {
+      "name": "api_eligibility",
+      "request": {
+        "channel": "api",
+        "method": "GET",
+        "path": "/api/v1/candidates/NW00000901/eligibility?examCode=HPI-ACC1&date=2026-11-20"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "eligible": true,
+          "reason": "FIRST_ATTEMPT",
+          "earliestRetakeDate": null
+        },
+        "eligibility": {
+          "eligible": true,
+          "reason": "FIRST_ATTEMPT",
+          "earliestRetakeDate": null
+        }
+      }
+    }
+  ],
+  "after": {
+    "sessions": [],
+    "bookings": [],
+    "waitlist": [],
+    "results": [],
+    "audit": []
+  }
+}

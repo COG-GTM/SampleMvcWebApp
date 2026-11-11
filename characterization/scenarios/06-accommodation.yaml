@@ -1,0 +1,106 @@
+# Accommodation (extra-time) capacity. Session 163: MHL-RN1, Capacity 8, AccommodationCapacity 1, 3 BOOKED, 5 free, no ET bookings.
+# NW00000903 has profile ET50, NW00000923 SR, NW00000943 RB; NW00000003 has profile ET25 (HB-09).
+scenarios:
+  - id: AC-01-portal-extra-time-over-allocation
+    title: Portal fills the 1 accommodation seat with ET25, then an ET50 booking is rejected (usp_BookSeat state 3)
+    area: accommodation
+    channel: portal
+    hb: [HB-08, HB-14]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [163]
+    candidates: [NW00000932, NW00000903]
+    setup:
+      - portal_book: {session: 163, candidate: NW00000932, accommodation: ET25}
+    steps:
+      - portal_book: {session: 163, candidate: NW00000903, accommodation: ET50}
+
+  - id: AC-02-api-extra-time-over-allocation
+    title: booking-api fills the 1 accommodation seat with ET25, then an ET50 booking is attempted
+    area: accommodation
+    channel: api
+    hb: [HB-08, HB-14, HB-01]
+    oddity: true
+    oddity_ids: [ODD-01, ODD-12]
+    sessions: [163]
+    candidates: [NW00000933, NW00000934]
+    setup:
+      - api_book: {session: 163, candidate: NW00000933, accommodation: ET25}
+    steps:
+      - api_book: {session: 163, candidate: NW00000934, accommodation: ET50}
+
+  - id: AC-03-portal-sr-rb-do-not-consume-accommodation
+    title: With the accommodation seat taken, portal SR and RB bookings still succeed (not extra-time)
+    area: accommodation
+    channel: portal
+    hb: [HB-08]
+    sessions: [163]
+    candidates: [NW00000935, NW00000923, NW00000943]
+    setup:
+      - portal_book: {session: 163, candidate: NW00000935, accommodation: ET50}
+    steps:
+      - portal_book: {session: 163, candidate: NW00000923, accommodation: SR}
+      - portal_book: {session: 163, candidate: NW00000943, accommodation: RB}
+
+  - id: AC-04-api-sr-rb-do-not-consume-accommodation
+    title: With the accommodation seat taken, booking-api SR and RB bookings still succeed
+    area: accommodation
+    channel: api
+    hb: [HB-08, HB-01]
+    oddity: true
+    oddity_ids: [ODD-01, ODD-13]
+    sessions: [163]
+    candidates: [NW00000936, NW00000937, NW00000938]
+    setup:
+      - api_book: {session: 163, candidate: NW00000936, accommodation: ET50}
+    steps:
+      - api_book: {session: 163, candidate: NW00000937, accommodation: SR}
+      - api_book: {session: 163, candidate: NW00000938, accommodation: RB}
+
+  - id: AC-05-portal-blank-accommodation-uses-profile
+    title: Portal books NW00000003 (profile ET25) with a blank code - stored as ET25 from the profile
+    area: accommodation
+    channel: portal
+    hb: [HB-09]
+    oddity: true
+    oddity_ids: [ODD-07]
+    sessions: [154]
+    candidates: [NW00000003]
+    steps:
+      - portal_book: {session: 154, candidate: NW00000003, accommodation: ""}
+
+  - id: AC-06-api-blank-accommodation-is-none
+    title: booking-api books NW00000003 (profile ET25) with no code - stored as NULL
+    area: accommodation
+    channel: api
+    hb: [HB-09]
+    oddity: true
+    oddity_ids: [ODD-07]
+    sessions: [154]
+    candidates: [NW00000003]
+    steps:
+      - api_book: {session: 154, candidate: NW00000003}
+
+  - id: AC-07-portal-extra-time-on-zero-allocation
+    title: Portal books ET25 onto session 155 with AccommodationCapacity 0
+    area: accommodation
+    channel: portal
+    hb: [HB-08]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [155]
+    candidates: [NW00000939]
+    steps:
+      - portal_book: {session: 155, candidate: NW00000939, accommodation: ET25}
+
+  - id: AC-08-api-extra-time-on-zero-allocation
+    title: booking-api books ET25 onto session 155 with AccommodationCapacity 0
+    area: accommodation
+    channel: api
+    hb: [HB-08]
+    oddity: true
+    oddity_ids: [ODD-12]
+    sessions: [155]
+    candidates: [NW00000940]
+    steps:
+      - api_book: {session: 155, candidate: NW00000940, accommodation: ET25}

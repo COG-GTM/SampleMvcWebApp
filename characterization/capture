@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# characterization/capture [--target legacy|modern --base-url URL] [scenario globs...]  (see characterization/README.md)
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+py="${PYTHON:-}"
+if [ -z "$py" ]; then
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) py=python ;;   # Git Bash on Windows: python3 may resolve to a WSL/Store shim
+    *) if command -v python3 >/dev/null 2>&1; then py=python3; else py=python; fi ;;
+  esac
+fi
+cd "$here"
+PYTHONUTF8=1 exec "$py" -m harness capture "$@"
