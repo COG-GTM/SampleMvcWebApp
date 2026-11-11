@@ -8,11 +8,11 @@ import { useCandidateNumber } from '../candidate';
 /** Candidate: list bookings, cancel (with confirmation), reschedule. */
 export default function MyBookings() {
   const toast = useToast();
-  const [candidate, setCandidate] = useCandidateNumber();
   const [params] = useSearchParams();
   // legacy /Booking/MyBookings?candidateNumber= bookmarks arrive here via the routing gateway (MBA-3824)
   const linked = (params.get('candidateNumber') ?? '').trim().toUpperCase();
-  const [input, setInput] = useState(CANDIDATE_RE.test(linked) ? linked : candidate);
+  const [candidate, setCandidate] = useCandidateNumber(CANDIDATE_RE.test(linked) ? linked : undefined);
+  const [input, setInput] = useState(candidate);
   const [error, setError] = useState('');
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,6 @@ export default function MyBookings() {
       .finally(() => setLoading(false));
   }, [toast]);
 
-  useEffect(() => { if (CANDIDATE_RE.test(linked)) setCandidate(linked); }, [linked, setCandidate]);
   useEffect(() => { load(candidate); }, [candidate, load]);
 
   function submit(e: FormEvent) {
