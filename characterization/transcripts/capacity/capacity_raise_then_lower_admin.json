@@ -150,7 +150,7 @@
     "sha": "e458238da39c991b51d8f670f6d0c463b51b372f",
     "tag": "legacy-baseline"
   },
-  "modern_expected_mismatch": null,
+  "modern_expected_mismatch": "ADR 0002 section 1 - seat count is derived, no partner double decrement (setup partner bookings leave one more seat).",
   "oddity": true,
   "oddity_note": "Raise then lower below active bookings; bumped candidates stay WAITLISTED when capacity is raised again (no re-promotion).",
   "scenario": "capacity_raise_then_lower_admin",
