@@ -146,7 +146,7 @@ def scenario_html(s, base: Path):
     diff = (f'<table class="diff"><tr><th>DB / API field</th><th>Legacy</th><th>Modern</th><th>Note</th></tr>{rows}</table>'
             if rows else "")
     inputs = f'<p class="muted">Inputs: {E(s["inputs"])}</p>' if s.get("inputs") else ""
-    return (f'<div class="scn" data-cls="{E(cls)}" id="s{s["id"]}"><div class="hd"><h3>{s["id"]}. {E(s["title"])}</h3>'
+    return (f'<div class="scn" data-cls="{E(cls)}" id="s{int(s["id"])}"><div class="hd"><h3>{int(s["id"])}. {E(s["title"])}</h3>'
             f'<span class="cite">{E(s.get("citation", ""))}</span>{badge(cls)}</div><div class="bd">'
             f'<p>{E(s.get("summary", ""))}</p>{inputs}<div class="grid2">'
             f'{side_html("LEGACY - .NET 4.8 portal + Java 8 services (tag legacy-baseline)", "legacy", s.get("legacy", {}), base)}'
