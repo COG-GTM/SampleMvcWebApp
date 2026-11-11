@@ -36,7 +36,9 @@ class Target:
         elif name == 'migrated':
             self.state = Sql(env('SCHED_DB', 'Scheduling'))
             self.sched = Scheduling(env('SCHEDULING_URL', 'http://localhost:8084'))
-            self.audit_tables = [(self.ref, 'dbo.AuditLog')] + [
+            # Booking/ExamSession audit is scheduling-service's (LegacyImporter copies those rows into Scheduling at
+            # import); reading them from AssessmentDelivery too would count every imported row twice
+            self.audit_tables = [(self.ref, "dbo.AuditLog WHERE EntityName NOT IN ('Booking','ExamSession')")] + [
                 (self.state, t) for t in env('SCHED_AUDIT_TABLES', 'dbo.AuditLog').split(',') if t]
         else:
             raise ValueError('unknown target %s' % name)
