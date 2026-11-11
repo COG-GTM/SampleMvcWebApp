@@ -21,6 +21,8 @@ public class SpaConfig implements WebMvcConfigurer {
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addRedirectViewController("/", "/app/");
         registry.addRedirectViewController("/app", "/app/");
+        // the resource handler ignores an empty path, so the SPA root is forwarded explicitly
+        registry.addViewController("/app/").setViewName("forward:/app/index.html");
     }
 
     @Override
