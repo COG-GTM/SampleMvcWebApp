@@ -1,17 +1,4 @@
 # id|file|line|exact trimmed source line. Tripwire for docs/to-be/scheduling-boundary.md: if a cited line moves or
 # changes, update the inventory row and this file together. Phase 2 rewiring is EXPECTED to break rows here.
-P-E01|AssessmentDelivery.Services/Eligibility/EligibilityService.cs|32|var attempts = _db.Results
-P-E01|AssessmentDelivery.Services/Eligibility/EligibilityService.cs|34|.Select(r => new PriorAttempt { SessionDate = r.Session.StartsAt, Passed = r.Passed, Score = r.Score })
 P-R01|AssessmentDelivery.Services/Results/ResultsService.cs|21|.OrderByDescending(r => r.Session.StartsAt)
-BA-17|services/booking-api/src/main/java/com/northwind/assessment/booking/service/RetakeEligibilityService.java|60|Integer days = jdbcTemplate.queryForObject("SELECT RetakeWaitDays FROM dbo.Exam WHERE ExamId = ?",
-BA-18|services/booking-api/src/main/java/com/northwind/assessment/booking/dao/ResultDao.java|27|+ "FROM dbo.Result r JOIN dbo.ExamSession s ON s.SessionId = r.SessionId "
-RS-01|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|55|+ "FROM dbo.Booking b JOIN dbo.ExamSession s ON s.SessionId = b.SessionId "
-RS-02|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|96|jdbc.update("UPDATE dbo.Booking SET Status = 'ATTENDED', LastModified = GETDATE() "
-RS-02|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|97|+ "WHERE BookingId = ? AND Status = 'BOOKED'", bookingId);
-RS-03|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|161|"SELECT TOP 1 b.BookingId FROM dbo.Booking b JOIN dbo.Candidate c ON c.CandidateId = b.CandidateId "
-RS-05|services/results-service/src/main/java/com/northwind/ad/results/service/ResultIngestService.java|180|+ "JOIN dbo.ExamSession s ON s.SessionId = r.SessionId "
-RS-06|services/results-service/src/main/java/com/northwind/ad/results/service/ScoreFileImporter.java|74|Integer bookingId = ingestService.findBookingId(row.candidateNumber, row.sessionId);
-CS-01|services/capacity-sync/src/main/java/com/northwind/assessment/capacity/CapacitySyncService.java|34|+ "FROM dbo.ExamSession s WHERE s.Status = 'OPEN' ORDER BY s.SessionId";
-CS-02|services/capacity-sync/src/main/java/com/northwind/assessment/capacity/CapacitySyncService.java|65|int n = jdbc.update("UPDATE dbo.ExamSession SET SeatsAvailable = ?, LastModified = GETDATE() "
-CS-03|services/capacity-sync/src/main/java/com/northwind/assessment/capacity/CapacitySyncService.java|96|jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
 X-09|db/procs/030_usp_GetCapacityAudit.sql|36|JOIN dbo.ExamSession s ON s.SessionId = al.EntityId

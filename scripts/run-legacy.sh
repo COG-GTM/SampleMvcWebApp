@@ -11,8 +11,9 @@
 #   SKIP_DB=1     keep the existing database. By default every start re-creates it from db/
 #                 (the schema script drops and recreates all tables - DEV ONLY)
 #   SKIP_BUILD=1  reuse the jars already in services/*/target
-#   WITH_SCHEDULING=1  also bootstrap the Scheduling DB and start services/scheduling-service on :8084
-#                 (Java 21: JAVA21_HOME, default /usr/lib/jvm/java-21-openjdk-amd64). Off by default.
+#   WITH_SCHEDULING  bootstrap the Scheduling DB and start services/scheduling-service on :8084
+#                 (Java 21: JAVA21_HOME, default /usr/lib/jvm/java-21-openjdk-amd64). On by default since
+#                 capacity-sync is retired and its seat reconciler runs there; WITH_SCHEDULING=0 skips it.
 #
 # The .NET portal (:8080) is Windows-only - see scripts/run-portal.ps1.
 set -euo pipefail
@@ -22,7 +23,11 @@ RUN_DIR="$ROOT/.run"
 MSSQL_CONTAINER="${MSSQL_CONTAINER:-mssql}"
 MSSQL_IMAGE="${MSSQL_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}"
 export MSSQL_SA_PASSWORD="${MSSQL_SA_PASSWORD:-Str0ng!Passw0rd}"
-SERVICES="booking-api:8081 results-service:8082 capacity-sync:8083"
+# capacity-sync (:8083) is retired: its seat reconciler lives in scheduling-service (services/capacity-sync/README.md)
+SERVICES="booking-api:8081 results-service:8082"
+RETIRED_SERVICES="capacity-sync"   # still stopped by cmd_stop if an older estate left it running
+SCHEDULING_PORT="${SCHEDULING_PORT:-8084}"
+export SCHEDULING_BASE_URL="${SCHEDULING_BASE_URL:-http://localhost:$SCHEDULING_PORT/api/v1}"   # results-service, booking-api
 
 log() { echo "[run-legacy] $*"; }
 die() { echo "[run-legacy] ERROR: $*" >&2; exit 1; }
@@ -154,7 +159,6 @@ print_urls() {
 
   booking-api      http://localhost:8081/api/v1/sessions
   results-service  http://localhost:8082/api/v1/results/candidate/{candidateNumber}
-  capacity-sync    http://localhost:8083/sync/last
   SQL Server       localhost,1433  db AssessmentDelivery  login ad_app
 
   logs and pids:   .run/
@@ -162,12 +166,23 @@ print_urls() {
 URLS
 }
 
-# ---- opt-in: services/scheduling-service (WITH_SCHEDULING=1) ----
-SCHEDULING_PORT="${SCHEDULING_PORT:-8084}"
+# ---- services/scheduling-service (WITH_SCHEDULING, default 1) ----
 
 start_scheduling() {
     local java21="${JAVA21_HOME:-/usr/lib/jvm/java-21-openjdk-amd64}"
-    [ -x "$java21/bin/java" ] || die "WITH_SCHEDULING=1 needs a JDK 21 (set JAVA21_HOME)"
+    [ -x "$java21/bin/java" ] || die "scheduling-service needs a JDK 21 (set JAVA21_HOME)"
+    if [ "${SKIP_DB:-0}" != "1" ]; then
+        # apply_db just re-created AssessmentDelivery: re-create Scheduling too so the service re-imports from it
+        if pid_alive "$RUN_DIR/scheduling-service.pid"; then
+            log "stopping scheduling-service to re-import from the re-created AssessmentDelivery"
+            kill "$(cat "$RUN_DIR/scheduling-service.pid")" 2>/dev/null || true
+            for _ in $(seq 1 20); do pid_alive "$RUN_DIR/scheduling-service.pid" || break; sleep 0.5; done
+            pid_alive "$RUN_DIR/scheduling-service.pid" && kill -9 "$(cat "$RUN_DIR/scheduling-service.pid")" 2>/dev/null || true
+            rm -f "$RUN_DIR/scheduling-service.pid"
+        fi
+        log "re-creating the Scheduling database (existing data is dropped; SKIP_DB=1 keeps it)"
+        sa_sql -Q "IF DB_ID('Scheduling') IS NOT NULL BEGIN ALTER DATABASE Scheduling SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE Scheduling; END" >/dev/null
+    fi
     log "bootstrapping the Scheduling database (services/scheduling-service/db/bootstrap.sql)"
     sa_sql < "$ROOT/services/scheduling-service/db/bootstrap.sql" >/dev/null
     local jar="$ROOT/services/scheduling-service/target/scheduling-service.jar"
@@ -219,7 +234,7 @@ cmd_status() {
 
 cmd_stop() {
     local entry name pid
-    for entry in $SERVICES scheduling-service:$SCHEDULING_PORT; do
+    for entry in $SERVICES scheduling-service:$SCHEDULING_PORT $RETIRED_SERVICES; do
         name="${entry%%:*}"
         if pid_alive "$RUN_DIR/$name.pid"; then
             pid="$(cat "$RUN_DIR/$name.pid")"
@@ -242,7 +257,7 @@ cmd_start() {
     start_services
     log "all services up"
     print_urls
-    if [ "${WITH_SCHEDULING:-0}" = "1" ]; then
+    if [ "${WITH_SCHEDULING:-1}" = "1" ]; then
         start_scheduling
     fi
 }

@@ -13,6 +13,18 @@ Replacement types used in the last column:
 
 Transaction and lock defaults: EF6 reads run outside any explicit transaction at READ COMMITTED with shared locks released per statement and no hints. Spring `@Transactional` methods run at READ COMMITTED with no lock hints (HB-29). No caller uses `UPDLOCK`/`HOLDLOCK`; only the procs do (`020:34`, `021:26`, `022:25`).
 
+## Phase 2 / S5 status
+
+Rewired or retired in S5 (rows dropped from `services/scheduling-contract-tests/src/test/resources/inventory-guard.psv`):
+
+| Rows | Now |
+|---|---|
+| RS-01, RS-03, RS-06 | results-service `SchedulingClient`: `GET /bookings/{id}`, `GET /bookings?candidateNumber&sessionId&status=BOOKED,ATTENDED&sort=bookingId,desc&limit=1` |
+| RS-02 | `POST /bookings/{id}/attendance` |
+| RS-05 | `dbo.Result.SessionStartsAt` (results-local, `db/schema/016`); `FK_Result_Booking` / `FK_Result_Session` dropped (`db/schema/017`) |
+| P-E01, BA-17, BA-18 | `GET /eligibility/retake?policy=PORTAL_CALENDAR_DAYS|PARTNER_WORKING_DAYS` (`docs/to-be/adr-001-retake-eligibility-and-attendance.md`) |
+| CS-01..CS-03 | capacity-sync retired; scheduling-service seat reconciler (`services/capacity-sync/README.md`) |
+
 ## 1. Portal (.NET 4.8, EF6): `AssessmentDelivery.*`
 
 The EF model (`AssessmentDelivery.Data/DataClasses/AssessmentDeliveryDb.cs`) maps every table as a `DbSet`, so any LINQ can reach the scheduling tables. The portal has no raw SQL except the proc calls below. `AssessmentDelivery.Web` controllers and `AssessmentDelivery.Business` contain no data access (grep for `_db.`, `SqlQuery`, `ExecuteSql`, `SqlConnection`), and `Business` only evaluates rows the services pass in (`SeatCounter`, `RetakeRules`, `RosterCsv`).
