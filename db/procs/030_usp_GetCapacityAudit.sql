@@ -1,7 +1,7 @@
 /*
     usp_GetCapacityAudit - read-only capacity change history for one test centre (portal
     /Admin/Centers/{id}/CapacityAudit, MBA-3828).
-    Lists the AuditLog rows written by usp_ChangeCapacity (EntityName 'ExamSession',
+    Lists the AuditLog rows written by usp_ChangeCapacity until MBA-3824 retired it (EntityName 'ExamSession',
     Action 'CAPACITY', Detail '<old> -> <new>') for sessions at @TestCenterId, newest first.
     capacity-sync run rows (Action 'CAPACITY_SYNC', EntityId 0) are excluded by the Action filter.
     @From inclusive, @To exclusive. Detail that is not exactly '<int> -> <int>' comes back with

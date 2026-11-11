@@ -8,10 +8,12 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * The legacy MVC 5 booking/admin pages that the strangler can move (routes from
- * AssessmentDelivery.Web/App_Start/RouteConfig.cs, flows in docs/SYSTEM_OVERVIEW.md) and their modern UI deep
- * links under {@code /app} (services/scheduling-service/frontend/src/App.tsx). MVC routing and model binding
- * are case-insensitive, so paths and parameter names are matched case-insensitively here too.
+ * The legacy MVC 5 booking/admin pages (routes from AssessmentDelivery.Web/App_Start/RouteConfig.cs at
+ * {@code legacy-baseline}, flows in docs/SYSTEM_OVERVIEW.md) and their modern UI deep links under {@code /app}
+ * (services/scheduling-service/frontend/src/App.tsx). Since MBA-3824 (M5) the portal no longer serves these pages,
+ * so every match is redirected whatever the centre, and a missing centre key still matches (see
+ * docs/adr/0004-retire-portal-booking-slice.md). MVC routing and model binding are case-insensitive, so paths and
+ * parameter names are matched case-insensitively here too.
  */
 public final class PortalRoutes {
 
@@ -40,20 +42,20 @@ public final class PortalRoutes {
             String action = seg.length >= 2 ? seg[1] : "index";
             String id = seg.length == 3 ? seg[2] : null;
             if (seg.length <= 2 && action.equals("index") && get) {
-                return withKey(Page.FIND, Kind.CENTER_CODE, param(query, "CenterCode"), null);
+                return retired(Page.FIND, Kind.CENTER_CODE, param(query, "CenterCode"), null);
             }
             if (seg.length == 2 && action.equals("book")) {
-                return get ? withKey(Page.BOOK, Kind.SESSION_ID, param(query, "sessionId"), null)
+                return get ? retired(Page.BOOK, Kind.SESSION_ID, param(query, "sessionId"), null)
                         : Optional.of(new Match(Page.BOOK, Lookup.of(Kind.SESSION_ID, null), null, true));
             }
             if (seg.length == 2 && action.equals("mybookings") && get) {
-                return withKey(Page.MY_BOOKINGS, Kind.CENTER_CODE, param(query, "centerCode"), null);
+                return retired(Page.MY_BOOKINGS, Kind.CENTER_CODE, param(query, "centerCode"), null);
             }
             if (id != null && isId(id) && action.equals("cancel")) {
-                return withKey(Page.CANCEL, Kind.BOOKING_ID, id, id);
+                return retired(Page.CANCEL, Kind.BOOKING_ID, id, id);
             }
             if (id != null && isId(id) && action.equals("reschedule")) {
-                return withKey(Page.RESCHEDULE, Kind.BOOKING_ID, id, id);
+                return retired(Page.RESCHEDULE, Kind.BOOKING_ID, id, id);
             }
             return Optional.empty();
         }
@@ -66,20 +68,37 @@ public final class PortalRoutes {
         return Optional.empty();
     }
 
-    /** Modern UI location (proxied by this gateway) for an allow-listed match. */
+    /** Modern UI location (proxied by this gateway); {@code center} is the resolved centre code or null. */
     public static String redirect(Match m, String center, MultiValueMap<String, String> query) {
         UriComponentsBuilder b = UriComponentsBuilder.newInstance();
         switch (m.page()) {
             case FIND -> {
-                b.path("/app/").queryParam("center", center);
+                b.path("/app/");
+                addIfPresent(b, "center", center);
                 addIfPresent(b, "exam", param(query, "ExamCode"));
                 addIfPresent(b, "from", param(query, "From"));
                 addIfPresent(b, "to", param(query, "To"));
             }
-            case BOOK -> b.path("/app/book").queryParam("sessionId", m.lookup().value());
-            case CANCEL, MY_BOOKINGS -> b.path("/app/my-bookings");
+            case BOOK -> {
+                if (m.lookup().present()) {
+                    b.path("/app/book").queryParam("sessionId", m.lookup().value());
+                } else {
+                    b.path("/app/");
+                }
+            }
+            case CANCEL -> b.path("/app/my-bookings");
+            case MY_BOOKINGS -> {
+                b.path("/app/my-bookings");
+                addIfPresent(b, "candidateNumber", param(query, "candidateNumber"));
+            }
             case RESCHEDULE -> b.path("/app/reschedule/").path(m.id());
-            case ADMIN_SESSIONS -> b.path("/app/admin/centers/").path(center);
+            case ADMIN_SESSIONS -> {
+                if (center != null && !center.isBlank()) {
+                    b.path("/app/admin/centers/").path(center);
+                } else {
+                    b.path("/app/");
+                }
+            }
             case ADMIN_CAPACITY -> b.path("/app/admin/sessions/").path(m.id());
             default -> throw new IllegalArgumentException(m.page().name());
         }
@@ -113,6 +132,10 @@ public final class PortalRoutes {
 
     static boolean isId(String s) {
         return !s.isEmpty() && s.length() <= 10 && s.chars().allMatch(Character::isDigit);
+    }
+
+    private static Optional<Match> retired(Page page, Kind kind, String value, String id) {
+        return Optional.of(new Match(page, Lookup.of(kind, value), id, false));
     }
 
     private static Optional<Match> withKey(Page page, Kind kind, String value, String id) {

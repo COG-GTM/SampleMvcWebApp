@@ -48,15 +48,20 @@ unless `routing.coexistence-mode=relay` is set; M4 sets it once the relay is liv
 
 ## What is routed where
 
+**Retired portal pages (MBA-3824, M5).** The portal no longer has booking or capacity pages, so the seven portal rows
+below redirect for **every** centre, whatever the allow-list says, and also without a centre key or when the key does
+not resolve (`/app/`, or `/app/my-bookings?candidateNumber=` for `/Booking/MyBookings?candidateNumber=`). The
+allow-list still applies to the API rows. See [ADR 0004](../../docs/adr/0004-retire-portal-booking-slice.md).
+
 | Request | Centre from | Allow-listed centre | Otherwise |
 |---|---|---|---|
-| `GET /Booking?CenterCode=` | CenterCode | 302 `/app/?center=..&exam=..&from=..&to=` | portal |
-| `GET /Booking/Book?sessionId=`, `POST /Booking/Book` (form `SessionId`) | sessionId | 302/303 `/app/book?sessionId=` | portal |
-| `/Booking/Reschedule/{id}` | bookingId | `/app/reschedule/{id}` | portal |
-| `/Booking/Cancel/{id}` | bookingId | `/app/my-bookings` | portal |
-| `GET /Booking/MyBookings?centerCode=` | centerCode | `/app/my-bookings` | portal |
-| `GET /Admin/Sessions?centerId=` | centerId | `/app/admin/centers/{centerCode}` | portal |
-| `/Admin/Sessions/Capacity/{id}` | sessionId | `/app/admin/sessions/{id}` | portal |
+| `GET /Booking?CenterCode=` | CenterCode | 302 `/app/?center=..&exam=..&from=..&to=` | same (M5) |
+| `GET /Booking/Book?sessionId=`, `POST /Booking/Book` (form `SessionId`) | sessionId | 302/303 `/app/book?sessionId=` | same (M5) |
+| `/Booking/Reschedule/{id}` | bookingId | `/app/reschedule/{id}` | same (M5) |
+| `/Booking/Cancel/{id}` | bookingId | `/app/my-bookings` | same (M5) |
+| `GET /Booking/MyBookings[?candidateNumber=]` | - | `/app/my-bookings[?candidateNumber=]` | same (M5) |
+| `GET /Admin/Sessions?centerId=` | centerId | `/app/admin/centers/{centerCode}` | same (M5) |
+| `/Admin/Sessions/Capacity/{id}` | sessionId | `/app/admin/sessions/{id}` | same (M5) |
 | `GET /api/v1/sessions?centerCode=` | centerCode | `/api/v2/centers/{c}/sessions` in v1 shape | booking-api |
 | `GET /api/v1/sessions/{id}` | sessionId | `/api/v2/sessions/{id}` in v1 shape | booking-api |
 | `POST /api/v1/bookings` | body `sessionId` | `POST /api/v2/bookings` (channel PARTNER), v1 `{bookingId,status}` 201 | booking-api |
@@ -64,8 +69,7 @@ unless `routing.coexistence-mode=relay` is set; M4 sets it once the relay is liv
 | `/app/**`, `/api/v2/**` | - | scheduling-service | scheduling-service |
 | `/api/v1/results/**`, `/sync/**`, every other portal page | - | results-service / capacity-sync / portal | same |
 
-Requests without a centre key (e.g. `/Booking/MyBookings?candidateNumber=`, `/api/v1/sessions` without
-`centerCode`) stay on legacy. Portal pages without a modern equivalent (`/Admin/Centers`, `/Eligibility`,
+API requests without a centre key (e.g. `/api/v1/sessions` without `centerCode`) stay on legacy. Portal pages without a modern equivalent (`/Admin/Centers`, `/Eligibility`,
 `/Results`, roster CSV, capacity audit) always stay on legacy.
 
 The centre is resolved through scheduling-service `GET /api/v2/internal/routing/resolve?centerCode=|centerId=|sessionId=|bookingId=`

@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace AssessmentDelivery.Business.Rules
 {
     /// <summary>
-    /// Parses the AuditLog.Detail written by usp_ChangeCapacity ('&lt;old&gt; -&gt; &lt;new&gt;').
+    /// Parses the AuditLog.Detail of a capacity change ('&lt;old&gt; -&gt; &lt;new&gt;', legacy capacity proc format).
     /// Same format rule as db/procs/030_usp_GetCapacityAudit.sql - keep the two in step.
     /// </summary>
     public sealed class CapacityAuditDetail

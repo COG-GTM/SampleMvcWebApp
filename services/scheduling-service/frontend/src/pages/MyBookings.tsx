@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ApiError, CANDIDATE_RE, api, fmtDateTime, type Booking } from '../api';
 import { Empty, Modal, PageHeader, Spinner, StatusBadge } from '../components/ui';
 import { useToast } from '../components/Toast';
@@ -9,7 +9,10 @@ import { useCandidateNumber } from '../candidate';
 export default function MyBookings() {
   const toast = useToast();
   const [candidate, setCandidate] = useCandidateNumber();
-  const [input, setInput] = useState(candidate);
+  const [params] = useSearchParams();
+  // legacy /Booking/MyBookings?candidateNumber= bookmarks arrive here via the routing gateway (MBA-3824)
+  const linked = (params.get('candidateNumber') ?? '').trim().toUpperCase();
+  const [input, setInput] = useState(CANDIDATE_RE.test(linked) ? linked : candidate);
   const [error, setError] = useState('');
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,6 +26,7 @@ export default function MyBookings() {
       .finally(() => setLoading(false));
   }, [toast]);
 
+  useEffect(() => { if (CANDIDATE_RE.test(linked)) setCandidate(linked); }, [linked, setCandidate]);
   useEffect(() => { load(candidate); }, [candidate, load]);
 
   function submit(e: FormEvent) {
