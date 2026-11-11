@@ -1,0 +1,55 @@
+@model AssessmentDelivery.Web.Models.ResultsViewModel
+@{
+    ViewBag.Title = "Results";
+}
+<div class="nw-page-head">
+    <h2>Candidate results</h2>
+    <span class="nw-sub">Scores are scaled 0-1000. Results appear once the score file has been received from the centre.</span>
+</div>
+<div class="nw-panel">
+    <div class="nw-panel-heading">Candidate</div>
+    <div class="nw-panel-body">
+        <form method="get" action="@Url.Action("Index")" class="form-inline nw-form">
+            <div class="form-group">
+                <label for="candidateNumber">Candidate number</label>
+                <input type="text" id="candidateNumber" name="candidateNumber" value="@Model.CandidateNumber" class="form-control input-sm" placeholder="NW00000000" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Show results</button>
+        </form>
+        @Html.ValidationSummary(false, "", new { @class = "alert alert-danger nw-alert" })
+        @if (Model.Candidate != null)
+        {
+            <p class="nw-candidate-line"><strong>@Model.Candidate.FullName</strong> &middot; @Model.Candidate.CandidateNumber &middot; @Model.Candidate.Email</p>
+        }
+    </div>
+</div>
+@if (Model.Results != null)
+{
+    <div class="nw-panel">
+        <div class="nw-panel-heading">Results <span class="badge">@Model.Results.Count</span></div>
+        <table class="table table-condensed table-striped nw-grid">
+            <thead>
+                <tr><th>Exam</th><th>Title</th><th>Session date</th><th>Centre</th><th class="num">Score</th><th class="num">Pass mark</th><th>Outcome</th><th>Scored</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Results)
+                {
+                    <tr>
+                        <td><strong>@r.ExamCode</strong></td>
+                        <td>@r.ExamTitle</td>
+                        <td class="nowrap">@r.SessionDate.ToString("dd MMM yyyy")</td>
+                        <td>@r.CenterName</td>
+                        <td class="num"><strong>@r.Score</strong></td>
+                        <td class="num nw-muted">@r.PassingScore</td>
+                        <td>@Html.StatusPill(r.Passed ? "PASS" : "FAIL")</td>
+                        <td class="nowrap nw-muted">@r.ScoredAt.ToString("dd/MM/yyyy")</td>
+                    </tr>
+                }
+                @if (Model.Results.Count == 0)
+                {
+                    <tr><td colspan="8" class="nw-empty">No results on file for this candidate.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -1,0 +1,11 @@
+@model System.Web.Mvc.HandleErrorInfo
+@{
+    ViewBag.Title = "Error";
+}
+<div class="nw-panel">
+    <div class="nw-panel-heading">System error</div>
+    <div class="nw-panel-body">
+        <p class="text-danger">An error occurred while processing your request.</p>
+        <p class="small text-muted">If this keeps happening please raise a ticket with the ops helpdesk (ext. 4410) and quote the time: @DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss").</p>
+    </div>
+</div>
