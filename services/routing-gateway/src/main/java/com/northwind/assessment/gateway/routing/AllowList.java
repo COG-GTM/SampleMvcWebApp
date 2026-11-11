@@ -26,6 +26,11 @@ public record AllowList(Set<String> modernCenters, Set<String> modernWriteCenter
         return all;
     }
 
+    /** Every booking write goes to scheduling-service ({@code *} in either list): its rules decide every booking. */
+    public boolean allWritesModern() {
+        return modernCenters.contains(RouteDecider.ALL_CENTERS) || modernWriteCenters.contains(RouteDecider.ALL_CENTERS);
+    }
+
     public boolean isEmpty() {
         return modernCenters.isEmpty() && modernWriteCenters.isEmpty();
     }

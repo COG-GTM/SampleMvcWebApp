@@ -110,10 +110,16 @@ READS = [
     ("GET", "/api/v1/sessions/abc"), ("GET", "/api/v1/sessions?centerCode=BOS01"),
     ("GET", "/api/v1/sessions?centerCode=NYC02&examCode=CTA-NET1"), ("GET", "/api/v1/sessions?from=2026-11-20&to=2026-11-25"),
     ("GET", "/api/v1/bookings/1"), ("GET", "/api/v1/bookings/3587"), ("GET", "/api/v1/bookings/49999999"),
-    ("GET", "/api/v1/candidates/NW00000001/bookings"), ("GET", "/api/v1/candidates/NW00000001/eligibility?examCode=CTA-NET1"),
+    ("GET", "/api/v1/candidates/NW00000001/bookings"),
     ("GET", "/api/v1/candidates/NW99999999/bookings"), ("GET", "/api/v1/nope"),
     ("GET", "/api/v1/results/candidate/NW00000001"), ("GET", "/sync/last"),
 ]
+
+# Partner eligibility follows the single writer (modern-write-centers=*): its retake rule decides every booking (ADR 0002 s4)
+ELIGIBILITY = ["/api/v1/candidates/NW00000001/eligibility?examCode=CTA-NET1",
+               "/api/v1/candidates/NW00000001/eligibility?examCode=CTA-NET1&date=2026-12-10"]
+ELIGIBILITY_ERRORS = ["/api/v1/candidates/NW99999999/eligibility?examCode=CTA-NET1",
+                      "/api/v1/candidates/NW00000001/eligibility", "/api/v1/candidates/NW00000001/eligibility?examCode=NOPE"]
 
 
 LEGACY_LOGINS = ["ad_portal", "ad_booking_api", "ad_results", "ad_capacity_sync"]
@@ -210,6 +216,22 @@ def main():
         if g[3] != "legacy":
             diffs.append(f"{m} {p}: X-Route={g[3]}")
     check(f"transparency: {len(READS)} read requests byte-identical direct vs :8000 (headers normalized), all X-Route: legacy",
+          not diffs, "; ".join(diffs))
+
+    # 1a. Partner eligibility: answered by scheduling-service (v1 shape), errors exactly like booking-api
+    diffs = []
+    for p in ELIGIBILITY:
+        g = raw("GET", GW + p)
+        v2 = json.loads(raw("GET", SCHED + p.replace("/api/v1/", "/api/v2/"))[2])
+        want = {k: v2.get(k) for k in ("eligible", "reason", "earliestRetakeDate")}
+        if g[0] != 200 or g[3] != "modern" or json.loads(g[2]) != want or list(json.loads(g[2])) != list(want):
+            diffs.append(f"{p}: gateway={g[0]} {g[3]} {g[2][:160]!r} want={want}")
+    for p in ELIGIBILITY_ERRORS:
+        d, g = raw("GET", LEGACY + p), raw("GET", GW + p)
+        if d[0] != g[0] or normalize(d[2]) != normalize(g[2]):
+            diffs.append(f"{p}: direct={d[0]} {d[2][:120]!r} gateway={g[0]} {g[2][:120]!r}")
+    check(f"partner eligibility through :8000 ({len(ELIGIBILITY)} answers, {len(ELIGIBILITY_ERRORS)} error paths) -> "
+          "X-Route: modern, scheduling-service rule in the v1 shape, errors identical to booking-api direct",
           not diffs, "; ".join(diffs))
 
     # 1b. Single writer (M4/M5): direct legacy writes are refused; v1 writes through :8000 reach scheduling-service
