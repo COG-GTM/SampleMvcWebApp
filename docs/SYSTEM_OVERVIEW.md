@@ -70,6 +70,8 @@ code above).
 Maven multi-module (`services/pom.xml`), Java 8, Spring Boot 1.5.x. Each service
 has `application.properties` (local dev) and `application-azure.properties` (Azure
 SQL placeholders, password from `AZURE_SQL_PASSWORD`).
+Build/run notes and curl examples: `services/README.md`; on Linux `scripts/run-legacy.sh`
+starts SQL Server in Docker plus all three services.
 
 **booking-api :8081**
 
