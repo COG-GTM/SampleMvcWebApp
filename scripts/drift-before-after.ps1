@@ -176,6 +176,11 @@ if ($reconReport) { $md.Add(''); $md.Add("Reconciliation report: ``$($reconRepor
 [IO.File]::WriteAllText($Report, (($md -join "`n") + "`n"), (New-Object Text.UTF8Encoding $false))
 Write-Log "wrote $Report"
 
-if ($afterBooked -eq '0+0') { throw "the after workload booked nothing, see $work\after-mixed-traffic.log" }
+foreach ($run in @(@('before', $beforeBooked), @('after', $afterBooked))) {
+    $n = "$($run[1])" -split '\+'
+    if ($n.Count -ne 2 -or [int]$n[0] -le 0 -or [int]$n[1] -le 0) {
+        throw "the $($run[0]) workload must book on both channels (portal+partner = $($run[1])), see $work\$($run[0])-mixed-traffic.log"
+    }
+}
 if (-not ([int]$beforeRows -gt 0 -and $afterRows -eq '0' -and $mismatches -eq '0')) { exit 1 }
 exit 0
