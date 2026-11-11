@@ -36,6 +36,16 @@ namespace AssessmentDelivery.Tests.UnitTests
         }
 
         [Test]
+        public void MultiWordByActorIsKeptWhole()
+        {
+            CapacityAuditDetail d;
+            Assert.IsTrue(CapacityAuditDetail.TryParse(
+                "outbox event=18 CapacityChanged session=42 capacity=18 seats=5 change=20 -> 18 by=Jane Doe ", out d));
+            Assert.AreEqual("Jane Doe", d.Actor);
+            Assert.AreEqual(-2, d.Delta);
+        }
+
+        [Test]
         public void ParsesRelayFormatWithBumpedBookingsAndWhitespace()
         {
             CapacityAuditDetail d;

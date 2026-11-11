@@ -67,9 +67,9 @@ BEGIN
     CROSS APPLY (SELECT CASE WHEN v0.OldCapacity IS NOT NULL AND v0.NewCapacity IS NOT NULL THEN v0.OldCapacity END AS OldCapacity,
                         CASE WHEN v0.OldCapacity IS NOT NULL AND v0.NewCapacity IS NOT NULL THEN v0.NewCapacity END AS NewCapacity) v
     CROSS APPLY (SELECT CHARINDEX(N' by=', N' ' + t.Txt) AS ByAt) bya
+    -- by= is the relay's last token and the actor may contain spaces: take the rest of the Detail
     CROSS APPLY (SELECT CASE WHEN bya.ByAt > 0
-                             THEN LEFT(SUBSTRING(t.Txt, bya.ByAt + 3, 1000),
-                                       CHARINDEX(N' ', SUBSTRING(t.Txt, bya.ByAt + 3, 1000) + N' ') - 1) END AS ByActor) b
+                             THEN NULLIF(LTRIM(RTRIM(SUBSTRING(t.Txt, bya.ByAt + 3, 1000))), N'') END AS ByActor) b
     WHERE a.EntityName = 'ExamSession'
       AND a.Action = 'CAPACITY'
       AND a.EntityId > 0

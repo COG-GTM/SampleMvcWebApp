@@ -13,7 +13,7 @@ namespace AssessmentDelivery.Business.Audit
     {
         private static readonly Regex Legacy = new Regex(@"^\s*(-?\d+)\s*->\s*(-?\d+)\s*$", RegexOptions.CultureInvariant);
         private static readonly Regex Relay = new Regex(@"(?:^|\s)change=\s*(-?\d+)\s*->\s*(-?\d+)(?=\s|$)", RegexOptions.CultureInvariant);
-        private static readonly Regex By = new Regex(@"(?:^|\s)by=(\S+)", RegexOptions.CultureInvariant);
+        private static readonly Regex By = new Regex(@"(?:^|\s)by=(\S.*?)\s*$", RegexOptions.CultureInvariant);
 
         public int? OldCapacity { get; private set; }
         public int? NewCapacity { get; private set; }

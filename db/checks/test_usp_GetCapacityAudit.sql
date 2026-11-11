@@ -32,7 +32,7 @@ BEGIN TRAN;
 
 INSERT dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor, LoggedAt) VALUES
  ('ExamSession', @s1, 'CAPACITY', '20 -> 18', 'portal-user', '2001-01-10T10:00:00'),
- ('ExamSession', @s2, 'CAPACITY', CONCAT('outbox event=901 CapacityChanged session=', @s2, ' capacity=25 seats=7 change=22 -> 25 by=admin-ui'),
+ ('ExamSession', @s2, 'CAPACITY', CONCAT('outbox event=901 CapacityChanged session=', @s2, ' capacity=25 seats=7 change=22 -> 25 by=Jane Doe'),
                                    'scheduling-relay', '2001-01-11T10:00:00'),
  ('ExamSession', @s1, 'CAPACITY', ' 18->-1 ', 'portal-user', '2001-01-12T10:00:00'),
  ('ExamSession', @s3, 'CAPACITY', 'capacity reduced by ops', 'dba', '2001-01-13T10:00:00'),
@@ -63,7 +63,7 @@ IF EXISTS (SELECT 1 FROM #a a JOIN #a b ON b.Seq = a.Seq + 1 WHERE b.LoggedAt > 
     THROW 50003, 'FAIL: rows are not newest first', 1;
 PRINT 'PASS: newest first';
 IF NOT EXISTS (SELECT 1 FROM #a WHERE Seq = 4 AND SessionId = @s1 AND OldCapacity = 20 AND NewCapacity = 18 AND Delta = -2 AND Actor = 'portal-user' AND RawActor = 'portal-user')
-   OR NOT EXISTS (SELECT 1 FROM #a WHERE Seq = 3 AND SessionId = @s2 AND OldCapacity = 22 AND NewCapacity = 25 AND Delta = 3 AND Actor = 'admin-ui' AND RawActor = 'scheduling-relay')
+   OR NOT EXISTS (SELECT 1 FROM #a WHERE Seq = 3 AND SessionId = @s2 AND OldCapacity = 22 AND NewCapacity = 25 AND Delta = 3 AND Actor = 'Jane Doe' AND RawActor = 'scheduling-relay')
    OR NOT EXISTS (SELECT 1 FROM #a WHERE Seq = 2 AND SessionId = @s1 AND OldCapacity = 18 AND NewCapacity = -1 AND Delta = -19 AND Actor = 'portal-user')
     THROW 50004, 'FAIL: wrong old/new/delta/actor (legacy, relay change=/by=, whitespace/negative)', 1;
 PRINT 'PASS: old/new/delta/actor for legacy "<old> -> <new>", relay "change=<old> -> <new> by=", whitespace and negative values';
