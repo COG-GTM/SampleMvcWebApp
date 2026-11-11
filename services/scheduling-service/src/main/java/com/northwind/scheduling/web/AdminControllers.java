@@ -35,6 +35,9 @@ public class AdminControllers {
     private final ReadModels reads;
     private final LegacyImporter importer;
 
+    @org.springframework.beans.factory.annotation.Value("${scheduling.import.api-enabled:false}")
+    private boolean importApiEnabled;
+
     public AdminControllers(RetakeEligibility eligibility, ReferenceData reference, SeatReconciler reconciler, ReadModels reads,
                             LegacyImporter importer) {
         this.eligibility = eligibility;
@@ -90,6 +93,10 @@ public class AdminControllers {
     /** Contract addition: (re-)run the initial import from AssessmentDelivery. replace=true wipes scheduling data first. */
     @PostMapping("/api/v1/admin/import")
     public LegacyImporter.ImportResult importLegacy(@RequestParam(defaultValue = "false") boolean replace) {
+        if (!importApiEnabled) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN",
+                    "POST /admin/import is disabled (scheduling.import.api-enabled=false)", null);
+        }
         return importer.importAll(replace);
     }
 
