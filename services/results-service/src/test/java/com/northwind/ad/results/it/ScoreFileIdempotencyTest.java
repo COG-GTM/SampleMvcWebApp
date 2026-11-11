@@ -16,16 +16,23 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+
+import com.northwind.ad.results.service.ScoreFileImporter;
 
 /** POST /api/v1/results/upload against SQL Server (MBA-3827). */
 public class ScoreFileIdempotencyTest extends AbstractResultsIT {
 
     private static final String HEADER = "candidateNumber,sessionId,score,scoredAt";
+
+    @Autowired
+    private ScoreFileImporter importer;
 
     @SuppressWarnings("rawtypes")
     private ResponseEntity<Map> upload(final String fileName, String content) {
@@ -179,6 +186,53 @@ public class ScoreFileIdempotencyTest extends AbstractResultsIT {
         assertEquals(1, num(again.getBody(), "duplicates"));
         assertEquals(1, ((List) again.getBody().get("errors")).size());
         assertEquals(1, resultsFromFile("NWTEST_REPLAY_ERR.csv"));
+    }
+
+    @Test
+    @SuppressWarnings("rawtypes")
+    public void replayAuditsAConflictThatWasNotAuditedOnTheFirstUpload() {
+        Fixture f = newBooking();
+        jdbc.update("UPDATE dbo.Booking SET Status = 'CANCELLED' WHERE BookingId = ?", f.bookingId);
+        String file = csv(f.csvRow(999, "2026-11-10T07:30:00"));
+        ResponseEntity<Map> first = upload("NWTEST_LATE_BOOKING.csv", file);
+        assertEquals(1, ((List) first.getBody().get("errors")).size());
+
+        // the booking becomes active and gets a different score through the REST API
+        jdbc.update("UPDATE dbo.Booking SET Status = 'BOOKED' WHERE BookingId = ?", f.bookingId);
+        Map<String, Object> post = new java.util.HashMap<String, Object>();
+        post.put("bookingId", f.bookingId);
+        post.put("score", 610);
+        post.put("scoredAt", "2026-11-10T07:30:00");
+        assertEquals(HttpStatus.CREATED, rest.postForEntity("/api/v1/results", post, Map.class).getStatusCode());
+        int resultId = ((Number) result(f.bookingId).get("ResultId")).intValue();
+
+        ResponseEntity<Map> replay = upload("NWTEST_LATE_BOOKING.csv", file);
+        assertEquals(Boolean.TRUE, replay.getBody().get("alreadyUploaded"));
+        assertEquals(1, num(replay.getBody(), "conflicts"));
+        assertEquals(1, auditCount(resultId, "DUPLICATE_REJECTED"));
+
+        upload("NWTEST_LATE_BOOKING.csv", file);
+        assertEquals(1, auditCount(resultId, "DUPLICATE_REJECTED"));
+        assertEquals(610, ((Number) result(f.bookingId).get("Score")).intValue());
+    }
+
+    @Test
+    public void concurrentMergeMovesRowsFromDuplicatesThenErrorsWithoutGoingNegative() {
+        String sha = "ab" + String.format("%062d", System.nanoTime());
+        // recorded by the concurrent winner: 1 pre-existing duplicate, 2 rows whose booking was missing at the time
+        jdbc.update("INSERT INTO dbo.ResultUpload (FileName, Sha256, RowsRead, Imported, Duplicates, Conflicts, Errors, "
+                + "Actor) VALUES ('NWTEST_MERGE.csv', ?, 4, 0, 1, 1, 2, 'test')", sha);
+
+        ReflectionTestUtils.invokeMethod(importer, "mergeIntoRecordedUpload", sha, 2);
+
+        Map<String, Object> u = jdbc.queryForMap(
+                "SELECT RowsRead, Imported, Duplicates, Conflicts, Errors FROM dbo.ResultUpload WHERE Sha256 = ?", sha);
+        assertEquals(2, u.get("Imported"));
+        assertEquals(0, u.get("Duplicates"));
+        assertEquals(1, u.get("Conflicts"));
+        assertEquals(1, u.get("Errors"));
+        assertEquals(4, ((Integer) u.get("Imported")) + ((Integer) u.get("Duplicates"))
+                + ((Integer) u.get("Conflicts")) + ((Integer) u.get("Errors")));
     }
 
     @Test

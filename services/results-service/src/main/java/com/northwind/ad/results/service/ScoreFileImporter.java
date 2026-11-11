@@ -126,14 +126,25 @@ public class ScoreFileImporter {
                     Integer.class, r.getFileName(), r.getSha256(), r.getRowsRead(), r.getImported(),
                     r.getDuplicates(), r.getConflicts(), r.getErrors().size(), actor);
         } catch (DuplicateKeyException e) {
-            // the same file was imported concurrently and recorded first: rows this request inserted were
-            // counted as duplicates there, so move them to Imported to keep the stored totals right
+            // the same file was imported concurrently and recorded first
             if (r.getImported() > 0) {
-                jdbc.update("UPDATE dbo.ResultUpload SET Imported = Imported + ?, Duplicates = Duplicates - ? "
-                        + "WHERE Sha256 = ?", r.getImported(), r.getImported(), r.getSha256());
+                mergeIntoRecordedUpload(r.getSha256(), r.getImported());
             }
             return findUpload(r.getSha256());
         }
+    }
+
+    /**
+     * Rows this request inserted were counted by the recorded upload as duplicates (or as errors if their booking
+     * appeared in between): move them to Imported. Counts never go negative and still add up to RowsRead.
+     */
+    private void mergeIntoRecordedUpload(String sha256, int imported) {
+        jdbc.update("DECLARE @n INT = ?; "
+                + "UPDATE dbo.ResultUpload SET Imported = Imported + @n, "
+                + "Duplicates = Duplicates - CASE WHEN @n < Duplicates THEN @n ELSE Duplicates END, "
+                + "Errors = Errors - CASE WHEN @n <= Duplicates THEN 0 "
+                + "WHEN @n - Duplicates < Errors THEN @n - Duplicates ELSE Errors END "
+                + "WHERE Sha256 = ?", imported, sha256);
     }
 
     static String sha256(byte[] content) {
