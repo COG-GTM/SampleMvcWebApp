@@ -74,6 +74,9 @@ goes to scheduling-service, which commits it with an outbox event; the relay pro
 as `ad_sched_relay`, so legacy reads (portal pages, v1 GETs) keep rendering from the legacy tables. The legacy logins
 are DENYed booking/seat writes (`db/security/040_single_writer.sql`), so removing `*` no longer gives a working
 legacy write path; roll back by restoring the pre-M4 database grants first.
+Portal form posts are not applied in place: like any routed center, a booking/cancel/reschedule/capacity POST answers
+303 to the pre-filled modern deep link (table above) and the user confirms there; the portal's own EF6 write would be
+denied by 040. Applying the form inside the portal needs the .NET portal to call `/api/v2` itself (Windows, later story).
 
 | Property | Default | Meaning |
 |---|---|---|
