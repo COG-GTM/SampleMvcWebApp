@@ -10,6 +10,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.boot.actuate.health.HealthIndicator;
@@ -50,6 +52,7 @@ public class SqlProbeHealthIndicator implements HealthIndicator {
             return down("no answer within " + timeout.toMillis() + " ms");
         } catch (ExecutionException e) {
             Throwable cause = NestedExceptionUtils.getMostSpecificCause(e.getCause() == null ? e : e.getCause());
+            log.warn("{} readiness probe failed: {}", database, cause.toString());
             return down(describe(cause));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -67,6 +70,8 @@ public class SqlProbeHealthIndicator implements HealthIndicator {
         }
         return cause.getClass().getSimpleName();
     }
+
+    private static final Logger log = LoggerFactory.getLogger(SqlProbeHealthIndicator.class);
 
     private Health down(String error) {
         return Health.down().withDetail("database", database).withDetail("error", error).build();

@@ -25,7 +25,9 @@ JVM because a database is down):
 
 Every probe has a JDBC query timeout and a wall-clock timeout (`SCHEDULING_HEALTH_TIMEOUT_MS`, default 2000 ms), so
 readiness answers within about 2 s even when SQL Server hangs; `details.error` says why (e.g.
-`no answer within 2000 ms`, `SQLServerException: Login failed ...`, `earlier probes are still blocked`).
+`no answer within 2000 ms`, `SQLServerException (SQLState 08S01, error 0)`, `earlier probes are still blocked`).
+The endpoint is unauthenticated, so driver messages (user, host) are never shown: read the SQLState (`08xxx` connection,
+`28000` login failed) and get the full message from the JSON log.
 
 ## 2. Metrics and dashboard queries
 
