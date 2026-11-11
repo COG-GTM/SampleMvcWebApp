@@ -7,12 +7,11 @@ import java.sql.Statement;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.sql.DataSource;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -31,7 +30,8 @@ public class SchedulingDatabaseBootstrap {
 
     @Bean
     @Primary
-    public DataSource dataSource(DataSourceProperties props,
+    @ConfigurationProperties("spring.datasource.hikari")
+    public HikariDataSource dataSource(DataSourceProperties props,
                                  @Value("${scheduling.database.create-if-missing:true}") boolean createIfMissing,
                                  @Value("${scheduling.database.wait-seconds:90}") int waitSeconds) {
         if (createIfMissing) {

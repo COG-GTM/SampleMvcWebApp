@@ -21,19 +21,34 @@ import org.springframework.stereotype.Component;
 public class JdbcLegacyReferenceSource implements LegacyReferenceSource {
 
     private final JdbcTemplate jdbc;
+    private final JdbcTemplate pingJdbc;
 
     public JdbcLegacyReferenceSource(@Value("${scheduling.legacy.url}") String url,
                                      @Value("${scheduling.legacy.username}") String user,
-                                     @Value("${scheduling.legacy.password}") String password) {
+                                     @Value("${scheduling.legacy.password}") String password,
+                                     @Value("${scheduling.legacy.login-timeout-seconds:5}") int loginTimeoutSeconds) {
         DriverManagerDataSource ds = new DriverManagerDataSource(url, user, password);
         ds.setDriverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        // bounds the legacySource readiness check (and import) when AssessmentDelivery is unreachable
+        java.util.Properties props = new java.util.Properties();
+        props.setProperty("loginTimeout", String.valueOf(loginTimeoutSeconds));
+        ds.setConnectionProperties(props);
         this.jdbc = new JdbcTemplate(ds);
+        this.pingJdbc = new JdbcTemplate(ds);
+        pingJdbc.setQueryTimeout(loginTimeoutSeconds);
     }
 
     static LocalDateTime ts(ResultSet rs, String col) throws SQLException {
         Timestamp t = rs.getTimestamp(col);
         // legacy DATETIME has 3ms ticks; booking-api prints whole seconds (DateUtils.ISO_DATE_TIME)
         return t == null ? null : t.toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    /** Connectivity plus SELECT permission on the session inventory (catches a revoked ad_sched_import grant). */
+    @Override
+    public void ping() {
+        // NOLOCK: a legacy writer holding ExamSession locks must not stall the probe; the query timeout bounds the rest
+        pingJdbc.query("SELECT TOP (1) SessionId FROM dbo.ExamSession WITH (NOLOCK)", rs -> null);
     }
 
     @Override

@@ -19,4 +19,8 @@ public interface LegacyReferenceSource {
     List<LegacyRows.Booking> bookings();
 
     List<LegacyRows.Waitlist> waitlist();
+
+    /** Throws when the source is unreachable (readiness probe, observability/LegacySourceHealthIndicator). */
+    default void ping() {
+    }
 }
