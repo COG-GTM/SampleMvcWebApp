@@ -14,7 +14,7 @@ python scripts/e2e/report.py
 
 ## E2E suite
 
-### Legacy estate (head `dd281b8af3`, as-of 2026-11-11T00:00:00)
+### Legacy estate (head `f045dd36be`, as-of 2026-11-11T00:00:00)
 
 Health: portal 200, booking-api 200, results-service 200. HB-01: kept (double decrement).
 
@@ -28,9 +28,9 @@ Health: portal 200, booking-api 200, results-service 200. HB-01: kept (double de
 | drift | 5 | 0 | 0 |
 | **total** | **148** | **0** | 12 |
 
-Drift under load: 640 ops, 8 workers, 26 samples over 12.6s; **max raw seat drift 7, max unexplained 0**, max duplicate waitlist positions 2.
+Drift under load: 640 ops, 8 workers, 23 samples over 11.9s; **max raw seat drift 7, max unexplained 0**, max duplicate waitlist positions 3.
 
-Load mix: `{"portalBook": 105, "partnerBook": 110, "cancel": 81, "attend": 14, "reschedule": 21, "rejected": {"NOT_CANCELLABLE": 8, "DUPLICATE_BOOKING": 177, "BOOKING_NOT_ACTIVE": 31, "NOT_ELIGIBLE": 87, "DUPLICATE_RESULT": 3, "NO_ACCOMMODATION_SEAT": 2, "UNMAPPED:Transaction (Process ID 60) was deadlocked on lock resources with another process and has been chosen as the deadlock victim. Rerun the transaction.": 1}, "transport": 0}`
+Load mix: `{"portalBook": 93, "partnerBook": 110, "cancel": 86, "attend": 17, "reschedule": 16, "rejected": {"NOT_CANCELLABLE": 9, "DUPLICATE_BOOKING": 175, "BOOKING_NOT_ACTIVE": 29, "NOT_ELIGIBLE": 98, "DUPLICATE_RESULT": 6, "NO_ACCOMMODATION_SEAT": 1}, "transport": 0, "sqlDeadlocks": 2, "samplerDeadlockVictims": 0}`
 
 <details><summary>Portal vs partner parity trace (same scenario on each channel)</summary>
 
@@ -50,7 +50,7 @@ Load mix: `{"portalBook": 105, "partnerBook": 110, "cancel": 81, "attend": 14, "
 
 </details>
 
-### Migrated stack (head `dd281b8af3`, as-of 2026-11-11T00:00:00)
+### Migrated stack (head `f045dd36be`, as-of 2026-11-11T00:00:00)
 
 Health: portal 200, booking-api 200, results-service 200, scheduling-service 200. HB-01: removed (single writer).
 
@@ -61,15 +61,12 @@ Health: portal 200, booking-api 200, results-service 200, scheduling-service 200
 | accommodation | 21 | 0 | 0 |
 | attended | 22 | 0 | 0 |
 | errors | 63 | 0 | 0 |
-| drift | 4 | 1 | 0 |
-| **total** | **162** | **1** | 0 |
+| drift | 5 | 0 | 0 |
+| **total** | **163** | **0** | 0 |
 
-Drift under load: 640 ops, 8 workers, 28 samples over 9.9s; **max raw seat drift 0, max unexplained 0**, max duplicate waitlist positions 0.
+Drift under load: 640 ops, 8 workers, 29 samples over 8.5s; **max raw seat drift 0, max unexplained 0**, max duplicate waitlist positions 0.
 
-Load mix: `{"portalBook": 95, "partnerBook": 90, "cancel": 84, "attend": 27, "reschedule": 18, "rejected": {"SCHEDULING_UNAVAILABLE": 1, "NOT_CANCELLABLE": 14, "DUPLICATE_BOOKING": 119, "NOT_ELIGIBLE": 167, "BOOKING_NOT_ACTIVE": 20, "DUPLICATE_RESULT": 4, "NO_ACCOMMODATION_SEAT": 1}, "transport": 1}`
-
-Failures:
-- [drift] no transport / 5xx failures under load: `{"SCHEDULING_UNAVAILABLE": 1, "NOT_CANCELLABLE": 14, "DUPLICATE_BOOKING": 119, "NOT_ELIGIBLE": 167, "BOOKING_NOT_ACTIVE": 20, "DUPLICATE_RESULT": 4, "NO_ACCOMMODATION_SEAT": 1}`
+Load mix: `{"portalBook": 80, "partnerBook": 93, "cancel": 75, "attend": 29, "reschedule": 18, "rejected": {"NOT_CANCELLABLE": 19, "DUPLICATE_BOOKING": 136, "SCHEDULING_UNAVAILABLE": 2, "NOT_ELIGIBLE": 164, "DUPLICATE_RESULT": 1, "NO_ACCOMMODATION_SEAT": 6, "BOOKING_NOT_ACTIVE": 17}, "transport": 2, "sqlDeadlocks": 2, "samplerDeadlockVictims": 0}`
 
 <details><summary>Portal vs partner parity trace (same scenario on each channel)</summary>
 
@@ -91,7 +88,7 @@ Failures:
 
 ## Cutover rehearsal
 
-Legacy worktree `e2975c1401`, migrated `f4bd937daa`, as-of 2026-11-11T00:00:00. Inputs chosen identically on both sides: True. **Zero drift: True.**
+Legacy worktree `e2975c1401`, migrated `f045dd36be`, as-of 2026-11-11T00:00:00. Inputs chosen identically on both sides: True. **Zero drift: True.**
 
 Baseline (production copy vs scheduling-service import, before the workload): Booking 3587/3587 identical, ExamSession 462/462 identical, Waitlist 34/34 identical, AuditLog 12/12 identical
 
