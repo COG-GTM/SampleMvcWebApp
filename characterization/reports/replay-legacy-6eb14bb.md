@@ -1,6 +1,6 @@
 # Characterization replay: target `legacy`
 
-- commit: `cbec958`
+- commit: `6eb14bb`
 - portal: http://localhost:8080  api: http://localhost:8081  sync: http://localhost:8083
 - reseed: `restore`  compare: `all`  SEED_AS_OF: `2026-11-10`
 - result: **64/64 transcripts match**
