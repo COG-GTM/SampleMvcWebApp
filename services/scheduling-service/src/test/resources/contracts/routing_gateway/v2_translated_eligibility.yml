@@ -1,0 +1,17 @@
+description: |
+  v1 -> v2 translation: the gateway reads eligible, reason and earliestRetakeDate from the v2 eligibility body.
+name: v2 translated eligibility
+request:
+  method: GET
+  url: /api/v2/candidates/NW00000939/eligibility
+  queryParameters:
+    examCode: MHL-RN1
+    date: "2026-12-06"
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    eligible: false
+    reason: RETAKE_WAIT_NOT_ELAPSED
+    earliestRetakeDate: "2026-12-07"

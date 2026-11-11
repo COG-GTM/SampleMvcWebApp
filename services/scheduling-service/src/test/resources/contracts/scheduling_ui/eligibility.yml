@@ -1,0 +1,21 @@
+description: UI eligibility panel (api.eligibility); retake allowed from earliestRetakeDate on (calendar days, ODD-04).
+name: ui checks eligibility
+request:
+  method: GET
+  url: /api/v2/candidates/NW00000939/eligibility
+  queryParameters:
+    examCode: MHL-RN1
+    date: "2026-12-07"
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    candidateNumber: NW00000939
+    examCode: MHL-RN1
+    date: "2026-12-07"
+    eligible: true
+    reason: RETAKE_ALLOWED
+    message: Retake wait period has elapsed
+    earliestRetakeDate: "2026-12-07"
+    dayCounting: calendar

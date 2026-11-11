@@ -1,0 +1,23 @@
+description: UI admin capacity change (api.changeCapacity); newest bookings above the new capacity are demoted (ODD-02).
+name: ui changes capacity
+request:
+  method: PUT
+  url: /api/v2/sessions/154/capacity
+  headers:
+    Content-Type: application/json
+  body:
+    capacity: 8
+    reason: Room maintenance
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    oldCapacity: 20
+    newCapacity: 8
+    demotedBookingIds: [9]
+    session:
+      sessionId: 154
+      capacity: 8
+      bookedSeats: 8
+      waitlistCount: 1

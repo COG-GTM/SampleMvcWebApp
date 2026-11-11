@@ -1,0 +1,23 @@
+description: |
+  Gateway v1 facade: booking a full session still answers 201 {bookingId, status} with status WAITLISTED
+  (HB-03: a full session waitlists instead of failing).
+name: v1 book full session is waitlisted
+request:
+  method: POST
+  url: /api/v1/bookings
+  headers:
+    Content-Type: application/json
+  body:
+    sessionId: 163
+    candidateNumber: NW00000931
+response:
+  status: 201
+  headers:
+    Content-Type: application/json
+  body:
+    bookingId: 14
+    status: WAITLISTED
+  matchers:
+    body:
+      - path: $.bookingId
+        type: by_type

@@ -1,0 +1,19 @@
+description: UI cancel button (api.cancel) gets the cancelled booking back.
+name: ui cancels a booking
+request:
+  method: DELETE
+  url: /api/v2/bookings/1
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    bookingId: 1
+    sessionId: 154
+    candidateNumber: NW00000901
+    status: CANCELLED
+  matchers:
+    body:
+      - path: $.cancelledAt
+        type: by_regex
+        value: "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*"
