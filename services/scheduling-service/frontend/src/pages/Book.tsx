@@ -65,7 +65,7 @@ export default function Book() {
   if (!session) return <Spinner />;
   return (
     <>
-      <PageHeader title="Book a seat" subtitle={<Link to={`/?center=${session.centerCode}&exam=${session.examCode}`} className="text-indigo-600">← Back to sessions</Link>} />
+      <PageHeader title="Book a seat" subtitle={<Link to={`/?center=${session.centerCode}&exam=${session.examCode}${accParam !== null ? `&acc=${encodeURIComponent(acc)}` : ''}`} className="text-indigo-600">← Back to sessions</Link>} />
       <div className="grid gap-6 lg:grid-cols-5">
         <section className="card p-5 lg:col-span-2" data-testid="book-session">
           <div className="mb-2 flex items-center justify-between"><p className="text-xs font-semibold text-indigo-600">{session.examCode} · Session #{session.sessionId}</p><StatusBadge status={session.status} /></div>
