@@ -44,7 +44,7 @@ paths:
         - {name: testCenterId, in: query, schema: {type: integer}}
         - {name: from, in: query, schema: {type: string, format: date}, description: 'StartsAt >= from (start of day)'}
         - {name: to, in: query, schema: {type: string, format: date}, description: 'StartsAt < to + 1 day'}
-        - {name: startsAfter, in: query, schema: {type: string}, description: 'StartsAt > startsAfter (exclusive, center-local date-time yyyy-MM-ddTHH:mm:ss); reproduces StartsAt > GETDATE() in scripts/mixed-traffic (X-01, X-02)'}
+        - {name: startsAfter, in: query, schema: {type: string}, description: 'StartsAt > startsAfter (exclusive, yyyy-MM-ddTHH:mm:ss), compared raw against the stored StartsAt with no zone conversion. To reproduce StartsAt > GETDATE() in scripts/mixed-traffic (X-01, X-02) pass the service host local now, which is one clock for every center as GETDATE() is (HB-25)'}
         - {name: excludeSessionId, in: query, schema: {type: integer}, description: 'reschedule targets (portal P-B11)'}
         - {name: minSeatsAvailable, in: query, schema: {type: integer}}
         - {name: include, in: query, schema: {type: array, items: {type: string, enum: [counts]}}, style: form, explode: false, description: 'adds bookedSeats and waitlistCount (portal admin Load)'}
