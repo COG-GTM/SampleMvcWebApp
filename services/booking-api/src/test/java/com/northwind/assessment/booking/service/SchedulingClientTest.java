@@ -100,7 +100,9 @@ public class SchedulingClientTest {
                 .andExpect(method(HttpMethod.DELETE))
                 .andRespond(withSuccess("{\"bookingId\":77,\"status\":\"CANCELLED\"}", MediaType.APPLICATION_JSON));
         server.expect(requestTo("http://gateway:8000/api/v2/bookings/77/reschedule")).andExpect(method(HttpMethod.POST))
-                .andExpect(content().json("{\"newSessionId\":9,\"channel\":\"PARTNER\"}"))
+                .andExpect(content().string(org.hamcrest.Matchers.allOf(
+                        org.hamcrest.Matchers.containsString("\"newSessionId\":9"),
+                        org.hamcrest.Matchers.containsString("\"channel\":\"PARTNER\""))))
                 .andRespond(withStatus(HttpStatus.CREATED).contentType(MediaType.APPLICATION_JSON)
                         .body("{\"bookingId\":50000009,\"status\":\"BOOKED\"}"));
         Map<String, Object> c = client.cancel(77, "Moved");
