@@ -1,5 +1,6 @@
-"""Functional tests: routing-gateway against the REAL legacy booking-api (:8081, SQL Server in Docker), the
-scheduling-service stand-in (:8090) and the portal stand-in (:8080). Run via run-functional-tests.sh.
+"""Functional tests: routing-gateway against the REAL legacy booking-api (:8081, SQL Server in Docker), scheduling-service
+on :8090 (the real one when SCHEDULING=real, else functional/scheduling_stub.py) and the portal stand-in (:8080).
+Run via run-functional-tests.sh.
 
 Each check prints PASS/FAIL; the exit code is the number of failures. A JSON report goes to $REPORT (optional).
 """
@@ -17,6 +18,8 @@ SCHED = "http://localhost:8090"
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 CONFIG = os.environ["ROUTING_CONFIG_FILE"]
 C1, C2 = "BOS01", "NYC02"  # C1: seeded test/demo center, allow-listed; C2: production center, stays legacy
+REAL_SCHEDULING = os.environ.get("SCHEDULING", "real") == "real"
+SA_PASSWORD = os.environ.get("AD_SA_PASSWORD", "Str0ng!Passw0rd")
 RESULTS = []
 VOLATILE_HEADERS = {"date", "transfer-encoding", "content-length", "x-route", "connection", "keep-alive"}
 
@@ -64,6 +67,23 @@ def wait_route(method, path, body, want, timeout=5.0):
 def legacy_booking_count(candidate):
     return int(sql_rows(f"SELECT COUNT(*) FROM dbo.Booking WHERE CandidateId = "
                         f"(SELECT CandidateId FROM dbo.Candidate WHERE CandidateNumber = '{candidate}')")[0][0])
+
+
+def modern_bookings():
+    """bookingId -> {channel, status} of bookings created by scheduling-service (Scheduling DB, or the stub's memory)."""
+    if not REAL_SCHEDULING:
+        return {x["bookingId"]: x for x in json.loads(http("GET", f"{SCHED}/__stub/bookings")[1])}
+    rows = sql_rows("SELECT booking_id, channel, status FROM dbo.booking WHERE origin = 'MODERN'",
+                    db="Scheduling", user="sa", password=SA_PASSWORD)
+    return {int(r[0]): {"bookingId": int(r[0]), "channel": r[1], "status": r[2]} for r in rows}
+
+
+def open_session_same_exam(center, session_id):
+    """Another open session at the center for the same exam (reschedule must keep the exam)."""
+    rows = sql_rows(f"SELECT s.SessionId FROM dbo.ExamSession s JOIN dbo.TestCenter c ON c.TestCenterId = s.TestCenterId "
+                    f"WHERE s.Status = 'OPEN' AND s.SeatsAvailable > 2 AND c.CenterCode = '{center}' AND s.SessionId <> {session_id} "
+                    f"AND s.ExamId = (SELECT ExamId FROM dbo.ExamSession WHERE SessionId = {session_id}) ORDER BY s.StartsAt, s.SessionId")
+    return int(rows[0][0])
 
 
 def open_session(center, skip=0):
@@ -151,7 +171,7 @@ def main():
             diffs.append(f"{m} {p}: X-Route={g[3]}")
     check(f"transparency: {len(READS)} read requests byte-identical direct vs :8000 (headers normalized), all X-Route: legacy",
           not diffs, "; ".join(diffs))
-    sched_before = json.loads(http("GET", f"{SCHED}/__stub/bookings")[1])
+    sched_before = modern_bookings()
 
     reset_db()
     direct = write_sequence(LEGACY, s_bos, s_nyc)
@@ -163,7 +183,7 @@ def main():
     check(f"transparency: {len(direct)} write requests (book/duplicate/not-open/validation/malformed/reschedule/cancel/404) "
           "identical direct vs :8000 after DB reset", not wdiffs, "; ".join(wdiffs))
     check("transparency: no scheduling-service writes with empty allow-list",
-          json.loads(http("GET", f"{SCHED}/__stub/bookings")[1]) == sched_before)
+          modern_bookings() == sched_before)
     reset_db()
 
     # 2. C1 allow-listed, C2 not
@@ -177,8 +197,9 @@ def main():
           route == "modern" and st == 201 and list(j) == ["bookingId", "status"] and j["bookingId"] >= 50_000_000
           and h.get("content-type") == "application/json;charset=UTF-8", f"{st} {route} {b!r} {h}")
     modern_id = j["bookingId"]
-    stub = {x["bookingId"]: x for x in json.loads(http("GET", f"{SCHED}/__stub/bookings")[1])}
-    check("C1 booking created in scheduling-service with channel PARTNER, no legacy Booking row",
+    stub = modern_bookings()
+    check("C1 booking created in scheduling-service" + (" (Scheduling DB row)" if REAL_SCHEDULING else "")
+          + " with channel PARTNER, no legacy Booking row",
           modern_id in stub and stub[modern_id]["channel"] == "PARTNER" and legacy_booking_count("NW00000901") == before,
           f"{stub.get(modern_id)}")
     before = legacy_booking_count("NW00000902")
@@ -214,14 +235,15 @@ def main():
     route, secs, st, b = wait_route("GET", f"/api/v1/sessions/{s_bos}", None, "legacy")
     check(f"rollback via watched file: next {C1} request legacy after {secs:.2f}s (< 5 s, no restart)",
           route == "legacy" and secs < 5)
-    st, h, b, route = raw("POST", GW + f"/api/v1/bookings/{modern_id}/reschedule", {"newSessionId": open_session(C1, 1)})
+    st, h, b, route = raw("POST", GW + f"/api/v1/bookings/{modern_id}/reschedule", {"newSessionId": open_session_same_exam(C1, s_bos)})
     j = json.loads(b)
     check("modern booking reschedule via v1 with EMPTY allow-list -> modern, 200 {bookingId,status}",
           route == "modern" and st == 200 and list(j) == ["bookingId", "status"], f"{st} {route} {b!r}")
     st, h, b, route = raw("DELETE", GW + f"/api/v1/bookings/{j['bookingId']}")
     check("modern booking cancel via v1 with EMPTY allow-list -> modern, v1 BookingInfo, default reason",
           route == "modern" and st == 200 and json.loads(b)["cancelReason"] == "Cancelled by partner"
-          and list(json.loads(b)) == list(json.loads(raw("GET", LEGACY + "/api/v1/bookings/1")[2])), f"{st} {route} {b!r}")
+          and list(json.loads(b)) == list(json.loads(raw("GET", LEGACY + "/api/v1/bookings/1")[2]))
+          and modern_bookings().get(j["bookingId"], {}).get("status") == "CANCELLED", f"{st} {route} {b!r}")
     st, h, b, route = raw("DELETE", GW + f"/api/v1/bookings/{legacy_id}")
     check("legacy booking cancel with empty allow-list -> legacy", route == "legacy" and st == 200, f"{st} {route}")
 

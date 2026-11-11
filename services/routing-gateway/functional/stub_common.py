@@ -11,10 +11,10 @@ DB_PASSWORD = os.environ.get("AD_DB_PASSWORD", "Northw1nd!Dev2011")
 BOOKING_API = os.environ.get("BOOKING_API_URL", "http://localhost:8081")
 
 
-def sql_rows(query):
-    """Run a read-only query against AssessmentDelivery, return rows as lists of strings."""
+def sql_rows(query, db="AssessmentDelivery", user=None, password=None):
+    """Run a read-only query (default: AssessmentDelivery as ad_app), return rows as lists of strings."""
     out = subprocess.run(
-        [SQLCMD, "-C", "-S", "localhost,1433", "-U", DB_USER, "-P", DB_PASSWORD, "-d", "AssessmentDelivery",
+        [SQLCMD, "-C", "-S", "localhost,1433", "-U", user or DB_USER, "-P", password or DB_PASSWORD, "-d", db,
          "-h", "-1", "-W", "-s", "|", "-Q", "SET NOCOUNT ON; " + query],
         check=True, capture_output=True, text=True).stdout
     return [line.split("|") for line in out.splitlines() if line.strip()]
