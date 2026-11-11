@@ -13,7 +13,7 @@ SET XACT_ABORT ON;
 GO
 
 -- clear down in FK order so the seed can be re-run on its own
-DELETE FROM dbo.AuditLog;
+-- (AuditLog last: the candidate trigger logs the deletes)
 DELETE FROM dbo.Result;
 DELETE FROM dbo.Waitlist;
 DELETE FROM dbo.Booking;
@@ -22,6 +22,7 @@ DELETE FROM dbo.ExamSession;
 DELETE FROM dbo.Exam;
 DELETE FROM dbo.Room;
 DELETE FROM dbo.TestCenter;
+DELETE FROM dbo.AuditLog;
 
 -- RESEED 0 on a table that never had rows would hand out id 0, so only reseed used tables
 DECLARE @t SYSNAME, @sql NVARCHAR(400);
