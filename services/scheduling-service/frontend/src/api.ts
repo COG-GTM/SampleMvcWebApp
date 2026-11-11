@@ -70,6 +70,11 @@ export const ACCOMMODATIONS = [
   { code: 'RB', label: 'RB – rest breaks' },
 ];
 
+export const isExtraTime = (code?: string | null) => code === 'ET25' || code === 'ET50';
+
+/** ET25/ET50 need a free accommodation seat (usp_BookSeat state 3 = NO_ACCOMMODATION_SEAT); SR/RB/none never do. */
+export const noAccommodationSeatFor = (s: Session, code?: string | null) => isExtraTime(code) && s.accommodationAvailable === 0;
+
 export const CANDIDATE_RE = /^NW\d{8}$/;
 
 export function fmtDateTime(iso: string) {
