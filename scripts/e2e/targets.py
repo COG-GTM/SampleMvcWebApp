@@ -62,13 +62,9 @@ class Target:
                 'drift': cap - int(booked) - int(seats)}
 
     def booking(self, bid):
-        r = self.state.rows("SELECT Status, Channel, ISNULL(AccommodationCode,'NULL'), ISNULL(ExternalRef,'NULL'), SessionId, CandidateId "
-                            "FROM %s WHERE BookingId = %d" % (self.bk, int(bid)))
-        if not r:
-            return None
-        st, ch, acc, ext, sid, cid = r[0]
-        return {'status': st, 'channel': ch, 'acc': None if acc == 'NULL' else acc,
-                'externalRef': None if ext == 'NULL' else ext, 'sessionId': int(sid), 'candidateId': int(cid)}
+        r = self.state.json("SELECT Status AS status, Channel AS channel, AccommodationCode AS acc, ExternalRef AS externalRef, "
+                            "SessionId AS sessionId, CandidateId AS candidateId FROM %s WHERE BookingId = %d" % (self.bk, int(bid)))
+        return r[0] if r else None
 
     def waitlist(self, sid):
         """[(BookingId, Position)] in position order."""
