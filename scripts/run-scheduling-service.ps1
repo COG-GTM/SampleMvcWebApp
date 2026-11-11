@@ -205,6 +205,8 @@ function Start-Service8090([string]$jdk) {
     $env:SCHEDULING_LEGACY_DB_USER = 'ad_sched_import'
     $env:SCHEDULING_LEGACY_DB_PASSWORD = $ImportPassword
     $env:SCHEDULING_IMPORT_ON_STARTUP = 'true'
+    $env:SCHEDULING_RELAY_DB_URL = "jdbc:sqlserver://$($Server -replace ',', ':');databaseName=AssessmentDelivery;encrypt=true;trustServerCertificate=true"
+    if (-not $env:SCHEDULING_RELAY_ENABLED) { $env:SCHEDULING_RELAY_ENABLED = 'true' }
     $java = Join-Path $jdk 'bin\java.exe'
     Write-Step "starting on :$port (log $logFile)"
     $p = Start-Process -FilePath $java -ArgumentList '-jar', "`"$runJar`"" -WorkingDirectory $root -WindowStyle Hidden `

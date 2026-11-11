@@ -22,7 +22,8 @@ import org.springframework.test.web.reactive.server.WebTestClient;
  * scheduling-service (:8090). BOS01 is allow-listed, CHI01 is not.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"routing.config-poll-interval=200ms", "routing.resolve-cache-ttl=0s"})
+        properties = {"routing.config-poll-interval=200ms", "routing.resolve-cache-ttl=0s",
+                "routing.coexistence-mode=none"})
 class GatewayIntegrationTest {
 
     static final Path CONFIG;

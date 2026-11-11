@@ -1,5 +1,7 @@
 package com.northwind.routing.route;
 
+import com.northwind.routing.policy.AllowListPolicy;
+
 import java.util.Locale;
 import java.util.Set;
 
@@ -29,6 +31,7 @@ public final class RouteDecider {
             return RouteDecision.legacy(null, allowList.isEmpty() ? "allow-list empty" : "centre unresolved");
         }
         String c = center.trim().toUpperCase(Locale.ROOT);
-        return allowList.contains(c) ? RouteDecision.modern(c, "allow-listed") : RouteDecision.legacy(c, "not allow-listed");
+        boolean listed = allowList.contains(AllowListPolicy.ALL) || allowList.contains(c);
+        return listed ? RouteDecision.modern(c, "allow-listed") : RouteDecision.legacy(c, "not allow-listed");
     }
 }

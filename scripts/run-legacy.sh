@@ -153,7 +153,7 @@ print_urls() {
   booking-api      http://localhost:8081/api/v1/sessions
   results-service  http://localhost:8082/api/v1/results/candidate/{candidateNumber}
   capacity-sync    http://localhost:8083/sync/last
-  SQL Server       localhost,1433  db AssessmentDelivery  login ad_app
+  SQL Server       localhost,1433  db AssessmentDelivery  logins ad_portal / ad_booking_api / ad_results / ad_capacity_sync (writes denied: 040_single_writer.sql)
 
   logs and pids:   .run/
   portal (:8080) is Windows-only (.NET Framework 4.8) - run scripts/run-portal.ps1 on Windows

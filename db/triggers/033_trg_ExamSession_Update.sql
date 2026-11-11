@@ -2,6 +2,12 @@
     trg_ExamSession_Update - maintains ExamSession.LastModified.
     (Not every caller remembers to set it - the Java services in particular.)
     2014-11
+
+    MBA-3823: for writes made by the scheduling-service relay
+    (SESSION_CONTEXT writer = scheduling-relay) only the LastModified stamp runs.
+    The newest-first demotion, waitlist bump and SeatsAvailable recompute
+    (docs/as-is HB-05 / HB-16, MR-01) are skipped because the relay already
+    writes the bookings, waitlist rows and seat count scheduling-service decided.
 */
 USE AssessmentDelivery;
 GO
@@ -20,6 +26,8 @@ BEGIN
        SET s.LastModified = GETDATE()
       FROM dbo.ExamSession s
       JOIN inserted i ON i.SessionId = s.SessionId;
+
+    IF CONVERT(NVARCHAR(64), SESSION_CONTEXT(N'writer')) = N'scheduling-relay' RETURN;
 
     IF UPDATE(Capacity)
     BEGIN

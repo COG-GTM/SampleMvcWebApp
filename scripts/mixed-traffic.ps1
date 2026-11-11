@@ -91,6 +91,13 @@ Write-Log "sessions: $($sessionIds -join ' ')"
 Write-Log "candidates: $($candidates[0].Number) .. $($candidates[$total - 1].Number)"
 
 $portalIds = New-Object System.Collections.ArrayList
+$modernPortalIds = New-Object System.Collections.ArrayList
+
+function Test-ModernRedirect($r) {
+    $route = "$($r.Headers['X-Route'])"
+    $uri = "$($r.BaseResponse.ResponseUri)"
+    return ($route -eq 'modern') -or ($uri -match '/app/')
+}
 $partnerIds = New-Object System.Collections.ArrayList
 $stats = @{ PortalOk = 0; PortalFail = 0; PartnerOk = 0; PartnerFail = 0 }
 
@@ -98,6 +105,15 @@ function Add-PortalBooking($cand, [string]$sessionId) {
     try {
         $r = Invoke-PortalForm "$PortalUrl/Booking/Book?sessionId=$sessionId&candidateNumber=$($cand.Number)" "$PortalUrl/Booking/Book" @{
             SessionId = $sessionId; CandidateNumber = $cand.Number; AccommodationCode = '' }
+        if (Test-ModernRedirect $r) {
+            # behind the routing gateway (MBA-3822/3823) the portal form redirects to the modern UI; complete the booking
+            # the way /app/book does (POST /api/v2/bookings, channel PORTAL)
+            $body = @{ sessionId = [int]$sessionId; candidateNumber = $cand.Number; channel = 'PORTAL' } | ConvertTo-Json -Compress
+            $r = Invoke-WebRequest "$PortalUrl/api/v2/bookings" -Method Post -ContentType 'application/json' -Body $body -UseBasicParsing -TimeoutSec 60
+            $id = ($r.Content | ConvertFrom-Json).bookingId
+            [void]$modernPortalIds.Add([int]$id); [void]$portalIds.Add([int]$id); $stats.PortalOk++
+            return
+        }
         $m = [regex]::Match($r.Content, 'Booking (\d+) (confirmed|has been placed on the waitlist)')
         if ($m.Success) { $id = $m.Groups[1].Value }
         else {
@@ -139,6 +155,12 @@ $cPortal = 0; $cPartner = 0
 for ($k = 0; $k -lt $Cancels -and $k -lt $portalIds.Count; $k++) {
     $id = $portalIds[$k]
     try {
+        if ($modernPortalIds.Contains($id)) {
+            # modern UI cancel (/app/my-bookings -> DELETE /api/v2/bookings/{id})
+            $r = Invoke-WebRequest "$PortalUrl/api/v2/bookings/$($id)?reason=mixed-traffic" -Method Delete -UseBasicParsing -TimeoutSec 60
+            if ($r.StatusCode -eq 200) { $cPortal++ }
+            continue
+        }
         $r = Invoke-PortalForm "$PortalUrl/Booking/Cancel/$id" "$PortalUrl/Booking/Cancel/$id" @{ Reason = 'mixed-traffic'; CandidateNumber = '' }
         if ($r.Content -match "Booking $id cancelled") { $cPortal++ }
     } catch { }

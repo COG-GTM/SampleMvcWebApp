@@ -1,5 +1,7 @@
 package com.northwind.scheduling.importer;
 
+import com.northwind.scheduling.outbox.OutboxRepository;
+
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -42,7 +44,10 @@ public class SnapshotImporter {
     private final SnapshotWriter writer;
     private final Clock clock;
 
-    public SnapshotImporter(LegacyReferenceSource source, SnapshotWriter writer, Clock clock) {
+    private final OutboxRepository outbox;
+
+    public SnapshotImporter(LegacyReferenceSource source, SnapshotWriter writer, Clock clock, OutboxRepository outbox) {
+        this.outbox = outbox;
         this.source = source;
         this.writer = writer;
         this.clock = clock;
@@ -65,6 +70,10 @@ public class SnapshotImporter {
             sessions = writer.insertSessions(source.sessions(), started);
             bookings = writer.insertBookings(source.bookings());
             waitlist = writer.insertWaitlist(source.waitlist());
+            writer.markImportedLegacyIds();
+            // MBA-3823: scheduling-service is the single seat writer; project its derived SeatsAvailable for every
+            // session once, so counters the legacy writers left drifted (HB-01/HB-02/HB-03) are corrected too
+            outbox.appendInventoryBaseline("scheduling-service");
         } else {
             Set<Integer> have = writer.existingSessionIds();
             List<LegacyRows.Session> fresh = source.sessions().stream().filter(s -> !have.contains(s.id())).toList();

@@ -1,0 +1,6 @@
+Changed database context to 'AssessmentDelivery'.
+SessionId|ExamCode|CenterCode|StartsAt|Capacity|SeatsAvailable|ActiveBookings|Drift
+---------|--------|----------|--------|--------|--------------|--------------|-----
+155|HPI-ACC2|DUB01|2026-11-12 13:30:00.000|16|1|8|7
+158|BCB-AGL|LDS01|2026-11-14 09:00:00.000|11|0|7|4
+

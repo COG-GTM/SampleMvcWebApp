@@ -121,6 +121,12 @@ public class SchedulingApiController {
         return BookingDto.of(service.cancel(bookingId, reason == null || reason.isBlank() ? "Cancelled by candidate" : reason));
     }
 
+    /** MBA-3823: results-service records attendance here; the outbox relay projects it to dbo.Booking. */
+    @PostMapping("/bookings/{bookingId}/attendance")
+    public BookingDto attendance(@PathVariable int bookingId) {
+        return BookingDto.of(service.recordAttendance(bookingId));
+    }
+
     @PostMapping("/bookings/{bookingId}/reschedule")
     public ResponseEntity<BookingResultDto> reschedule(@PathVariable int bookingId,
                                                        @RequestBody(required = false) RescheduleRequest req) {

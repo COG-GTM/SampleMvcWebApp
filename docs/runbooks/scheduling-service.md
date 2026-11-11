@@ -126,30 +126,43 @@ jq -c 'select(.operation) | {durationMs,operation,centerCode,sessionId,traceId}'
    is down. Bookings already in `Scheduling` keep working; snapshot refresh (`POST /api/v2/internal/import/sessions`)
    and reference reads that need legacy fail until it is back.
 
-### Outbox lag (after M4)
+### Outbox lag (relay, MBA-3823)
 
-Not applicable until M4 adds the outbox and the `scheduling_outbox_lag_seconds` / `scheduling_outbox_pending` gauges.
-Then: lag rising with pending rising means the relay is stuck or the legacy write-back target is down (check its
-readiness and relay ERROR logs by `traceId`); lag rising with pending flat means one poison message (find the oldest
-pending row and its error). While lag is high, legacy channels see stale availability: consider rolling the affected
-centres back (§5) until the relay catches up.
+Every booking/capacity change writes an `outbox_event` row in the same transaction (`event_seq` = order). The relay
+(`com.northwind.scheduling.relay`, login `ad_sched_relay`, `scheduling.relay.*` / `SCHEDULING_RELAY_*`) polls every
+`scheduling.relay.poll-ms` (250 ms) and applies each event to `AssessmentDelivery` in one transaction, recording the
+event id in `dbo.RelayCheckpoint` ([ADR 0003](../adr/0003-single-writer-outbox-relay.md)). Gauges:
+`scheduling_outbox_pending`, `scheduling_outbox_lag_seconds`; `GET /internal/relay` shows
+`total/pending/lastSeq/lastRelayedSeq/oldestPendingAt` plus applied/skipped counters.
+
+- Lag rising with pending rising: the relay is stuck or `AssessmentDelivery` is down/locked. Check the relay WARN logs
+  (`relay poll failed`, `relay event ... failed`) and SQL Server.
+- Lag rising with pending flat: one poison event. `SELECT TOP 5 event_seq, event_type, attempts, last_error FROM
+  outbox_event WHERE relayed_at IS NULL ORDER BY event_seq` in `Scheduling`. Fix the cause and let it retry; never
+  delete outbox rows.
+- Restarting the service (or killing it mid-batch) is safe: an event already checkpointed is skipped, so replays write
+  nothing twice.
+- While lag is high, legacy readers (portal pages, booking-api `GET`, results) show stale availability. Writes are not
+  affected (scheduling-service is the only writer).
 
 ### Non-zero reconciliation report
 
-The legacy estate has no single seat formula and several writers drift `ExamSession.SeatsAvailable`
-([MR-01, MR-02](../as-is/migration-risks.md), HB-01..HB-05, nightly capacity-sync masking partner drift MR-17), so a
-difference between modern and legacy availability is expected for some sessions and is not by itself an incident.
+`GET /internal/reconciliation` (or `java -jar target/scheduling-service-*.jar reconcile`, exit 0 only when
+clean) compares every session (Capacity, SeatsAvailable, BOOKED/ATTENDED/WAITLISTED, accommodation
+seats used) and every booking (session, status, accommodation code) between `Scheduling` and `AssessmentDelivery`,
+runs `db/checks/seat-drift.sql`, and writes `reports/reconciliation-<timestamp>.md`. It replaces capacity-sync's
+nightly recompute, which is disabled (`capacity.sync.enabled=false`, HB-03, MR-17).
 
-1. Run the legacy drift check: `sqlcmd -C -S localhost -U sa -d AssessmentDelivery -i db/checks/seat-drift.sql` and
-   compare the listed sessions with `GET /api/v2/sessions/{id}` (modern availability is derived from bookings,
-   [ADR 0002](../adr/0002-ported-rule-decisions.md)).
-2. Sessions that differ only by legacy counter drift: record them, no action on the modern side.
-3. Bookings present on one side only, or a session over capacity in `Scheduling`: stop new modern bookings for that
-   centre (roll back, §5), keep the evidence (`bookingId`, `traceId` from the logs), and escalate to the scheduling
-   owners. Do not hand-edit `Scheduling` rows.
-4. For a centre that is not (yet) served by modern, refresh its snapshot with
-   `curl -X POST 'localhost:8090/api/v2/internal/import/sessions?mode=merge'` (never `mode=reset` in production: it
-   re-copies the inventory).
+With the relay live and the legacy write denial in place (`db/security/040_single_writer.sql`) the expected result is
+0 mismatches and 0 drift rows. If not:
+
+1. Check relay lag first (above). Mismatches that disappear once `pending` is 0 are lag, not drift.
+2. A legacy-only booking or a SeatsAvailable/count difference after the relay caught up means something wrote
+   `AssessmentDelivery` outside the relay: check that `040_single_writer.sql` is applied
+   (`SELECT * FROM sys.database_permissions WHERE state = 'D'`) and that no component still uses `sa` or `ad_app`.
+   Legacy writers otherwise reintroduce HB-01..HB-05 drift ([MR-01, MR-02](../as-is/migration-risks.md)).
+3. A modern-only booking: the relay has not applied it yet or failed on it (see poison event above).
+4. Do not hand-edit either database; keep the report and escalate to the scheduling owners.
 
 ## 5. Roll a centre back to legacy (routing allow-list, M3)
 

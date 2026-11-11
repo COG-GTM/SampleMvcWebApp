@@ -239,6 +239,11 @@ public class SchedulingRepository {
                 + "WHERE booking_id = ?").params(Timestamp.valueOf(now), reason, Timestamp.valueOf(now), bookingId).update();
     }
 
+    public void markAttended(int bookingId, LocalDateTime now) {
+        db.sql("UPDATE booking SET status = 'ATTENDED', last_modified = ? WHERE booking_id = ? AND status = 'BOOKED'")
+                .params(Timestamp.valueOf(now), bookingId).update();
+    }
+
     public void markWaitlisted(int bookingId, LocalDateTime now) {
         db.sql("UPDATE booking SET status = 'WAITLISTED', last_modified = ? WHERE booking_id = ?")
                 .params(Timestamp.valueOf(now), bookingId).update();

@@ -17,6 +17,11 @@ import org.springframework.stereotype.Service;
  *
  * Written 2016 after the "phantom full sessions" incident; runs nightly and can be
  * kicked off by hand from /sync/run.
+ *
+ * MBA-3823: scheduling-service is now the single writer of seat counts and its outbox relay projects them
+ * into ExamSession.SeatsAvailable. This job's different formula (docs/as-is HB-03, MR-02, MR-17) would
+ * reintroduce drift, so writes are off unless capacity.sync.enabled=true; a disabled run only records a
+ * SKIPPED CAPACITY_SYNC audit row. Drift is reported by scheduling-service's reconciliation instead.
  */
 @Service
 public class CapacitySyncService {
@@ -39,6 +44,9 @@ public class CapacitySyncService {
     @Value("${capacity.sync.audit-actor:capacity-sync}")
     private String actor;
 
+    @Value("${capacity.sync.enabled:false}")
+    private boolean enabled;
+
     private volatile SyncRun lastRun = new SyncRun();
 
     public synchronized SyncRun runSync(String trigger) {
@@ -46,6 +54,16 @@ public class CapacitySyncService {
         run.setTrigger(trigger);
         run.setStatus("RUNNING");
         run.setStartedAt(new SimpleDateFormat(TS).format(new Date()));
+        if (!enabled) {
+            run.setStatus("SKIPPED");
+            run.setMessage("capacity.sync.enabled=false: SeatsAvailable is written by scheduling-service's relay; "
+                    + "use GET /api/v2/internal/reconciliation on scheduling-service for drift");
+            run.setFinishedAt(new SimpleDateFormat(TS).format(new Date()));
+            audit(run);
+            lastRun = run;
+            LOG.info("Capacity sync ({}) skipped: capacity.sync.enabled=false", trigger);
+            return run;
+        }
         try {
             List<Map<String, Object>> sessions = jdbc.queryForList(SELECT_OPEN_SESSIONS);
             int updated = 0;
@@ -96,7 +114,8 @@ public class CapacitySyncService {
             jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
                     "ExamSession", 0, "CAPACITY_SYNC",
                     "trigger=" + run.getTrigger() + " status=" + run.getStatus() + " checked=" + run.getSessionsChecked()
-                            + " updated=" + run.getSessionsUpdated(), actor);
+                            + " updated=" + run.getSessionsUpdated()
+                            + ("SKIPPED".equals(run.getStatus()) ? " reason=capacity.sync.enabled=false" : ""), actor);
         } catch (RuntimeException e) {
             LOG.warn("Could not write audit row for capacity sync: {}", e.getMessage());
         }

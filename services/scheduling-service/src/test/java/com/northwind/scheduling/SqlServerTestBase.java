@@ -40,6 +40,8 @@ public abstract class SqlServerTestBase {
         r.add("spring.datasource.username", SQL::getUsername);
         r.add("spring.datasource.password", SQL::getPassword);
         r.add("scheduling.import.on-startup", () -> "true");
+        // outbox rows are still written; RelayIT drives the relay against a real AssessmentDelivery
+        r.add("scheduling.relay.enabled", () -> "false");
     }
 
     /** Seed-shaped fixture: centre SFO01, exam MHL-RN1 (sessions 154/163) and HPI-ACC2 (155), etc. */

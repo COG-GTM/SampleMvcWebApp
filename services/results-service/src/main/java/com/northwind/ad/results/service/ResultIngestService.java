@@ -26,6 +26,9 @@ public class ResultIngestService {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private AttendanceRecorder attendance;
+
     @Value("${results.audit-actor:results-service}")
     private String actor;
 
@@ -93,8 +96,7 @@ public class ResultIngestService {
             }
             return compareWithStored(existing, bookingId, score, scoredAt, sourceFile, true);
         }
-        jdbc.update("UPDATE dbo.Booking SET Status = 'ATTENDED', LastModified = GETDATE() "
-                + "WHERE BookingId = ? AND Status = 'BOOKED'", bookingId);
+        attendance.recordAttended(bookingId);
         jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
                 "Result", resultId, "INGEST", "booking=" + bookingId + " score=" + score
                         + (sourceFile != null ? " file=" + sourceFile : ""), actor);

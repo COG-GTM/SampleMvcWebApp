@@ -235,6 +235,66 @@ paths:
       summary: Get a booking
       tags:
       - Bookings
+  /api/v2/bookings/{bookingId}/attendance:
+    post:
+      operationId: attendance
+      parameters:
+      - in: path
+        name: bookingId
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingDto"
+          description: OK
+        "400":
+          content:
+            application/json:
+              examples:
+                BAD_REQUEST:
+                  summary: BAD_REQUEST
+                  value:
+                    error: BAD_REQUEST
+                    message: Failed to convert value of type 'java.lang.String' to
+                      required type 'int'
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Invalid input: BAD_REQUEST"
+        "404":
+          content:
+            application/json:
+              examples:
+                BOOKING_NOT_FOUND:
+                  summary: BOOKING_NOT_FOUND
+                  value:
+                    error: BOOKING_NOT_FOUND
+                    legacyCode: null
+                    message: Booking 99999 not found
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Not found: BOOKING_NOT_FOUND"
+        "409":
+          content:
+            application/json:
+              examples:
+                NOT_CANCELLABLE:
+                  summary: NOT_CANCELLABLE (legacy 50004)
+                  value:
+                    error: NOT_CANCELLABLE
+                    legacyCode: 50004
+                    message: Booking 1201 is CANCELLED
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Rule violation: NOT_CANCELLABLE"
+      summary: Record attendance (BOOKED -> ATTENDED; already ATTENDED is a no-op).
+        Called by results-service on result ingestion
+      tags:
+      - Bookings
   /api/v2/bookings/{bookingId}/reschedule:
     post:
       operationId: reschedule

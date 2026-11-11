@@ -133,7 +133,14 @@ public class SnapshotWriter {
     }
 
     /** Wipes the seat inventory (sessions, bookings, waitlist, capacity history). Snapshots are kept. */
+    /** imported rows already exist in dbo.Booking under the same id (MBA-3823 relay id map) */
+    public void markImportedLegacyIds() {
+        jdbc.update("UPDATE booking SET legacy_booking_id = booking_id WHERE legacy_booking_id IS NULL");
+    }
+
     public void clearInventory() {
+        // events for the inventory being replaced are moot: the re-import reads the legacy rows they targeted
+        jdbc.update("DELETE FROM outbox_event WHERE relayed_at IS NULL");
         jdbc.update("DELETE FROM capacity_change");
         jdbc.update("DELETE FROM waitlist_entry");
         jdbc.update("UPDATE booking SET rescheduled_from = NULL WHERE rescheduled_from IS NOT NULL");
