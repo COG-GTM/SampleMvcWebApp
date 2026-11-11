@@ -1,0 +1,20 @@
+description: UI centre picker (api.centers).
+name: ui lists centers
+request:
+  method: GET
+  url: /api/v2/centers
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    - centerCode: AMS01
+      name: Canal Ring Testing
+      city: Amsterdam
+      region: EMEA
+      timeZone: Europe/Amsterdam
+    - centerCode: SFO01
+      name: Bayside Assessment Centre
+      city: San Francisco
+      region: NA-WEST
+      timeZone: America/Los_Angeles

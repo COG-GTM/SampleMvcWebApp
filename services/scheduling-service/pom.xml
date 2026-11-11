@@ -21,6 +21,9 @@
     <properties>
         <java.version>21</java.version>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <springdoc.version>2.6.0</springdoc.version>
+        <spring-cloud-contract.version>4.1.6</spring-cloud-contract.version>
+        <openapi-diff.version>2.1.7</openapi-diff.version>
         <node.version>v20.18.0</node.version>
         <npm.version>10.8.2</npm.version>
         <!-- -Dskip.frontend=true builds the jar without the SPA (backend-only iterations) -->
@@ -33,6 +36,13 @@
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
                 <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-contract-dependencies</artifactId>
+                <version>${spring-cloud-contract.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -86,6 +96,12 @@
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
         </dependency>
+        <!-- MBA-3833: /v3/api-docs + /swagger-ui.html; committed spec in api/openapi.yaml -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -100,6 +116,19 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mssqlserver</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- MBA-3833: consumer contracts (src/test/resources/contracts) verified against the provider -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-contract-verifier</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- MBA-3833: breaking-change detection (OpenApiCompatibilityTest); springdoc already brings the jakarta swagger models -->
+        <dependency>
+            <groupId>org.openapitools.openapidiff</groupId>
+            <artifactId>openapi-diff-core</artifactId>
+            <version>${openapi-diff.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -122,6 +151,29 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <!-- MBA-3833: generates provider verification tests from the consumer contracts -->
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-contract-maven-plugin</artifactId>
+                <version>${spring-cloud-contract.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <testFramework>JUNIT5</testFramework>
+                    <testMode>EXPLICIT</testMode>
+                    <nameSuffixForTests>ContractIT</nameSuffixForTests>
+                    <basePackageForTests>com.northwind.scheduling.contract</basePackageForTests>
+                    <baseClassMappings>
+                        <baseClassMapping>
+                            <contractPackageRegex>.*routing_gateway.*</contractPackageRegex>
+                            <baseClassFQN>com.northwind.scheduling.contract.RoutingGatewayContractBase</baseClassFQN>
+                        </baseClassMapping>
+                        <baseClassMapping>
+                            <contractPackageRegex>.*scheduling_ui.*</contractPackageRegex>
+                            <baseClassFQN>com.northwind.scheduling.contract.SchedulingUiContractBase</baseClassFQN>
+                        </baseClassMapping>
+                    </baseClassMappings>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>

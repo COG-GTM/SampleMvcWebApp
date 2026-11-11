@@ -1,0 +1,29 @@
+description: UI session search (api.sessions) with the seat counts the session table renders.
+name: ui searches sessions
+request:
+  method: GET
+  url: /api/v2/centers/SFO01/sessions
+  queryParameters:
+    examCode: MHL-RN1
+    from: "2026-11-12"
+    to: "2026-11-12"
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    - sessionId: 154
+      examCode: MHL-RN1
+      examTitle: Registered Nurse Part 1
+      centerCode: SFO01
+      centerName: Bayside Assessment Centre
+      roomName: Room North
+      startsAt: "2026-11-12T13:30:00"
+      status: OPEN
+      capacity: 20
+      accommodationCapacity: 2
+      bookedSeats: 9
+      seatsAvailable: 11
+      accommodationUsed: 0
+      accommodationAvailable: 2
+      waitlistCount: 0

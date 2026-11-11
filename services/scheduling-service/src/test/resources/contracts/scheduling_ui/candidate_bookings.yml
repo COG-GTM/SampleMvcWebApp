@@ -1,0 +1,18 @@
+description: UI candidate lookup (api.candidate + api.bookings).
+name: ui lists candidate bookings
+request:
+  method: GET
+  url: /api/v2/candidates/NW00000913/bookings
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    - bookingId: 13
+      sessionId: 163
+      candidateNumber: NW00000913
+      status: WAITLISTED
+      channel: PARTNER
+      externalRef: PX-1
+      waitlistPosition: 1
+      rescheduledFrom: null

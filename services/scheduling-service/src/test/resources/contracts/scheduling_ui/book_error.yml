@@ -1,0 +1,19 @@
+description: UI shows ApiError(status, error, message, legacyCode) for rule violations (api.ts call()).
+name: ui booking error
+request:
+  method: POST
+  url: /api/v2/bookings
+  headers:
+    Content-Type: application/json
+  body:
+    sessionId: 263
+    candidateNumber: NW00000920
+    accommodationCode: null
+response:
+  status: 409
+  headers:
+    Content-Type: application/json
+  body:
+    error: SESSION_NOT_OPEN
+    message: Session 263 is not open for booking
+    legacyCode: 50001

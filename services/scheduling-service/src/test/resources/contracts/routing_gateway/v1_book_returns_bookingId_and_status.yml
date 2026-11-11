@@ -1,0 +1,24 @@
+description: |
+  Gateway v1 facade: POST /api/v1/bookings answers 201 with exactly the booking-api shape {bookingId, status}
+  (docs/as-is/architecture.md, booking-api). Partner bookings are recorded with channel PARTNER.
+name: v1 book returns bookingId and status
+request:
+  method: POST
+  url: /api/v1/bookings
+  headers:
+    Content-Type: application/json
+  body:
+    sessionId: 154
+    candidateNumber: NW00000930
+    externalRef: GW-1001
+response:
+  status: 201
+  headers:
+    Content-Type: application/json
+  body:
+    bookingId: 14
+    status: BOOKED
+  matchers:
+    body:
+      - path: $.bookingId
+        type: by_type
