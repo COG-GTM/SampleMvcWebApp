@@ -83,22 +83,31 @@ namespace AssessmentDelivery.Services.Scheduling
             var qs = new QueryString()
                 .Add("testCenterId", testCenterId)
                 .Add("sessionId", sessionId)
-                .Add("from", from.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
-                .Add("to", InclusiveDay(to).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
+                .Add("from", IsoDateTime(from))
+                .Add("to", IsoDateTime(to))
                 .Add("page", page)
                 .Add("pageSize", pageSize);
             return Send<ApiCapacityAuditPage>("GET", "/sessions/capacity-audit" + qs, null, null, null);
         }
 
-        // The service takes ISO dates with an inclusive 'to' day; callers pass an exclusive upper bound.
-        private static DateTime InclusiveDay(DateTime toExclusive)
+        // usp_GetCapacityAudit semantics: 'from' inclusive, 'to' exclusive.
+        private static string IsoDateTime(DateTime value)
         {
-            return (toExclusive.TimeOfDay == TimeSpan.Zero ? toExclusive.AddDays(-1) : toExclusive).Date;
+            return value.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
         }
 
         public ApiRoster GetRoster(int sessionId)
         {
             return GetOrNull<ApiRoster>("/sessions/" + sessionId + "/roster?format=json");
+        }
+
+        public IList<ApiReconcilerRun> ListReconcilerRuns(DateTime from, DateTime toExclusive, int max)
+        {
+            var qs = new QueryString()
+                .Add("from", IsoDateTime(from))
+                .Add("to", IsoDateTime(toExclusive))
+                .Add("max", max);
+            return Send<List<ApiReconcilerRun>>("GET", "/reconciler/runs" + qs, null, null, null);
         }
 
         //------------------------------------------------- bookings

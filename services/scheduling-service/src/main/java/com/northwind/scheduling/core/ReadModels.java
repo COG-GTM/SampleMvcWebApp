@@ -71,7 +71,7 @@ public class ReadModels {
     private static final String SESSION_SELECT = """
             SELECT s.SessionId, s.ExamId, e.ExamCode, e.Title, e.DurationMinutes, s.TestCenterId, tc.CenterCode, tc.Name AS CenterName,
                    tc.City, s.RoomId, r.RoomName, s.StartsAt, s.Capacity, s.AccommodationCapacity, s.SeatsAvailable, s.Status,
-                   (SELECT COUNT(*) FROM dbo.Booking b WHERE b.SessionId = s.SessionId AND b.Status = 'BOOKED') AS BookedSeats,
+                   (SELECT COUNT(*) FROM dbo.Booking b WHERE b.SessionId = s.SessionId AND b.Status IN ('BOOKED','ATTENDED')) AS BookedSeats,
                    (SELECT COUNT(*) FROM dbo.Waitlist w WHERE w.SessionId = s.SessionId) AS WaitlistCount,
                    s.LastModified, s.RowVer
               FROM dbo.ExamSession s
@@ -277,17 +277,15 @@ public class ReadModels {
     private static final Pattern CAPACITY_DETAIL = Pattern.compile("^\\s*(-?\\d+)\\s*->\\s*(-?\\d+)\\s*$");
 
     /** usp_GetCapacityAudit (db/procs/030) equivalent: CAPACITY rows on ExamSession, newest first. */
-    public AuditPage capacityAudit(Integer testCenterId, Integer sessionId, LocalDate from, LocalDate to, int page, int pageSize) {
+    public AuditPage capacityAudit(Integer testCenterId, Integer sessionId, LocalDateTime f, LocalDateTime t, int page, int pageSize) {
         String where = " WHERE a.EntityName = 'ExamSession' AND a.Action = 'CAPACITY'"
                 + " AND (? IS NULL OR s.TestCenterId = ?) AND (? IS NULL OR a.EntityId = ?)"
                 + " AND (? IS NULL OR a.LoggedAt >= ?) AND (? IS NULL OR a.LoggedAt < ?)";
-        LocalDateTime f = from == null ? null : from.atStartOfDay();
-        LocalDateTime t = to == null ? null : to.plusDays(1).atStartOfDay();
         Object[] filter = {testCenterId, testCenterId, sessionId, sessionId, f, f, t, t};
         String fromClause = " FROM dbo.AuditLog a JOIN dbo.ExamSession s ON s.SessionId = a.EntityId"
                 + " LEFT JOIN dbo.RefExam e ON e.ExamId = s.ExamId LEFT JOIN dbo.RefRoom r ON r.RoomId = s.RoomId";
         Integer total = jdbc.queryForObject("SELECT COUNT(*)" + fromClause + where, Integer.class, filter);
-        List<Object> args = new ArrayList<>(List.of(filter));
+        List<Object> args = new ArrayList<>(java.util.Arrays.asList(filter));
         int size = Math.max(1, Math.min(pageSize, 500));
         args.add(Math.max(0, page - 1) * size);
         args.add(size);

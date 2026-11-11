@@ -203,9 +203,13 @@ class SchedulingServiceIntegrationTest {
         int b2 = book(s, candidate(), "PORTAL", null).getBody().get("bookingId").asInt();
         int b3 = book(s, candidate(), "PORTAL", null).getBody().get("bookingId").asInt();
         jdbc.update("UPDATE dbo.Booking SET BookedAt = DATEADD(MINUTE, -10, GETDATE()) WHERE BookingId = ?", b3);
+        jdbc.update("UPDATE dbo.Booking SET BookedAt = DATEADD(MINUTE, -3, GETDATE()) WHERE BookingId = ?", b1);
+        jdbc.update("UPDATE dbo.Booking SET BookedAt = DATEADD(MINUTE, -2, GETDATE()) WHERE BookingId = ?", b2);
         JsonNode r = post("/api/v1/sessions/" + s + "/capacity", Map.of("newCapacity", 1), null).getBody();
         assertThat(r.get("demotedBookingIds")).extracting(JsonNode::asInt).containsExactly(b1, b2);
         assertThat(get("/api/v1/bookings/" + b3).get("status").asText()).isEqualTo("BOOKED");
+        assertThat(jdbc.queryForList("SELECT BookingId FROM dbo.Waitlist WHERE SessionId = ? ORDER BY Position", Integer.class, s))
+                .containsExactly(b1, b2);
         assertThat(seats(s)).isZero();
     }
 
@@ -283,6 +287,56 @@ class SchedulingServiceIntegrationTest {
         JsonNode again = post("/api/v1/bookings/" + b + "/attendance", Map.of(), null).getBody();
         assertThat(again.get("transitioned").asBoolean()).isFalse();
         assertThat(again.get("status").asText()).isEqualTo("ATTENDED");
+        assertThat(get("/api/v1/sessions/" + s).get("bookedSeats").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void capacityAuditFiltersOptionalAndToIsExclusive() {
+        int s = session(5, 0);
+        post("/api/v1/sessions/" + s + "/capacity", Map.of("newCapacity", 7), null);
+        jdbc.update("UPDATE dbo.AuditLog SET LoggedAt = '2026-01-10T00:00:00' WHERE EntityName = 'ExamSession' AND EntityId = ? "
+                + "AND Action = 'CAPACITY'", s);
+        assertThat(get("/api/v1/sessions/capacity-audit?pageSize=500").get("totalRows").asInt()).isPositive();
+        assertThat(get("/api/v1/sessions/capacity-audit?sessionId=" + s + "&from=2026-01-01T00:00:00&to=2026-01-10T00:00:00")
+                .get("totalRows").asInt()).isZero();
+        JsonNode hit = get("/api/v1/sessions/capacity-audit?sessionId=" + s + "&from=2026-01-10T00:00:00&to=2026-01-10T00:00:01");
+        assertThat(hit.get("totalRows").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void crossingReschedulesWithBookAndCancelNeverFailOrDrift() throws Exception {
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(16);
+        try {
+            for (int it = 0; it < 5; it++) {
+                int a = session(30, 0);
+                int b = session(30, 0);
+                List<java.util.concurrent.Callable<Integer>> work = new java.util.ArrayList<>();
+                for (int i = 0; i < 12; i++) {
+                    int from = i % 2 == 0 ? a : b;
+                    int to = from == a ? b : a;
+                    int moving = book(from, candidate(), "PORTAL", null).getBody().get("bookingId").asInt();
+                    int leaving = book(from, candidate(), "PORTAL", null).getBody().get("bookingId").asInt();
+                    int arriving = candidate();
+                    work.add(() -> post("/api/v1/bookings/" + moving + "/reschedule",
+                            Map.of("newSessionId", to, "channel", "PORTAL"), null).getStatusCode().value());
+                    work.add(() -> post("/api/v1/bookings/" + leaving + "/cancel", Map.of("reason", "load"), null)
+                            .getStatusCode().value());
+                    work.add(() -> book(to, arriving, "PORTAL", null).getStatusCode().value());
+                }
+                java.util.Collections.shuffle(work);
+                for (java.util.concurrent.Future<Integer> f : pool.invokeAll(work)) {
+                    assertThat(f.get()).isLessThan(500);
+                }
+                assertThat(jdbc.queryForObject("""
+                        SELECT COUNT(*) FROM dbo.ExamSession s WHERE s.SessionId IN (?, ?) AND s.Capacity
+                               - (SELECT COUNT(*) FROM dbo.Booking x WHERE x.SessionId = s.SessionId AND x.Status IN ('BOOKED','ATTENDED'))
+                               - s.SeatsAvailable <> 0""", Integer.class, a, b)).isZero();
+                assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM dbo.Booking WHERE SessionId IN (?, ?) AND Status = 'BOOKED'",
+                        Integer.class, a, b)).isEqualTo(24);
+            }
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test

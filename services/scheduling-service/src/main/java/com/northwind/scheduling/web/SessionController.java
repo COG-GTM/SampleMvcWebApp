@@ -104,11 +104,23 @@ public class SessionController {
     @GetMapping("/capacity-audit")
     public ReadModels.AuditPage capacityAudit(@RequestParam(required = false) Integer testCenterId,
                                               @RequestParam(required = false) Integer sessionId,
-                                              @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-                                              @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                                              @RequestParam(required = false) String from,
+                                              @RequestParam(required = false) String to,
                                               @RequestParam(defaultValue = "1") int page,
                                               @RequestParam(defaultValue = "50") int pageSize) {
-        return reads.capacityAudit(testCenterId, sessionId, from, to, page, pageSize);
+        // usp_GetCapacityAudit: @From inclusive, @To exclusive, both DATETIME (a bare date means midnight).
+        return reads.capacityAudit(testCenterId, sessionId, dateTime("from", from), dateTime("to", to), page, pageSize);
+    }
+
+    private static java.time.LocalDateTime dateTime(String name, String v) {
+        if (v == null || v.isBlank()) {
+            return null;
+        }
+        try {
+            return v.length() == 10 ? java.time.LocalDate.parse(v).atStartOfDay() : java.time.LocalDateTime.parse(v);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw ApiException.badRequest("VALIDATION", name + " must be yyyy-MM-dd'T'HH:mm:ss (or yyyy-MM-dd)");
+        }
     }
 
     @GetMapping("/{sessionId}/waitlist")

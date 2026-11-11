@@ -34,25 +34,32 @@ its normal error page. Neither falls back to a local rule (no stale second copy)
 ## 2. results-service attendance
 
 **Decision.** `ResultIngestService.ingest` reads the booking with `GET /bookings/{id}` (status, candidate, session,
-exam, `sessionStartsAt`), inserts the `Result` in its own transaction, then calls `POST /bookings/{id}/attendance`
-with `{result: {resultId, score, passed, scoredAt}}` before committing. Score files resolve the booking with
+exam, `sessionStartsAt`), inserts the `Result` (+ `INGEST` audit) in its own transaction and commits, and only then
+calls `POST /bookings/{id}/attendance` with `{result: {resultId, score, passed, scoredAt}}`, so a rollback can never
+leave an ATTENDED booking without its Result. Score files resolve the booking with
 `GET /bookings?candidateNumber&sessionId&status=BOOKED,ATTENDED&sort=bookingId,desc&limit=1` (legacy
 `findBookingId`). Candidate history uses the new results-local `Result.SessionStartsAt` instead of joining
 `ExamSession` (RS-05). `PassingScore` stays a local read of reference `Exam`.
 
 Unchanged legacy semantics: BOOKED/ATTENDED qualify; CANCELLED/WAITLISTED are 409 `BOOKING_NOT_ACTIVE`; future and
-cancelled sessions are accepted; `passed` frozen at ingest (HB-18); DUPLICATE and CONFLICT never call attendance;
-score-file rows commit one by one (HB-19).
+cancelled sessions are accepted; `passed` frozen at ingest (HB-18); DUPLICATE and CONFLICT do not call attendance
+when the booking is already ATTENDED; score-file rows commit one by one (HB-19).
+
+**Attendance call fails after the Result committed.**
+- 404/409 (the booking changed after our read): the Result and its `INGEST` audit row are deleted in a compensating
+  transaction and the error is returned, so nothing is recorded (same outcome as legacy).
+- 503: the Result stays committed and the booking stays BOOKED. Resending the same result (REST or score file) finds
+  the stored Result, reports DUPLICATE, and completes the attendance call with the stored values (idempotent).
+  `Result.AttendancePending` (`db/schema/018`) is 1 until scheduling-service confirms; a resend that finds the booking
+  CANCELLED/WAITLISTED removes only a pending Result (confirmed Results are never removed).
 
 **scheduling-service unavailable during ingest.** Connect/read failures and 5xx map to 503
 `SCHEDULING_UNAVAILABLE`.
 
-- REST `POST /api/v1/results`: 503; the Result insert rolls back, so nothing is recorded and the booking stays BOOKED.
-  A retry starts clean.
-- CSV upload: each affected row is reported in `errors[]` and records nothing; rows that succeeded before or after stay
+- REST `POST /api/v1/results`: 503. If the booking read failed nothing is recorded; if only the attendance call failed
+  the Result is kept (above). Either way the booking stays BOOKED and a retry converges.
+- CSV upload: each affected row is reported in `errors[]` (its Result is kept only if the attendance call alone failed); rows that succeeded before or after stay
   committed (HB-19 baseline). Because some rows could not be tried, the file is **not** registered in
   `dbo.ResultUpload`, so re-sending the same bytes imports the failed rows and reports the stored ones as duplicates.
   (A file without outage errors is registered as before, and its replay still imports nothing.)
-- Commit failure after a successful attendance call leaves the booking ATTENDED with no Result, a state legacy already
-  allows (`attendedWithoutResultQualifies`); the retry inserts the Result and the attendance call is an idempotent
-  200.
+- Because attendance runs after commit, a commit failure records nothing in either system.
