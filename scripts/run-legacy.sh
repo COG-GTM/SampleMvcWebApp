@@ -118,6 +118,8 @@ pid_alive() { [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null; }
 port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
 
 start_services() {
+    # MBA-3823: results-service sends this as X-Service-Token (same dev value as run-scheduling-service.sh)
+    export SCHEDULING_SERVICE_TOKEN="${SCHEDULING_SERVICE_TOKEN:-dev-attendance-token-not-for-prod}"
     mkdir -p "$RUN_DIR"
     [ -f "$RUN_DIR/.gitignore" ] || echo "*" > "$RUN_DIR/.gitignore"
     local entry name port jar

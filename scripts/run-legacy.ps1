@@ -329,6 +329,8 @@ function Find-ServiceJvm([string]$name) {
 }
 
 function Start-Services([string]$jdk) {
+    # MBA-3823: results-service sends this as X-Service-Token (same dev value as run-scheduling-service.ps1)
+    if (-not $env:SCHEDULING_SERVICE_TOKEN) { $env:SCHEDULING_SERVICE_TOKEN = 'dev-attendance-token-not-for-prod' }
     $java = Join-Path $jdk 'bin\java.exe'
     foreach ($s in $services) {
         $jar = Join-Path $root "services\$($s.Name)\target\$($s.Name).jar"

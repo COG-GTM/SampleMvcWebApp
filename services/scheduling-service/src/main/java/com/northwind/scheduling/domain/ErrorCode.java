@@ -9,6 +9,8 @@ package com.northwind.scheduling.domain;
 public enum ErrorCode {
     VALIDATION(400, 0),
     BAD_REQUEST(400, 0),
+    /** MBA-3823: attendance without a valid X-Service-Token. */
+    UNAUTHORIZED(401, 0),
     CANDIDATE_NOT_FOUND(404, 0),
     SESSION_NOT_FOUND(404, 0),
     BOOKING_NOT_FOUND(404, 0),

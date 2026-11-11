@@ -4,6 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,7 +24,8 @@ import com.northwind.ad.results.web.ApiException;
  * {@code POST /api/v2/bookings/{bookingId}/attendance}; its outbox relay then projects ATTENDED into
  * dbo.Booking (results-service's login is denied UPDATE on dbo.Booking by db/security/040_single_writer.sql).
  * With {@code results.scheduling.base-url} empty the legacy direct UPDATE is used, which only works on a
- * database without 040.
+ * database without 040. The call carries the service credential {@code scheduling.service-token} as
+ * {@code X-Service-Token}; scheduling-service refuses attendance without it.
  */
 @Component
 public class AttendanceRecorder {
@@ -29,19 +33,24 @@ public class AttendanceRecorder {
     private static final Logger LOG = LoggerFactory.getLogger(AttendanceRecorder.class);
 
     private final JdbcTemplate jdbc;
+    static final String TOKEN_HEADER = "X-Service-Token";
+
     private final String baseUrl;
+    private final String serviceToken;
     private final RestTemplate rest;
 
     @Autowired
     public AttendanceRecorder(JdbcTemplate jdbc,
                               @Value("${results.scheduling.base-url:}") String baseUrl,
-                              @Value("${results.scheduling.timeout-ms:5000}") int timeoutMs) {
-        this(jdbc, baseUrl, restTemplate(timeoutMs));
+                              @Value("${results.scheduling.timeout-ms:5000}") int timeoutMs,
+                              @Value("${scheduling.service-token:}") String serviceToken) {
+        this(jdbc, baseUrl, serviceToken, restTemplate(timeoutMs));
     }
 
-    AttendanceRecorder(JdbcTemplate jdbc, String baseUrl, RestTemplate rest) {
+    AttendanceRecorder(JdbcTemplate jdbc, String baseUrl, String serviceToken, RestTemplate rest) {
         this.jdbc = jdbc;
         this.baseUrl = baseUrl == null ? "" : baseUrl.trim().replaceAll("/+$", "");
+        this.serviceToken = serviceToken == null ? "" : serviceToken;
         this.rest = rest;
     }
 
@@ -57,7 +66,9 @@ public class AttendanceRecorder {
         }
         String url = baseUrl + "/api/v2/bookings/" + bookingId + "/attendance";
         try {
-            rest.postForEntity(url, null, String.class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.set(TOKEN_HEADER, serviceToken);
+            rest.exchange(url, HttpMethod.POST, new HttpEntity<Void>(headers), String.class);
             LOG.info("Attendance for booking {} recorded by scheduling-service", bookingId);
         } catch (HttpStatusCodeException e) {
             HttpStatus status = e.getStatusCode();

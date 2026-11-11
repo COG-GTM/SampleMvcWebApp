@@ -137,6 +137,13 @@ class OpenApiSpecIT extends SqlServerTestBase {
         JsonNode book409 = spec.at("/paths/~1api~1v2~1bookings/post/responses/409/content/application~1json");
         assertThat(book409.at("/schema/$ref").asText()).isEqualTo("#/components/schemas/ApiError");
         assertThat(book409.at("/examples/NO_ACCOMMODATION_SEAT/value/legacyCode").asInt()).isEqualTo(50003);
+        assertThat(err.at("/properties/error/enum").toString()).doesNotContain("UNAUTHORIZED");
+        JsonNode attendance = spec.at("/paths/~1api~1v2~1bookings~1{bookingId}~1attendance/post");
+        assertThat(attendance.path("security").toString()).isEqualTo("[{\"serviceToken\":[]}]");
+        assertThat(attendance.at("/responses/401/content/application~1json/schema/$ref").asText())
+                .isEqualTo("#/components/schemas/ServiceTokenError");
+        assertThat(spec.at("/components/securitySchemes/serviceToken/name").asText()).isEqualTo("X-Service-Token");
+        assertThat(spec.at("/paths/~1api~1v2~1bookings/post/security").isMissingNode()).isTrue();
         assertThat(spec.at("/paths/~1api~1v2~1bookings~1{bookingId}~1reschedule/post/responses/409/content/application~1json/examples")
                 .fieldNames()).toIterable().contains("DUPLICATE_BOOKING", "NO_ACCOMMODATION_SEAT", "SAME_SESSION");
         assertThat(spec.at("/paths/~1api~1v2~1bookings/post/responses/201/content/application~1json/schema/$ref").asText())

@@ -78,7 +78,8 @@ public final class SqlServerDb {
                     "spring.datasource.url=" + jdbcUrl(),
                     "spring.datasource.username=ad_results",
                     "spring.datasource.password=Resu1ts!Dev2026",
-                    "results.scheduling.base-url=" + SchedulingStub.get().baseUrl());
+                    "results.scheduling.base-url=" + SchedulingStub.get().baseUrl(),
+                    "scheduling.service-token=" + SchedulingStub.TOKEN);
         }
     }
 }

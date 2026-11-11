@@ -23,6 +23,9 @@ public final class SchedulingStub {
     private static SchedulingStub instance;
 
     private final HttpServer server;
+    /** Service credential the stub expects, like scheduling.attendance.service-token. */
+    public static final String TOKEN = "it-attendance-token";
+
     private final List<Integer> attendanceCalls = new CopyOnWriteArrayList<Integer>();
 
     private SchedulingStub() throws IOException {
@@ -54,7 +57,11 @@ public final class SchedulingStub {
         Matcher m = ATTENDANCE.matcher(ex.getRequestURI().getPath());
         int code;
         String body;
-        if ("POST".equals(ex.getRequestMethod()) && m.matches()) {
+        if ("POST".equals(ex.getRequestMethod()) && m.matches()
+                && !TOKEN.equals(ex.getRequestHeaders().getFirst("X-Service-Token"))) {
+            code = 401;
+            body = "{\"error\":\"UNAUTHORIZED\"}";
+        } else if ("POST".equals(ex.getRequestMethod()) && m.matches()) {
             int bookingId = Integer.parseInt(m.group(1));
             attendanceCalls.add(bookingId);
             int n = SqlServerDb.saJdbc().update("EXEC sp_set_session_context N'writer', N'scheduling-relay'; "

@@ -190,6 +190,12 @@ Which backend serves a centre is decided by the routing allow-list `scheduling.r
 
 ## 6. Single-writer cutover and rollback (MBA-3823)
 
+> Attendance credential. `POST /api/v2/bookings/{id}/attendance` answers 401 unless `X-Service-Token` equals
+> `scheduling.attendance.service-token` (`SCHEDULING_ATTENDANCE_SERVICE_TOKEN`; unset = all refused). results-service must send the
+> same value (`SCHEDULING_SERVICE_TOKEN`). If they differ, result ingestion fails with 502 `SCHEDULING_UNAVAILABLE`; check with
+> `curl -i -X POST -H "X-Service-Token: $SCHEDULING_SERVICE_TOKEN" http://localhost:8090/api/v2/bookings/0/attendance`
+> (401 = mismatch, 404 `BOOKING_NOT_FOUND` = token accepted; booking 0 never exists, so nothing is written). The gateway returns 404 for attendance on :8000, so results-service calls :8090 directly.
+
 Cutover (order matters: bookings legacy takes between the snapshot and the denial would be missing from `Scheduling`,
 because the importer only copies bookings when the `Scheduling` DB has no sessions or on a RESET import):
 

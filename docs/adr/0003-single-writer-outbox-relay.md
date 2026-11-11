@@ -48,7 +48,7 @@ components share the high-privilege `ad_app` login (HB-28, MR-07), so nothing st
 9. **Reconciliation replaces capacity-sync.** `GET /internal/reconciliation` and `java -jar scheduling-service.jar
    reconcile` compare every session (Capacity, SeatsAvailable, BOOKED/ATTENDED/WAITLISTED counts, accommodation seats)
    and every booking (session, status, accommodation code) and include `db/checks/seat-drift.sql`; the report is
-   written to `reports/reconciliation-<timestamp>.md`. Exit code 0 only with 0 mismatches and 0 drift rows.
+   written to `reports/reconciliation-<timestamp>.md`. Exit code 0 only with 0 mismatches and 0 drift rows. Attendance needs a service credential: header `X-Service-Token`, compared in constant time with `scheduling.attendance.service-token` (env `SCHEDULING_ATTENDANCE_SERVICE_TOKEN`). The comparison fails closed when the property is unset. results-service sends `scheduling.service-token`, and the gateway returns 404 for `/api/v2/bookings/*/attendance`. The other v2 writes stay open like the legacy no-auth model (MR-16), but attendance writes ATTENDED into legacy, so results integrity depends on it.
 
 ## Not changed
 

@@ -15,4 +15,14 @@ class InternalPathTest {
         assertThat(StranglerFilter.internalPath("/api/v2/centers/BOS01/sessions")).isFalse();
         assertThat(StranglerFilter.internalPath("/api/v2/bookings")).isFalse();
     }
+
+    @Test
+    void attendanceIsRecognisedInAnySpelling() {
+        assertThat(StranglerFilter.attendancePath("/api/v2/bookings/50000007/attendance")).isTrue();
+        assertThat(StranglerFilter.attendancePath("/api/v2//bookings/7/Attendance/")).isTrue();
+        assertThat(StranglerFilter.attendancePath("/api/v2/bookings/7/%61ttendance")).isTrue();
+        assertThat(StranglerFilter.attendancePath("/api/v2/bookings;x=1/7/attendance")).isTrue();
+        assertThat(StranglerFilter.attendancePath("/api/v2/bookings/7")).isFalse();
+        assertThat(StranglerFilter.attendancePath("/api/v2/bookings/7/reschedule")).isFalse();
+    }
 }

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,6 +26,8 @@ import com.northwind.scheduling.domain.SchedulingException;
 import com.northwind.scheduling.service.SchedulingService;
 import com.northwind.scheduling.web.Dtos.*;
 
+import io.swagger.v3.oas.annotations.Parameter;
+
 /** Public scheduling API, base /api/v2. Errors: {error, message, legacyCode} (ApiExceptionHandler). */
 @RestController
 @RequestMapping("/api/v2")
@@ -34,10 +37,13 @@ public class SchedulingApiController {
     private final SchedulingService service;
     private final RetakeEligibilityPolicy retakePolicy;
     private final String defaultChannel;
+    private final AttendanceTokenGuard attendanceGuard;
 
     public SchedulingApiController(SchedulingService service, RetakeEligibilityPolicy retakePolicy,
-                                   @Value("${scheduling.default-channel:PORTAL}") String defaultChannel) {
+                                   @Value("${scheduling.default-channel:PORTAL}") String defaultChannel,
+                                   AttendanceTokenGuard attendanceGuard) {
         this.service = service;
+        this.attendanceGuard = attendanceGuard;
         this.retakePolicy = retakePolicy;
         this.defaultChannel = defaultChannel;
     }
@@ -121,9 +127,15 @@ public class SchedulingApiController {
         return BookingDto.of(service.cancel(bookingId, reason == null || reason.isBlank() ? "Cancelled by candidate" : reason));
     }
 
-    /** MBA-3823: results-service records attendance here; the outbox relay projects it to dbo.Booking. */
+    /**
+     * MBA-3823: results-service records attendance here; the outbox relay projects it to dbo.Booking. Needs the
+     * service credential (X-Service-Token); the gateway does not expose it.
+     */
     @PostMapping("/bookings/{bookingId}/attendance")
-    public BookingDto attendance(@PathVariable int bookingId) {
+    public BookingDto attendance(@PathVariable int bookingId,
+                                 @Parameter(hidden = true) @RequestHeader(value = AttendanceTokenGuard.HEADER, required = false)
+                                 String serviceToken) {
+        attendanceGuard.check(serviceToken);
         return BookingDto.of(service.recordAttendance(bookingId));
     }
 

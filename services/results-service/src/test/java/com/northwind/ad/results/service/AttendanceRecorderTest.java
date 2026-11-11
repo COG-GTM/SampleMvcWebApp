@@ -5,6 +5,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -30,8 +31,9 @@ public class AttendanceRecorderTest {
     public void postsAttendanceToSchedulingServiceAndNeverWritesBooking() {
         server.expect(requestTo("http://sched:8090/api/v2/bookings/50000007/attendance"))
                 .andExpect(method(HttpMethod.POST))
+                .andExpect(header("X-Service-Token", "tok-1"))
                 .andRespond(withSuccess());
-        new AttendanceRecorder(jdbc, "http://sched:8090/", rest).recordAttended(50000007);
+        new AttendanceRecorder(jdbc, "http://sched:8090/", "tok-1", rest).recordAttended(50000007);
         server.verify();
         verifyZeroInteractions(jdbc);
     }
@@ -40,7 +42,7 @@ public class AttendanceRecorderTest {
     public void mapsSchedulingConflictToBookingNotActive() {
         server.expect(requestTo("http://sched:8090/api/v2/bookings/12/attendance"))
                 .andRespond(withStatus(HttpStatus.CONFLICT));
-        assertError(new AttendanceRecorder(jdbc, "http://sched:8090", rest), 12, "BOOKING_NOT_ACTIVE");
+        assertError(new AttendanceRecorder(jdbc, "http://sched:8090", "tok-1", rest), 12, "BOOKING_NOT_ACTIVE");
     }
 
     @Test
@@ -49,14 +51,22 @@ public class AttendanceRecorderTest {
                 .andRespond(withStatus(HttpStatus.NOT_FOUND));
         server.expect(requestTo("http://sched:8090/api/v2/bookings/14/attendance"))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
-        AttendanceRecorder r = new AttendanceRecorder(jdbc, "http://sched:8090", rest);
+        AttendanceRecorder r = new AttendanceRecorder(jdbc, "http://sched:8090", "tok-1", rest);
         assertError(r, 13, "BOOKING_NOT_FOUND");
         assertError(r, 14, "SCHEDULING_UNAVAILABLE");
     }
 
     @Test
+    public void rejectedServiceTokenSurfacesAsSchedulingUnavailable() {
+        server.expect(requestTo("http://sched:8090/api/v2/bookings/15/attendance"))
+                .andExpect(header("X-Service-Token", "stale"))
+                .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
+        assertError(new AttendanceRecorder(jdbc, "http://sched:8090", "stale", rest), 15, "SCHEDULING_UNAVAILABLE");
+    }
+
+    @Test
     public void emptyBaseUrlKeepsLegacyDirectUpdate() {
-        new AttendanceRecorder(jdbc, "", rest).recordAttended(42);
+        new AttendanceRecorder(jdbc, "", "", rest).recordAttended(42);
         verify(jdbc).update(Matchers.startsWith("UPDATE dbo.Booking SET Status = 'ATTENDED'"), Matchers.eq(42));
     }
 

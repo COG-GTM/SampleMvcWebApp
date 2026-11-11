@@ -86,6 +86,7 @@ start() {
     cp "$SVC/target/scheduling-service.jar" "$RUN_DIR/scheduling-service.jar"
     log "starting on :$PORT (log $LOG_FILE)"
     SCHEDULING_IMPORT_ON_STARTUP="${SCHEDULING_IMPORT_ON_STARTUP:-true}" \
+    SCHEDULING_ATTENDANCE_SERVICE_TOKEN="${SCHEDULING_ATTENDANCE_SERVICE_TOKEN:-dev-attendance-token-not-for-prod}" \
     SCHEDULING_DB_PASSWORD="${SCHEDULING_DB_PASSWORD:-$MSSQL_SA_PASSWORD}" \
         nohup "$JAVA_HOME/bin/java" -jar "$RUN_DIR/scheduling-service.jar" >"$LOG_FILE" 2>&1 &
     echo $! >"$PID_FILE"

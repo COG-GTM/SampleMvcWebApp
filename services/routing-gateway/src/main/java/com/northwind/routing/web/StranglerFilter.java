@@ -157,7 +157,7 @@ public class StranglerFilter implements GlobalFilter, Ordered {
 
     private Mono<Void> modern(ServerWebExchange ex, GatewayFilterChain chain) {
         ServerHttpRequest req = ex.getRequest();
-        if (internalPath(req.getPath().value())) {
+        if (internalPath(req.getPath().value()) || attendancePath(req.getPath().value())) {
             return writeJson(ex, HttpStatus.NOT_FOUND.value(), V1Shapes.error("NOT_FOUND",
                     "scheduling-service internal endpoints are not exposed through the gateway"),
                     RouteDecision.modern(null, "internal endpoint blocked"));
@@ -181,8 +181,17 @@ public class StranglerFilter implements GlobalFilter, Ordered {
     }
 
     static boolean internalPath(String rawPath) {
+        return normalised(rawPath).startsWith("/api/v2/internal");
+    }
+
+    /** MBA-3823: attendance is service-to-service (results-service calls :8090 directly), never from outside. */
+    static boolean attendancePath(String rawPath) {
+        return normalised(rawPath).matches("/api/v2/bookings/[^/]+/attendance/?");
+    }
+
+    private static String normalised(String rawPath) {
         String p = UriUtils.decode(rawPath, StandardCharsets.UTF_8).replaceAll(";[^/]*", "").replaceAll("/{2,}", "/");
-        return p.toLowerCase(Locale.ROOT).startsWith("/api/v2/internal");
+        return p.toLowerCase(Locale.ROOT);
     }
 
     /** Resolves the request's centre (only when it can matter) and applies {@link RouteDecider}. */

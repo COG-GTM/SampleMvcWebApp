@@ -2,6 +2,10 @@ package com.northwind.scheduling.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
 
@@ -56,6 +60,15 @@ class SchedulingApiIT extends SqlServerTestBase {
                 MAP);
     }
 
+    HttpResponse<String> attendance(String path, String token) throws Exception {
+        HttpRequest.Builder b = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+                .POST(HttpRequest.BodyPublishers.noBody());
+        if (token != null) {
+            b.header("X-Service-Token", token);
+        }
+        return HttpClient.newHttpClient().send(b.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
     @Test
     void flywayCreatesSchedulingDbAndImporterLoadsSnapshots() {
         assertThat(jdbc.queryForObject("SELECT DB_NAME()", String.class)).isEqualTo("Scheduling");
@@ -84,6 +97,28 @@ class SchedulingApiIT extends SqlServerTestBase {
         assertThat(book(263, "NW00000921", null).getBody()).containsEntry("legacyCode", 50001);
         assertThat(book(154, "NW00000921", "XX").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(book(154, "NW09999999", null).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void attendanceNeedsTheServiceTokenAndWritesNoOutboxEventWithoutIt() throws Exception {
+        int id = ((Number) book(154, "NW00000920", null).getBody().get("bookingId")).intValue();
+        String url = "/api/v2/bookings/" + id + "/attendance";
+        String countSql = "SELECT COUNT(*) FROM outbox_event WHERE event_type = 'AttendanceRecorded'";
+        int before = jdbc.queryForObject(countSql, Integer.class);
+
+        // java.net.http: HttpURLConnection cannot read a 401 answer to a POST ("cannot retry due to server authentication")
+        HttpResponse<String> none = attendance(url, null);
+        assertThat(none.statusCode()).isEqualTo(401);
+        assertThat(none.body()).contains("\"error\":\"UNAUTHORIZED\"", "\"legacyCode\":null");
+        assertThat(attendance(url, "wrong-token").statusCode()).isEqualTo(401);
+        assertThat(attendance(url, "").statusCode()).isEqualTo(401);
+        assertThat(get("/api/v2/bookings/" + id)).containsEntry("status", "BOOKED");
+        assertThat(jdbc.queryForObject(countSql, Integer.class)).isEqualTo(before);
+
+        HttpResponse<String> ok = attendance(url, "test-attendance-token");
+        assertThat(ok.statusCode()).isEqualTo(200);
+        assertThat(ok.body()).contains("\"status\":\"ATTENDED\"");
+        assertThat(jdbc.queryForObject(countSql, Integer.class)).isEqualTo(before + 1);
     }
 
     @Test

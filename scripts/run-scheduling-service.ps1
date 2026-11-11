@@ -207,6 +207,8 @@ function Start-Service8090([string]$jdk) {
     $env:SCHEDULING_IMPORT_ON_STARTUP = 'true'
     $env:SCHEDULING_RELAY_DB_URL = "jdbc:sqlserver://$($Server -replace ',', ':');databaseName=AssessmentDelivery;encrypt=true;trustServerCertificate=true"
     if (-not $env:SCHEDULING_RELAY_ENABLED) { $env:SCHEDULING_RELAY_ENABLED = 'true' }
+    # MBA-3823 attendance credential; run-legacy.ps1 gives results-service the same dev value
+    if (-not $env:SCHEDULING_ATTENDANCE_SERVICE_TOKEN) { $env:SCHEDULING_ATTENDANCE_SERVICE_TOKEN = 'dev-attendance-token-not-for-prod' }
     $java = Join-Path $jdk 'bin\java.exe'
     Write-Step "starting on :$port (log $logFile)"
     $p = Start-Process -FilePath $java -ArgumentList '-jar', "`"$runJar`"" -WorkingDirectory $root -WindowStyle Hidden `

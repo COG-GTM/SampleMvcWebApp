@@ -30,6 +30,8 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.tags.Tag;
 
@@ -44,6 +46,8 @@ public class OpenApiConfig {
 
     static final String API_VERSION = "2.0.0";
     static final String ERROR_SCHEMA = "ApiError";
+    /** 401 body of service-token operations; kept out of ApiError so its enum stays compatible with published baselines. */
+    static final String SERVICE_TOKEN_ERROR_SCHEMA = "ServiceTokenError";
     static final Set<String> SESSION_TIMES = Set.of("startsAt", "sessionStartsAt");
     static final String LOCAL_DATE_TIME_PATTERN = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$";
 
@@ -60,7 +64,7 @@ public class OpenApiConfig {
                     ErrorCode.NOT_ELIGIBLE)),
             Map.entry("booking", List.of(ErrorCode.BAD_REQUEST, ErrorCode.BOOKING_NOT_FOUND)),
             Map.entry("cancel", List.of(ErrorCode.BAD_REQUEST, ErrorCode.BOOKING_NOT_FOUND, ErrorCode.NOT_CANCELLABLE)),
-            Map.entry("attendance", List.of(ErrorCode.BAD_REQUEST, ErrorCode.BOOKING_NOT_FOUND, ErrorCode.NOT_CANCELLABLE)),
+            Map.entry("attendance", List.of(ErrorCode.BAD_REQUEST, ErrorCode.UNAUTHORIZED, ErrorCode.BOOKING_NOT_FOUND, ErrorCode.NOT_CANCELLABLE)),
             Map.entry("reschedule", List.of(ErrorCode.VALIDATION, ErrorCode.BOOKING_NOT_FOUND,
                     ErrorCode.SESSION_NOT_FOUND, ErrorCode.NOT_CANCELLABLE, ErrorCode.SAME_SESSION,
                     ErrorCode.DIFFERENT_EXAM, ErrorCode.SESSION_NOT_OPEN, ErrorCode.DUPLICATE_BOOKING,
@@ -94,6 +98,10 @@ public class OpenApiConfig {
             Map.entry("eligibility", new String[] {"Candidates", "Check retake eligibility for an exam (calendar days, ODD-04)"}));
 
     static final Set<String> CREATED = Set.of("book", "reschedule");
+
+    /** Operations that need the service credential (MBA-3823). */
+    static final String SERVICE_TOKEN = "serviceToken";
+    static final Set<String> SECURED = Set.of("attendance");
 
     /** Query parameters declared optional on the controller that SchedulingService rejects with VALIDATION when missing. */
     static final Map<String, Set<String>> REQUIRED_PARAMS = Map.of("eligibility", Set.of("examCode"));
@@ -138,6 +146,7 @@ public class OpenApiConfig {
         Map<ErrorCode, String> msg = new LinkedHashMap<>();
         msg.put(ErrorCode.VALIDATION, "sessionId and candidateNumber are required");
         msg.put(ErrorCode.BAD_REQUEST, "Failed to convert value of type 'java.lang.String' to required type 'int'");
+        msg.put(ErrorCode.UNAUTHORIZED, "X-Service-Token missing or invalid");
         msg.put(ErrorCode.CANDIDATE_NOT_FOUND, "Candidate NW00009999 not found");
         msg.put(ErrorCode.SESSION_NOT_FOUND, "Session 99999 not found");
         msg.put(ErrorCode.BOOKING_NOT_FOUND, "Booking 99999 not found");
@@ -194,24 +203,36 @@ public class OpenApiConfig {
                 .servers(List.of(new Server().url("/").description("scheduling-service (default :8090)")))
                 .tags(List.of(new Tag().name("Bookings"), new Tag().name("Candidates"), new Tag().name("Capacity"),
                         new Tag().name("Reference data"), new Tag().name("Sessions")))
-                .components(new Components());
+                .components(new Components().addSecuritySchemes(SERVICE_TOKEN, new SecurityScheme()
+                        .type(SecurityScheme.Type.APIKEY).in(SecurityScheme.In.HEADER).name(AttendanceTokenGuard.HEADER)
+                        .description("Service credential (scheduling.attendance.service-token); results-service only")));
     }
 
     static Schema<?> errorSchema() {
-        List<String> codes = Arrays.stream(ErrorCode.values()).map(Enum::name).toList();
+        return errorSchema(Arrays.stream(ErrorCode.values()).filter(c -> c != ErrorCode.UNAUTHORIZED).toList(),
+                "Error body of every 4xx answer (ApiExceptionHandler)", "No accommodation seat available on session 155");
+    }
+
+    static Schema<?> serviceTokenErrorSchema() {
+        return errorSchema(List.of(ErrorCode.UNAUTHORIZED), "401 body when X-Service-Token is missing or invalid",
+                "X-Service-Token missing or invalid");
+    }
+
+    static Schema<?> errorSchema(List<ErrorCode> errorCodes, String description, String exampleMessage) {
+        List<String> codes = errorCodes.stream().map(Enum::name).toList();
         IntegerSchema legacy = new IntegerSchema();
         legacy.setNullable(true);
         legacy.setDescription("50000 + legacy proc RAISERROR state (ODD-11): 50001..50006, see the table in the API "
                 + "description; null when the rule had no proc error. Present on /api/v2 rule errors, absent for BAD_REQUEST "
                 + "and on /api/v1.");
-        legacy.setExample(50003);
+        legacy.setExample(codes.contains("NO_ACCOMMODATION_SEAT") ? 50003 : null);
         StringSchema error = new StringSchema();
-        error._enum(codes).description("Symbolic error code (booking-api vocabulary)").example("NO_ACCOMMODATION_SEAT");
+        error._enum(codes).description("Symbolic error code (booking-api vocabulary)").example(codes.contains("NO_ACCOMMODATION_SEAT") ? "NO_ACCOMMODATION_SEAT" : codes.get(0));
         Schema<?> s = new ObjectSchema()
-                .description("Error body of every 4xx answer (ApiExceptionHandler)")
+                .description(description)
                 .addProperty("error", error)
                 .addProperty("message", new StringSchema().description("Human-readable message")
-                        .example("No accommodation seat available on session 155"))
+                        .example(exampleMessage))
                 .addProperty("legacyCode", legacy);
         s.setRequired(List.of("error", "message"));
         return s;
@@ -231,6 +252,7 @@ public class OpenApiConfig {
             schemas.forEach(this::documentSchema);
         }
         api.getComponents().addSchemas(ERROR_SCHEMA, errorSchema());
+        api.getComponents().addSchemas(SERVICE_TOKEN_ERROR_SCHEMA, serviceTokenErrorSchema());
         if (api.getPaths() == null) {
             return;
         }
@@ -239,7 +261,7 @@ public class OpenApiConfig {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     void documentSchema(String name, Schema schema) {
-        if (ERROR_SCHEMA.equals(name) || schema.getProperties() == null) {
+        if (ERROR_SCHEMA.equals(name) || SERVICE_TOKEN_ERROR_SCHEMA.equals(name) || schema.getProperties() == null) {
             return;
         }
         Map<String, Schema> props = schema.getProperties();
@@ -318,6 +340,9 @@ public class OpenApiConfig {
             Set<String> requiredParams = REQUIRED_PARAMS.getOrDefault(id, Set.of());
             op.getParameters().stream().filter(p -> requiredParams.contains(p.getName())).forEach(p -> p.setRequired(true));
         }
+        if (SECURED.contains(id)) {
+            op.addSecurityItem(new SecurityRequirement().addList(SERVICE_TOKEN));
+        }
         ApiResponses responses = op.getResponses();
         if (responses == null) {
             return;
@@ -332,13 +357,15 @@ public class OpenApiConfig {
             byStatus.computeIfAbsent(c.httpStatus(), k -> new ArrayList<>()).add(c);
         }
         byStatus.forEach((status, codes) -> {
-            MediaType mt = new MediaType().schema(new Schema<>().$ref("#/components/schemas/" + ERROR_SCHEMA));
+            MediaType mt = new MediaType().schema(new Schema<>().$ref("#/components/schemas/"
+                    + (status == 401 ? SERVICE_TOKEN_ERROR_SCHEMA : ERROR_SCHEMA)));
             for (ErrorCode c : codes) {
                 mt.addExamples(c.name(), new Example().summary(c.name() + (c.legacyCode() == null ? ""
                         : " (legacy " + c.legacyCode() + ")")).value(ERROR_EXAMPLES.get(c.name())));
             }
             String text = switch (status) {
                 case 400 -> "Invalid input";
+                case 401 -> "Unauthorized";
                 case 404 -> "Not found";
                 default -> "Rule violation";
             };

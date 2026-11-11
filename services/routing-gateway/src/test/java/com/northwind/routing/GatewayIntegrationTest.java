@@ -216,6 +216,14 @@ class GatewayIntegrationTest {
     }
 
     @Test
+    void attendanceIsNotExposedThroughTheGateway() {
+        web.post().uri("/api/v2/bookings/50000001/attendance").header("X-Service-Token", "anything").exchange()
+                .expectStatus().isNotFound().expectHeader().valueEquals("X-Route", "modern")
+                .expectBody().jsonPath("$.error").isEqualTo("NOT_FOUND");
+        web.post().uri("/api/v2/bookings/1200/Attendance").exchange().expectStatus().isNotFound();
+    }
+
+    @Test
     void v2WritesWhoseCentreCannotBeResolvedAreRefused() {
         web.post().uri("/api/v2/bookings").contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(Map.of("sessionId", 999, "candidateNumber", "NW00000901")).exchange()

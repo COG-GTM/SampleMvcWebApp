@@ -72,6 +72,10 @@ scheduling:
   # Same vocabulary as legacy CK_Booking_Channel so the M4 outbox can write it back unchanged.
   default-channel: PORTAL
   actor: ${SCHEDULING_ACTOR:scheduling-service}
+  # MBA-3823: service credential for POST /api/v2/bookings/{id}/attendance (header X-Service-Token, results-service).
+  # No default: unset = every attendance call is refused (fail closed); the run scripts set a dev value.
+  attendance:
+    service-token: ${SCHEDULING_ATTENDANCE_SERVICE_TOKEN:}
   # MBA-3823 outbox relay: projects every outbox_event into AssessmentDelivery as ad_sched_relay
   # (db/security/036_component_logins.sql). Local-dev password like scheduling.legacy; Azure uses the env var.
   relay:
