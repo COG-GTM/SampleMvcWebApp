@@ -54,7 +54,7 @@ Running the repros: rebuild with `scripts\run-legacy.ps1` (no `-SkipDb`), then `
 
 ### HB-01 A partner booking takes two seats
 - **Where:** `BA/service/BookingService.java:113-116` and `BA/dao/SessionDao.java:82-83` insert the booking and subtract 1; `db/triggers/032_trg_Booking_SeatSync.sql:18-24` subtracts 1 again for every non-PORTAL BOOKED insert. The portal path (`db/procs/020_usp_BookSeat.sql:56-61`) inserts `Channel='PORTAL'`, so the trigger skips it.
-- **What happens:** one partner booking moves `SeatsAvailable` by -2. Observed on session 187: `Capacity 10, SeatsAvailable 5` -> `3` with 6 BOOKED rows (expected 4). The admin screen shows the counter next to a row recount, so the columns disagree (`AssessmentDelivery.Services/Admin/AdminService.cs:112,124-125`).
+- **What happens:** one partner booking moves `SeatsAvailable` by -2. Observed on session 187: `Capacity 10, SeatsAvailable 5` -> `3` with 6 BOOKED rows (expected 4). The admin screen shows the counter next to a row recount, so the columns disagree (`AssessmentDelivery.Services/Admin/AdminService.cs:112,123-124`).
 - **Migration impact:** the counter is not a source of truth. Porting either the trigger or the Java decrement alone changes availability.
 - **Repro:** `sql/02_partner_double_decrement.sql`; `java-services/01-partner-double-decrement.sh` (live via `POST :8081/api/v1/bookings`).
 
