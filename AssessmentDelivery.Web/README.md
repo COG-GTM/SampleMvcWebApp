@@ -60,6 +60,13 @@ packages\NUnit.ConsoleRunner.3.16.3\tools\nunit3-console.exe AssessmentDelivery.
   (`Portal.ModernUiBaseUrl`, empty = same origin as the portal, i.e. behind the gateway).
 - What is left is read-only over the relay-projected tables (`/Admin/Sessions`, `/Eligibility`,
   `/Results`), plus editing a centre's name/active flag (a plain EF update).
+- `/Admin/Centers/{id}/CapacityAudit?from=&to=&sessionId=&page=` (MBA-3828, linked from each centre and each
+  session row) shows capacity changes from `AuditLog` through `dbo.usp_GetCapacityAudit` and capacity-sync runs
+  through `dbo.usp_GetCapacitySyncRuns`: date/time, session, room, old -> new, delta, actor and the session's
+  current capacity/seats. Last 30 days by default, 50 rows per page; unparseable `Detail` is shown raw.
+  `AdminService` calls the two procs with the non-generic `Database.SqlQuery(Type, ...)`;
+  `PortalRawSqlGuardTests` fails if any `Database.SqlQuery(` in portal source runs anything else.
+  Functional test: `scriptsunctional-capacity-audit.ps1`.
   `scripts/check-retired-booking.sh` (CI) and `RetiredBookingGuardTests` fail if C# booking writes,
   `SeatsAvailable` updates or the dropped booking procs reappear.
 - The "Booked" column in centre admin is counted from the Booking rows (BOOKED + ATTENDED); the

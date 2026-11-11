@@ -1,0 +1,136 @@
+@model AssessmentDelivery.Web.Models.CapacityAuditViewModel
+@{
+    ViewBag.Title = "Capacity audit - " + Model.Center.CenterCode;
+    ViewBag.Breadcrumb = "<a href=\"" + Url.Action("Centers") + "\">Test Centres</a> &raquo; "
+        + "<a href=\"" + Url.Action("Sessions", new { centerId = Model.Center.TestCenterId }) + "\">" + Html.Encode(Model.Center.CenterCode) + "</a> &raquo; Capacity audit";
+    var firstRow = (Model.Page - 1) * Model.PageSize + 1;
+}
+<div class="nw-page-head">
+    <h2>Capacity audit <small>@Model.Center.Name &middot; @Model.Center.CenterCode</small></h2>
+    <span class="nw-sub">Who changed a session's capacity, when, and from what to what &middot; @Model.TotalRows change(s) from @Model.From.ToString("dd MMM yyyy") to @(Model.To.HasValue ? Model.To.Value.ToString("dd MMM yyyy") : "now")</span>
+</div>
+<div class="nw-panel">
+    <div class="nw-panel-heading">Filter</div>
+    <div class="nw-panel-body">
+        <form method="get" action="@Url.Action("CapacityAudit", new { id = Model.Center.TestCenterId })" class="form-inline nw-form" id="capacity-audit-filter">
+            <div class="form-group">
+                <label for="from">From</label>
+                <input type="date" id="from" name="from" class="form-control input-sm" value="@Model.From.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="form-group">
+                <label for="to">To</label>
+                <input type="date" id="to" name="to" class="form-control input-sm" value="@(Model.To.HasValue ? Model.To.Value.ToString("yyyy-MM-dd") : "")" />
+            </div>
+            <div class="form-group">
+                <label for="sessionId">Session</label>
+                @Html.DropDownList("sessionId", Model.Sessions, "All sessions", new { @class = "form-control input-sm" })
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            <a class="btn btn-default btn-sm" href="@Url.Action("CapacityAudit", new { id = Model.Center.TestCenterId })">Last 30 days</a>
+        </form>
+    </div>
+</div>
+<div class="nw-panel">
+    <div class="nw-panel-heading">
+        Capacity changes
+        @if (Model.SessionId.HasValue) { <span class="nw-muted">&middot; session #@Model.SessionId</span> }
+        <span class="pull-right nw-muted">Newest first &middot; @Model.PageSize per page</span>
+    </div>
+    <table class="table table-condensed table-striped nw-grid" id="capacity-audit">
+        <thead>
+            <tr>
+                <th>Date/time</th>
+                <th>Session</th>
+                <th>Room</th>
+                <th>Old &rarr; New</th>
+                <th class="num">Delta</th>
+                <th>Actor</th>
+                <th class="num">Capacity</th>
+                <th class="num">Seats avail.</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model.Rows)
+            {
+                <tr data-audit-id="@r.AuditId" data-session-id="@r.SessionId">
+                    <td class="nowrap">@r.LoggedAt.ToString("dd MMM yyyy HH:mm:ss")</td>
+                    <td class="nowrap"><span class="nw-muted">#@r.SessionId</span> <strong>@r.ExamCode</strong> @r.StartsAt.ToString("dd MMM yyyy HH:mm")</td>
+                    <td>@r.RoomName</td>
+                    @if (r.OldCapacity.HasValue && r.NewCapacity.HasValue)
+                    {
+                        <td class="nowrap capacity-change">@r.OldCapacity &rarr; @r.NewCapacity</td>
+                        <td class="num capacity-delta">@(r.Delta > 0 ? "+" : "")@r.Delta</td>
+                    }
+                    else
+                    {
+                        <td colspan="2" class="nw-muted capacity-raw" title="Detail could not be parsed">@r.Detail</td>
+                    }
+                    <td title="AuditLog actor: @r.RawActor">@r.Actor</td>
+                    <td class="num">@r.CurrentCapacity</td>
+                    <td class="num @(r.SeatsAvailable == 0 ? "nw-zero" : "")">@r.SeatsAvailable</td>
+                </tr>
+            }
+            @if (Model.Rows.Count == 0)
+            {
+                <tr><td colspan="8" class="nw-empty">No capacity changes in this range.</td></tr>
+            }
+        </tbody>
+    </table>
+    @if (Model.TotalRows > 0)
+    {
+        <div class="nw-panel-body nw-pager">
+            <span class="nw-muted">Rows @firstRow&ndash;@(firstRow + Model.Rows.Count - 1) of @Model.TotalRows &middot; page @Model.Page of @Model.PageCount</span>
+            @if (Model.Page > 1)
+            {
+                <a class="btn btn-default btn-xs" href="@Url.Action("CapacityAudit", Model.RouteValues(Model.Page - 1))">&laquo; Newer</a>
+            }
+            @if (Model.Page < Model.PageCount)
+            {
+                <a class="btn btn-default btn-xs" href="@Url.Action("CapacityAudit", Model.RouteValues(Model.Page + 1))">Older &raquo;</a>
+            }
+        </div>
+    }
+    else if (Model.Page > 1)
+    {
+        <div class="nw-panel-body nw-pager"><a class="btn btn-default btn-xs" href="@Url.Action("CapacityAudit", Model.RouteValues(1))">&laquo; First page</a></div>
+    }
+</div>
+<div class="nw-panel" id="capacity-sync-runs">
+    <div class="nw-panel-heading">Automatic seat re-syncs <span class="pull-right nw-muted">capacity-sync runs, all centres</span></div>
+    <table class="table table-condensed table-striped nw-grid">
+        <thead>
+            <tr>
+                <th>Date/time</th>
+                <th>Trigger</th>
+                <th>Status</th>
+                <th class="num">Checked</th>
+                <th class="num">Updated</th>
+                <th>Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var run in Model.SyncRuns)
+            {
+                <tr class="sync-run">
+                    <td class="nowrap">@run.LoggedAt.ToString("dd MMM yyyy HH:mm:ss")</td>
+                    @if (run.Trigger != null)
+                    {
+                        <td class="sync-trigger">@run.Trigger</td>
+                        <td>@Html.StatusPill(run.Status)</td>
+                        <td class="num sync-checked">@run.Checked</td>
+                        <td class="num sync-updated">@run.Updated</td>
+                        <td class="nw-muted">@run.Reason</td>
+                    }
+                    else
+                    {
+                        <td colspan="5" class="nw-muted">@run.Detail</td>
+                    }
+                </tr>
+            }
+            @if (Model.SyncRuns.Count == 0)
+            {
+                <tr><td colspan="6" class="nw-empty">No automatic seat re-syncs in this range.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>

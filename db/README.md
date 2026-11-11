@@ -6,7 +6,7 @@ against SQL Server 2022 Developer in Docker). Everything runs in file-name order
 | Folder | What |
 |---|---|
 | `schema/` | `000` creates the database + per-component dev logins, `010` the tables |
-| `procs/` | `090` drops the retired booking procs (`020`-`023`, in git history before MBA-3824; scheduling-service is the only booking writer) |
+| `procs/` | `030` read-only capacity audit procs (`usp_GetCapacityAudit`, `usp_GetCapacitySyncRuns`, MBA-3828); `090` drops the retired booking procs (`020`-`023`, in git history before MBA-3824; scheduling-service is the only booking writer) |
 | `triggers/` | `030`-`033` audit and housekeeping triggers |
 | `seed/` | `040`-`049` deterministic demo data (same rows and ids on every run) |
 | `checks/` | read-only diagnostic queries |
@@ -73,7 +73,12 @@ At the end of the seed `SeatsAvailable = Capacity - (BOOKED + ATTENDED)` for eve
 ```bash
 sqlcmd -S localhost,1433 -U sa -P 'Str0ng!Passw0rd' -C -W -i db/checks/seat-drift.sql
 sqlcmd -S localhost,1433 -U sa -P 'Str0ng!Passw0rd' -C -W -i db/checks/row-counts.sql
+sqlcmd -S localhost,1433 -U sa -P 'Str0ng!Passw0rd' -C -b -I -i db/checks/test_usp_GetCapacityAudit.sql
 ```
+
+- `test_usp_GetCapacityAudit.sql` - test of the `030` capacity audit procs: inserts audit rows inside
+  `BEGIN TRAN ... ROLLBACK`, asserts filtering, ordering, parsing, paging and that the procs write nothing.
+  Prints PASS lines; any failure THROWs, so `-b` exits non-zero.
 
 - `seat-drift.sql` - sessions where `SeatsAvailable <> Capacity - (BOOKED + ATTENDED)`.
   No rows on a fresh seed.

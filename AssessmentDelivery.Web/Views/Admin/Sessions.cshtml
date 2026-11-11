@@ -5,7 +5,7 @@
 }
 <div class="nw-page-head">
     <h2>@Model.Center.Name <small>@Model.Center.CenterCode &middot; @Model.Center.City &middot; @Model.Center.Region</small></h2>
-    <span class="nw-sub">@Model.Sessions.Count session(s) &middot; times shown are centre-local (@Model.Center.TimeZone)</span>
+    <span class="nw-sub">@Model.Sessions.Count session(s) &middot; times shown are centre-local (@Model.Center.TimeZone) &middot; <a href="@Url.Action("CapacityAudit", new { id = Model.Center.TestCenterId })">Capacity audit</a></span>
 </div>
 <div class="nw-panel">
     <div class="nw-panel-heading">Exam sessions</div>
@@ -41,7 +41,8 @@
                     <td class="num">@s.Booked</td>
                     <td class="num">@s.WaitlistCount</td>
                     <td>@Html.StatusPill(s.Status)</td>
-                    <td class="nw-actions"><a href="@Html.ModernUiUrl("/app/admin/sessions/" + s.SessionId)">Capacity</a></td>
+                    <td class="nw-actions nowrap"><a href="@Html.ModernUiUrl("/app/admin/sessions/" + s.SessionId)">Capacity</a> |
+                        <a href="@Url.Action("CapacityAudit", new { id = Model.Center.TestCenterId, sessionId = s.SessionId })">Audit</a></td>
                 </tr>
             }
             @if (Model.Sessions.Count == 0)
