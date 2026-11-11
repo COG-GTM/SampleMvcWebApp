@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- MBA-3832: JSON logs (logstash encoder) by default; SPRING_PROFILES_ACTIVE=plain-logs for human-readable. -->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProfile name="plain-logs">
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="!plain-logs">
+        <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <customFields>{"service":"scheduling-service"}</customFields>
+                <!-- MDC allow-list: no other MDC value (and so no other candidate data) reaches the logs -->
+                <includeMdcKeyName>traceId</includeMdcKeyName>
+                <includeMdcKeyName>spanId</includeMdcKeyName>
+                <includeMdcKeyName>centerCode</includeMdcKeyName>
+                <includeMdcKeyName>sessionId</includeMdcKeyName>
+                <includeMdcKeyName>bookingId</includeMdcKeyName>
+                <includeMdcKeyName>candidateNumber</includeMdcKeyName>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="JSON"/>
+        </root>
+    </springProfile>
+</configuration>

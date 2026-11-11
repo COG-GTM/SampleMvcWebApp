@@ -37,6 +37,16 @@ public class JdbcLegacyReferenceSource implements LegacyReferenceSource {
     }
 
     @Override
+    public void ping() {
+        jdbc.execute((org.springframework.jdbc.core.ConnectionCallback<Boolean>) c -> {
+            if (!c.isValid(3)) {
+                throw new IllegalStateException("legacy connection is not valid");
+            }
+            return true;
+        });
+    }
+
+    @Override
     public List<LegacyRows.Center> centers() {
         return jdbc.query("SELECT TestCenterId, CenterCode, Name, City, Region, TimeZone, IsActive, "
                 + "CAST(BINARY_CHECKSUM(*) AS BIGINT) AS SourceVersion FROM dbo.TestCenter",
