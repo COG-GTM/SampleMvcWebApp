@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ApiError, api, fmtDateTime, type Booking, type Session } from '../api';
+import { ApiError, api, fmtDateTime, isExtraTime, noAccommodationSeatFor, type Booking, type Session } from '../api';
 import { Empty, PageHeader, Spinner } from '../components/ui';
 import { useToast } from '../components/Toast';
 
@@ -15,6 +15,7 @@ export default function Reschedule() {
   const [options, setOptions] = useState<Session[] | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     api.booking(bookingId).then((b) => { setBooking(b); setCenter(b.centerCode); })
@@ -28,7 +29,7 @@ export default function Reschedule() {
     api.sessions(center, booking.examCode)
       .then((s) => setOptions(s.filter((x) => x.sessionId !== booking.sessionId && x.status === 'OPEN')))
       .catch((e) => toast('error', 'Could not load sessions', e.message));
-  }, [booking, center, toast]);
+  }, [booking, center, toast, reload]);
 
   async function confirm() {
     if (!selected) return;
@@ -40,6 +41,7 @@ export default function Reschedule() {
       navigate('/my-bookings');
     } catch (e) {
       const ae = e as ApiError;
+      if (ae.code === 'NO_ACCOMMODATION_SEAT') { setSelected(null); setReload((n) => n + 1); }
       toast('error', 'Reschedule failed', `${ae.message}${ae.legacyCode ? ` (code ${ae.legacyCode})` : ''}`);
     } finally {
       setBusy(false);
@@ -59,15 +61,23 @@ export default function Reschedule() {
       </div>
       {!options ? <Spinner /> : options.length === 0 ? <Empty>No other open {booking.examCode} sessions at this centre.</Empty> : (
         <fieldset className="grid gap-3 md:grid-cols-2" data-testid="reschedule-options">
-          {options.map((s) => (
-            <label key={s.sessionId} className={`card flex cursor-pointer items-center justify-between gap-3 p-4 ${selected === s.sessionId ? 'ring-2 ring-indigo-500' : ''}`}>
+          {options.map((s) => {
+            // the reschedule keeps the booking's accommodation code, so an ET booking needs a free accommodation seat
+            const noAccSeat = noAccommodationSeatFor(s, booking.accommodationCode);
+            return (
+            <label key={s.sessionId} className={`card flex items-center justify-between gap-3 p-4 ${noAccSeat ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${selected === s.sessionId ? 'ring-2 ring-indigo-500' : ''}`}>
               <span className="flex items-center gap-3">
-                <input type="radio" name="target" checked={selected === s.sessionId} onChange={() => setSelected(s.sessionId)} data-testid={`target-${s.sessionId}`} />
+                <input type="radio" name="target" checked={selected === s.sessionId} disabled={noAccSeat} onChange={() => setSelected(s.sessionId)} data-testid={`target-${s.sessionId}`} />
                 <span><span className="block font-medium">{fmtDateTime(s.startsAt)}</span><span className="text-sm text-slate-500">Session #{s.sessionId} · {s.roomName}</span></span>
               </span>
-              <span className={`text-sm font-semibold ${s.seatsAvailable ? 'text-emerald-700' : 'text-amber-700'}`}>{s.seatsAvailable ? `${s.seatsAvailable} seats left` : 'Full – waitlist'}</span>
+              <span className="text-right text-sm font-semibold">
+                <span className={`block ${s.seatsAvailable ? 'text-emerald-700' : 'text-amber-700'}`}>{s.seatsAvailable ? `${s.seatsAvailable} seats left` : 'Full – waitlist'}</span>
+                {isExtraTime(booking.accommodationCode) && <span className={`block text-xs ${noAccSeat ? 'text-rose-700' : 'text-slate-500'}`} data-testid={`target-acc-${s.sessionId}`}>
+                  {noAccSeat ? `No ${booking.accommodationCode} seat – unavailable` : `${s.accommodationAvailable} accommodation seats left`}</span>}
+              </span>
             </label>
-          ))}
+            );
+          })}
         </fieldset>
       )}
       <div className="mt-6 flex justify-end">

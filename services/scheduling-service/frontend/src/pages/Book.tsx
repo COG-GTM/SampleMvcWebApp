@@ -14,8 +14,10 @@ export default function Book() {
   const [session, setSession] = useState<Session | null>(null);
   const [candidate, setCandidate] = useCandidateNumber();
   const [number, setNumber] = useState(candidate);
-  const [acc, setAcc] = useState('');
-  const [accTouched, setAccTouched] = useState(false);
+  // ?acc= from Find sessions is the candidate's explicit choice; otherwise the profile default is pre-filled
+  const accParam = params.get('acc');
+  const [acc, setAcc] = useState(accParam ?? '');
+  const [accTouched, setAccTouched] = useState(accParam !== null);
   const [profileDefault, setProfileDefault] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -52,6 +54,7 @@ export default function Book() {
       navigate('/my-bookings');
     } catch (err) {
       const ae = err as ApiError;
+      if (ae.code === 'NO_ACCOMMODATION_SEAT') api.session(session.sessionId).then(setSession).catch(() => {});
       toast('error', 'Booking failed', `${ae.message}${ae.legacyCode ? ` (code ${ae.legacyCode})` : ''}`);
     } finally {
       setBusy(false);
@@ -62,7 +65,7 @@ export default function Book() {
   if (!session) return <Spinner />;
   return (
     <>
-      <PageHeader title="Book a seat" subtitle={<Link to={`/?center=${session.centerCode}&exam=${session.examCode}`} className="text-indigo-600">← Back to sessions</Link>} />
+      <PageHeader title="Book a seat" subtitle={<Link to={`/?center=${session.centerCode}&exam=${session.examCode}${accParam !== null ? `&acc=${encodeURIComponent(acc)}` : ''}`} className="text-indigo-600">← Back to sessions</Link>} />
       <div className="grid gap-6 lg:grid-cols-5">
         <section className="card p-5 lg:col-span-2" data-testid="book-session">
           <div className="mb-2 flex items-center justify-between"><p className="text-xs font-semibold text-indigo-600">{session.examCode} · Session #{session.sessionId}</p><StatusBadge status={session.status} /></div>
@@ -72,7 +75,7 @@ export default function Book() {
           <div className="my-4"><SeatMeter s={session} /></div>
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div><dt className="text-slate-500">Seats left</dt><dd className="text-2xl font-bold" data-testid="seats-left">{session.seatsAvailable}</dd></div>
-            <div><dt className="text-slate-500">Extra-time seats left</dt><dd className="text-2xl font-bold">{session.accommodationAvailable}</dd></div>
+            <div><dt className="text-slate-500">Accommodation seats left</dt><dd className="text-2xl font-bold">{session.accommodationAvailable}</dd></div>
           </dl>
           {session.seatsAvailable === 0 && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">This session is full – booking now puts you on the waitlist.</p>}
         </section>
@@ -91,7 +94,7 @@ export default function Book() {
             {profileDefault && <p className="mt-1 text-xs text-slate-500" data-testid="accommodation-default">Profile default: {profileDefault}</p>}
             {accError && <p className="mt-1 text-xs text-rose-600">{accError}</p>}
           </div>
-          <button type="submit" className="btn-primary w-full sm:w-auto" disabled={busy || session.status !== 'OPEN'} data-testid="confirm-book">
+          <button type="submit" className="btn-primary w-full sm:w-auto" disabled={busy || session.status !== 'OPEN' || !!accError} data-testid="confirm-book">
             {busy ? 'Booking…' : session.seatsAvailable > 0 ? 'Confirm booking' : 'Join waitlist'}
           </button>
         </form>

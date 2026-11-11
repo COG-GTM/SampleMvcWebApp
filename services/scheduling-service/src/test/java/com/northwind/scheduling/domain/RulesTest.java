@@ -227,6 +227,73 @@ class RulesTest {
         }
     }
 
+    /** MBA-3830: ET25/ET50 reserve an accommodation-capable seat; SR/RB carry no seat constraint. */
+    @Nested
+    class AccommodationBooking {
+        static BookingRules.Outcome decide(SessionCapacity s, String acc) {
+            return BookingRules.decide(154, "N", SessionStatus.OPEN, s, false, acc, OK, "X");
+        }
+
+        @Test
+        void extraTimeTakesTheLastAccommodationSeatAndBothCountersDrop() {
+            SessionCapacity before = new SessionCapacity(20, 2, 10, 1, 0);
+            assertThat(before.hasSeatFor("ET50")).isTrue();
+            assertThat(decide(before, "ET50")).isEqualTo(BookingRules.Outcome.BOOKED);
+            SessionCapacity after = new SessionCapacity(20, 2, 11, 2, 0);
+            assertThat(after.seatsAvailable()).isEqualTo(before.seatsAvailable() - 1);
+            assertThat(after.accommodationAvailable()).isEqualTo(before.accommodationAvailable() - 1).isZero();
+        }
+
+        @Test
+        void exhaustedAccommodationRejectsEveryExtraTimeCodeWith50003() {
+            SessionCapacity full = new SessionCapacity(20, 2, 11, 2, 0);
+            for (String et : List.of("ET25", "ET50")) {
+                assertThat(full.hasSeatFor(et)).isFalse();
+                assertThat(codeOf(() -> decide(full, et))).isEqualTo(ErrorCode.NO_ACCOMMODATION_SEAT);
+            }
+            assertThat(ErrorCode.NO_ACCOMMODATION_SEAT.httpStatus()).isEqualTo(409);
+            assertThat(ErrorCode.NO_ACCOMMODATION_SEAT.legacyCode()).isEqualTo(50003);
+        }
+
+        @Test
+        void exhaustedAccommodationRejectsInsteadOfWaitlisting() { // usp_BookSeat checks state 3 before the waitlist branch
+            SessionCapacity fullEverywhere = new SessionCapacity(3, 1, 3, 1, 1);
+            assertThat(codeOf(() -> decide(fullEverywhere, "ET25"))).isEqualTo(ErrorCode.NO_ACCOMMODATION_SEAT);
+            assertThat(decide(fullEverywhere, "SR")).isEqualTo(BookingRules.Outcome.WAITLISTED);
+        }
+
+        @Test
+        void srRbAndNoCodeNeverNeedAnAccommodationSeat() {
+            SessionCapacity noAccommodation = new SessionCapacity(10, 0, 2, 0, 0);
+            for (String code : java.util.Arrays.asList("SR", "RB", null)) {
+                assertThat(noAccommodation.hasSeatFor(code)).isTrue();
+                assertThat(decide(noAccommodation, code)).isEqualTo(BookingRules.Outcome.BOOKED);
+            }
+            assertThat(noAccommodation.hasSeatFor("ET25")).isFalse();
+        }
+
+        @Test
+        void blankCodeMeansNoneSoItIsNotExtraTime() { // ADR 0002 section 6a / ODD-07
+            assertThat(new SessionCapacity(10, 0, 0, 0, 0).hasSeatFor(AccommodationCodes.normalize(" "))).isTrue();
+        }
+
+        @Test
+        void overAllocatedLegacyRowsClampToZeroAndStayExhausted() {
+            SessionCapacity over = new SessionCapacity(10, 1, 3, 2, 0);
+            assertThat(over.accommodationAvailable()).isZero();
+            assertThat(over.hasSeatFor("ET50")).isFalse();
+        }
+
+        @Test
+        void capacityMayDropToTheAccommodationAllocationButNotBelow() { // usp_ChangeCapacity CP-05/CP-06
+            SessionCapacity s = new SessionCapacity(20, 2, 1, 1, 0);
+            List<CapacityChange.BookedSeat> one = List.of(new CapacityChange.BookedSeat(1, LocalDateTime.of(2026, 11, 1, 9, 0)));
+            assertThat(CapacityChange.plan(154, 2, s, one, null, AccommodationFloorPolicy.ALLOCATED).newAccommodationCapacity()).isEqualTo(2);
+            assertThat(codeOf(() -> CapacityChange.plan(154, 1, s, one, null, AccommodationFloorPolicy.ALLOCATED)))
+                    .isEqualTo(ErrorCode.INVALID_CAPACITY);
+        }
+    }
+
     @Nested
     class Retake {
         final RetakeEligibilityPolicy calendar = new RetakeEligibilityPolicy(RetakeDayCounting.CALENDAR);
