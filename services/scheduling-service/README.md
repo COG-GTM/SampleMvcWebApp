@@ -50,14 +50,59 @@ The service refuses to start if the scheduling datasource points at `AssessmentD
 
 - Session ids and center ids/codes equal the legacy ids. Imported bookings keep their legacy
   `BookingId` (`origin = LEGACY_IMPORT`); bookings created here come from the sequence
-  `booking_id_seq` starting at **50,000,001** (`origin = MODERN`, `legacy_booking_id` null until the
-  M4 relay fills it).
+  `booking_id_seq` starting at **50,000,001** (`origin = MODERN`, `legacy_booking_id` filled by the
+  relay on first projection). Every `/api/v2/bookings/{id}` endpoint accepts either id.
 - `GET /internal/routing/resolve?sessionId=|bookingId=|centerId=|centerCode=` (exactly one) returns
   `{"centerCode","centerId","sessionId","bookingId","bookingOrigin"}` from local tables only, or
   404 `{"error":"NOT_FOUND","message":...}`; center/session lookups send `Cache-Control: max-age=60`.
 - `POST /internal/import/sessions?centerCode=` (omit for all) re-imports idempotently (upsert by
   legacy id). Sessions that scheduling-service has already changed (`locally_modified = 1`) are
   skipped so modern writes are never overwritten.
+
+## Single writer, outbox and relay (MBA-3823)
+
+scheduling-service is the **only writer** of bookings and seat counts. The database enforces it:
+`db/security/040_single_writer.sql` DENYs INSERT/UPDATE/DELETE on `dbo.Booking` / `dbo.Waitlist`, UPDATE of
+`dbo.ExamSession (Capacity, SeatsAvailable, AccommodationCapacity)` and EXECUTE on `usp_BookSeat`,
+`usp_CancelBooking`, `usp_ChangeCapacity`, `usp_RescheduleBooking` to `ad_portal`, `ad_booking_api`, `ad_results`,
+`ad_capacity_sync` and `ad_sched_import`. Only `ad_sched_relay` can write those tables (and cannot run the procs or
+delete bookings). booking-api forwards v1 writes through the routing layer, results-service calls
+`POST /api/v2/bookings/{bookingId}/attendance`, capacity-sync is disabled (`capacity.sync.enabled=false`).
+
+- **Transactional outbox.** Every booking/capacity change inserts a row into `outbox_event` (Flyway `V2__outbox.sql`)
+  in the same local `Scheduling` transaction (`OutboxWriter` is `Propagation.MANDATORY`): `BookingCreated`,
+  `BookingWaitlisted`, `BookingCancelled`, `BookingRescheduled`, `AttendanceRecorded`, `CapacityChanged`.
+  `event_id` is an IDENTITY (monotonic). The payload carries the full resulting state of every touched session and
+  booking (status, accommodation code, channel, waitlist position, capacity, derived `SeatsAvailable`), not deltas,
+  so applying it is naturally idempotent.
+- **Relay** (`relay` package, `scheduling.relay.enabled`, polls every 200 ms). For each pending event, in id order,
+  one AssessmentDelivery transaction as `ad_sched_relay`: check `dbo.RelayCheckpoint` (key-range locked), upsert
+  `Booking` (a modern booking gets its legacy `BookingId` on first relay, kept in `dbo.RelayBookingMap` and written
+  back to `booking.legacy_booking_id`, so v1 URLs and `Result.BookingId` keep working), sync `Waitlist`, set
+  `ExamSession` capacity/seats, add one `AuditLog` row, insert the checkpoint. Then `relayed_at` is set in
+  `Scheduling`. A crash between the two commits only causes a replay, which the checkpoint turns into a no-op.
+  A failing event stops the batch (ordering) and is retried with `attempts` / `last_error` recorded.
+- **Trigger neutralization.** The relay connection runs `sp_set_session_context N'writer', N'scheduling-relay'`
+  (read-only). `trg_Booking_SeatSync` returns immediately and `trg_ExamSession_Update` only stamps `LastModified`,
+  so the legacy tables hold exactly what scheduling-service decided.
+- **Reconciliation.** `GET /internal/reconciliation[?writeReport=true]` or the CLI
+  `java -jar target/scheduling-service.jar reconcile [--wait-seconds=30]` (exit 0 only with 0 mismatches and
+  0 drift rows) compares, per session, Capacity, SeatsAvailable, BOOKED/ATTENDED/WAITLISTED counts, accommodation
+  seats used and every booking's status/session/accommodation, includes `db/checks/seat-drift.sql` and the relay
+  backlog/lag, and writes `reports/reconciliation-<timestamp>.md`. `GET /internal/relay/status` and
+  `POST /internal/relay/run` expose the relay.
+
+**Alternative considered: CDC / Debezium.** SQL Server CDC on the `Scheduling` DB with Debezium would give the same
+guarantee (changes published only after commit, no dual write) without an outbox table, but needs Kafka + Kafka
+Connect (and CDC agent jobs) to run and operate. The outbox is one table and an in-process poller; swapping later
+is contained to the relay (the projection code consumes the same state-carrying events).
+
+| Relay setting | Env var | Default |
+|---|---|---|
+| Enable relay | `SCHEDULING_RELAY_ENABLED` | `false` (`true` in the run script) |
+| Legacy write target | `RELAY_DB_URL`, `RELAY_DB_USER`, `RELAY_DB_PASSWORD` | db `AssessmentDelivery`, `ad_sched_relay`, local dev password |
+| Poll interval | `SCHEDULING_RELAY_POLL_MS` | `200` |
+| Report directory | `RECONCILIATION_REPORT_DIR` | `reports` |
 
 ## API (`/api/v2`)
 
@@ -69,6 +114,7 @@ The service refuses to start if the scheduling datasource points at `AssessmentD
 | GET | `/bookings/{bookingId}` | v1 `BookingInfo` fields + `origin`, `legacyBookingId`, `waitlistPosition` |
 | DELETE | `/bookings/{bookingId}?reason=` | 200 booking |
 | POST | `/bookings/{bookingId}/reschedule` | `{"newSessionId"}` -> 201 (the new booking); same exam only |
+| POST | `/bookings/{bookingId}/attendance` | BOOKED -> ATTENDED (idempotent; 409 `BOOKING_NOT_ACTIVE` otherwise); used by results-service |
 | GET | `/candidates/{candidateNumber}` , `/candidates/{n}/bookings` , `/candidates/{n}/eligibility?examCode=&date=` | |
 | PUT | `/sessions/{sessionId}/capacity` | `{"newCapacity","actor"}` -> `{"session","bumpedBookingIds"}` |
 | GET | `/sessions/{sessionId}/waitlist` | `[{"position","bookingId","candidateNumber","candidateName","addedAt"}]` |
