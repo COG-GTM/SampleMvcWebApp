@@ -74,13 +74,19 @@ Step "legacy worktree $LegacyRoot @ $legacyHead; migrated worktree $root @ $head
 
 # ---------------------------------------------------------------- 1. legacy
 Stop-All
+$a = @(); if ($SkipBuild) { $a += '-SkipBuild' }
+try { Sql @('-Q', 'SELECT 1') } catch {
+    # fresh machine: the legacy launcher installs/configures SQL Server and the sa login before the db apply script can run
+    Step 'SQL Server not ready: letting the legacy launcher initialize it'
+    & (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -NoPortal @a
+    & (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -Stop
+}
 Step 'legacy: building the production copy from the legacy-baseline db scripts and backing it up'
 & (Join-Path $LegacyRoot 'db\apply.ps1') -Server $Server -SaPassword $SaPassword -Sqlcmd $sqlcmd
 if ($LASTEXITCODE -ne 0) { throw 'production copy build failed' }
 # one copy for both runs: rebuilding twice would give the seed's trigger-written AuditLog rows different LoggedAt values
 Sql @('-Q', "BACKUP DATABASE AssessmentDelivery TO DISK = N'$CopyFile' WITH INIT, COPY_ONLY")
 Step 'legacy: starting the legacy estate on the copy'
-$a = @(); if ($SkipBuild) { $a += '-SkipBuild' }
 & (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -SkipDb @a
 Invoke-Py @((Join-Path $PSScriptRoot 'cutover.py'), 'capture', '--target', 'legacy', '--repo', $LegacyRoot, '--out', (Join-Path $OutDir 'legacy.json'))
 & (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -Stop
