@@ -1,5 +1,8 @@
 package com.northwind.assessment.booking.service;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URLEncoder;
 import java.util.Date;
 import java.util.Map;
 
@@ -56,12 +59,12 @@ public class RetakeEligibilityService {
                 "SELECT CandidateNumber FROM dbo.Candidate WHERE CandidateId = ?", String.class, candidateId);
         String examCode = jdbcTemplate.queryForObject("SELECT ExamCode FROM dbo.Exam WHERE ExamId = ?",
                 String.class, examId);
-        String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/eligibility/retake")
-                .queryParam("candidateNumber", candidateNumber)
-                .queryParam("examCode", examCode)
+        URI url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/eligibility/retake")
+                .queryParam("candidateNumber", queryValue(candidateNumber))
+                .queryParam("examCode", queryValue(examCode))
                 .queryParam("date", DateUtils.formatIsoDate(onDate))
                 .queryParam("policy", POLICY)
-                .build().encode().toUriString();
+                .build(true).toUri();
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> d = rest.getForObject(url, Map.class);
@@ -75,6 +78,15 @@ public class RetakeEligibilityService {
             throw unavailable(e);
         } catch (ResourceAccessException e) {
             throw unavailable(e);
+        }
+    }
+
+    /** Form-encodes a query value: UriComponents.encode() leaves '+', which the server decodes as a space. */
+    private static String queryValue(String v) {
+        try {
+            return URLEncoder.encode(v, "UTF-8").replace("+", "%20");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
         }
     }
 

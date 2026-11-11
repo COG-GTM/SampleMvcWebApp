@@ -42,6 +42,7 @@ public class RetakeEligibilityServiceTest {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         when(jdbc.queryForObject(startsWith("SELECT CandidateNumber"), eq(String.class), eq(7))).thenReturn("NW00000007");
         when(jdbc.queryForObject(startsWith("SELECT ExamCode"), eq(String.class), eq(3))).thenReturn("AZ-104");
+        when(jdbc.queryForObject(startsWith("SELECT ExamCode"), eq(String.class), eq(4))).thenReturn("C++ 1");
         ReflectionTestUtils.setField(service, "jdbcTemplate", jdbc);
         ReflectionTestUtils.setField(service, "baseUrl", "http://sched/api/v1");
         server = MockRestServiceServer.bindTo((RestTemplate) ReflectionTestUtils.getField(service, "rest")).build();
@@ -61,6 +62,17 @@ public class RetakeEligibilityServiceTest {
         assertFalse(r.isEligible());
         assertEquals(RetakeEligibilityService.REASON_RETAKE_WAIT, r.getReason());
         assertEquals("2026-12-14", r.getEarliestRetakeDate());
+        server.verify();
+    }
+
+    @Test
+    public void reservedCharactersInCodesAreEncoded() {
+        server.expect(requestTo("http://sched/api/v1/eligibility/retake?candidateNumber=NW00000007&examCode=C%2B%2B%201"
+                + "&date=2026-12-01&policy=PARTNER_WORKING_DAYS"))
+                .andRespond(withSuccess("{\"eligible\":true,\"reason\":\"FIRST_ATTEMPT\",\"earliestRetakeDate\":null}",
+                        MediaType.APPLICATION_JSON));
+
+        assertTrue(service.check(7, 4, DateUtils.parseIsoDate("2026-12-01")).isEligible());
         server.verify();
     }
 

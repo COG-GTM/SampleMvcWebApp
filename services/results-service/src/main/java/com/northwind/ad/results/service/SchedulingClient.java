@@ -1,5 +1,8 @@
 package com.northwind.ad.results.service;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -77,13 +80,13 @@ public class SchedulingClient {
 
     /** Newest seat-holding booking of a candidate on a session (legacy findBookingId: BookingId DESC), or null. */
     public Integer findLatestActiveBookingId(String candidateNumber, int sessionId) {
-        String url = UriComponentsBuilder.fromHttpUrl(baseUrl() + "/bookings")
-                .queryParam("candidateNumber", candidateNumber)
+        URI url = UriComponentsBuilder.fromHttpUrl(baseUrl() + "/bookings")
+                .queryParam("candidateNumber", queryValue(candidateNumber))
                 .queryParam("sessionId", sessionId)
-                .queryParam("status", "BOOKED,ATTENDED")
-                .queryParam("sort", "bookingId,desc")
+                .queryParam("status", "BOOKED%2CATTENDED")
+                .queryParam("sort", "bookingId%2Cdesc")
                 .queryParam("limit", 1)
-                .build().encode().toUriString();
+                .build(true).toUri();
         try {
             BookingView[] found = rest.getForObject(url, BookingView[].class);
             List<BookingView> list = found == null ? Collections.<BookingView>emptyList() : Arrays.asList(found);
@@ -149,5 +152,14 @@ public class SchedulingClient {
         LOG.warn("scheduling-service unavailable on {}: {}", call, e.getMessage());
         return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, UNAVAILABLE,
                 "scheduling-service unavailable (" + call + "), nothing was recorded for this result; retry later");
+    }
+
+    /** Form-encodes a query value: UriComponents.encode() leaves '+', which the server decodes as a space. */
+    private static String queryValue(String v) {
+        try {
+            return URLEncoder.encode(v, "UTF-8").replace("+", "%20");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }
