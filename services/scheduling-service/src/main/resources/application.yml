@@ -85,6 +85,12 @@ scheduling:
     password: ${SCHEDULING_RELAY_DB_PASSWORD:Sch3dRelay!Dev2026}
     poll-ms: ${SCHEDULING_RELAY_POLL_MS:250}
     batch-size: ${SCHEDULING_RELAY_BATCH_SIZE:200}
+  # MBA-3829 waitlist auto-offer (ADR 0005): a freed seat is held for the next eligible waitlisted candidate for
+  # offer-ttl (ISO-8601 duration); the expiry job checks every expiry-poll and moves expired offers on.
+  waitlist:
+    offer-ttl: ${SCHEDULING_WAITLIST_OFFER_TTL:PT24H}
+    expiry-enabled: ${SCHEDULING_WAITLIST_EXPIRY_ENABLED:true}
+    expiry-poll: ${SCHEDULING_WAITLIST_EXPIRY_POLL:PT1M}
   # GET /internal/reconciliation and the `reconcile` CLI write reports/reconciliation-<ts>.md
   reconciliation:
     report-dir: ${SCHEDULING_RECONCILIATION_REPORT_DIR:reports}

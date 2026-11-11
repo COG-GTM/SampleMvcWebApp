@@ -142,11 +142,12 @@ public class SnapshotWriter {
         // events for the inventory being replaced are moot: the re-import reads the legacy rows they targeted
         jdbc.update("DELETE FROM outbox_event WHERE relayed_at IS NULL");
         jdbc.update("DELETE FROM capacity_change");
+        jdbc.update("DELETE FROM seat_offer");
         jdbc.update("DELETE FROM waitlist_entry");
         jdbc.update("UPDATE booking SET rescheduled_from = NULL WHERE rescheduled_from IS NOT NULL");
         jdbc.update("DELETE FROM booking");
         jdbc.update("DELETE FROM exam_session");
-        for (String table : List.of("waitlist_entry", "booking", "exam_session")) {
+        for (String table : List.of("seat_offer", "waitlist_entry", "booking", "exam_session")) {
             jdbc.execute("DBCC CHECKIDENT ('" + table + "', RESEED, 0) WITH NO_INFOMSGS");
         }
     }

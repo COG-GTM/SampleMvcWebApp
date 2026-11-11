@@ -48,6 +48,9 @@ public class OpenApiConfig {
     static final String ERROR_SCHEMA = "ApiError";
     /** 401 body of service-token operations; kept out of ApiError so its enum stays compatible with published baselines. */
     static final String SERVICE_TOKEN_ERROR_SCHEMA = "ServiceTokenError";
+    /** 4xx body of the MBA-3829 offer operations; kept out of ApiError for the same reason. */
+    static final String OFFER_ERROR_SCHEMA = "OfferError";
+    static final Set<ErrorCode> OFFER_ERRORS = Set.of(ErrorCode.OFFER_NOT_FOUND, ErrorCode.OFFER_NOT_PENDING);
     static final Set<String> SESSION_TIMES = Set.of("startsAt", "sessionStartsAt");
     static final String LOCAL_DATE_TIME_PATTERN = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$";
 
@@ -73,7 +76,10 @@ public class OpenApiConfig {
             Map.entry("candidate", List.of(ErrorCode.CANDIDATE_NOT_FOUND)),
             Map.entry("candidateBookings", List.of(ErrorCode.CANDIDATE_NOT_FOUND)),
             Map.entry("eligibility", List.of(ErrorCode.VALIDATION, ErrorCode.CANDIDATE_NOT_FOUND,
-                    ErrorCode.EXAM_NOT_FOUND)));
+                    ErrorCode.EXAM_NOT_FOUND)),
+            Map.entry("offer", List.of(ErrorCode.BAD_REQUEST, ErrorCode.OFFER_NOT_FOUND)),
+            Map.entry("acceptOffer", List.of(ErrorCode.BAD_REQUEST, ErrorCode.OFFER_NOT_FOUND, ErrorCode.OFFER_NOT_PENDING)),
+            Map.entry("declineOffer", List.of(ErrorCode.BAD_REQUEST, ErrorCode.OFFER_NOT_FOUND, ErrorCode.OFFER_NOT_PENDING)));
 
     /** operationId -> tag, summary. */
     static final Map<String, String[]> OPERATIONS = Map.ofEntries(
@@ -88,7 +94,13 @@ public class OpenApiConfig {
             Map.entry("book", new String[] {"Bookings",
                     "Book a seat (WAITLISTED when the session is full); returns the legacy {bookingId, status} plus the live booking and session"}),
             Map.entry("booking", new String[] {"Bookings", "Get a booking"}),
-            Map.entry("cancel", new String[] {"Bookings", "Cancel a booking (frees the seat, nobody is promoted, ODD-09)"}),
+            Map.entry("cancel", new String[] {"Bookings",
+                    "Cancel a booking (frees the seat; it is offered to the next eligible waitlist entry, MBA-3829 / ADR 0005)"}),
+            Map.entry("offer", new String[] {"Offers", "Get a waitlist seat offer"}),
+            Map.entry("acceptOffer", new String[] {"Offers",
+                    "Accept a pending seat offer (the waitlisted booking becomes BOOKED, later waitlist positions move up)"}),
+            Map.entry("declineOffer", new String[] {"Offers",
+                    "Decline a pending seat offer (the waitlisted booking is cancelled, the seat is offered to the next entry)"}),
             Map.entry("attendance", new String[] {"Bookings",
                     "Record attendance (BOOKED -> ATTENDED; already ATTENDED is a no-op). Called by results-service on result ingestion"}),
             Map.entry("reschedule", new String[] {"Bookings",
@@ -109,11 +121,12 @@ public class OpenApiConfig {
     /** Response properties that can be JSON null (nullable columns of V1__scheduling_schema.sql). */
     static final Map<String, Set<String>> NULLABLE = Map.of(
             "BookingDto", Set.of("accommodationCode", "externalRef", "cancelledAt", "cancelReason", "waitlistPosition",
-                    "rescheduledFrom"),
+                    "rescheduledFrom", "offerId", "offerStatus", "offerExpiresAt"),
             "BookingResultDto", Set.of("waitlistPosition"),
             "CandidateDto", Set.of("defaultAccommodationCode"),
             "EligibilityDto", Set.of("earliestRetakeDate"),
-            "WaitlistEntryDto", Set.of("accommodationCode"),
+            "WaitlistEntryDto", Set.of("accommodationCode", "offerId", "offerStatus", "offerExpiresAt"),
+            "OfferDto", Set.of("resolvedAt"),
             "CapacityChangeDto", Set.of("reason"));
 
     /** Request properties the service rejects with VALIDATION when missing. */
@@ -138,7 +151,10 @@ public class OpenApiConfig {
             Map.entry("defaultAccommodationCode", "ET25"), Map.entry("externalRef", "PX-3008"),
             Map.entry("date", "2026-11-20"), Map.entry("earliestRetakeDate", "2026-12-07"),
             Map.entry("dayCounting", "calendar"), Map.entry("durationMinutes", 120), Map.entry("retakeWaitDays", 30),
-            Map.entry("changedBy", "scheduling-service"), Map.entry("reason", "Room maintenance"));
+            Map.entry("changedBy", "scheduling-service"), Map.entry("reason", "Room maintenance"),
+            Map.entry("offerId", 7), Map.entry("offeredAt", "2026-11-10T09:15:00"),
+            Map.entry("expiresAt", "2026-11-11T09:15:00"), Map.entry("offerExpiresAt", "2026-11-11T09:15:00"),
+            Map.entry("resolvedAt", "2026-11-10T10:00:00"), Map.entry("position", 1), Map.entry("heldSeats", 1));
 
     static final Map<String, Object> ERROR_EXAMPLES = errorExamples();
 
@@ -161,6 +177,8 @@ public class OpenApiConfig {
         msg.put(ErrorCode.SAME_SESSION, "Booking 1201 is already on session 154");
         msg.put(ErrorCode.NOT_ELIGIBLE, "Candidate NW00000939 is not eligible to book MHL-RN1 (RETAKE_WAIT_NOT_ELAPSED), "
                 + "earliest retake date 2026-12-07");
+        msg.put(ErrorCode.OFFER_NOT_FOUND, "Offer 99999 not found");
+        msg.put(ErrorCode.OFFER_NOT_PENDING, "Offer 7 is EXPIRED");
         Map<String, Object> out = new LinkedHashMap<>();
         msg.forEach((code, text) -> {
             Map<String, Object> body = new LinkedHashMap<>();
@@ -195,27 +213,34 @@ public class OpenApiConfig {
                 Every 4xx is an `ApiError`: `error` is the symbolic code, `message` is human readable, and `legacyCode` is
                 `50000 + RAISERROR state` of the legacy procs (ODD-11, HB-14), e.g. `NO_ACCOMMODATION_SEAT` = 50003, or
                 null when the rule never existed as a proc error. Malformed input (unreadable JSON, wrong path/param type)
-                answers `BAD_REQUEST` without `legacyCode`.
+                answers `BAD_REQUEST` without `legacyCode`. The offer operations (MBA-3829) answer `OFFER_NOT_FOUND` and
+                `OFFER_NOT_PENDING` as an `OfferError` (same shape).
 
                 """ + errorTable();
         return new OpenAPI()
                 .info(new Info().title("Northwind Scheduling API").version(API_VERSION).description(description))
                 .servers(List.of(new Server().url("/").description("scheduling-service (default :8090)")))
                 .tags(List.of(new Tag().name("Bookings"), new Tag().name("Candidates"), new Tag().name("Capacity"),
-                        new Tag().name("Reference data"), new Tag().name("Sessions")))
+                        new Tag().name("Offers"), new Tag().name("Reference data"), new Tag().name("Sessions")))
                 .components(new Components().addSecuritySchemes(SERVICE_TOKEN, new SecurityScheme()
                         .type(SecurityScheme.Type.APIKEY).in(SecurityScheme.In.HEADER).name(AttendanceTokenGuard.HEADER)
                         .description("Service credential (scheduling.attendance.service-token); results-service only")));
     }
 
     static Schema<?> errorSchema() {
-        return errorSchema(Arrays.stream(ErrorCode.values()).filter(c -> c != ErrorCode.UNAUTHORIZED).toList(),
+        return errorSchema(Arrays.stream(ErrorCode.values())
+                        .filter(c -> c != ErrorCode.UNAUTHORIZED && !OFFER_ERRORS.contains(c)).toList(),
                 "Error body of every 4xx answer (ApiExceptionHandler)", "No accommodation seat available on session 155");
     }
 
     static Schema<?> serviceTokenErrorSchema() {
         return errorSchema(List.of(ErrorCode.UNAUTHORIZED), "401 body when X-Service-Token is missing or invalid",
                 "X-Service-Token missing or invalid");
+    }
+
+    static Schema<?> offerErrorSchema() {
+        return errorSchema(Arrays.stream(ErrorCode.values()).filter(OFFER_ERRORS::contains).toList(),
+                "404/409 body of the waitlist offer operations (MBA-3829)", "Offer 7 is EXPIRED");
     }
 
     static Schema<?> errorSchema(List<ErrorCode> errorCodes, String description, String exampleMessage) {
@@ -253,6 +278,7 @@ public class OpenApiConfig {
         }
         api.getComponents().addSchemas(ERROR_SCHEMA, errorSchema());
         api.getComponents().addSchemas(SERVICE_TOKEN_ERROR_SCHEMA, serviceTokenErrorSchema());
+        api.getComponents().addSchemas(OFFER_ERROR_SCHEMA, offerErrorSchema());
         if (api.getPaths() == null) {
             return;
         }
@@ -261,7 +287,8 @@ public class OpenApiConfig {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     void documentSchema(String name, Schema schema) {
-        if (ERROR_SCHEMA.equals(name) || SERVICE_TOKEN_ERROR_SCHEMA.equals(name) || schema.getProperties() == null) {
+        if (ERROR_SCHEMA.equals(name) || SERVICE_TOKEN_ERROR_SCHEMA.equals(name) || OFFER_ERROR_SCHEMA.equals(name)
+                || schema.getProperties() == null) {
             return;
         }
         Map<String, Schema> props = schema.getProperties();
@@ -303,6 +330,9 @@ public class OpenApiConfig {
             if (name.equals("SessionDto")) {
                 status.setEnum(Arrays.stream(SessionStatus.values()).map(Enum::name).toList());
                 status.setExample(SessionStatus.OPEN.name());
+            } else if (name.equals("OfferDto")) {
+                status.setEnum(Arrays.stream(com.northwind.scheduling.domain.OfferStatus.values()).map(Enum::name).toList());
+                status.setExample("PENDING");
             } else if (name.startsWith("Booking")) {
                 status.setEnum(Arrays.stream(BookingStatus.values()).map(Enum::name).toList());
                 status.setExample(BookingStatus.BOOKED.name());
@@ -358,7 +388,8 @@ public class OpenApiConfig {
         }
         byStatus.forEach((status, codes) -> {
             MediaType mt = new MediaType().schema(new Schema<>().$ref("#/components/schemas/"
-                    + (status == 401 ? SERVICE_TOKEN_ERROR_SCHEMA : ERROR_SCHEMA)));
+                    + (status == 401 ? SERVICE_TOKEN_ERROR_SCHEMA
+                    : OFFER_ERRORS.containsAll(codes) ? OFFER_ERROR_SCHEMA : ERROR_SCHEMA)));
             for (ErrorCode c : codes) {
                 mt.addExamples(c.name(), new Example().summary(c.name() + (c.legacyCode() == null ? ""
                         : " (legacy " + c.legacyCode() + ")")).value(ERROR_EXAMPLES.get(c.name())));

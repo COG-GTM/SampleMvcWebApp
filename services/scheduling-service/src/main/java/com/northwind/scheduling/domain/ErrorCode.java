@@ -31,7 +31,11 @@ public enum ErrorCode {
     /** booking-api only (ODD-08). */
     SAME_SESSION(409, 0),
     /** booking-api RetakeEligibilityService / portal EligibilityService. */
-    NOT_ELIGIBLE(409, 0);
+    NOT_ELIGIBLE(409, 0),
+    /** MBA-3829 waitlist offers (OfferError schema, kept out of ApiError like UNAUTHORIZED). */
+    OFFER_NOT_FOUND(404, 0),
+    /** The offer is no longer PENDING (accepted, declined, expired or withdrawn), or its expiry has passed. */
+    OFFER_NOT_PENDING(409, 0);
 
     private final int httpStatus;
     private final int legacyState;

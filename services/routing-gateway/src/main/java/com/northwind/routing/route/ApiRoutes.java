@@ -12,13 +12,13 @@ public final class ApiRoutes {
 
     public enum V1Op { SESSIONS, SESSION, BOOK, GET_BOOKING, CANCEL, RESCHEDULE }
 
-    public enum V2Op { BOOK, CANCEL, RESCHEDULE, CAPACITY }
+    public enum V2Op { BOOK, CANCEL, RESCHEDULE, CAPACITY, OFFER }
 
     /** {@code needsBody}: the centre key is {@code sessionId} in the JSON body (POST /api/v1/bookings). */
     public record V1(V1Op op, Lookup lookup, String id, boolean needsBody) {
     }
 
-    /** {@code id} is the booking or session id from the path, if any. */
+    /** {@code id} is the booking, session or offer id from the path, if any. */
     public record V2Write(V2Op op, String id) {
     }
 
@@ -78,6 +78,10 @@ public final class ApiRoutes {
             if (s.length == 3 && m.equals("POST") && s[2].equals("reschedule") && PortalRoutes.isId(s[1])) {
                 return Optional.of(new V2Write(V2Op.RESCHEDULE, s[1]));
             }
+        }
+        if (s[0].equals("offers") && s.length == 3 && m.equals("POST") && (s[2].equals("accept") || s[2].equals("decline"))
+                && PortalRoutes.isId(s[1])) {
+            return Optional.of(new V2Write(V2Op.OFFER, s[1]));
         }
         if (s[0].equals("sessions") && s.length == 3 && s[2].equals("capacity") && m.equals("PUT") && PortalRoutes.isId(s[1])) {
             return Optional.of(new V2Write(V2Op.CAPACITY, s[1]));
