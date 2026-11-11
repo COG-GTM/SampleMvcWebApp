@@ -83,7 +83,9 @@ function Stop-Modern {
         if (Test-Path $pidFile) { $ids += [int](Get-Content $pidFile) }
         $ids += Get-PortPids $s.Port
         foreach ($i in ($ids | Sort-Object -Unique)) {
-            if (Get-Process -Id $i -ErrorAction SilentlyContinue) {
+            # only our JVMs: a stale pid file or another program on the port must not be killed
+            $proc = Get-Process -Id $i -ErrorAction SilentlyContinue
+            if ($proc -and $proc.ProcessName -eq 'java') {
                 Write-Step "stopping $($s.Name) (pid $i)"; Stop-Process -Id $i -Force -ErrorAction SilentlyContinue
             }
         }
