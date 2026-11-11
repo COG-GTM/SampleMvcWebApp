@@ -78,9 +78,13 @@
                     <td class="num">@r.CurrentSeatsAvailable</td>
                 </tr>
             }
-            @if (Model.Rows.Count == 0)
+            @if (Model.Rows.Count == 0 && Model.TotalRows == 0)
             {
                 <tr><td colspan="8" class="nw-empty">No capacity changes in this period.</td></tr>
+            }
+            else if (Model.Rows.Count == 0)
+            {
+                <tr><td colspan="8" class="nw-empty">No rows on page @Model.Page; this period has @Model.TotalRows change(s). <a href="@pageUrl(1)">Go to page 1</a></td></tr>
             }
         </tbody>
     </table>

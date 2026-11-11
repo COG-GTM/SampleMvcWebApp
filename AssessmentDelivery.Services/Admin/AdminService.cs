@@ -91,15 +91,7 @@ namespace AssessmentDelivery.Services.Admin
 
         public CapacityAuditResult GetCapacityAudit(int centerId, DateTime from, DateTime toExclusive, int? sessionId, int pageNumber, int pageSize)
         {
-            var rows = _db.Database.SqlQuery<CapacityAuditRow>(
-                "EXEC dbo.usp_GetCapacityAudit @TestCenterId, @From, @To, @SessionId, @PageNumber, @PageSize",
-                new SqlParameter("@TestCenterId", centerId),
-                new SqlParameter("@From", SqlDbType.DateTime) { Value = from },
-                new SqlParameter("@To", SqlDbType.DateTime) { Value = toExclusive },
-                new SqlParameter("@SessionId", SqlDbType.Int) { Value = sessionId.HasValue ? (object)sessionId.Value : DBNull.Value },
-                new SqlParameter("@PageNumber", pageNumber),
-                new SqlParameter("@PageSize", pageSize)).ToList();
-
+            var rows = QueryCapacityAudit(centerId, from, toExclusive, sessionId, pageNumber, pageSize);
             foreach (var row in rows)
             {
                 var parsed = CapacityAuditDetail.TryParse(row.Detail);
@@ -107,7 +99,29 @@ namespace AssessmentDelivery.Services.Admin
                 row.NewCapacity = parsed == null ? (int?)null : parsed.NewCapacity;
                 row.Delta = parsed == null ? (long?)null : parsed.Delta;
             }
-            return new CapacityAuditResult { Rows = rows, TotalRows = rows.Count == 0 ? 0 : rows[0].TotalRows };
+
+            int total;
+            if (rows.Count > 0) total = rows[0].TotalRows;
+            else if (pageNumber > 1)
+            {
+                // past the last page: still report how many rows match
+                var first = QueryCapacityAudit(centerId, from, toExclusive, sessionId, 1, 1);
+                total = first.Count == 0 ? 0 : first[0].TotalRows;
+            }
+            else total = 0;
+            return new CapacityAuditResult { Rows = rows, TotalRows = total };
+        }
+
+        private List<CapacityAuditRow> QueryCapacityAudit(int centerId, DateTime from, DateTime toExclusive, int? sessionId, int pageNumber, int pageSize)
+        {
+            return _db.Database.SqlQuery<CapacityAuditRow>(
+                "EXEC dbo.usp_GetCapacityAudit @TestCenterId, @From, @To, @SessionId, @PageNumber, @PageSize",
+                new SqlParameter("@TestCenterId", centerId),
+                new SqlParameter("@From", SqlDbType.DateTime) { Value = from },
+                new SqlParameter("@To", SqlDbType.DateTime) { Value = toExclusive },
+                new SqlParameter("@SessionId", SqlDbType.Int) { Value = sessionId.HasValue ? (object)sessionId.Value : DBNull.Value },
+                new SqlParameter("@PageNumber", pageNumber),
+                new SqlParameter("@PageSize", pageSize)).ToList();
         }
 
         public IList<CapacitySyncRunRow> ListCapacitySyncRuns(DateTime from, DateTime toExclusive, int max)
