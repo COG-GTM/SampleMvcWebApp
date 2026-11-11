@@ -73,7 +73,7 @@ endpoint returns (60 s for center/session); booking lookups are not cached unles
 | `routing.modern-centers` | *(empty)* | `TestCenter.CenterCode`s whose booking/capacity traffic goes to scheduling-service |
 | `routing.test-centers` | `BOS01,SEA01,AKL01` | seeded centers that count as test/demo centers |
 | `routing.coexistence-mode` | `none` | `relay` once the M4 outbox relay is live |
-| `routing.config-file` | `config/routing.properties` | watched allow-list file (the start script passes `services/routing-gateway/config/routing.properties`) |
+| `routing.config-file` | `config/routing.properties` | watched allow-list file (the start script passes `$ROUTING_CONFIG_FILE`, default `services/routing-gateway/config/routing.properties`; do not repeat `--routing.config-file` in `GATEWAY_ARGS`, Spring would join both values) |
 | `routing.watch-interval` | `1s` | file poll interval |
 | `routing.*-url` | `localhost:8080/8081/8082/8083/8090` | upstreams |
 

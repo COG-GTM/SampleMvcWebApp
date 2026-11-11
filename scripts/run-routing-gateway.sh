@@ -7,7 +7,8 @@
 #   run     build and run in the foreground
 #   stop    stop the background gateway
 #
-# Env: JAVA21_HOME (default /usr/lib/jvm/java-21-openjdk-amd64), SKIP_BUILD=1, GATEWAY_ARGS (extra --key=value),
+# Env: JAVA21_HOME (default /usr/lib/jvm/java-21-openjdk-amd64), SKIP_BUILD=1, ROUTING_CONFIG_FILE (watched allow-list
+#      file, default services/routing-gateway/config/routing.properties), GATEWAY_ARGS (extra --key=value),
 #      MVNW_REPOURL (Maven mirror for the wrapper). The allow-list file is services/routing-gateway/config/routing.properties.
 set -euo pipefail
 
@@ -29,7 +30,7 @@ build() {
 
 java_cmd() {
   echo "$JAVA21_HOME/bin/java" -jar "$MODULE/target/routing-gateway.jar" \
-    "--routing.config-file=$MODULE/config/routing.properties" ${GATEWAY_ARGS:-}
+    "--routing.config-file=${ROUTING_CONFIG_FILE:-$MODULE/config/routing.properties}" ${GATEWAY_ARGS:-}
 }
 
 running() { [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; }
