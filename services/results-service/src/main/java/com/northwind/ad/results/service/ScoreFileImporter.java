@@ -53,6 +53,7 @@ public class ScoreFileImporter {
         report.setAlreadyUploaded(replay);
         report.setUploadId(previousUpload);
 
+        boolean schedulingDown = false;
         BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(content), "UTF-8"));
         try {
             String line;
@@ -97,12 +98,17 @@ public class ScoreFileImporter {
                     report.addError(lineNo, e.getMessage());
                 } catch (ApiException e) {
                     report.addError(lineNo, e.getMessage());
+                    if (SchedulingClient.UNAVAILABLE.equals(e.getError())) {
+                        schedulingDown = true;
+                    }
                 }
             }
         } finally {
             reader.close();
         }
-        if (!replay) {
+        // Rows that hit SCHEDULING_UNAVAILABLE recorded nothing. The file is then not registered, so re-sending the
+        // same bytes imports them and re-checks the rows already stored as duplicates (docs/to-be/adr-001).
+        if (!replay && !schedulingDown) {
             report.setUploadId(recordUpload(report));
         }
         LOG.info("Score file {} sha256={} replay={}: read={} imported={} duplicates={} conflicts={} errors={}",

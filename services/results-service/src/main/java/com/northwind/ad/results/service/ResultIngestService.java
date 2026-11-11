@@ -26,11 +26,16 @@ public class ResultIngestService {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private SchedulingClient scheduling;
+
     @Value("${results.audit-actor:results-service}")
     private String actor;
 
     /**
-     * Records one result and marks the booking ATTENDED. Idempotent per booking (UQ_Result_Booking):
+     * Records one result and marks the booking ATTENDED through scheduling-service (POST /bookings/{id}/attendance).
+     * The attendance call runs inside the Result transaction: if it fails (scheduling-service down, 409) the Result
+     * insert rolls back and nothing is recorded for this booking, so a retry starts clean. Idempotent per booking (UQ_Result_Booking):
      * resubmitting the stored score is a DUPLICATE no-op, a different score is a CONFLICT that leaves the
      * stored row as is and writes a DUPLICATE_REJECTED audit row.
      * @param scoredAt null for REST posts without scoredAt: stored as now, and a replay matches on score alone
@@ -50,15 +55,11 @@ public class ResultIngestService {
         if (score < 0 || score > 1000) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION", "score must be between 0 and 1000");
         }
-        List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT b.BookingId, b.CandidateId, b.SessionId, b.Status, s.ExamId, e.PassingScore "
-              + "FROM dbo.Booking b JOIN dbo.ExamSession s ON s.SessionId = b.SessionId "
-              + "JOIN dbo.Exam e ON e.ExamId = s.ExamId WHERE b.BookingId = ?", bookingId);
-        if (rows.isEmpty()) {
+        BookingView b = scheduling.getBooking(bookingId);
+        if (b == null) {
             throw new ApiException(HttpStatus.NOT_FOUND, "BOOKING_NOT_FOUND", "Booking " + bookingId + " not found");
         }
-        Map<String, Object> b = rows.get(0);
-        String status = (String) b.get("Status");
+        String status = b.getStatus();
         if (!"BOOKED".equals(status) && !"ATTENDED".equals(status)) {
             throw new ApiException(HttpStatus.CONFLICT, "BOOKING_NOT_ACTIVE",
                     "Booking " + bookingId + " is " + status + ", cannot record a result");
@@ -73,16 +74,16 @@ public class ResultIngestService {
         }
 
         Date storedAt = scoredAt != null ? scoredAt : new Date();
-        int passingScore = ((Number) b.get("PassingScore")).intValue();
+        int passingScore = passingScore(b);
         boolean passed = score >= passingScore;
         int resultId;
         try {
             resultId = jdbc.queryForObject(
                     "SET NOCOUNT ON; "
-                  + "INSERT INTO dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile) "
-                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?); SELECT CAST(SCOPE_IDENTITY() AS INT);",
-                    Integer.class, bookingId, b.get("CandidateId"), b.get("ExamId"), b.get("SessionId"), score,
-                    passed, new Timestamp(storedAt.getTime()), sourceFile);
+              + "INSERT INTO dbo.Result (BookingId, CandidateId, ExamId, SessionId, Score, Passed, ScoredAt, SourceFile, "
+              + "SessionStartsAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?); SELECT CAST(SCOPE_IDENTITY() AS INT);",
+                Integer.class, bookingId, b.getCandidateId(), b.getExamId(), b.getSessionId(), score,
+                passed, new Timestamp(storedAt.getTime()), sourceFile, startsAt(b));
         } catch (DuplicateKeyException e) {
             // lost a race with a concurrent ingest for the same booking; its row is committed by now
             LOG.info("Insert for booking {} lost the UQ_Result_Booking race, re-reading the stored result", bookingId);
@@ -93,14 +94,30 @@ public class ResultIngestService {
             }
             return compareWithStored(existing, bookingId, score, scoredAt, sourceFile, true);
         }
-        jdbc.update("UPDATE dbo.Booking SET Status = 'ATTENDED', LastModified = GETDATE() "
-                + "WHERE BookingId = ? AND Status = 'BOOKED'", bookingId);
+        scheduling.markAttended(bookingId, resultId, score, passed, storedAt);
         jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
                 "Result", resultId, "INGEST", "booking=" + bookingId + " score=" + score
                         + (sourceFile != null ? " file=" + sourceFile : ""), actor);
         LOG.info("Result {} for booking {} score {} passed={}", resultId, bookingId, score, passed);
         return new IngestOutcome(IngestOutcome.Status.CREATED, bookingId, resultId, score, storedAt,
                 null, null, passed);
+    }
+
+    // Exam is reference data that stays in AssessmentDelivery (inventory RS-01: Ref-local)
+    private int passingScore(BookingView b) {
+        if (b.getExamId() == null) {
+            throw new IllegalStateException("scheduling-service returned booking " + b.getBookingId() + " without examId");
+        }
+        return jdbc.queryForObject("SELECT PassingScore FROM dbo.Exam WHERE ExamId = ?", Integer.class, b.getExamId());
+    }
+
+    static Timestamp startsAt(BookingView b) {
+        String s = b.getSessionStartsAt();
+        if (s == null || s.isEmpty()) {
+            return null;
+        }
+        s = s.replace('T', ' ');
+        return Timestamp.valueOf(s.length() == 16 ? s + ":00" : s);
     }
 
     // serialises concurrent replays of the same result until commit, so only one of them writes the audit row
@@ -157,11 +174,7 @@ public class ResultIngestService {
 
     /** Latest seat-holding booking of a candidate on a session, or null. Used by the score file import. */
     public Integer findBookingId(String candidateNumber, int sessionId) {
-        List<Integer> ids = jdbc.queryForList(
-                "SELECT TOP 1 b.BookingId FROM dbo.Booking b JOIN dbo.Candidate c ON c.CandidateId = b.CandidateId "
-              + "WHERE c.CandidateNumber = ? AND b.SessionId = ? AND b.Status IN ('BOOKED','ATTENDED') "
-              + "ORDER BY b.BookingId DESC", Integer.class, candidateNumber, sessionId);
-        return ids.isEmpty() ? null : ids.get(0);
+        return scheduling.findLatestActiveBookingId(candidateNumber, sessionId);
     }
 
     public Integer findCandidateId(String candidateNumber) {
@@ -173,11 +186,10 @@ public class ResultIngestService {
     public List<Map<String, Object>> findByCandidate(int candidateId) {
         return jdbc.queryForList(
                 "SELECT r.ResultId AS resultId, r.BookingId AS bookingId, e.ExamCode AS examCode, e.Title AS examTitle, "
-              + "       r.SessionId AS sessionId, CONVERT(VARCHAR(10), s.StartsAt, 23) AS sessionDate, "
+              + "       r.SessionId AS sessionId, CONVERT(VARCHAR(10), r.SessionStartsAt, 23) AS sessionDate, "
               + "       r.Score AS score, r.Passed AS passed, CONVERT(VARCHAR(19), r.ScoredAt, 126) AS scoredAt, "
               + "       r.SourceFile AS sourceFile "
               + "FROM dbo.Result r JOIN dbo.Exam e ON e.ExamId = r.ExamId "
-              + "JOIN dbo.ExamSession s ON s.SessionId = r.SessionId "
-              + "WHERE r.CandidateId = ? ORDER BY s.StartsAt DESC, r.ResultId DESC", candidateId);
+              + "WHERE r.CandidateId = ? ORDER BY r.SessionStartsAt DESC, r.ResultId DESC", candidateId);
     }
 }
