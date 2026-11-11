@@ -1,32 +1,27 @@
 package com.northwind.assessment.booking.service;
 
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.northwind.assessment.booking.dao.BookingDao;
-import com.northwind.assessment.booking.dao.CandidateDao;
-import com.northwind.assessment.booking.dao.SessionDao;
 import com.northwind.assessment.booking.model.BookingInfo;
 import com.northwind.assessment.booking.model.BookingRequest;
 import com.northwind.assessment.booking.model.BookingResponse;
-import com.northwind.assessment.booking.model.Candidate;
-import com.northwind.assessment.booking.model.EligibilityResult;
-import com.northwind.assessment.booking.model.SessionInfo;
 import com.northwind.assessment.booking.web.ApiException;
 
 /**
- * Partner bookings. Mirrors the checks in usp_BookSeat (portal) so both channels
- * reject the same requests.
+ * Partner bookings (v1 contract). Since MBA-3823 scheduling-service is the only writer of bookings and seats:
+ * booking-api validates the request shape, forwards book / cancel / reschedule through the routing layer
+ * ({@link SchedulingClient}) and answers with the AssessmentDelivery BookingId once the outbox relay has
+ * projected the change (normally well under a second), so v1 ids, URLs and Result.BookingId keep working.
  */
 @Service
 public class BookingService {
@@ -40,21 +35,14 @@ public class BookingService {
     private BookingDao bookingDao;
 
     @Autowired
-    private SessionDao sessionDao;
-
-    @Autowired
-    private CandidateDao candidateDao;
-
-    @Autowired
-    private RetakeEligibilityService retakeEligibilityService;
+    private SchedulingClient scheduling;
 
     @Value("${booking.channel:PARTNER}")
     private String channel;
 
-    @Value("${booking.audit-actor:booking-api}")
-    private String auditActor;
+    @Value("${booking.relay-wait-ms:3000}")
+    private long relayWaitMs;
 
-    @Transactional
     public BookingResponse book(BookingRequest req) {
         if (req == null || req.getSessionId() == null || StringUtils.isBlank(req.getCandidateNumber())) {
             throw ApiException.badRequest("VALIDATION", "sessionId and candidateNumber are required");
@@ -69,66 +57,15 @@ public class BookingService {
         if (req.getExternalRef() != null && req.getExternalRef().length() > 40) {
             throw ApiException.badRequest("VALIDATION", "externalRef is limited to 40 characters");
         }
-
-        Candidate cand = candidateDao.findByNumber(req.getCandidateNumber().trim());
-        if (cand == null) {
-            throw ApiException.notFound("CANDIDATE_NOT_FOUND", "Candidate " + req.getCandidateNumber() + " not found");
-        }
-        int sessionId = req.getSessionId().intValue();
-        SessionInfo session = sessionDao.findById(sessionId);
-        if (session == null) {
-            throw ApiException.notFound("SESSION_NOT_FOUND", "Session " + sessionId + " not found");
-        }
-        if (!"OPEN".equals(session.getStatus())) {
-            throw ApiException.conflict("SESSION_NOT_OPEN", "Session " + sessionId + " is not open for booking");
-        }
-        if (bookingDao.hasActiveBooking(sessionId, cand.getCandidateId())) {
-            throw ApiException.conflict("DUPLICATE_BOOKING",
-                    "Candidate " + cand.getCandidateNumber() + " already has an active booking on session " + sessionId);
-        }
-        if (acc != null && EXTRA_TIME_CODES.contains(acc)) {
-            int used = bookingDao.countAccommodationSeatsUsed(sessionId);
-            if (used >= session.getAccommodationCapacity()) {
-                throw ApiException.conflict("NO_ACCOMMODATION_SEAT",
-                        "No accommodation seat available on session " + sessionId);
-            }
-        }
-
-        // retake rules are checked against the date the candidate would sit the exam
-        Integer examId = sessionDao.findExamId(sessionId);
-        Date sitting = sessionDao.findStartsAt(sessionId);
-        EligibilityResult elig = retakeEligibilityService.check(cand.getCandidateId(), examId.intValue(), sitting);
-        if (!elig.isEligible()) {
-            String msg = "Candidate " + cand.getCandidateNumber() + " is not eligible to book " + session.getExamCode()
-                    + " (" + elig.getReason() + ")";
-            if (elig.getEarliestRetakeDate() != null) {
-                msg += ", earliest retake date " + elig.getEarliestRetakeDate();
-            }
-            throw ApiException.conflict("NOT_ELIGIBLE", msg);
-        }
-
-        int seats = sessionDao.readSeatsAvailable(sessionId);
-        int bookingId;
-        String status;
-        if (seats > 0) {
-            bookingId = bookingDao.insertBooking(sessionId, cand.getCandidateId(), "BOOKED", acc, channel,
-                    req.getExternalRef());
-            sessionDao.decrementSeatsAvailable(sessionId);
-            status = "BOOKED";
-        } else {
-            bookingId = bookingDao.insertBooking(sessionId, cand.getCandidateId(), "WAITLISTED", acc, channel,
-                    req.getExternalRef());
-            bookingDao.insertWaitlist(sessionId, cand.getCandidateId(), bookingId);
-            status = "WAITLISTED";
-        }
-        bookingDao.audit("Booking", bookingId, "BOOK",
-                "session=" + sessionId + " status=" + status + " channel=" + channel
-                        + (req.getExternalRef() != null ? " ref=" + req.getExternalRef() : ""), auditActor);
-        log.info("Partner booking {} for {} on session {} -> {}", bookingId, cand.getCandidateNumber(), sessionId, status);
+        Map<String, Object> r = scheduling.book(req.getSessionId().intValue(), req.getCandidateNumber().trim(), acc,
+                req.getExternalRef(), channel);
+        int bookingId = legacyId(r);
+        String status = String.valueOf(r.get("status"));
+        log.info("Partner booking {} for {} on session {} -> {}", bookingId, req.getCandidateNumber(), req.getSessionId(),
+                status);
         return new BookingResponse(bookingId, status);
     }
 
-    @Transactional
     public void cancel(int bookingId, String reason) {
         BookingInfo b = bookingDao.findById(bookingId);
         if (b == null) {
@@ -137,15 +74,11 @@ public class BookingService {
         if (!"BOOKED".equals(b.getStatus()) && !"WAITLISTED".equals(b.getStatus())) {
             throw ApiException.conflict("NOT_CANCELLABLE", "Booking " + bookingId + " is " + b.getStatus());
         }
-        try {
-            bookingDao.cancel(bookingId, StringUtils.defaultIfBlank(reason, "Cancelled by partner"), auditActor);
-        } catch (DataAccessException e) {
-            throw ApiException.conflict("NOT_CANCELLABLE", e.getMostSpecificCause().getMessage());
-        }
+        scheduling.cancel(bookingId, StringUtils.defaultIfBlank(reason, "Cancelled by partner"));
+        awaitLegacyStatus(bookingId, "CANCELLED");
     }
 
-    /** Cancel through the proc, then book the new session through the normal partner path. */
-    @Transactional
+    /** Same checks as before (booking exists, same exam, different session), then scheduling-service reschedules. */
     public BookingResponse reschedule(int bookingId, Integer newSessionId) {
         if (newSessionId == null) {
             throw ApiException.badRequest("VALIDATION", "newSessionId is required");
@@ -154,25 +87,49 @@ public class BookingService {
         if (old == null) {
             throw ApiException.notFound("BOOKING_NOT_FOUND", "Booking " + bookingId + " not found");
         }
-        Integer oldExam = sessionDao.findExamId(old.getSessionId());
-        Integer newExam = sessionDao.findExamId(newSessionId.intValue());
-        if (newExam == null) {
-            throw ApiException.notFound("SESSION_NOT_FOUND", "Session " + newSessionId + " not found");
-        }
-        if (!newExam.equals(oldExam)) {
-            throw ApiException.conflict("DIFFERENT_EXAM", "Booking " + bookingId + " cannot be moved to session "
-                    + newSessionId + " (different exam)");
-        }
-        if (newSessionId.intValue() == old.getSessionId()) {
-            throw ApiException.conflict("SAME_SESSION", "Booking " + bookingId + " is already on session " + newSessionId);
-        }
-        cancel(bookingId, "Rescheduled");
+        Map<String, Object> r = scheduling.reschedule(bookingId, newSessionId.intValue());
+        awaitLegacyStatus(bookingId, "CANCELLED");
+        return new BookingResponse(legacyId(r), String.valueOf(r.get("status")));
+    }
 
-        BookingRequest req = new BookingRequest();
-        req.setSessionId(newSessionId);
-        req.setCandidateNumber(old.getCandidateNumber());
-        req.setAccommodationCode(old.getAccommodationCode());
-        req.setExternalRef(old.getExternalRef());
-        return book(req);
+    /**
+     * AssessmentDelivery BookingId for a scheduling-service booking: assigned by the relay on first projection.
+     * Falls back to the scheduling id (also accepted by every v1 endpoint) if the relay is slower than relay-wait-ms.
+     */
+    int legacyId(Map<String, Object> booking) {
+        long id = ((Number) booking.get("bookingId")).longValue();
+        Object legacy = booking.get("legacyBookingId");
+        long deadline = System.currentTimeMillis() + relayWaitMs;
+        while (legacy == null && System.currentTimeMillis() < deadline) {
+            sleep();
+            legacy = scheduling.find(id).get("legacyBookingId");
+        }
+        if (legacy == null) {
+            log.warn("relay has not projected scheduling booking {} within {} ms, answering with the scheduling id", id,
+                    relayWaitMs);
+            return (int) id;
+        }
+        return ((Number) legacy).intValue();
+    }
+
+    /** Waits until the relay has projected the change, so the v1 read that follows sees it. */
+    void awaitLegacyStatus(int bookingId, String status) {
+        long deadline = System.currentTimeMillis() + relayWaitMs;
+        while (System.currentTimeMillis() < deadline) {
+            BookingInfo b = bookingDao.findById(bookingId);
+            if (b == null || status.equals(b.getStatus())) {
+                return;
+            }
+            sleep();
+        }
+        log.warn("relay has not projected {} for booking {} within {} ms", status, bookingId, relayWaitMs);
+    }
+
+    private static void sleep() {
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

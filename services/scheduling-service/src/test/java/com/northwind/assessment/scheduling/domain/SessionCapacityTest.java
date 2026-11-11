@@ -281,4 +281,20 @@ class SessionCapacityTest {
         SessionCapacity s = open(1, 0, slot(1, 1, BookingStatus.ATTENDED, null, 0), slot(2, 2, BookingStatus.ATTENDED, null, 0));
         assertThat(s.seatsAvailable()).isZero();
     }
+
+    @Test
+    void attend_bookedBecomesAttended_stillHoldsSeat_repeatIsNoOp() {
+        SessionCapacity s = open(3, 1, slot(1, 1, BookingStatus.BOOKED, null, 0));
+        int before = s.seatsAvailable();
+        assertThat(s.attend(1)).isTrue();
+        assertThat(s.attend(1)).isFalse();
+        assertThat(s.seatsAvailable()).isEqualTo(before);
+    }
+
+    @Test
+    void attend_cancelledOrWaitlisted_rejectedAsNotActive() {
+        SessionCapacity s = open(3, 1, slot(1, 1, BookingStatus.CANCELLED, null, 0), slot(2, 2, BookingStatus.WAITLISTED, null, 1));
+        assertViolation(() -> s.attend(1), RuleViolation.BOOKING_NOT_ACTIVE, null);
+        assertViolation(() -> s.attend(2), RuleViolation.BOOKING_NOT_ACTIVE, null);
+    }
 }

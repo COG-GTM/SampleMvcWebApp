@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Applies one outbox event to AssessmentDelivery in one legacy transaction: the RelayCheckpoint row for the
- * event id first (a replay finds it and does nothing), then Booking / Waitlist / ExamSession exactly as the
- * payload says, then one AuditLog row. Modern bookings get a legacy identity BookingId on first relay,
+ * event id is checked first under a key-range lock (a replay finds it and does nothing), then Booking / Waitlist /
+ * ExamSession are written exactly as the payload says, then one AuditLog row and the checkpoint row. Modern bookings get a legacy identity BookingId on first relay,
  * remembered in dbo.RelayBookingMap inside the same transaction.
  */
 @Component
@@ -47,8 +47,6 @@ public class LegacyProjector {
             }
             return new Applied(eventId, true, legacyIds);
         }
-        jdbc.sql("INSERT INTO dbo.RelayCheckpoint (EventId, EventType, SessionId) VALUES (?, ?, ?)")
-                .params(eventId, type.name(), p.sessions().isEmpty() ? null : p.sessions().get(0).sessionId()).update();
 
         for (BookingState b : p.bookings()) {
             int legacyId = upsertBooking(b);
@@ -77,9 +75,8 @@ public class LegacyProjector {
                 .params(bookingEntity ? "Booking" : "ExamSession", bookingEntity ? primaryBooking : sessionId,
                         type.auditAction(), auditDetail(eventId, p, legacyIds), ACTOR)
                 .update();
-        if (primaryBooking != null) {
-            jdbc.sql("UPDATE dbo.RelayCheckpoint SET BookingId = ? WHERE EventId = ?").params(primaryBooking, eventId).update();
-        }
+        jdbc.sql("INSERT INTO dbo.RelayCheckpoint (EventId, EventType, SessionId, BookingId) VALUES (?, ?, ?, ?)")
+                .params(eventId, type.name(), sessionId, primaryBooking).update();
         return new Applied(eventId, false, legacyIds);
     }
 
@@ -106,9 +103,11 @@ public class LegacyProjector {
             }
             return existing.get();
         }
-        int legacyId = jdbc.sql("INSERT INTO dbo.Booking (SessionId, CandidateId, Status, AccommodationCode, Channel, "
-                        + "ExternalRef, BookedAt, CancelledAt, CancelReason) OUTPUT INSERTED.BookingId "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        // dbo.Booking has triggers, so OUTPUT needs INTO (SQL Server error 334)
+        int legacyId = jdbc.sql("SET NOCOUNT ON; DECLARE @ids TABLE (BookingId INT); "
+                        + "INSERT INTO dbo.Booking (SessionId, CandidateId, Status, AccommodationCode, Channel, "
+                        + "ExternalRef, BookedAt, CancelledAt, CancelReason) OUTPUT INSERTED.BookingId INTO @ids "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?); SELECT BookingId FROM @ids")
                 .params(b.sessionId(), b.candidateId(), b.status(), b.accommodationCode(), b.channel(), b.externalRef(),
                         b.bookedAt(), b.cancelledAt(), b.cancelReason())
                 .query(Integer.class).single();

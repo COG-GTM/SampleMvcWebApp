@@ -17,6 +17,10 @@ import org.springframework.stereotype.Service;
  *
  * Written 2016 after the "phantom full sessions" incident; runs nightly and can be
  * kicked off by hand from /sync/run.
+ *
+ * MBA-3823: disabled by default ({@code capacity.sync.enabled=false}). scheduling-service is the only writer of
+ * seat counts and this login is denied UPDATE on ExamSession.SeatsAvailable (db/security/040_single_writer.sql);
+ * drift is now detected by scheduling-service's reconciliation report. A disabled run only records its skip.
  */
 @Service
 public class CapacitySyncService {
@@ -39,6 +43,9 @@ public class CapacitySyncService {
     @Value("${capacity.sync.audit-actor:capacity-sync}")
     private String actor;
 
+    @Value("${capacity.sync.enabled:false}")
+    private boolean enabled;
+
     private volatile SyncRun lastRun = new SyncRun();
 
     public synchronized SyncRun runSync(String trigger) {
@@ -46,6 +53,15 @@ public class CapacitySyncService {
         run.setTrigger(trigger);
         run.setStatus("RUNNING");
         run.setStartedAt(new SimpleDateFormat(TS).format(new Date()));
+        if (!enabled) {
+            run.setStatus("SKIPPED");
+            run.setMessage("capacity.sync.enabled=false: scheduling-service owns SeatsAvailable, see GET /internal/reconciliation");
+            run.setFinishedAt(run.getStartedAt());
+            audit(run);
+            lastRun = run;
+            LOG.info("Capacity sync ({}) skipped: capacity.sync.enabled=false", trigger);
+            return run;
+        }
         try {
             List<Map<String, Object>> sessions = jdbc.queryForList(SELECT_OPEN_SESSIONS);
             int updated = 0;
@@ -96,7 +112,8 @@ public class CapacitySyncService {
             jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
                     "ExamSession", 0, "CAPACITY_SYNC",
                     "trigger=" + run.getTrigger() + " status=" + run.getStatus() + " checked=" + run.getSessionsChecked()
-                            + " updated=" + run.getSessionsUpdated(), actor);
+                            + " updated=" + run.getSessionsUpdated()
+                            + (run.getMessage() != null ? " reason=" + run.getMessage() : ""), actor);
         } catch (RuntimeException e) {
             LOG.warn("Could not write audit row for capacity sync: {}", e.getMessage());
         }

@@ -16,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.northwind.ad.results.client.AttendanceClient;
 import com.northwind.ad.results.web.ApiException;
 
 @Service
@@ -26,11 +27,15 @@ public class ResultIngestService {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private AttendanceClient attendance;
+
     @Value("${results.audit-actor:results-service}")
     private String actor;
 
     /**
-     * Records one result and marks the booking ATTENDED.
+     * Records one result. The booking becomes ATTENDED in scheduling-service first (MBA-3823: this service's
+     * login can no longer write dbo.Booking); the outbox relay projects that into AssessmentDelivery.
      * @param sourceFile score file name, null for REST posts
      */
     @Transactional
@@ -58,6 +63,8 @@ public class ResultIngestService {
                     "A result already exists for booking " + bookingId);
         }
 
+        attendance.recordAttendance(bookingId);
+
         int passingScore = ((Number) b.get("PassingScore")).intValue();
         boolean passed = score >= passingScore;
         int resultId;
@@ -72,8 +79,6 @@ public class ResultIngestService {
             throw new ApiException(HttpStatus.CONFLICT, "DUPLICATE_RESULT",
                     "A result already exists for booking " + bookingId);
         }
-        jdbc.update("UPDATE dbo.Booking SET Status = 'ATTENDED', LastModified = GETDATE() "
-                + "WHERE BookingId = ? AND Status = 'BOOKED'", bookingId);
         jdbc.update("INSERT INTO dbo.AuditLog (EntityName, EntityId, Action, Detail, Actor) VALUES (?, ?, ?, ?, ?)",
                 "Result", resultId, "INGEST", "booking=" + bookingId + " score=" + score
                         + (sourceFile != null ? " file=" + sourceFile : ""), actor);
