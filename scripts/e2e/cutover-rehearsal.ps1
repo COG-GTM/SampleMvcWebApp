@@ -5,9 +5,9 @@
 
 .DESCRIPTION
     Production copy = AssessmentDelivery rebuilt from the estate/legacy-baseline db\ scripts (deterministic seed).
-      1. legacy   : <LegacyRoot>\scripts\run-legacy.ps1 rebuilds the copy and starts the legacy estate (procs + triggers);
+      1. legacy   : <LegacyRoot>\db\apply.ps1 builds the copy (backed up once), <LegacyRoot>\scripts\run-legacy.ps1 -SkipDb starts the legacy estate (procs + triggers);
                     cutover.py capture --target legacy
-      2. migrated : rebuild the same copy with <LegacyRoot>\db\apply.ps1, apply this branch's cutover migrations
+      2. migrated : restore the same copy from that backup, apply this branch's cutover migrations
                     (db\schema\016, 017, db\seed\046), re-create Scheduling (db\bootstrap.sql), start scheduling-service
                     (initial import from the copy), then this checkout's portal / booking-api / results-service
                     (scripts\run-legacy.ps1 -SkipDb); cutover.py capture --target migrated
@@ -22,6 +22,7 @@ param(
     [string]$OutDir = 'build\cutover',
     [switch]$SkipBuild,
     [string]$Server = 'localhost,1433',
+    [string]$CopyFile = 'AssessmentDelivery_cutover_copy.bak',   # relative = the instance's default backup directory
     [string]$SaPassword = $(if ($env:AD_SA_PASSWORD) { $env:AD_SA_PASSWORD } else { 'Str0ng!Passw0rd' })
 )
 $ErrorActionPreference = 'Stop'
@@ -73,16 +74,20 @@ Step "legacy worktree $LegacyRoot @ $legacyHead; migrated worktree $root @ $head
 
 # ---------------------------------------------------------------- 1. legacy
 Stop-All
-Step 'legacy: rebuilding the production copy and starting the legacy estate'
+Step 'legacy: building the production copy from the legacy-baseline db scripts and backing it up'
+& (Join-Path $LegacyRoot 'db\apply.ps1') -Server $Server -SaPassword $SaPassword -Sqlcmd $sqlcmd
+if ($LASTEXITCODE -ne 0) { throw 'production copy build failed' }
+# one copy for both runs: rebuilding twice would give the seed's trigger-written AuditLog rows different LoggedAt values
+Sql @('-Q', "BACKUP DATABASE AssessmentDelivery TO DISK = N'$CopyFile' WITH INIT, COPY_ONLY")
+Step 'legacy: starting the legacy estate on the copy'
 $a = @(); if ($SkipBuild) { $a += '-SkipBuild' }
-& (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') @a
+& (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -SkipDb @a
 Invoke-Py @((Join-Path $PSScriptRoot 'cutover.py'), 'capture', '--target', 'legacy', '--repo', $LegacyRoot, '--out', (Join-Path $OutDir 'legacy.json'))
 & (Join-Path $LegacyRoot 'scripts\run-legacy.ps1') -Stop
 
 # ---------------------------------------------------------------- 2. migrated
-Step 'migrated: rebuilding the same production copy from the legacy-baseline db scripts'
-& (Join-Path $LegacyRoot 'db\apply.ps1') -Server $Server -SaPassword $SaPassword -Sqlcmd $sqlcmd
-if ($LASTEXITCODE -ne 0) { throw 'production copy rebuild failed' }
+Step 'migrated: restoring the same production copy'
+Sql @('-Q', "ALTER DATABASE AssessmentDelivery SET SINGLE_USER WITH ROLLBACK IMMEDIATE; RESTORE DATABASE AssessmentDelivery FROM DISK = N'$CopyFile' WITH REPLACE; ALTER DATABASE AssessmentDelivery SET MULTI_USER")
 foreach ($f in 'db\schema\016_result_session_starts_at.sql', 'db\schema\017_result_drop_scheduling_fks.sql', 'db\seed\046_seed_result_session_starts_at.sql') {
     Step "cutover migration: $f"
     Sql @('-i', (Join-Path $root $f))

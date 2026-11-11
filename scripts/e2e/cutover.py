@@ -91,7 +91,7 @@ def run_diff(a):
            'outcomeMismatches': ops, 'baseline': {k: {kk: vv for kk, vv in v.items() if kk != 'details'} for k, v in base.items()},
            'baselineDetails': {k: v['details'][:20] for k, v in base.items()},
            'tables': {k: {kk: vv for kk, vv in v.items() if kk != 'details'} for k, v in final.items()},
-           'details': {k: v['details'][:50] for k, v in final.items()}, 'hb01Justified': hb01, 'unexplained': unexplained,
+           'details': {k: v['details'] for k, v in final.items()}, 'hb01Justified': hb01, 'unexplained': unexplained,
            'zeroDrift': drift == 0 and L['inputs'] == M['inputs']}
     with open(a.out, 'w') as f:
         json.dump(res, f, indent=1, default=str)

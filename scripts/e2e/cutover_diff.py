@@ -25,6 +25,10 @@ COLS = {
 TS = {'StartsAt', 'LastModified', 'BookedAt', 'CancelledAt', 'AddedAt', 'LoggedAt'}
 
 
+# results-service DUPLICATE_REJECTED detail embeds the stored result's ReceivedAt: 'stored=700@2026-11-11T19:20:08'
+DETAIL_TS = re.compile(r'@(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)')
+
+
 def _select(cols):
     return ', '.join("CONVERT(VARCHAR(23), %s, 126) AS %s" % (c, c) if c in TS else c for c in cols)
 
@@ -81,6 +85,7 @@ def normalize(snap, mk):
             r['EntityId'] = bmap(r['EntityId'])
         if r.get('Detail'):
             r['Detail'] = re.sub(r'booking=(\d+)', lambda m: 'booking=%s' % bmap(int(m.group(1))), r['Detail'])
+            r['Detail'] = DETAIL_TS.sub(lambda m: '@<run>' if m.group(1) >= start[:19] else m.group(0), r['Detail'])
         k = tuple((c, r.get(c)) for c in COLS['AuditLog'])
         audit[k] = audit.get(k, 0) + 1
     out['AuditLog'] = audit
