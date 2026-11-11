@@ -110,8 +110,8 @@ class SchedulingApiIT extends SqlServerTestBase {
 
     @Test
     void trg_ExamSession_Update_capacityDecreaseBumpsNewestBookedToWaitlist_andFloorRejectsWith50005() {
-        int sessionId = openSession("s.accommodation_capacity >= 1 AND (SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id "
-                + "AND b.status = 'BOOKED') >= s.accommodation_capacity + 3");
+        int sessionId = openSession("s.accommodation_capacity = 0 AND (SELECT COUNT(*) FROM booking b WHERE b.session_id = s.session_id "
+                + "AND b.status = 'BOOKED') >= 3");
         Map<String, Object> session = get("/api/v2/sessions/" + sessionId);
         int capacity = ((Number) session.get("capacity")).intValue();
         int held = ((Number) session.get("bookedSeats")).intValue();
@@ -131,8 +131,9 @@ class SchedulingApiIT extends SqlServerTestBase {
                 .containsEntry("waitlistCount", waitlist + 2);
         assertThat(db.queryForObject("SELECT COUNT(*) FROM capacity_change WHERE session_id = ?", Integer.class, sessionId)).isEqualTo(1);
 
-        int floor = ((Number) session.get("accommodationCapacity")).intValue();
-        assertError(putCapacity(sessionId, floor - 1), HttpStatus.CONFLICT, "CAPACITY_BELOW_ACCOMMODATION_FLOOR", 50005);
+        int floorSessionId = openSession("s.accommodation_capacity >= 1");
+        int floor = ((Number) get("/api/v2/sessions/" + floorSessionId).get("accommodationCapacity")).intValue();
+        assertError(putCapacity(floorSessionId, floor - 1), HttpStatus.CONFLICT, "CAPACITY_BELOW_ACCOMMODATION_FLOOR", 50005);
 
         ResponseEntity<Map<String, Object>> raised = putCapacity(sessionId, capacity);
         assertThat(raised.getStatusCode()).isEqualTo(HttpStatus.OK);
