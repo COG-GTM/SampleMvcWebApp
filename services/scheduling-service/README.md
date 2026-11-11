@@ -133,6 +133,23 @@ Errors: `{"error","message","legacyCode"}` with booking-api v1 codes/statuses, e
 `NOT_CANCELLABLE` 409/50004, `CAPACITY_BELOW_ACCOMMODATION_FLOOR` 409/50005, `DIFFERENT_EXAM`
 409/50006, `VALIDATION` 400, `*_NOT_FOUND` 404.
 
+## Operability (MBA-3832)
+
+On-call runbook: **[docs/runbook.md](docs/runbook.md)** (dashboards/PromQL, latency, error spikes, outbox lag,
+reconciliation, rollback via the routing allow-list).
+
+- `GET /actuator/health/liveness` - JVM only, stays UP when a database is down.
+- `GET /actuator/health/readiness` - `readinessState` + `schedulingDb` (`SELECT 1` and Flyway at the latest
+  migration) + `legacySource` (read-only AssessmentDelivery pool); **503** when DOWN. Probes time out after
+  `SCHEDULING_HEALTH_TIMEOUT_MS` (2000 ms).
+- `GET /actuator/prometheus` - `scheduling_booking_duration_seconds` (histogram; `operation`=book|cancel|reschedule|capacity,
+  `outcome`=success|business_error|error, `centerCode`), `scheduling_booking_errors_total`,
+  `scheduling_outbox_pending`, `scheduling_outbox_lag_seconds` (cached, refreshed every 5 s; a scrape never queries
+  the database).
+- Logs are JSON on stdout (logstash encoder) with `traceId` (W3C `traceparent` > `X-Request-Id` > generated, echoed
+  as `X-Request-Id`), `centerCode`, `sessionId`, `bookingId`, `candidateNumber`; no other candidate data.
+  `SPRING_PROFILES_ACTIVE=plain-logs` for text logs.
+
 ## UI deep links
 
 `/app?centerCode=BOS01&examCode=&date=`, `/app/book?sessionId=`, `/app/my-bookings?candidateNumber=`,
@@ -160,4 +177,11 @@ mvn -B verify -DskipFrontend=true   # backend only
   ```bash
   cd e2e && npm ci && npx playwright install chromium
   BASE_URL=http://localhost:8090 CENTER_CODE=BOS01 node run.mjs
+  ```
+- Operability functional test against the running jar (health, readiness flip on DB stop, Prometheus series, JSON
+  logs; it stops and restarts the SQL Server container, so dev only):
+
+  ```bash
+  scripts/run-scheduling-service.sh start
+  node e2e/operability.mjs     # BASE_URL, LOG_FILE (.run/scheduling-service.log), MSSQL_CONTAINER (mssql)
   ```

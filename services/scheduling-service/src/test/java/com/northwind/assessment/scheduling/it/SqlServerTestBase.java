@@ -23,18 +23,20 @@ public abstract class SqlServerTestBase {
     static final String SA_PASSWORD = "Str0ng!Passw0rd";
     static final Path DB_DIR = Path.of("..", "..", "db").toAbsolutePath().normalize();
 
-    @SuppressWarnings("resource")
-    static final MSSQLServerContainer<?> SQL = new MSSQLServerContainer<>(
-            DockerImageName.parse("mcr.microsoft.com/mssql/server:2022-latest"))
-            .acceptLicense()
-            .withPassword(SA_PASSWORD)
-            .withCopyFileToContainer(MountableFile.forHostPath(DB_DIR), "/legacy-db");
+    static final MSSQLServerContainer<?> SQL = startWithLegacyDatabase();
 
-    static {
-        SQL.start();
+    /** A started SQL Server 2022 container with AssessmentDelivery built as by db/apply.sh. */
+    @SuppressWarnings("resource")
+    static MSSQLServerContainer<?> startWithLegacyDatabase() {
+        MSSQLServerContainer<?> sql = new MSSQLServerContainer<>(
+                DockerImageName.parse("mcr.microsoft.com/mssql/server:2022-latest"))
+                .acceptLicense()
+                .withPassword(SA_PASSWORD)
+                .withCopyFileToContainer(MountableFile.forHostPath(DB_DIR), "/legacy-db");
+        sql.start();
         try {
             for (String script : legacyScripts()) {
-                Container.ExecResult r = SQL.execInContainer("/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost",
+                Container.ExecResult r = sql.execInContainer("/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost",
                         "-U", "sa", "-P", SA_PASSWORD, "-C", "-b", "-I", "-d", "master", "-i", "/legacy-db/" + script);
                 if (r.getExitCode() != 0) {
                     throw new IllegalStateException("Legacy script " + script + " failed: " + r.getStdout() + r.getStderr());
@@ -46,6 +48,7 @@ public abstract class SqlServerTestBase {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
         }
+        return sql;
     }
 
     static List<String> legacyScripts() throws IOException {
@@ -60,7 +63,11 @@ public abstract class SqlServerTestBase {
     }
 
     static String jdbcUrl(String database) {
-        return "jdbc:sqlserver://" + SQL.getHost() + ":" + SQL.getMappedPort(1433) + ";databaseName=" + database
+        return jdbcUrl(SQL, database);
+    }
+
+    static String jdbcUrl(MSSQLServerContainer<?> sql, String database) {
+        return "jdbc:sqlserver://" + sql.getHost() + ":" + sql.getMappedPort(1433) + ";databaseName=" + database
                 + ";encrypt=true;trustServerCertificate=true";
     }
 

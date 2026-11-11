@@ -7,13 +7,16 @@ for allow-listed test centers to scheduling-service and everything else to the l
 (portal :8080, booking-api :8081). Rule decisions ported from the legacy procedures and triggers are in
 [ADR 0002](../adr/0002-ported-rule-decisions.md).
 
+Step-by-step playbooks, PromQL dashboard queries and health/readiness details are in the canonical runbook
+[services/scheduling-service/docs/runbook.md](../../services/scheduling-service/docs/runbook.md).
+
 ## SLOs (28-day window)
 
 | SLI | Objective | Measured from |
 |---|---|---|
 | `/api/v2` availability (non-5xx share of requests) | 99.9 % | gateway `route=modern` log lines, `status` field |
-| Booking write latency, `POST /api/v2/bookings` | p95 < 300 ms | gateway log lines / APM trace `scheduling-service` |
-| Capacity change success, `PUT /api/v2/sessions/{id}/capacity` | >= 98 % not rejected with 409 (7-day baseline ~0.3 % rejected) | `scheduling_service.capacity_change.rejected` by `error` |
+| Booking write latency, `POST /api/v2/bookings` | p95 < 300 ms | `scheduling_booking_duration_seconds{operation="book"}` (histogram) |
+| Capacity change success, `PUT /api/v2/sessions/{id}/capacity` | >= 98 % not rejected with 409 (7-day baseline ~0.3 % rejected) | `scheduling_booking_errors_total{operation="capacity",outcome="business_error"}` / `scheduling_booking_duration_seconds_count{operation="capacity"}`; error code in the JSON log / response `error` |
 | Routing resolve, `GET /internal/routing/resolve` | 99.95 % non-5xx, p99 < 100 ms | gateway; a failure makes writes fail closed with `503 ROUTING_UNAVAILABLE` |
 | Seat consistency | 0 sessions where `seatsAvailable != max(0, capacity - (BOOKED + ATTENDED))` | `db/checks/seat-drift.sql` (legacy), API session reads (modern) |
 
@@ -22,24 +25,29 @@ for allow-listed test centers to scheduling-service and everything else to the l
 | Alert | Condition | First check |
 |---|---|---|
 | Capacity change rejections | > 2 % of capacity changes rejected with `409` over 15 min | which `error` code: `CAPACITY_BELOW_ACCOMMODATION_FLOOR` (50005) vs `VALIDATION`; compare with the floor rule in ADR 0002 §5 and `scheduling.rules.accommodation-floor` |
-| `/api/v2` 5xx rate | > 1 % over 5 min | `DB_ERROR` bodies -> `Scheduling` database health; JVM up (`/actuator/health`) |
+| `/api/v2` 5xx rate | > 1 % over 5 min (`scheduling_booking_errors_total{outcome="error"}`) | `DB_ERROR` bodies -> `/actuator/health/readiness` (`schedulingDb`, `legacySource`); JVM up (`/actuator/health/liveness`) |
 | Gateway `ROUTING_UNAVAILABLE` | any `503 ROUTING_UNAVAILABLE` for 5 min | scheduling-service reachable from the gateway; resolve endpoint latency |
-| Booking latency | p95 > 300 ms for 10 min | DB locks on `exam_session` (`lockForUpdate`), slow queries |
+| Booking latency | `scheduling_booking_duration_seconds` p95 > 300 ms for 10 min | DB locks on `exam_session` (`lockForUpdate`), slow queries |
+| Outbox lag | `scheduling_outbox_lag_seconds` > 60 for 5 min | `/internal/relay/status`, failing event in `outbox_event.last_error` |
 | Seat drift | seat-drift check returns rows | legacy channel or capacity-sync touching a modern-owned center |
 
 ## Dashboards and logs
 
-- **scheduling-service overview**: request rate / errors / p95 by endpoint, 409s split by `error`, capacity changes
-  and `bumpedBookingIds` count, JVM and connection pool.
+- **scheduling-service overview** (scraped from `/actuator/prometheus`; queries in the
+  [runbook](../../services/scheduling-service/docs/runbook.md#2-metrics-and-dashboard-queries)): rate and p95/p99 of
+  `scheduling_booking_duration_seconds` by `operation` / `centerCode`, `scheduling_booking_errors_total` by `outcome`,
+  `scheduling_outbox_pending` / `scheduling_outbox_lag_seconds`, JVM and connection pool (`hikaricp_*`).
 - **routing-gateway**: `X-Route` split legacy vs modern per center, `reason`, 403 `CENTER_NOT_MODERN`, 503
   `ROUTING_UNAVAILABLE`, allow-list reloads.
 - Logs: gateway logger `routing` (`route=<legacy|modern> center=<code> reason=... status=...`); scheduling-service
-  logger `com.northwind.assessment.scheduling`. Every capacity change is audited in the `capacity_change` table
+  writes JSON lines (logger `com.northwind.assessment.scheduling`) with `traceId` (also returned as `X-Request-Id`),
+  `centerCode`, `sessionId`, `bookingId`, `candidateNumber`. Every capacity change is audited in the `capacity_change` table
   (old/new capacity, bumped booking ids, actor).
 
 ## Triage
 
-1. Health: `curl -s localhost:8090/actuator/health`, `curl -si localhost:8000/api/v2/centers | head -1`.
+1. Health: `curl -s localhost:8090/actuator/health/readiness` (503 + failing component when a database is down),
+   `curl -s localhost:8090/actuator/health/liveness`, `curl -si localhost:8000/api/v2/centers | head -1`.
 2. Reproduce the failing call directly and through the gateway, e.g.
    `curl -si -X PUT localhost:8090/api/v2/sessions/<id>/capacity -H 'Content-Type: application/json' -d '{"newCapacity":24,"actor":"oncall"}'`.
    Errors are `{"error","message","legacyCode"}`.
