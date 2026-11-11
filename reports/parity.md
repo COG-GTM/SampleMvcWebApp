@@ -15,8 +15,10 @@
 
 **Parity line (modern, 86 transcripts): 57/86 MATCH; 16 ADR-APPROVED DIVERGENCE; 1 KNOWN_ONCALL_DEFECT (#57); 7 MISMATCH; 5 NOT REPLAYABLE (retired legacy surface); 0 SKIPPED; 0 ERROR.**
 
-MATCH = same HTTP status, same business fields and the same Booking/Waitlist/ExamSession state after normalization. Every other
-category is counted separately and never as MATCH.
+MATCH = same business fields and the same Booking/Waitlist/ExamSession state after normalization. The legacy run also compares
+the raw HTTP status and response. The modern run does not (`characterization/chartool/compare.py`), because the M1 portal
+transcripts are HTML form posts and redirects while the modern path answers JSON (for example 302 vs 201/409). The outcome is
+compared through the business fields instead (`modern_business`). Every other category is counted separately and never as MATCH.
 
 ## Per scenario group (modern via :8000)
 

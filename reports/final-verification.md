@@ -22,7 +22,7 @@ overwrote jars of the running estate.
 | 9 | characterization replay, modern via :8000 | `characterization/replay --target modern --base-url http://localhost:8000 --report parity-e16030c.md` | **57/86 MATCH**; 16 ADR-APPROVED, 1 KNOWN_ONCALL_DEFECT (#57), 7 MISMATCH, 5 NOT REPLAYABLE, 0 SKIPPED, 0 ERROR (`characterization/reports/parity-e16030c.md`, `reports/parity.md`) |
 | 10 | M4 drift before/after + reconciliation | `powershell -ExecutionPolicy Bypass -File scripts\drift-before-after.ps1` | before **112** seat-drift rows, after **0**, reconciliation **0** mismatches (`reports/drift-before-after.md`) |
 | 11 | M4 relay / single-writer ITs | part of 4 (`SingleWriterRelayIT`, `LegacyProjectorTest`, `ReportFormatterTest`) | see 4 |
-| 12 | M5 retirement (legacy booking URLs 302 to `/app`) | NUnit (2) + browser walk step 9 | see 2 and the browser evidence |
+| 12 | M5 retirement (legacy booking URLs 302 to `/app`) | NUnit (2) + PR #67 browser walk step 8 (302 `/Booking/MyBookings?candidateNumber=NW00000901` -> `/app/my-bookings`, then 200; screenshot `08-legacy-bookmark-modern.png` in the PR description) | see 2 and the browser evidence |
 
 ## Changes in this PR
 
