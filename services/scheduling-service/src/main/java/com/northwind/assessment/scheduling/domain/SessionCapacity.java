@@ -183,7 +183,7 @@ public final class SessionCapacity {
             throw new SchedulingRuleException(RuleViolation.VALIDATION, "newCapacity must be zero or more",
                     RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR.legacyCode());
         }
-        floorPolicy.check(newCapacity, accommodationCapacity, accommodationSeatsUsed());
+        floorPolicy.check(newCapacity, accommodationCapacity, accommodationSeatsUsed(), seatsHeld());
         int old = capacity;
         capacity = newCapacity;
         int excess = seatsHeld() - newCapacity;
