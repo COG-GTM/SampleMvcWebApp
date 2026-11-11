@@ -132,8 +132,8 @@ public class SeatOfferService {
      */
     @Transactional
     public OfferView accept(long offerId, String actor) {
-        LocalDateTime now = now();
-        Locked l = lockPending(offerId, now);
+        Locked l = lockPending(offerId);
+        LocalDateTime now = l.now;
         List<WaitlistSlot> shifted = l.capacity.acceptOffer(l.offer.bookingId(), now);
         bookings.markBooked(l.offer.bookingId(), now);
         bookings.deleteWaitlistEntry(l.offer.bookingId());
@@ -148,8 +148,8 @@ public class SeatOfferService {
     /** Decline: the waitlisted booking is cancelled, later positions move up and the seat goes to the next candidate. */
     @Transactional
     public OfferView decline(long offerId, String actor) {
-        LocalDateTime now = now();
-        Locked l = lockPending(offerId, now);
+        Locked l = lockPending(offerId);
+        LocalDateTime now = l.now;
         giveUp(l.capacity, l.offer, SeatOfferStatus.DECLINED, OutboxEventType.SeatOfferDeclined, DECLINED_REASON,
                 actorOr(actor), now);
         appendOffered(l.capacity.sessionId(), offerFreeSeats(l.capacity, now), "decline", now);
@@ -197,13 +197,15 @@ public class SeatOfferService {
                 detail, now);
     }
 
-    private record Locked(SessionCapacity capacity, PendingOffer offer) {
+    private record Locked(SessionCapacity capacity, PendingOffer offer, LocalDateTime now) {
     }
 
-    private Locked lockPending(long offerId, LocalDateTime now) {
+    /** Locks the offer's session; the decision time is taken after the lock so a long lock wait cannot outlive expiry. */
+    private Locked lockPending(long offerId) {
         int sessionId = offers.sessionIdOf(offerId).orElseThrow(() -> offerNotFound(offerId));
         SessionCapacity capacity = sessions.lockForUpdate(sessionId)
                 .orElseThrow(() -> SchedulingService.sessionNotFound(sessionId));
+        LocalDateTime now = now();
         OfferView view = find(offerId);
         PendingOffer offer = capacity.pendingOffers().stream().filter(o -> o.offerId() == offerId).findFirst()
                 .orElseThrow(() -> new SchedulingRuleException(RuleViolation.OFFER_NOT_PENDING,
@@ -212,7 +214,7 @@ public class SeatOfferService {
             throw new SchedulingRuleException(RuleViolation.OFFER_EXPIRED,
                     "Seat offer " + offerId + " expired at " + offer.expiresAt());
         }
-        return new Locked(capacity, offer);
+        return new Locked(capacity, offer, now);
     }
 
     private void persistShift(List<WaitlistSlot> shifted) {
