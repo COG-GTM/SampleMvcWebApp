@@ -206,19 +206,20 @@ class SessionCapacityTest {
     }
 
     @Test
-    void usp_ChangeCapacity_allocatedFloorKeepsAccommodationSeatsForExtraTime_50005() {
+    void usp_ChangeCapacity_allocatedFloorIgnoresStandardSeatsHeld() {
         SessionCapacity s = open(12, 2,
                 slot(1, 1, BookingStatus.BOOKED, null, 0),
                 slot(2, 2, BookingStatus.BOOKED, null, 1),
                 slot(3, 3, BookingStatus.BOOKED, "SR", 2),
                 slot(4, 4, BookingStatus.ATTENDED, null, 3),
                 slot(5, 5, BookingStatus.BOOKED, "ET25", 4));
-        assertViolation(() -> s.changeCapacity(5, AccommodationFloorPolicy.ALLOCATED),
-                RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR, 50005);
-        assertThat(s.capacity()).isEqualTo(12);
-        CapacityChange c = s.changeCapacity(6, AccommodationFloorPolicy.ALLOCATED);
-        assertThat(c.newCapacity()).isEqualTo(6);
+        CapacityChange c = s.changeCapacity(5, AccommodationFloorPolicy.ALLOCATED);
+        assertThat(c.newCapacity()).isEqualTo(5);
         assertThat(c.bumped()).isEmpty();
+        assertThat(s.changeCapacity(2, AccommodationFloorPolicy.ALLOCATED).bumpedBookingIds()).containsExactly(2L, 3L, 5L);
+        assertViolation(() -> s.changeCapacity(1, AccommodationFloorPolicy.ALLOCATED),
+                RuleViolation.CAPACITY_BELOW_ACCOMMODATION_FLOOR, 50005);
+        assertThat(s.capacity()).isEqualTo(2);
     }
 
     @Test
