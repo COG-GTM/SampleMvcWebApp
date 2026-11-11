@@ -1,13 +1,17 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Net;
+using NUnit.Framework;
 
 namespace AssessmentDelivery.Tests.IntegrationTests
 {
     /// <summary>
     /// Creates an isolated exam session with one booking per status (plus quoting edge cases) in the
     /// AssessmentDelivery database and removes it again. Rows are inserted directly; nothing in the
-    /// seeded data is changed.
+    /// seeded data is changed. scheduling-service owns these tables now, so after each change the fixture
+    /// re-runs its legacy import (POST /admin/import?replace=true, needs SCHEDULING_IMPORT_API=true on the
+    /// service). The replace wipes scheduling-service data, so point AD_SCHEDULING_URL at a test instance.
     /// </summary>
     internal sealed class RosterFixture
     {
@@ -17,6 +21,11 @@ namespace AssessmentDelivery.Tests.IntegrationTests
         public static string ConnectionString
         {
             get { return Environment.GetEnvironmentVariable("AD_TEST_CONNECTION") ?? DefaultConnectionString; }
+        }
+
+        public static string SchedulingUrl
+        {
+            get { return Environment.GetEnvironmentVariable("AD_SCHEDULING_URL") ?? "http://localhost:8084/api/v1"; }
         }
 
         public const string NumberPrefix = "NWT3826";
@@ -118,6 +127,25 @@ WHERE s.SessionId = @s;", cn, tx))
                     tx.Commit();
                 }
             }
+            SyncScheduling();
+        }
+
+        /// <summary>Copies the legacy tables into scheduling-service, identities preserved.</summary>
+        public static void SyncScheduling()
+        {
+            var request = (HttpWebRequest)WebRequest.Create(SchedulingUrl.TrimEnd('/') + "/admin/import?replace=true");
+            request.Method = "POST";
+            request.ContentLength = 0;
+            request.Timeout = 120000;
+            try
+            {
+                request.GetResponse().Dispose();
+            }
+            catch (WebException ex)
+            {
+                Assert.Ignore("scheduling-service import at " + SchedulingUrl + " failed (" + ex.Message
+                    + "); run it with SCHEDULING_IMPORT_API=true");
+            }
         }
 
         /// <summary>Deletes every fixture row, including the audit rows the candidate delete trigger writes.</summary>
@@ -139,6 +167,7 @@ DELETE FROM dbo.Candidate WHERE CandidateId IN (SELECT CandidateId FROM @c);
 DELETE FROM dbo.AuditLog WHERE EntityName = 'Candidate' AND EntityId IN (SELECT CandidateId FROM @c);",
                     "@p", NumberPrefix);
             }
+            SyncScheduling();
         }
     }
 }

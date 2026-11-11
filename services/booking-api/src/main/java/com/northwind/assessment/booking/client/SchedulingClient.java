@@ -145,6 +145,10 @@ public class SchedulingClient {
 
     private SchedulingException toException(HttpStatusCodeException e) {
         int status = e.getRawStatusCode();
+        if (status >= 500) {
+            return new SchedulingException(status, "SCHEDULING_UNAVAILABLE",
+                    "scheduling-service returned HTTP " + status, null);
+        }
         try {
             JsonNode err = json.readTree(e.getResponseBodyAsString());
             if (err != null && err.hasNonNull("message")) {
@@ -154,7 +158,6 @@ public class SchedulingClient {
         } catch (Exception ignored) {
             // not a contract error body
         }
-        return new SchedulingException(status, status >= 500 ? "SCHEDULING_UNAVAILABLE" : "SCHEDULING_ERROR",
-                "scheduling-service returned HTTP " + status, null);
+        return new SchedulingException(status, "SCHEDULING_ERROR", "scheduling-service returned HTTP " + status, null);
     }
 }

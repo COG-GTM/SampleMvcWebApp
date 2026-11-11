@@ -57,6 +57,7 @@ class RetakeEligibilityContractTest {
 
     static Db db;
     static Http api;
+    static Http scheduling;
     static Fixtures fx;
     static final Map<String, Materialised> MATERIALISED = new HashMap<>();
     static Map<String, String[]> monoResults;
@@ -81,7 +82,8 @@ class RetakeEligibilityContractTest {
         LegacyEstate estate = LegacyEstate.get();
         db = estate.db;
         api = estate.bookingApi;
-        fx = new Fixtures(db);
+        scheduling = estate.scheduling;
+        fx = new Fixtures(estate);
         for (Case c : cases()) {
             Ref ref = fx.reference(650, c.waitDays());
             Cand cand = fx.candidate();
@@ -97,7 +99,7 @@ class RetakeEligibilityContractTest {
             }
             MATERIALISED.put(c.id(), new Materialised(cand, ref));
         }
-        monoResults = runRealPortalRules();
+        monoResults = LegacyEstate.SCHEDULING ? null : runRealPortalRules();
     }
 
     @ParameterizedTest(name = "{0}")
@@ -117,6 +119,7 @@ class RetakeEligibilityContractTest {
     @MethodSource("cases")
     @DisplayName("portal EligibilityService query + Java transliteration of RetakeRules (calendar days, Max(SessionDate))")
     void portalJavaTransliteration(Case c) {
+        assumeTrue(!LegacyEstate.SCHEDULING, "portal reads Result/ExamSession itself only on the legacy target");
         PortalRetakeRules.Decision d = PortalRetakeRules.check(portalAttempts(c), c.waitDays(), c.requested());
         assertThat(d.eligible()).isEqualTo(c.portalEligible());
         assertThat(d.reason()).isEqualTo(c.portalReason());
@@ -127,11 +130,26 @@ class RetakeEligibilityContractTest {
     @MethodSource("cases")
     @DisplayName("portal EligibilityService query + REAL RetakeRules.cs under Mono")
     void portalRealCSharp(Case c) {
+        assumeTrue(!LegacyEstate.SCHEDULING, "portal reads Result/ExamSession itself only on the legacy target");
         assumeTrue(monoResults != null, "mcs/mono not on PATH: real C# RetakeRules not executed (Java transliteration still ran)");
         String[] r = monoResults.get(c.id());
         assertThat(Boolean.parseBoolean(r[1])).isEqualTo(c.portalEligible());
         assertThat(r[2]).isEqualTo(c.portalReason());
         assertThat(nul(r[3])).isEqualTo(c.portalEarliest());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("cases")
+    @DisplayName("portal EligibilityService -> scheduling-service GET /eligibility/retake?policy=PORTAL_CALENDAR_DAYS (ADR-001)")
+    void portalViaSchedulingService(Case c) {
+        assumeTrue(LegacyEstate.SCHEDULING, "scheduling target only");
+        Materialised m = MATERIALISED.get(c.id());
+        JsonNode body = scheduling.get("/api/v1/eligibility/retake?candidateNumber=" + m.cand().candidateNumber()
+                + "&examCode=" + m.ref().examCode() + "&date=" + c.requested() + "&policy=PORTAL_CALENDAR_DAYS").body();
+        assertThat(body.get("eligible").asBoolean()).isEqualTo(c.portalEligible());
+        assertThat(body.get("reason").asText()).isEqualTo(c.portalReason());
+        JsonNode earliest = body.get("earliestRetakeDate");
+        assertThat(earliest == null || earliest.isNull() ? null : earliest.asText()).isEqualTo(c.portalEarliest());
     }
 
     static List<PortalRetakeRules.Attempt> portalAttempts(Case c) {

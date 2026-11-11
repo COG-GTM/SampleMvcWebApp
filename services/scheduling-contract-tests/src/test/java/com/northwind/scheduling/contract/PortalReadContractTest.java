@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 /**
@@ -43,8 +44,11 @@ class PortalReadContractTest {
 
     @BeforeAll
     static void up() {
+        // Portal EF reads of AssessmentDelivery are legacy-only: Session 4 replaces them with scheduling-service calls,
+        // whose parity is checked by the portal contract spec on Windows (docs/to-be/portal-contract-spec.md).
+        assumeFalse(LegacyEstate.SCHEDULING, "portal EF reads only exist on the legacy target");
         db = LegacyEstate.get().db;
-        fx = new Fixtures(db);
+        fx = new Fixtures(LegacyEstate.get());
         ref = fx.reference(650, 30);
         openStarted = fx.session(ref, LocalDateTime.of(2026, 1, 10, 9, 0), 8, 0, 8, "OPEN");
         openFuture = fx.session(ref, LocalDateTime.of(2027, 5, 3, 13, 15), 6, 1, 4, "OPEN");

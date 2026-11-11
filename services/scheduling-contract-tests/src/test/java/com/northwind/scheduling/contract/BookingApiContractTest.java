@@ -30,6 +30,8 @@ class BookingApiContractTest {
 
     static Db db;
     static Http api;
+    /** HB-01: legacy trigger 032 takes a second seat per PARTNER BOOKED row; scheduling-service is the single writer. */
+    static final int HB01 = LegacyEstate.SCHEDULING ? 0 : 1;
     static Fixtures fx;
     static Ref ref;
     static int open1;
@@ -47,9 +49,9 @@ class BookingApiContractTest {
     @BeforeAll
     static void up() {
         LegacyEstate estate = LegacyEstate.get();
-        db = estate.db;
+        db = estate.sched;
         api = estate.bookingApi;
-        fx = new Fixtures(db);
+        fx = new Fixtures(estate);
         ref = fx.reference(650, 30);
         open1 = fx.session(ref, S1, 10, 2, 8, "OPEN");
         cancelledSession = fx.session(ref, S2, 10, 0, 10, "CANCELLED");
@@ -73,7 +75,8 @@ class BookingApiContractTest {
 
     @Test
     @DisplayName("GET /api/v1/sessions/{id}: SessionInfo shape and values; bookedSeats = BOOKED+ATTENDED (SeatCounter)")
-    // seatsAvailable is 7, not the 8 the fixture inserted: the PARTNER BOOKED fixture row fired trg_Booking_SeatSync (HB-01).
+    // legacy: seatsAvailable is 7, not the 8 the fixture inserted: the PARTNER BOOKED fixture row fired trg_Booking_SeatSync (HB-01).
+    // scheduling target: no trigger, so 8 (HB-01 removed by design, contract section 6).
     void sessionById() {
         Resp r = api.get("/api/v1/sessions/" + open1);
         assertThat(r.status()).isEqualTo(200);
@@ -83,7 +86,7 @@ class BookingApiContractTest {
         assertThat(m).containsEntry("sessionId", open1).containsEntry("examCode", ref.examCode())
                 .containsEntry("centerCode", ref.centerCode()).containsEntry("startsAt", "2027-03-10T09:30:00")
                 .containsEntry("capacity", 10).containsEntry("accommodationCapacity", 2)
-                .containsEntry("seatsAvailable", 7).containsEntry("status", "OPEN").containsEntry("bookedSeats", 2);
+                .containsEntry("seatsAvailable", 8 - HB01).containsEntry("status", "OPEN").containsEntry("bookedSeats", 2);
         assertThat((String) m.get("examTitle")).startsWith("Contract Exam ");
         assertThat((String) m.get("centerName")).startsWith("Contract Centre ");
         assertThat((String) m.get("roomName")).startsWith("Room ");
@@ -155,7 +158,7 @@ class BookingApiContractTest {
     }
 
     @Test
-    @DisplayName("HB-01/HB-02: partner POST decrements twice (DAO + trigger 032), partner DELETE releases once")
+    @DisplayName("HB-01/HB-02: partner POST decrements twice (DAO + trigger 032; once on scheduling-service), partner DELETE releases once")
     void partnerBookAndCancelSeatMath() {
         int s = fx.session(ref, LocalDateTime.of(2027, 4, 1, 9, 0), 5, 0, 5, "OPEN");
         Cand c = fx.candidate();
@@ -166,10 +169,10 @@ class BookingApiContractTest {
         int bookingId = r.body().get("bookingId").asInt();
         assertThat(db.one("SELECT Channel, Status, AccommodationCode FROM dbo.Booking WHERE BookingId = ?", bookingId))
                 .containsEntry("Channel", "PARTNER").containsEntry("Status", "BOOKED").containsEntry("AccommodationCode", null);
-        assertThat(db.count("SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = ?", s)).isEqualTo(3);
+        assertThat(db.count("SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = ?", s)).isEqualTo(4 - HB01);
 
         assertThat(api.delete("/api/v1/bookings/" + bookingId).status()).isEqualTo(200);
-        assertThat(db.count("SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = ?", s)).isEqualTo(4);
+        assertThat(db.count("SELECT SeatsAvailable FROM dbo.ExamSession WHERE SessionId = ?", s)).isEqualTo(5 - HB01);
         assertThat(db.scalar("SELECT Status FROM dbo.Booking WHERE BookingId = ?", bookingId)).isEqualTo("CANCELLED");
     }
 

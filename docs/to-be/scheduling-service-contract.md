@@ -76,7 +76,7 @@ The legacy portal raises `PortalException(message)` for 50000/16 (`AssessmentDel
 ## 6. Channel, idempotency and concurrency
 
 - **`channel`** is required on book and reschedule and is stored on `Booking.Channel` (`PORTAL`, `PARTNER`, `IMPORT`). It selects these legacy differences:
-  - **Seat accounting.** Today a PARTNER BOOKED insert decrements `SeatsAvailable` twice (DAO plus trigger 032) and a partner cancel releases once (HB-01, HB-02, pinned by `BookingApiContractTest.partnerBookAndCancelSeatMath`). The service implements this behind `scheduling.legacy-seat-accounting=true` (default) so Phase 2 parity and Phase 3 zero-drift diffs hold. Turning it off is a post-cutover product decision, not a migration step.
+  - **Seat accounting.** Today a PARTNER BOOKED insert decrements `SeatsAvailable` twice (DAO plus trigger 032) and a partner cancel releases once (HB-01, HB-02, pinned by `BookingApiContractTest.partnerBookAndCancelSeatMath`). The service implements this behind `scheduling.legacy-seat-accounting` (env `SCHEDULING_LEGACY_SEAT_ACCOUNTING`). **Decision (parent, Phase 1): the runtime default is `false`.** The service is the single writer, so in Phase 2 a partner booking takes one seat. The characterization target sets it to `true` for the pinned HB-01/HB-02 scenarios, and so should any dual-run that diffs against legacy partner traffic.
   - **Reschedule semantics** (section 3).
   - **Audit actor**, which comes from `X-Actor`.
 - **Idempotency.**
@@ -107,7 +107,7 @@ Today two engines read `Result` and `Exam`, and both join `ExamSession` for `Sta
 
 ## 8. Open decisions (need an owner before Phase 1 closes)
 
-1. Keep `legacy-seat-accounting` (HB-01/HB-02 double decrement) on through cutover? The default here is on, for parity.
+1. ~~Keep `legacy-seat-accounting` on through cutover?~~ Decided: default off. It is on only for characterization and legacy-parity dual-runs (section 6).
 2. Serialising partner bookings removes the HB-29 duplicate waitlist positions. Accept this as the one intentional non-reproduction, since it cannot be reproduced deterministically?
 3. Reference feed via Change Tracking needs `ALTER DATABASE ... SET CHANGE_TRACKING = ON` on `AssessmentDelivery` (DBA change).
 
