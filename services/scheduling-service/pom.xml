@@ -26,6 +26,7 @@
         <frontend-maven-plugin.version>1.15.1</frontend-maven-plugin.version>
         <jacoco.version>0.8.12</jacoco.version>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <logstash-logback-encoder.version>8.0</logstash-logback-encoder.version>
         <skipFrontend>false</skipFrontend>
         <skipFrontendTests>${skipFrontend}</skipFrontendTests>
     </properties>
@@ -60,6 +61,15 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>${logstash-logback-encoder.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-sqlserver</artifactId>
         </dependency>
@@ -72,6 +82,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

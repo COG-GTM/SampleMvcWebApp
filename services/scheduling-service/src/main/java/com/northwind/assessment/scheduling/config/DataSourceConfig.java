@@ -22,8 +22,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  * Two connections:
  * <ul>
  *   <li>primary: the service's own {@code Scheduling} database (Flyway, all reads/writes);</li>
- *   <li>{@code legacyJdbcClient}: read-only login to AssessmentDelivery, used only by the importer.
- *       The pool is lazy, so the service starts even when the legacy database is unreachable.</li>
+ *   <li>{@link LegacyReadOnlySource}: read-only login to AssessmentDelivery, used by the importer (through the
+ *       {@code legacy} JdbcClient) and the {@code legacySource} readiness indicator. The pool is lazy, so the
+ *       service starts even when the legacy database is unreachable (readiness then reports DOWN).</li>
  * </ul>
  */
 @Configuration(proxyBeanMethods = false)
@@ -50,9 +51,19 @@ public class DataSourceConfig {
         return JdbcClient.create(dataSource);
     }
 
+    /**
+     * The read-only AssessmentDelivery pool. Deliberately not a {@link DataSource} bean, so Boot's single-DataSource
+     * auto-configuration (Flyway, transactions) keeps meaning the Scheduling database.
+     */
+    public record LegacyReadOnlySource(HikariDataSource dataSource, JdbcClient jdbc) implements AutoCloseable {
+        @Override
+        public void close() {
+            dataSource.close();
+        }
+    }
+
     @Bean
-    @Qualifier("legacy")
-    public JdbcClient legacyJdbcClient(SchedulingProperties scheduling) {
+    public LegacyReadOnlySource legacyReadOnlySource(SchedulingProperties scheduling) {
         HikariDataSource ds = new HikariDataSource();
         ds.setPoolName("legacy-readonly");
         ds.setJdbcUrl(scheduling.legacy().url());
@@ -62,7 +73,13 @@ public class DataSourceConfig {
         ds.setMaximumPoolSize(2);
         ds.setMinimumIdle(0);
         ds.setInitializationFailTimeout(-1);
-        return JdbcClient.create((DataSource) ds);
+        return new LegacyReadOnlySource(ds, JdbcClient.create((DataSource) ds));
+    }
+
+    @Bean
+    @Qualifier("legacy")
+    public JdbcClient legacyJdbcClient(LegacyReadOnlySource legacy) {
+        return legacy.jdbc();
     }
 
     static void createDatabaseIfMissing(String url, String user, String password) {

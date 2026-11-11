@@ -13,6 +13,8 @@ import com.northwind.assessment.scheduling.domain.RuleViolation;
 import com.northwind.assessment.scheduling.domain.SchedulingRuleException;
 import com.northwind.assessment.scheduling.domain.SessionCapacity;
 import com.northwind.assessment.scheduling.domain.WaitlistSlot;
+import com.northwind.assessment.scheduling.observability.BookingMetrics;
+import com.northwind.assessment.scheduling.observability.LogContext;
 import com.northwind.assessment.scheduling.outbox.OutboxEventType;
 import com.northwind.assessment.scheduling.outbox.OutboxWriter;
 import com.northwind.assessment.scheduling.persistence.BookingRepository;
@@ -33,12 +35,15 @@ import java.util.Map;
 import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Booking, cancellation, reschedule and capacity use cases. Orchestrates the plain-Java domain
  * ({@link SessionCapacity}, {@link RetakeEligibilityPolicy}, {@link ReschedulePolicy}) and persists the
  * outcome; checks run in booking-api v1 order so error codes match. Every change appends its outbox event
- * ({@link OutboxWriter}) in the same transaction (MBA-3823).
+ * ({@link OutboxWriter}) in the same transaction (MBA-3823). book / cancel / reschedule / changeCapacity are timed by
+ * {@link BookingMetrics} around the whole transaction (commit included) and put the session, center and booking
+ * they resolve into the log context (MBA-3832).
  */
 @Service
 public class SchedulingService {
@@ -54,10 +59,14 @@ public class SchedulingService {
     private final AccommodationFloorPolicy floorPolicy;
     private final OutboxWriter outbox;
     private final Clock clock;
+    private final BookingMetrics metrics;
+    private final TransactionTemplate tx;
 
     public SchedulingService(SessionRepository sessions, BookingRepository bookings, ReferenceRepository reference,
                              RetakeEligibilityPolicy retakePolicy, AccommodationFloorPolicy floorPolicy,
-                             OutboxWriter outbox, Clock clock) {
+                             OutboxWriter outbox, Clock clock, BookingMetrics metrics, TransactionTemplate tx) {
+        this.metrics = metrics;
+        this.tx = tx;
         this.outbox = outbox;
         this.sessions = sessions;
         this.bookings = bookings;
@@ -67,11 +76,18 @@ public class SchedulingService {
         this.clock = clock;
     }
 
-    @Transactional
     public BookingResult book(BookingCommand cmd) {
+        return metrics.record(BookingMetrics.BOOK, () -> tx.execute(status -> bookInTransaction(cmd)));
+    }
+
+    private BookingResult bookInTransaction(BookingCommand cmd) {
+        if (cmd != null && cmd.sessionId() != null) {
+            identifySession(cmd.sessionId());
+        }
         if (cmd == null || cmd.sessionId() == null || cmd.candidateNumber() == null || cmd.candidateNumber().isBlank()) {
             throw invalid("sessionId and candidateNumber are required");
         }
+        LogContext.candidateNumber(cmd.candidateNumber());
         String acc = AccommodationCodes.normalize(cmd.accommodationCode());
         if (!AccommodationCodes.isKnown(acc)) {
             throw invalid("Unknown accommodationCode " + acc);
@@ -89,6 +105,7 @@ public class SchedulingService {
                 ? OutboxEventType.BookingWaitlisted : OutboxEventType.BookingCreated;
         outbox.append(type, result.sessionId(), result.bookingId(), List.of(), List.of(result.bookingId()),
                 channel.name().toLowerCase(Locale.ROOT), Map.of("channel", channel.name()), now());
+        LogContext.bookingId(result.bookingId());
         return result;
     }
 
@@ -127,10 +144,16 @@ public class SchedulingService {
         }
     }
 
-    @Transactional
     public BookingView cancel(long requestedId, String reason) {
+        return metrics.record(BookingMetrics.CANCEL, () -> tx.execute(status -> cancelInTransaction(requestedId, reason)));
+    }
+
+    private BookingView cancelInTransaction(long requestedId, String reason) {
+        LogContext.bookingId(requestedId);
         long bookingId = resolve(requestedId);
+        LogContext.bookingId(bookingId);
         int sessionId = bookings.sessionIdOf(bookingId).orElseThrow(() -> bookingNotFound(bookingId));
+        identifySession(sessionId);
         SessionCapacity capacity = sessions.lockForUpdate(sessionId).orElseThrow(() -> sessionNotFound(sessionId));
         // Blank reason is stored as NULL, as usp_CancelBooking did for the portal; partner callers send their own default.
         String why = blankToNull(reason);
@@ -161,19 +184,27 @@ public class SchedulingService {
      * (usp_RescheduleBooking -> usp_BookSeat) inserted it as PORTAL without an ExternalRef, while booking-api v1
      * re-booked through its partner path as PARTNER and copied the original ExternalRef.
      */
-    @Transactional
     public BookingResult reschedule(long requestedId, Integer newSessionId) {
         return reschedule(requestedId, newSessionId, null);
     }
 
-    @Transactional
     public BookingResult reschedule(long requestedId, Integer newSessionId, String requestChannel) {
+        return metrics.record(BookingMetrics.RESCHEDULE,
+                () -> tx.execute(status -> rescheduleInTransaction(requestedId, newSessionId, requestChannel)));
+    }
+
+    /** Metrics and logs carry the center and session the booking is moved away from. */
+    private BookingResult rescheduleInTransaction(long requestedId, Integer newSessionId, String requestChannel) {
+        LogContext.bookingId(requestedId);
         BookingChannel channel = parseChannel(requestChannel);
         if (newSessionId == null) {
             throw invalid("newSessionId is required");
         }
         long bookingId = resolve(requestedId);
+        LogContext.bookingId(bookingId);
         BookingView booking = bookings.find(bookingId).orElseThrow(() -> bookingNotFound(bookingId));
+        identifySession(booking.sessionId());
+        LogContext.candidateNumber(booking.candidateNumber());
         int newExam = sessions.examIdOf(newSessionId).orElseThrow(() -> sessionNotFound(newSessionId));
         int oldExam = sessions.examIdOf(booking.sessionId()).orElseThrow();
         ReschedulePolicy.check(booking.sessionId(), oldExam, newSessionId, newExam);
@@ -207,7 +238,9 @@ public class SchedulingService {
     @Transactional
     public BookingView recordAttendance(long requestedId) {
         long bookingId = resolve(requestedId);
+        LogContext.bookingId(bookingId);
         int sessionId = bookings.sessionIdOf(bookingId).orElseThrow(() -> bookingNotFound(bookingId));
+        identifySession(sessionId);
         SessionCapacity capacity = sessions.lockForUpdate(sessionId).orElseThrow(() -> sessionNotFound(sessionId));
         if (capacity.attend(bookingId)) {
             LocalDateTime now = now();
@@ -228,8 +261,13 @@ public class SchedulingService {
     }
 
     /** usp_ChangeCapacity + trg_ExamSession_Update, as explicit domain code. */
-    @Transactional
     public CapacityResult changeCapacity(int sessionId, Integer newCapacity, String actor) {
+        return metrics.record(BookingMetrics.CAPACITY,
+                () -> tx.execute(status -> changeCapacityInTransaction(sessionId, newCapacity, actor)));
+    }
+
+    private CapacityResult changeCapacityInTransaction(int sessionId, Integer newCapacity, String actor) {
+        identifySession(sessionId);
         if (newCapacity == null) {
             throw invalid("newCapacity is required");
         }
@@ -273,6 +311,12 @@ public class SchedulingService {
     public CandidateView candidate(String candidateNumber) {
         return reference.candidateByNumber(candidateNumber)
                 .orElseThrow(() -> new NotFoundException("CANDIDATE_NOT_FOUND", "Candidate " + candidateNumber + " not found"));
+    }
+
+    /** Session id and its (resolved, so bounded) center code into the log context; the center also tags metrics. */
+    private void identifySession(int sessionId) {
+        LogContext.sessionId(sessionId);
+        LogContext.centerCode(sessions.centerCodeOf(sessionId).orElse(null));
     }
 
     private static BookingChannel parseChannel(String channel) {

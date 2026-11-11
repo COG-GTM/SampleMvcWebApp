@@ -11,6 +11,10 @@
 # bookings and seats: every change is written to its outbox and the relay projects it into AssessmentDelivery
 # as ad_sched_relay (the only login db/security/040_single_writer.sql leaves write access to).
 #
+# Operability (MBA-3832): /actuator/health/liveness, /actuator/health/readiness (503 while the Scheduling DB or the
+# legacy read-only source is down), /actuator/prometheus; JSON logs in .run/scheduling-service.log.
+# On-call runbook: services/scheduling-service/docs/runbook.md
+#
 # Environment overrides:
 #   MSSQL_CONTAINER (mssql)  MSSQL_SA_PASSWORD (dev default, same as run-legacy.sh)  MSSQL_IMAGE
 #   JAVA_HOME     must point at a JDK 21 (auto-detected under /usr/lib/jvm if unset)
@@ -124,6 +128,10 @@ cmd_start() {
   center admin     http://localhost:$PORT/app/admin/centers/BOS01
   API              http://localhost:$PORT/api/v2/centers/BOS01/sessions
   routing          http://localhost:$PORT/internal/routing/resolve?centerCode=BOS01
+  liveness         http://localhost:$PORT/actuator/health/liveness
+  readiness        http://localhost:$PORT/actuator/health/readiness
+  prometheus       http://localhost:$PORT/actuator/prometheus
+  runbook          services/scheduling-service/docs/runbook.md
   database         localhost,1433  db Scheduling (own); reads AssessmentDelivery as ad_sched_import
 URLS
 }

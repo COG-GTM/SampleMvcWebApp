@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- JSON console appender for scheduling-service (included by logback-spring.xml, unit-tested by JsonLoggingTest).
+     Only the MDC keys listed here are emitted. Candidate identity is limited to candidateNumber: never add names,
+     e-mail addresses or dates of birth. -->
+<included>
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <includeMdcKeyName>centerCode</includeMdcKeyName>
+            <includeMdcKeyName>sessionId</includeMdcKeyName>
+            <includeMdcKeyName>bookingId</includeMdcKeyName>
+            <includeMdcKeyName>candidateNumber</includeMdcKeyName>
+            <customFields>{"service":"scheduling-service"}</customFields>
+            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                <maxDepthPerThrowable>40</maxDepthPerThrowable>
+                <rootCauseFirst>true</rootCauseFirst>
+            </throwableConverter>
+        </encoder>
+    </appender>
+</included>

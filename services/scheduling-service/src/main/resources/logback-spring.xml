@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- JSON (logstash) console logs by default; profile "plain-logs" switches to Spring Boot's text format for local dev. -->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProfile name="plain-logs">
+        <property name="CONSOLE_LOG_PATTERN"
+                  value="%d{HH:mm:ss.SSS} %5p [%X{traceId:-}] %X{centerCode:-} %logger{36} - %m%n%wEx"/>
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="!plain-logs">
+        <include resource="logback-json-console.xml"/>
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>

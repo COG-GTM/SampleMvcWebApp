@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: scheduling-service
+  main:
+    # the banner bypasses logback and would be the only non-JSON stdout
+    banner-mode: "off"
   datasource:
     # The service's OWN database. Never AssessmentDelivery.
     url: ${SCHEDULING_DB_URL:jdbc:sqlserver://localhost:1433;databaseName=Scheduling;encrypt=true;trustServerCertificate=true}
@@ -19,6 +22,11 @@ spring:
   mvc:
     problemdetails:
       enabled: false
+  task:
+    scheduling:
+      pool:
+        # relay poller + outbox metrics refresh must not wait for each other
+        size: 2
 
 scheduling:
   datasource:
@@ -41,6 +49,12 @@ scheduling:
     batch-size: 100
   reconciliation:
     report-dir: ${RECONCILIATION_REPORT_DIR:reports}
+  health:
+    # wall-clock and JDBC query timeout of each readiness probe (schedulingDb, legacySource)
+    timeout-ms: ${SCHEDULING_HEALTH_TIMEOUT_MS:2000}
+  metrics:
+    # how often scheduling_outbox_pending / scheduling_outbox_lag_seconds are re-read (scrapes never hit the DB)
+    outbox-refresh-ms: ${SCHEDULING_OUTBOX_METRICS_REFRESH_MS:5000}
   rules:
     # calendar (portal RetakeRules.AddDays, chosen by ADR 0002) | working (booking-api DateUtils.addWorkingDays)
     retake-days: calendar
@@ -51,7 +65,26 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        # liveness never looks at a database: a DB outage must not get the JVM restarted
+        liveness:
+          include: livenessState
+        # readiness = started + Scheduling DB (SELECT 1, Flyway at latest) + AssessmentDelivery read-only source; 503 when DOWN
+        readiness:
+          include: readinessState,schedulingDb,legacySource
+          show-details: always
+  health:
+    # replaced by schedulingDb, which has timeouts (the default db indicator can block for the pool's 30 s)
+    db:
+      enabled: false
+  metrics:
+    tags:
+      application: scheduling-service
 
 logging:
   level:

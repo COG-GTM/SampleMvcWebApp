@@ -44,6 +44,13 @@ public class SessionRepository {
         return jdbc.sql(SESSION_VIEW + "WHERE s.session_id = ?").param(sessionId).query(SessionRepository::mapView).optional();
     }
 
+    /** Center code of a session (for logs and metric tags), empty when the session does not exist. */
+    public Optional<String> centerCodeOf(int sessionId) {
+        return jdbc.sql("SELECT c.center_code FROM exam_session s JOIN test_center_snapshot c ON c.center_id = s.center_id "
+                        + "WHERE s.session_id = ?")
+                .param(sessionId).query(String.class).optional();
+    }
+
     /** booking-api v1 search semantics: from inclusive, to exclusive, ordered by start, max 500 rows. */
     public List<SessionView> search(int centerId, Integer examId, LocalDateTime from, LocalDateTime to) {
         StringBuilder sql = new StringBuilder("SELECT TOP " + MAX_ROWS + " * FROM (" + SESSION_VIEW + ") x WHERE x.center_id = :centerId");
