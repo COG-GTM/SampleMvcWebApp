@@ -97,7 +97,7 @@ Eligibility reasons: `FIRST_ATTEMPT`, `ALREADY_PASSED`, `RETAKE_WAIT_NOT_ELAPSED
 
 | Method | Path | |
 |---|---|---|
-| POST | `/api/v1/results` | `{bookingId, score, scoredAt}` -> 201; 409 if the booking already has a result |
+| POST | `/api/v1/results` | `{bookingId, score, scoredAt}` -> 201 `{status:"CREATED",...}`; 200 `{status:"DUPLICATE",resultId}` if the same result is already stored; 409 `DUPLICATE_RESULT` with `storedScore`/`submittedScore` if a different one is |
 | POST | `/api/v1/results/upload` | multipart `file`, CSV `candidateNumber,sessionId,score,scoredAt` with a header row |
 | GET | `/api/v1/results/candidate/{candidateNumber}` | |
 
@@ -110,13 +110,30 @@ candidateNumber,sessionId,score,scoredAt
 NW00000003,1,780,2026-09-10T12:31:00
 CSV
 curl -F file=@NWLON01_20260910.csv http://localhost:8082/api/v1/results/upload
-# {"fileName":"NWLON01_20260910.csv","rowsRead":1,"imported":1,"skipped":0,"errors":[]}
+# {"fileName":"NWLON01_20260910.csv","sha256":"...","uploadId":1,"alreadyUploaded":false,"rowsRead":1,
+#  "imported":1,"duplicates":0,"conflicts":0,"skipped":0,"errors":[],"conflictDetails":[]}
 
 curl http://localhost:8082/api/v1/results/candidate/NW00000003
 ```
 
 Bad CSV rows are skipped and listed in `errors` with their line number; the file name is stored
 in `Result.SourceFile`.
+
+Idempotency (MBA-3827). A booking holds at most one result (`UQ_Result_Booking`):
+
+- Same `{bookingId, score, scoredAt}` again (REST or CSV row): a no-op, reported as a duplicate.
+  A REST post without `scoredAt` matches on the score alone.
+- Different score or `scoredAt`: rejected, the stored row is kept, and an `AuditLog` row
+  (`EntityName='Result'`, `Action='DUPLICATE_REJECTED'`) records both values. REST returns 409
+  `DUPLICATE_RESULT`; a CSV row is counted in `conflicts` and listed in `conflictDetails` by line.
+- Concurrent identical posts: one inserts, the others get the duplicate answer (the unique-key
+  violation is caught and re-classified, never a 500).
+- Each imported file is recorded in `dbo.ResultUpload` with the SHA-256 of its bytes. Uploading the
+  same content again returns 200 with `alreadyUploaded:true` and the original `uploadId`; rows are
+  only re-checked (`imported=0`, already-stored rows count as `duplicates`) and nothing is inserted.
+  Send corrected or new rows in a new file.
+- Rows still commit one by one (HB-19): a bad, duplicate or conflicting row never rolls back the
+  good rows of the same file. `skipped = rowsRead - imported`.
 
 ### capacity-sync :8083
 
