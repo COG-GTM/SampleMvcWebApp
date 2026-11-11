@@ -67,7 +67,8 @@ def sql(query):
 
 
 def set_allow_list(codes):
-    CONFIG.write_text("# functional test\nrouting.modern-centers=" + ",".join(codes) + "\n", encoding="utf-8")
+    lines = [l for l in CONFIG.read_text(encoding="utf-8").splitlines() if not l.startswith("routing.modern-centers")]
+    CONFIG.write_text("\n".join(lines + ["routing.modern-centers=" + ",".join(codes)]) + "\n", encoding="utf-8")
 
 
 def wait_route(url, want, limit=5.0):
