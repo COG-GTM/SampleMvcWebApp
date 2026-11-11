@@ -66,9 +66,12 @@ function Wait-Health([string]$url, [int]$seconds, [string]$name, $proc) {
 function Start-Jar([string]$name, [string]$java, [string]$jar, [string[]]$jarArgs, [hashtable]$envVars) {
     foreach ($k in $envVars.Keys) { [Environment]::SetEnvironmentVariable($k, $envVars[$k], 'Process') }
     $log = Join-Path $runDir "$name.log"
-    $argList = @('-jar', "`"$jar`"") + $jarArgs
+    Remove-Item $log -ErrorAction SilentlyContinue
+    # no -RedirectStandardOutput: it makes Start-Process inherit handles, so the JVM would keep the caller's
+    # stdout pipe open and `& powershell -File run-modern.ps1 *> log` (drift-before-after.ps1) would never return
+    $argList = @('-jar', "`"$jar`"", "--logging.file.name=`"$log`"") + $jarArgs
     $p = Start-Process -FilePath "$java\bin\java.exe" -ArgumentList $argList -WorkingDirectory $root -PassThru `
-        -WindowStyle Hidden -RedirectStandardOutput $log -RedirectStandardError (Join-Path $runDir "$name.err.log")
+        -WindowStyle Hidden
     Set-Content (Join-Path $runDir "$name.pid") $p.Id
     return $p
 }
