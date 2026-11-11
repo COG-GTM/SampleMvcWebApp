@@ -99,5 +99,5 @@ test('steps 6-7: admin lowers and raises capacity, opens the waitlist drawer', a
   await expect(drawer).toBeVisible();
   await expect(drawer.getByTestId('waitlist-row')).toHaveCount(3);
   await expect(drawer.getByTestId('waitlist-row').first()).toContainText('NW');
-  await shot(page, '07-waitlist-drawer');
+  await page.screenshot({ path: 'screenshots/07-waitlist-drawer.png' }); // viewport: the drawer is fixed-position
 });
