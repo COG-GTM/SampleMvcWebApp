@@ -1,7 +1,7 @@
 # Characterization replay: target `legacy`
 
 - Transcripts captured from tag `legacy-baseline` = `e458238da39c991b51d8f670f6d0c463b51b372f`
-- Replayed estate commit: `8f484e23e3befc5f5fc9893d40bd1323b7c439a9`
+- Replayed estate commit: `e458238da39c991b51d8f670f6d0c463b51b372f`
 - Target: `legacy`
 - Options: `target=legacy`
 

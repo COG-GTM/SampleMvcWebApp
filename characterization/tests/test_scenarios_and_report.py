@@ -57,7 +57,17 @@ def _t(business, db_state, group="booking", channel="PORTAL", tags=()):
     step = {"op": "book", "request": {}, "expected": {"status": 302, "response": {"status": 302},
                                                      "business_fields": business}}
     return {"scenario": "s1", "group": group, "channel": channel, "tags": list(tags), "steps": [step],
-            "expected": {"db_state_before": {}, "db_state": db_state}}
+            "expected": {"status": 302, "business_fields": dict(business), "db_state_before": {}, "db_state": db_state}}
+
+
+def test_compare_checks_the_transcript_level_summary():
+    e = _t({"outcome": "BOOKED", "seatsAvailable": 13}, {})
+    a = _t({"outcome": "BOOKED", "seatsAvailable": 13}, {})
+    assert compare(e, a, "legacy") == compare(e, a, "modern") == []
+    e["expected"]["business_fields"]["seatsAvailable"] = 999
+    e["expected"]["status"] = 200
+    assert compare(e, a, "legacy") == [("status", 200, 302), ("business.seatsAvailable", 999, 13)]
+    assert compare(e, a, "modern") == [("business.seatsAvailable", 999, 13)]
 
 
 def test_compare_legacy_is_exact_and_modern_uses_legacy_code():

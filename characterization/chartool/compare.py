@@ -51,6 +51,14 @@ def compare(expected, actual, target):
         else:
             diffs += diff(modern_business(e["expected"]["business_fields"]),
                           modern_business(a["expected"]["business_fields"]), prefix + ".business")
+    # Transcript-level summary (copied from the last step at capture time): checked too, so editing it is not silent.
+    top_e, top_a = expected["expected"], actual["expected"]
+    if target == "legacy":
+        diffs += diff(top_e.get("status"), top_a.get("status"), "status")
+        diffs += diff(top_e.get("business_fields"), top_a.get("business_fields"), "business")
+    else:
+        diffs += diff(modern_business(top_e.get("business_fields") or {}),
+                      modern_business(top_a.get("business_fields") or {}), "business")
     ignore = set() if target == "legacy" else TIMESTAMP_KEYS | MODERN_IGNORED_BOOKING_KEYS
     for key in ("db_state_before", "db_state"):
         exp, act = expected["expected"][key], actual["expected"][key]
