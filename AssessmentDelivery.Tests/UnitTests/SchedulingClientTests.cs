@@ -91,6 +91,19 @@ namespace AssessmentDelivery.Tests.UnitTests
         }
 
         [Test]
+        public void CapacityAuditSendsIsoDatesWithAnInclusiveToDay()
+        {
+            RespondOnce(200, "{\"rows\":[],\"total\":0}");
+            new SchedulingClient(_baseUrl).GetCapacityAudit(20, new DateTime(2026, 10, 12), new DateTime(2026, 11, 12), 164, 1, 50);
+
+            Assert.AreEqual("GET", _method);
+            StringAssert.StartsWith("/api/v1/sessions/capacity-audit?", _path);
+            StringAssert.Contains("from=2026-10-12&", _path);
+            StringAssert.Contains("to=2026-11-11&", _path);
+            StringAssert.Contains("sessionId=164", _path);
+        }
+
+        [Test]
         public void MissingSessionReadsAsNull()
         {
             RespondOnce(404, "{\"error\":\"SESSION_NOT_FOUND\",\"message\":\"Session 404 was not found.\"}");

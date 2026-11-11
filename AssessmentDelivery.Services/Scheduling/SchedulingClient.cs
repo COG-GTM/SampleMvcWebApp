@@ -83,11 +83,17 @@ namespace AssessmentDelivery.Services.Scheduling
             var qs = new QueryString()
                 .Add("testCenterId", testCenterId)
                 .Add("sessionId", sessionId)
-                .Add("from", from.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture))
-                .Add("to", to.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture))
+                .Add("from", from.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
+                .Add("to", InclusiveDay(to).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
                 .Add("page", page)
                 .Add("pageSize", pageSize);
             return Send<ApiCapacityAuditPage>("GET", "/sessions/capacity-audit" + qs, null, null, null);
+        }
+
+        // The service takes ISO dates with an inclusive 'to' day; callers pass an exclusive upper bound.
+        private static DateTime InclusiveDay(DateTime toExclusive)
+        {
+            return (toExclusive.TimeOfDay == TimeSpan.Zero ? toExclusive.AddDays(-1) : toExclusive).Date;
         }
 
         public ApiRoster GetRoster(int sessionId)
