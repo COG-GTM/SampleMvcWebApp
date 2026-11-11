@@ -37,6 +37,9 @@ public class SchedulingClientTest {
         client = new SchedulingClient(rest, "http://gateway:8000/");
         service = new BookingService();
         ReflectionTestUtils.setField(service, "scheduling", client);
+        // unknown candidate/session in the legacy read: the retake pre-check defers to scheduling-service
+        ReflectionTestUtils.setField(service, "candidateDao", org.mockito.Mockito.mock(com.northwind.assessment.booking.dao.CandidateDao.class));
+        ReflectionTestUtils.setField(service, "sessionDao", org.mockito.Mockito.mock(com.northwind.assessment.booking.dao.SessionDao.class));
         ReflectionTestUtils.setField(service, "channel", "PARTNER");
         ReflectionTestUtils.setField(service, "relayWaitMs", 2000L);
     }

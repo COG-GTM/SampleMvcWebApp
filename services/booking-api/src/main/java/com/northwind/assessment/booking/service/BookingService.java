@@ -12,6 +12,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.northwind.assessment.booking.dao.BookingDao;
+import com.northwind.assessment.booking.dao.CandidateDao;
+import com.northwind.assessment.booking.dao.SessionDao;
+import com.northwind.assessment.booking.model.Candidate;
+import com.northwind.assessment.booking.model.EligibilityResult;
 import com.northwind.assessment.booking.model.BookingInfo;
 import com.northwind.assessment.booking.model.BookingRequest;
 import com.northwind.assessment.booking.model.BookingResponse;
@@ -37,6 +41,15 @@ public class BookingService {
     @Autowired
     private SchedulingClient scheduling;
 
+    @Autowired
+    private CandidateDao candidateDao;
+
+    @Autowired
+    private SessionDao sessionDao;
+
+    @Autowired
+    private RetakeEligibilityService retakeEligibilityService;
+
     @Value("${booking.channel:PARTNER}")
     private String channel;
 
@@ -57,6 +70,7 @@ public class BookingService {
         if (req.getExternalRef() != null && req.getExternalRef().length() > 40) {
             throw ApiException.badRequest("VALIDATION", "externalRef is limited to 40 characters");
         }
+        checkRetakeEligibility(req.getCandidateNumber().trim(), req.getSessionId().intValue());
         Map<String, Object> r = scheduling.book(req.getSessionId().intValue(), req.getCandidateNumber().trim(), acc,
                 req.getExternalRef(), channel);
         int bookingId = legacyId(r);
@@ -64,6 +78,28 @@ public class BookingService {
         log.info("Partner booking {} for {} on session {} -> {}", bookingId, req.getCandidateNumber(), req.getSessionId(),
                 status);
         return new BookingResponse(bookingId, status);
+    }
+
+    /**
+     * Retake rules against the live dbo.Result (results-service writes it), not scheduling-service's import-time
+     * snapshot, so a score ingested since the last import is honoured. Unknown candidate/session: scheduling answers.
+     */
+    void checkRetakeEligibility(String candidateNumber, int sessionId) {
+        Candidate cand = candidateDao.findByNumber(candidateNumber);
+        Integer examId = sessionDao.findExamId(sessionId);
+        if (cand == null || examId == null) {
+            return;
+        }
+        EligibilityResult elig = retakeEligibilityService.check(cand.getCandidateId(), examId.intValue(),
+                sessionDao.findStartsAt(sessionId));
+        if (!elig.isEligible()) {
+            String msg = "Candidate " + cand.getCandidateNumber() + " is not eligible to book "
+                    + sessionDao.findById(sessionId).getExamCode() + " (" + elig.getReason() + ")";
+            if (elig.getEarliestRetakeDate() != null) {
+                msg += ", earliest retake date " + elig.getEarliestRetakeDate();
+            }
+            throw ApiException.conflict("NOT_ELIGIBLE", msg);
+        }
     }
 
     public void cancel(int bookingId, String reason) {
