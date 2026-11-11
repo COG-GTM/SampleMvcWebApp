@@ -10,7 +10,7 @@ public enum OutboxEventType {
     CapacityChanged("ExamSession", "CAPACITY_CHANGE"),
     /** after a snapshot import: SeatsAvailable for every session (scheduling-service is the single seat writer) */
     InventoryBaselined("ExamSession", "SEAT_BASELINE"),
-    /** MBA-3829 (ADR 0004): a held seat offered to a waitlisted booking; legacy rows unchanged (still WAITLISTED) */
+    /** MBA-3829 (ADR 0005): a held seat offered to a waitlisted booking; legacy rows unchanged (still WAITLISTED) */
     SeatOffered("Booking", "WAITLIST_OFFER"),
     /** offer accepted: booking BOOKED, waitlist row removed, later positions shifted up */
     SeatOfferAccepted("Booking", "WAITLIST_OFFER_ACCEPT"),

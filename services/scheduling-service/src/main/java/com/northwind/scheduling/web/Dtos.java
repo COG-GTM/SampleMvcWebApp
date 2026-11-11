@@ -52,7 +52,7 @@ public final class Dtos {
         }
     }
 
-    /** MBA-3829: a seat offered to a waitlisted booking (ADR 0004). */
+    /** MBA-3829: a seat offered to a waitlisted booking (ADR 0005). */
     public record OfferDto(int offerId, int sessionId, int bookingId, String candidateNumber, int position, String status,
                            LocalDateTime offeredAt, LocalDateTime expiresAt, LocalDateTime resolvedAt) {
         static OfferDto of(Rows.Offer o) {

@@ -177,7 +177,7 @@ public class SchedulingService {
     /**
      * usp_CancelBooking: frees the seat (derived count), drops the waitlist row (positions keep their gap, HB-06).
      * Unlike legacy (ODD-09) a freed or released held seat is offered to the next eligible waitlist entry
-     * (MBA-3829, ADR 0004); a pending offer of the cancelled booking is withdrawn.
+     * (MBA-3829, ADR 0005); a pending offer of the cancelled booking is withdrawn.
      */
     @Transactional
     public Rows.Booking cancel(int bookingId, String reason) {
@@ -205,7 +205,7 @@ public class SchedulingService {
         }).orElse(false);
     }
 
-    // ------------------------------------------------------------------ waitlist offers (MBA-3829, ADR 0004)
+    // ------------------------------------------------------------------ waitlist offers (MBA-3829, ADR 0005)
 
     public Rows.Offer offer(int offerId) {
         return repo.offer(offerId).orElseThrow(

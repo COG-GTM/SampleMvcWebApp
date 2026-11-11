@@ -95,7 +95,7 @@ public class OpenApiConfig {
                     "Book a seat (WAITLISTED when the session is full); returns the legacy {bookingId, status} plus the live booking and session"}),
             Map.entry("booking", new String[] {"Bookings", "Get a booking"}),
             Map.entry("cancel", new String[] {"Bookings",
-                    "Cancel a booking (frees the seat; it is offered to the next eligible waitlist entry, MBA-3829 / ADR 0004)"}),
+                    "Cancel a booking (frees the seat; it is offered to the next eligible waitlist entry, MBA-3829 / ADR 0005)"}),
             Map.entry("offer", new String[] {"Offers", "Get a waitlist seat offer"}),
             Map.entry("acceptOffer", new String[] {"Offers",
                     "Accept a pending seat offer (the waitlisted booking becomes BOOKED, later waitlist positions move up)"}),

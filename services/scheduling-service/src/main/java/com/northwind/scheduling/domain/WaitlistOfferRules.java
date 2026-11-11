@@ -5,7 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Who gets a freed seat (MBA-3829, ADR 0004). Deliberate change from legacy, where usp_CancelBooking promotes
+ * Who gets a freed seat (MBA-3829, ADR 0005). Deliberate change from legacy, where usp_CancelBooking promotes
  * nobody (HB-06, MR-12, ODD-09): every seat that is free and not held is offered, in waitlist position order,
  * to the first entry whose accommodation needs fit. An ET25/ET50 entry is skipped (and keeps its place) while no
  * accommodation seat is free; SR/RB/none only need a seat. Only OPEN sessions make offers.

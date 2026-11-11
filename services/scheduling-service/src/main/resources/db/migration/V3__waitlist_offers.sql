@@ -1,4 +1,4 @@
--- MBA-3829 waitlist auto-offer (ADR 0004). A freed seat in an OPEN session is offered to the lowest-position waitlist
+-- MBA-3829 waitlist auto-offer (ADR 0005). A freed seat in an OPEN session is offered to the lowest-position waitlist
 -- entry whose accommodation needs fit (service/WaitlistOfferPolicy). While an offer is PENDING the seat is held:
 -- SessionCapacity subtracts held seats from availability, so nobody else can book it.
 -- The hold lives only here. Legacy dbo.ExamSession.SeatsAvailable keeps Capacity - (BOOKED + ATTENDED) (seat-drift.sql,

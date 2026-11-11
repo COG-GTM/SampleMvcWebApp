@@ -148,7 +148,7 @@ event id in `dbo.RelayCheckpoint` ([ADR 0003](../adr/0003-single-writer-outbox-r
 ### Waitlist offers stuck or not made (MBA-3829)
 
 A seat freed in an `OPEN` session is offered to the next eligible waitlist entry and held while the offer is
-`PENDING` ([ADR 0004](../adr/0004-waitlist-auto-offer.md)). Config: `scheduling.waitlist.offer-ttl`
+`PENDING` ([ADR 0005](../adr/0005-waitlist-auto-offer.md)). Config: `scheduling.waitlist.offer-ttl`
 (`SCHEDULING_WAITLIST_OFFER_TTL`, default `PT24H`), `scheduling.waitlist.expiry-enabled` (`..._EXPIRY_ENABLED`,
 default `true`), `scheduling.waitlist.expiry-poll` (`..._EXPIRY_POLL`, default `PT1M`).
 

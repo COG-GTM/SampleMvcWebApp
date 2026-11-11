@@ -1,4 +1,4 @@
-# ADR 0004: freed seats are offered to the waitlist (MBA-3829, A4)
+# ADR 0005: freed seats are offered to the waitlist (MBA-3829, A4)
 
 Status: accepted. Deliberate behaviour change to [ADR 0002](0002-ported-rule-decisions.md) ODD-09, built on the single
 writer and outbox of [ADR 0003](0003-single-writer-outbox-relay.md).

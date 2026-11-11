@@ -7,7 +7,7 @@ import java.util.Locale;
  * <ul>
  * <li>{@link #STANDARD}: Capacity - (BOOKED + ATTENDED), the formula of db/procs/024 seat-drift,
  * booking-api SeatCounter and SeatCounter.cs. Chosen by ADR 0002. Seats held by pending waitlist offers are not
- * available either (MBA-3829, ADR 0004); legacy SeatsAvailable still excludes them (OutboxRepository).</li>
+ * available either (MBA-3829, ADR 0005); legacy SeatsAvailable still excludes them (OutboxRepository).</li>
  * <li>{@link #CAPACITY_SYNC}: Capacity - AccommodationCapacity - active standard (non ET) bookings,
  * floored at 0, from services/capacity-sync CapacitySyncService. Kept only for comparison.</li>
  * </ul>

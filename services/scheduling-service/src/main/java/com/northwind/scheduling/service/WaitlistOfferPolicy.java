@@ -22,7 +22,7 @@ import com.northwind.scheduling.persistence.Rows;
 import com.northwind.scheduling.persistence.SchedulingRepository;
 
 /**
- * Waitlist auto-offer (MBA-3829, ADR 0004). Callers hold the session lock (SchedulingRepository.lockSession) and
+ * Waitlist auto-offer (MBA-3829, ADR 0005). Callers hold the session lock (SchedulingRepository.lockSession) and
  * a transaction, so offers, the change that freed the seat and their outbox events commit together and two
  * concurrent seat releases cannot offer the same seat twice.
  */

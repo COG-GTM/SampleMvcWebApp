@@ -10,7 +10,7 @@ package com.northwind.scheduling.domain;
  * @param accommodationUsed     BOOKED + ATTENDED bookings with ET25/ET50 (booking-api
  *                              BookingDao.countAccommodationSeatsUsed, usp_BookSeat)
  * @param waitlisted            WAITLISTED bookings
- * @param heldSeats             seats held by PENDING waitlist offers (MBA-3829, ADR 0004)
+ * @param heldSeats             seats held by PENDING waitlist offers (MBA-3829, ADR 0005)
  * @param accommodationHeld     held seats whose offered booking is ET25/ET50 (holds an accommodation seat too)
  */
 public record SessionCapacity(int capacity, int accommodationCapacity, int occupiedSeats, int accommodationUsed,

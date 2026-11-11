@@ -193,7 +193,7 @@ paths:
                 $ref: "#/components/schemas/ApiError"
           description: "Rule violation: NOT_CANCELLABLE"
       summary: "Cancel a booking (frees the seat; it is offered to the next eligible\
-        \ waitlist entry, MBA-3829 / ADR 0004)"
+        \ waitlist entry, MBA-3829 / ADR 0005)"
       tags:
       - Bookings
     get:

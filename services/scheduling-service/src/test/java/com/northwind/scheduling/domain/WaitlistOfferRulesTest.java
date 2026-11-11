@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-/** MBA-3829 / ADR 0004: who gets a freed seat. */
+/** MBA-3829 / ADR 0005: who gets a freed seat. */
 class WaitlistOfferRulesTest {
 
     static final List<WaitlistSlot> THREE = List.of(new WaitlistSlot(13, 1, null), new WaitlistSlot(14, 2, null),
