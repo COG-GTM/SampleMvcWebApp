@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import com.northwind.scheduling.characterization.support.Scenario;
 
-/** Keeps README.md's scenario catalogue and the @Scenario annotations in step (both directions). */
+/** Keeps README.md's scenario catalogue rows (id, branch/outcome, refs, method) identical to the @Scenario annotations. */
 class CatalogueConsistencyTest {
 
     private static final Pattern ROW = Pattern.compile("^\\|\\s*([A-Z0-9]+-\\d{2})\\s*\\|", Pattern.MULTILINE);
@@ -28,15 +28,22 @@ class CatalogueConsistencyTest {
     void readmeCataloguesEveryScenario() throws Exception {
         Set<String> code = new TreeSet<>();
         List<String> dupes = new ArrayList<>();
+        List<String> rows = new ArrayList<>();
         for (Class<?> c : scenarioClasses()) {
             for (Method m : c.getDeclaredMethods()) {
                 Scenario s = m.getAnnotation(Scenario.class);
-                if (s != null && !code.add(s.id())) {
-                    dupes.add(s.id());
+                if (s != null) {
+                    if (!code.add(s.id())) {
+                        dupes.add(s.id());
+                    }
+                    rows.add("| " + s.id() + " | " + s.covers().replace("|", "\\|") + " | " + s.refs() + " | `"
+                            + c.getSimpleName() + "#" + m.getName() + "` |");
                 }
             }
         }
         String readme = Files.readString(Path.of("README.md"));
+        Set<String> readmeLines = Set.copyOf(readme.lines().toList());
+        List<String> missingRows = rows.stream().filter(r -> !readmeLines.contains(r)).sorted().toList();
         Set<String> documented = new TreeSet<>();
         Matcher m = ROW.matcher(readme);
         while (m.find()) {
@@ -45,6 +52,7 @@ class CatalogueConsistencyTest {
         assertThat(dupes).as("duplicate scenario ids").isEmpty();
         assertThat(code).as("scenario ids").hasSizeGreaterThan(80);
         assertThat(documented).as("README catalogue vs @Scenario ids").isEqualTo(code);
+        assertThat(missingRows).as("README rows that differ from the @Scenario annotation (covers / refs / method)").isEmpty();
     }
 
     private static List<Class<?>> scenarioClasses() throws IOException, URISyntaxException, ClassNotFoundException {
