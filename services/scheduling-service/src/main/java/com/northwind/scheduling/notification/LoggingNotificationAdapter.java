@@ -41,12 +41,13 @@ public class LoggingNotificationAdapter implements NotificationPort {
             return false;
         }
         sent.put(n.eventId(), n);
-        log.info("candidate notification {}", n.impact(), kv("event", "CandidateCapacityImpactNotified"),
-                kv("eventId", n.eventId()), kv("impact", n.impact()), kv("candidateNumber", n.candidateNumber()),
-                kv("bookingId", n.bookingId()), kv("sessionId", n.sessionId()), kv("centerCode", n.centerCode()),
+        log.info("candidate notification {} {} {} {} {} {} {}", kv("impact", n.impact()),
+                kv("candidateNumber", n.candidateNumber()), kv("bookingId", n.bookingId()),
+                kv("sessionId", n.sessionId()), kv("previousStatus", n.previousStatus()),
+                kv("newStatus", n.newStatus()), kv("eventId", n.eventId()),
+                kv("event", "CandidateCapacityImpactNotified"), kv("centerCode", n.centerCode()),
                 kv("examCode", n.examCode()), kv("startsAt", String.valueOf(n.startsAt())),
-                kv("oldCapacity", n.oldCapacity()), kv("newCapacity", n.newCapacity()),
-                kv("previousStatus", n.previousStatus()), kv("newStatus", n.newStatus()));
+                kv("oldCapacity", n.oldCapacity()), kv("newCapacity", n.newCapacity()));
         return true;
     }
 
