@@ -43,6 +43,17 @@ BEGIN CATCH
     SET @fail += 1; PRINT 'FAIL 1 rejected: ' + ERROR_MESSAGE();
 END CATCH
 
+-- 1b. raise s1 back to 12 seats: the clamped accommodation allocation comes back (room has 3)
+BEGIN TRY
+    EXEC dbo.usp_ChangeCapacity @SessionId = @s1, @NewCapacity = 12, @Actor = 'test';
+    SELECT @cap = Capacity, @acc = AccommodationCapacity, @avail = SeatsAvailable FROM dbo.ExamSession WHERE SessionId = @s1;
+    IF @cap = 12 AND @acc = 3 AND @avail = 11 PRINT 'PASS 1b increase restores accommodation seats (capacity 12, accommodation 3, available 11)';
+    ELSE BEGIN SET @fail += 1; PRINT CONCAT('FAIL 1b capacity=', @cap, ' accommodation=', @acc, ' available=', @avail); END
+END TRY
+BEGIN CATCH
+    SET @fail += 1; PRINT 'FAIL 1b rejected: ' + ERROR_MESSAGE();
+END CATCH
+
 -- 2. reduce s2 to 1 seat: two ET25 seats are booked, so the change is rejected and nothing changes
 BEGIN TRY
     EXEC dbo.usp_ChangeCapacity @SessionId = @s2, @NewCapacity = 1, @Actor = 'test';
