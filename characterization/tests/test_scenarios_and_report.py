@@ -117,7 +117,7 @@ def test_known_defects_reference_real_transcripts():
     names = {s["name"] for s in load_all(CHAR / "scenarios")}
     known = load_known_defects()
     assert known and set(known) <= names
-    assert all("#57" in r for r in known.values())
+    assert all("#57" in d["reason"] and d["signature"] for d in known.values())
 
 
 def test_known_defect_is_counted_separately_not_as_match():
@@ -128,6 +128,10 @@ def test_known_defect_is_counted_separately_not_as_match():
     status, note = classify_modern_mismatch(t, actual, {"s1": "on-call defect #57"})
     assert (status, note) == ("KNOWN-DEFECT", "on-call defect #57")
     assert classify_modern_mismatch(t, actual, {})[0] == "MISMATCH"
+    entry = {"s1": {"reason": "on-call defect #57", "signature": {"error": "CAPACITY_BELOW_ACCOMMODATION_FLOOR"}}}
+    assert classify_modern_mismatch(t, actual, entry)[0] == "KNOWN-DEFECT"
+    other = {"steps": [{"expected": {"business_fields": {"error": None, "outcome": "UPDATED"}}}]}
+    assert classify_modern_mismatch(t, other, entry)[0] == "MISMATCH"
     routed = {"steps": [{"expected": {"business_fields": {"error": "CENTER_NOT_MODERN"}}}]}
     assert classify_modern_mismatch(t, routed, {})[0] == "SKIPPED"
     text, matched, total = render_report([{"transcript": t, "status": status, "note": note, "diffs": [("x", 1, 2)]}],

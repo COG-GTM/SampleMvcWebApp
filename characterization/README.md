@@ -179,8 +179,9 @@ Not applicable as golden transcripts (the replay compares a single deterministic
 `known-defects.yaml` lists transcripts that are expected to differ on `--target modern` for a known, tracked
 reason (currently the on-call defect from #57 in scheduling-service capacity reductions). On a modern replay a
 listed transcript that differs is reported as **KNOWN-DEFECT**: counted in its own column and in the status counts,
-never as MATCH and never hidden (the full request/expected/actual is in the mismatch section). If it matches it is
-counted as MATCH. Legacy replays ignore the file. A gateway answer `CENTER_NOT_MODERN` (the scenario's center is not
+never as MATCH and never hidden (the full request/expected/actual is in the mismatch section). This happens only when
+the actual run also shows the entry's `signature` business fields (for #57: `error: CAPACITY_BELOW_ACCOMMODATION_FLOOR`,
+`legacyCode: 50005`). Any other difference in that transcript is still a MISMATCH. If it matches, it is counted as MATCH. Legacy replays ignore the file. A gateway answer `CENTER_NOT_MODERN` (the scenario's center is not
 on the gateway allow-list, so nothing reached the modern service) is reported as SKIPPED with that note.
 
 ## Tests

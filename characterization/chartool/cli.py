@@ -22,14 +22,26 @@ def load_known_defects(path=KNOWN_DEFECTS):
     if not Path(path).exists():
         return {}
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
-    return {d["transcript"]: d["reason"] for d in data.get("known_defects", [])}
+    return {d["transcript"]: {"reason": d["reason"], "signature": d.get("signature") or {}}
+            for d in data.get("known_defects", [])}
+
+
+def _has_signature(actual, signature):
+    return any(all(s["expected"]["business_fields"].get(k) == v for k, v in signature.items())
+               for s in actual["steps"])
 
 
 def classify_modern_mismatch(transcript, actual, known):
-    """MISMATCH by default; KNOWN-DEFECT when listed in known-defects.yaml; SKIPPED when the gateway refused to
+    """MISMATCH by default; KNOWN-DEFECT when listed in known-defects.yaml and the actual run shows the entry's
+    `signature` business fields (so an unrelated regression in that scenario is still a MISMATCH); SKIPPED when the gateway refused to
     route the center (CENTER_NOT_MODERN: the scenario's center is not on the allow-list, nothing reached modern)."""
-    if transcript["scenario"] in known:
-        return "KNOWN-DEFECT", known[transcript["scenario"]]
+    entry = known.get(transcript["scenario"])
+    if entry is not None:
+        if isinstance(entry, str):
+            entry = {"reason": entry, "signature": {}}
+        if _has_signature(actual, entry["signature"]):
+            return "KNOWN-DEFECT", entry["reason"]
+        return "MISMATCH", "listed in known-defects.yaml, but the known-defect signature %s is absent: a different "                            "regression" % json.dumps(entry["signature"], sort_keys=True)
     if any(s["expected"]["business_fields"].get("error") == "CENTER_NOT_MODERN" for s in actual["steps"]):
         return "SKIPPED", "gateway: center not on routing.modern-centers (CENTER_NOT_MODERN)"
     return "MISMATCH", None
@@ -116,7 +128,9 @@ def modern_target(config, db, args):
             subprocess.run(args.modern_reset_cmd, shell=True, check=True)
             return
         # Re-import the freshly reset legacy state into scheduling-service (contract item 4).
-        sched.run_script("DELETE FROM waitlist_entry; DELETE FROM capacity_change; DELETE FROM booking; "
+        # Pending outbox rows from the previous scenario would be relayed (M4) into the freshly reset legacy DB.
+        sched.run_script("IF OBJECT_ID('dbo.outbox_event') IS NOT NULL DELETE FROM dbo.outbox_event; "
+                         "DELETE FROM waitlist_entry; DELETE FROM capacity_change; DELETE FROM booking; "
                          "DELETE FROM exam_session;")
         r = requests.post(config.scheduling_url + "/internal/import/sessions", timeout=300)
         r.raise_for_status()
@@ -182,7 +196,7 @@ def cmd_replay(args):
     text, matched, total = render(results, args.target, args.base_url if args.target == "modern" else None,
                                   estate_sha(args.estate_dir), options)
     REPORTS.mkdir(exist_ok=True)
-    name = args.report or "replay-%s-%s.md" % (args.target, LEGACY_BASELINE_SHA[:7])
+    name = Path(args.report).name if args.report else "replay-%s-%s.md" % (args.target, LEGACY_BASELINE_SHA[:7])
     (REPORTS / name).write_text(text, encoding="utf-8", newline="\n")
     print("[char] %d/%d MATCH -> %s" % (matched, total, REPORTS / name))
     db.close()
