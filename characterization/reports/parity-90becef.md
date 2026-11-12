@@ -1734,6 +1734,18 @@ $.after.sessions[0].SeatsAvailable: 9 -> 8
 
 ## Observations (not parity mismatches)
 
+- **8 modern scenarios end in `ERROR` at setup**: `CN-01`, `CN-03`, `CN-07`, `RS-01`, `RS-03`, `RS-05`, `RS-07`, `RS-10`.
+  Their first step is the retired portal `POST /Booking/Book`. Through :8000 that step returns `303` to
+  `/app/book?sessionId=...` and writes nothing (ADR 0004 M5-PORTAL-REDIRECT). `Runner._exec` then stops with
+  `step portal_book produced no id for save_as=b1` (see `replay-modern-90becef.md`).
+  - They are classified under ADR 0004 because the portal channel they drive is retired.
+  - Replay does **not** exercise their cancel/reschedule steps on modern; the transcripts can't be edited to rebook through `/api/v2`.
+  - Modern cancel and reschedule are covered elsewhere:
+    - the API-channel counterparts, which ran every step: `CN-02/04/06/08`, `RS-02/04/06/09`;
+    - walkthrough steps 3-5 (book, reschedule, cancel in `/app`);
+    - scheduling-service ITs: `SchedulingApiIT.cancelFreesSeatAndRescheduleMovesOneSeatSameExamOnly`, `WaitlistOfferIT.cancelOffersTheSeatToPositionOneAndHoldsIt` and `rescheduleOutOffersTheSeatAndCancellingAnOfferedBookingPassesItOn`, `RelayIT.bookCancelCapacityUpDownAndAttendanceLandExactlyAsSchedulingDecided`.
+  - So the 48 classified differences are 40 completed runs plus 8 setup aborts.
+
 - Harness fix of this PR: `CN-02` and `CN-06` used to flake against modern. The scheduling-service JVM clock writes the
   booking/cancel timestamps, and these could land a few seconds before the scenario start taken from the DB clock, so they were
   not normalized to `<now>`. `normalize.py` now parses ISO timestamps (fraction, `Z`, offsets), converts offsets to the DB's
