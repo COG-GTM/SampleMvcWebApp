@@ -114,7 +114,14 @@ def test_wait_settled_polls_until_nothing_is_pending():
     from harness.web import wait_settled
     answers = iter([ConnectionError("restarting"), {"pending": 3}, {"pending": "0", "total": 9}])
     sleeps = []
-    assert wait_settled(lambda: next(answers), sleep=sleeps.append) == {"pending": "0", "total": 9}
+
+    def fetch():
+        answer = next(answers)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    assert wait_settled(fetch, sleep=sleeps.append) == {"pending": "0", "total": 9}
     assert len(sleeps) == 2
 
 
