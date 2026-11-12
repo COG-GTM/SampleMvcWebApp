@@ -1734,6 +1734,8 @@ $.after.sessions[0].SeatsAvailable: 9 -> 8
 
 ## Observations (not parity mismatches)
 
+- One commit after tested code SHA `90becef` is test-only: it changes `characterization/tests/test_normalize_compare.py` so the retry test's fetch raises `ConnectionError`. Harness and service code are unchanged, so this evidence still applies.
+
 - **8 modern scenarios end in `ERROR` at setup**: `CN-01`, `CN-03`, `CN-07`, `RS-01`, `RS-03`, `RS-05`, `RS-07`, `RS-10`.
   Their first step is the retired portal `POST /Booking/Book`. Through :8000 that step returns `303` to
   `/app/book?sessionId=...` and writes nothing (ADR 0004 M5-PORTAL-REDIRECT). `Runner._exec` then stops with
