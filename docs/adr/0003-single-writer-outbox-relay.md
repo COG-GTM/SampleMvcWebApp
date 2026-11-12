@@ -53,7 +53,9 @@ components share the high-privilege `ad_app` login (HB-28, MR-07), so nothing st
 ## Not changed
 
 Other legacy oddities stay as documented (e.g. HB-30 destructive `db/apply.*`, HB-31 sessions never closed, HB-17
-audit actor inconsistencies). The relay writes `AuditLog.Actor = scheduling-relay` for its own rows only.
+audit actor inconsistencies). The relay writes one `AuditLog` row per event; its `Actor` is the actor recorded on the
+outbox event (`outbox.actor`, e.g. `scheduling-service`), and the row is marked as relayed by
+`Detail = 'outbox seq=<n> event=<id> <type> ...'` (see Amendment 1).
 
 ## Consequences
 
@@ -61,3 +63,14 @@ audit actor inconsistencies). The relay writes `AuditLog.Actor = scheduling-rela
   is 0 after mixed traffic (see `reports/`).
 - Legacy readers lag by the relay delay (poll `scheduling.relay.poll-ms=250`; p95 well under 2 s locally).
 - FU-3 of ADR 0002 (retire capacity-sync and `SeatsAvailable`) is now possible.
+
+## Amendment 1 (MBA-3825): relay audit actor
+
+The original "Not changed" text said relay audit rows carry `AuditLog.Actor = scheduling-relay`. The implemented relay
+(`LegacyRelay`) writes the actor recorded on the outbox event instead (`truncate(e.actor(), 60)`). For writes through
+scheduling-service that is `scheduling-service`, as the M6 replays show (`characterization/reports/parity-90becef.md`).
+This ADR now describes that behaviour; the code is unchanged. `scheduling-relay` is still the relay's identity for the
+database: login `ad_sched_relay` and `SESSION_CONTEXT(N'writer') = N'scheduling-relay'`, which the triggers in
+decision 7 check. A relayed audit row is identified by its `Detail` prefix `outbox seq=<n> event=<id>`, not by
+`Actor`. Keeping the originating actor is more useful for audit than a constant relay name. It does not affect
+Booking/Waitlist/ExamSession state, reconciliation or seat drift.

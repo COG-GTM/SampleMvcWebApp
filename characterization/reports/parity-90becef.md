@@ -1743,9 +1743,8 @@ $.after.sessions[0].SeatsAvailable: 9 -> 8
 - `--settle-url` (new, optional): modern snapshots are taken only after the outbox relay reports a real `pending` count of 0
   (null = empty outbox, an error body = not settled). A snapshot therefore can't race the asynchronous projection into
   `dbo.Booking/Waitlist/ExamSession`.
-- Relay audit rows carry `AuditLog.Actor` = the event's actor (`scheduling-service`), while ADR 0003 "Not changed" says
-  `scheduling-relay`. This is audit text only: it is not a Booking/Waitlist/ExamSession field, and the legacy actor (`booking-api`)
-  differs anyway. It is left unchanged here and listed as an open item.
+- Relay audit rows carry `AuditLog.Actor` = the event's actor (`scheduling-service`). This is the implemented behaviour and is
+  now documented in ADR 0003 Amendment 1 (docs only). The legacy actor (`booking-api`) differs and is classified above under ADR 0003 §4/§5.
 - `GET /app?candidateNumber=...` through :8000 now stays on the gateway but lands on `/app/` without the query string
   (`reports/drift-before-after/gateway-redirect-probe.txt`). scheduling-service drops the query on its own
   (`SpaConfig.addRedirectViewController("/app", "/app/")`, same on :8090 directly). That predates this PR, is outside its scope
