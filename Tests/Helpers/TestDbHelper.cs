@@ -12,11 +12,13 @@ namespace Tests.Helpers
 {
     /// <summary>
     /// Provides access to the SQL Server test database.
-    /// The connection string comes from the env var ConnectionStrings__SampleWebAppDb, else the test appsettings.json,
+    /// The connection string comes from the env var ConnectionStrings__SampleWebAppDbTest, else the test appsettings.json,
     /// else the local docker SQL Server (database SampleWebAppDb-Test).
     /// </summary>
     internal static class TestDbHelper
     {
+        internal const string TestConnectionStringName = "SampleWebAppDbTest";
+
         internal const string DefaultConnectionString =
             "Server=localhost,1433;Database=SampleWebAppDb-Test;User Id=sa;Password=Str0ng!Passw0rd;TrustServerCertificate=True;MultipleActiveResultSets=True";
 
@@ -79,7 +81,7 @@ namespace Tests.Helpers
                 .AddJsonFile("appsettings.json", optional: true)
                 .AddEnvironmentVariables()
                 .Build();
-            var connectionString = config.GetConnectionString(SampleWebAppDb.NameOfConnectionString);
+            var connectionString = config.GetConnectionString(TestConnectionStringName);
             return string.IsNullOrWhiteSpace(connectionString) ? DefaultConnectionString : connectionString;
         }
     }

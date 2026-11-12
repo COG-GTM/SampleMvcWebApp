@@ -161,7 +161,7 @@ No `Hub` subclass and no `MapSignalR()` anywhere. Only dead client JS: `Scripts/
 | `App.config` binding redirects, `Microsoft.Web.Infrastructure` | not needed |
 | `.sln` web project type GUID `{349c5851-65df-11da-9384-00065b846f21}` | plain C# project; keep all 5 projects in `SampleWebApp.sln`; drop `.nuget` solution folder if any |
 | NUnit 2.6.3 (`[TestFixtureSetUp]`, `Assert.AreEqual`, `ExpectedException`), Moq 4.2 | NUnit 4.x (`[OneTimeSetUp]`, `Assert.That` or `NUnit.Framework.Legacy.ClassicAssert`, `Assert.Throws`), `NUnit3TestAdapter`, `Microsoft.NET.Test.Sdk`, Moq 4.20.x |
-| `Tests/Properties/Settings.settings` | `Tests/appsettings.json` or env var `ConnectionStrings__SampleWebAppDb` |
+| `Tests/Properties/Settings.settings` | `Tests/appsettings.json` or env var `ConnectionStrings__SampleWebAppDbTest` (a separate name, so the app's `ConnectionStrings__SampleWebAppDb` can never point the tests, which reset data, at the app database) |
 
 **(C)** `WebApplicationFactory<Program>` runs `Program.cs` in full, including `WebUiInitialise.InitialiseThis` (migrate + seed), against the `Development` connection string (`SampleWebAppDb`). Tests override it with `WithWebHostBuilder(b => b.UseSetting("ConnectionStrings:SampleWebAppDb", <test cs>))` so they only touch `SampleWebAppDb-Test`.
 
@@ -283,7 +283,7 @@ Posts use `[FromServices] IDetailPostService` (+ `DeleteAndSave<Post>`); `*Async
 - Dev connection string (`appsettings.Development.json`; throw-away local container password):
   `Server=localhost,1433;Database=SampleWebAppDb;User Id=sa;Password=Str0ng!Passw0rd;TrustServerCertificate=True;MultipleActiveResultSets=True`
 - Run: `ASPNETCORE_ENVIRONMENT=Development dotnet run --project SampleWebApp --urls http://localhost:5000`
-- Tests: `dotnet test` against database `SampleWebAppDb-Test` on the same server (override with `ConnectionStrings__SampleWebAppDb`).
+- Tests: `dotnet test` against database `SampleWebAppDb-Test` on the same server (override with `ConnectionStrings__SampleWebAppDbTest`).
 
 ## 13. Baseline & verification artifacts
 - **Subsession 0 — legacy .NET Framework 4.5.1 baseline on Windows** ([session](https://app.devin.ai/sessions/0a46be762464420a95068bffc57afb4c), `master` unmodified, IIS Express + LocalDB, Chrome):
