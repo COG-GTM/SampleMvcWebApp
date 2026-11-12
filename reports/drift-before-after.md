@@ -76,6 +76,9 @@ sqlcmd -S localhost,1433 -E -C -d AssessmentDelivery -W -s '|' -i db/checks/seat
 | [reconciliation-20261111-235704.md](drift-before-after/reconciliation-20261111-235704.md) | the report file that call wrote |
 | [modern-seat-drift.txt](drift-before-after/modern-seat-drift.txt) | modern `seat-drift.sql`, 0 rows |
 | [gateway-redirect-probe.txt](drift-before-after/gateway-redirect-probe.txt) | retired portal URLs and `/app` through :8000 (ADR 0004 redirects; `/app` stays on :8000) |
+| [walkthrough-retired-route-headers.txt](drift-before-after/walkthrough-retired-route-headers.txt) | walkthrough step 10: `/Booking/Book?sessionId=154`, `/Booking/MyBookings?candidateNumber=NW00000902`, `/Booking/Index` through :8000 -> 302 `X-Route: modern`, relative `/app/...` |
+| [walkthrough-relay-booking-50000003.txt](drift-before-after/walkthrough-relay-booking-50000003.txt) | walkthrough step 11: booking 50000003 made in the modern UI, `Scheduling.dbo.booking` (`legacy_booking_id` 50000003, BOOKED) vs legacy `dbo.Booking` (BookingId 50000003, session 154, NW00000902, BOOKED, PORTAL) and its relay `AuditLog` row (`outbox seq=362`) |
 
 All outputs come from one run on 2026-11-11 (Windows Server 2022 VM, SQL Server 2022, one instance shared by both estates
-one after the other). Commits after `90becef` on this branch change only reports/docs.
+one after the other); the two walkthrough files come from the testing-agent run on the same `90becef` services on
+2026-11-12. Commits after `90becef` on this branch change only reports/docs.
