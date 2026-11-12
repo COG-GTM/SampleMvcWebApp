@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: Test10SetupBlogs.cs
@@ -34,7 +34,7 @@ using Tests.Helpers;
 
 namespace Tests.UnitTests.Group01DataLayer
 {
-    class Test10SetupBlogs
+    public class Test10SetupBlogs
     {
         [Test]
         public void Check01XmlFileLoadOk()
@@ -69,10 +69,10 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check10BlogsResetSmallOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, true);
+                DataLayerInitialise.InitialiseThis(db, true);
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
@@ -87,10 +87,10 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check11BlogsResetMediumOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, true);
+                DataLayerInitialise.InitialiseThis(db, true);
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
@@ -108,10 +108,10 @@ namespace Tests.UnitTests.Group01DataLayer
         public void Check20NullInitialiserOk()
         {
             Check10BlogsResetSmallOk();             //we call this to ensure the database is setup
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDbHelper.CreateDb())
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, false);           //select null initialiser
+                DataLayerInitialise.InitialiseThis(db, false);
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);

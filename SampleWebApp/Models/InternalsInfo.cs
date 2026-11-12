@@ -24,10 +24,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System;
-using System.Diagnostics;
-using System.Threading;
-
 namespace SampleWebApp.Models
 {
     public class InternalsInfo
@@ -43,17 +39,13 @@ namespace SampleWebApp.Models
 
         public InternalsInfo()
         {
-            int workerThreads;
-            int completionPortThreads;
-            ThreadPool.GetMaxThreads(out workerThreads, out completionPortThreads);
-
-            int availableThreads;
-            ThreadPool.GetAvailableThreads(out availableThreads, out completionPortThreads);
+            ThreadPool.GetMaxThreads(out var workerThreads, out _);
+            ThreadPool.GetAvailableThreads(out var availableThreads, out _);
 
             WorkerThreads = workerThreads;
             AvailableThreads = availableThreads;
 
-            AvailableMbytes = (int)new PerformanceCounter("Memory", "Available MBytes", true).RawValue;
+            AvailableMbytes = (int)(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024 * 1024));
 
             HeapMemoryUsedKbytes = (int)(GC.GetTotalMemory(true)/1000);
         }
