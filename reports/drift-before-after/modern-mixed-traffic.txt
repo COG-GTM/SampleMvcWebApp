@@ -1,0 +1,16 @@
+# 90becef3a79ea7cec0034ec54d786795c04bee2d | 2026-11-11T23:56:57Z
+# PORTAL_URL=http://localhost:8000 BOOKING_API_URL=http://localhost:8000 powershell -ExecutionPolicy Bypass -File scripts/mixed-traffic.ps1
+[mixed-traffic] sessions: 154 155 157 158
+[mixed-traffic] candidates: NW00000901 .. NW00000941
+[mixed-traffic] booking 20 portal + 20 partner seats
+[mixed-traffic] portal : 20 ok, 0 failed
+[mixed-traffic] partner: 20 ok, 0 failed
+[mixed-traffic] cancelled: 3 portal, 3 partner
+[mixed-traffic] session summary (SessionId|Capacity|SeatsAvailable|Booked):
+    154|20|3|17
+    155|16|5|11
+    157|16|0|16
+    158|11|0|11
+[mixed-traffic] db\checks\seat-drift.sql: 0 row(s)
+[mixed-traffic] done
+exit=0

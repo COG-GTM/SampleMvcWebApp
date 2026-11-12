@@ -1,0 +1,21 @@
+
+GET /Booking/Book?sessionId=154
+HTTP/1.1 302 Found
+X-Route: modern
+Location: /app/book?sessionId=154
+content-length: 0
+
+
+GET /Booking/MyBookings?candidateNumber=NW00000902
+HTTP/1.1 302 Found
+X-Route: modern
+Location: /app/my-bookings?candidateNumber=NW00000902
+content-length: 0
+
+
+GET /Booking/Index
+HTTP/1.1 302 Found
+X-Route: modern
+Location: /app/
+content-length: 0
+

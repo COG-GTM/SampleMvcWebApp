@@ -13,7 +13,8 @@ def baseline(db):
                   "(SELECT ISNULL(MAX(WaitlistId),0) FROM dbo.Waitlist) AS waitlist, "
                   "(SELECT ISNULL(MAX(AuditId),0) FROM dbo.AuditLog) AS audit, "
                   "(SELECT ISNULL(MAX(ResultId),0) FROM dbo.Result) AS result, "
-                  "CONVERT(varchar(19), GETDATE(), 126) AS now")[0]
+                  "CONVERT(varchar(19), GETDATE(), 126) AS now, "
+                  "DATEPART(TZOFFSET, SYSDATETIMEOFFSET()) AS tzOffset")[0]
     return row
 
 

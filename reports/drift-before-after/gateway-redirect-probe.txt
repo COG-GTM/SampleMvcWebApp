@@ -1,0 +1,25 @@
+# 90becef3a79ea7cec0034ec54d786795c04bee2d | 2026-11-11T23:57:08Z | ADR 0004 redirect probe through the gateway
+$ curl -s -o /dev/null -D - -X POST http://localhost:8000/Booking/Book -d 'SessionId=163&CandidateNumber=NW00000941&AccommodationCode=ET25'
+HTTP/1.1 303 See Other
+X-Route: modern
+Location: /app/book?sessionId=163
+$ curl -s -o /dev/null -D - -X GET http://localhost:8000/Booking/Cancel/1601
+HTTP/1.1 302 Found
+X-Route: modern
+Location: /app/my-bookings
+$ curl -s -o /dev/null -D - -X GET http://localhost:8000/Booking/Reschedule/1601
+HTTP/1.1 302 Found
+X-Route: modern
+Location: /app/reschedule/1601
+$ curl -s -o /dev/null -D - -X GET http://localhost:8000/Admin/Sessions/Capacity/154
+HTTP/1.1 302 Found
+X-Route: modern
+Location: /app/admin/sessions/154
+$ curl -s -o /dev/null -D - -X GET http://localhost:8000/app
+HTTP/1.1 302 Found
+X-Route: modern
+Location: /app/
+$ curl -s -o /dev/null -D - -X GET http://localhost:8000/app?candidateNumber=NW00000901
+HTTP/1.1 302 Found
+X-Route: modern
+Location: /app/

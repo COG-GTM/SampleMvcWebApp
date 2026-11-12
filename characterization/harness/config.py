@@ -44,6 +44,7 @@ class Target:
     reseed_cmd: str = ""             # used when reseed == "command"
     compare: str = "all"             # all | http (skip DB snapshots, e.g. a modern target with its own schema)
     seed_as_of: str = SEED_AS_OF
+    settle_url: str = ""             # JSON endpoint polled until "pending" is 0 before every snapshot (async writers)
 
     @classmethod
     def legacy(cls, **overrides):

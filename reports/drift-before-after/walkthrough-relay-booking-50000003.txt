@@ -1,0 +1,19 @@
+Scheduling.dbo.booking + candidate_snapshot
+booking_id|legacy_booking_id|session_id|status|candidate_number
+----------|-----------------|----------|------|----------------
+50000003|50000003|154|BOOKED|NW00000902
+
+AssessmentDelivery.dbo.Booking + Candidate
+BookingId|SessionId|CandidateId|CandidateNumber|Status|Channel|BookedAt
+---------|---------|-----------|---------------|------|-------|--------
+50000003|154|902|NW00000902|BOOKED|PORTAL|2026-11-12 00:07:43.000
+
+AssessmentDelivery.dbo.AuditLog (matching relay event)
+AuditId|EntityName|EntityId|Action|Actor|LoggedAt
+-------|----------|--------|------|-----|--------
+20|Booking|50000003|BOOK|scheduling-service|2026-11-12 00:07:44.097
+
+Detail
+------
+outbox seq=362 event=54b3f1eb-4480-4ef7-a680-26bfb4acd100 BookingCreated channel=PORTAL
+

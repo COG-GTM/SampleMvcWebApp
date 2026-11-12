@@ -1,5 +1,6 @@
 package com.northwind.routing.config;
 
+import com.northwind.routing.web.UpstreamLocationRewrite;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
@@ -21,7 +22,9 @@ public class RoutesConfig {
     @Bean
     public RouteLocator routes(RouteLocatorBuilder builder, RoutingProperties props) {
         return builder.routes()
-                .route(MODERN, r -> r.order(0).path("/app", "/app/**", "/api/v2/**").uri(props.getSchedulingServiceUrl()))
+                .route(MODERN, r -> r.order(0).path("/app", "/app/**", "/api/v2/**")
+                        .filters(f -> f.filter(new UpstreamLocationRewrite()))
+                        .uri(props.getSchedulingServiceUrl()))
                 .route(RESULTS, r -> r.order(1).path("/api/v1/results", "/api/v1/results/**").uri(props.getResultsServiceUrl()))
                 .route(CAPACITY_SYNC, r -> r.order(2).path("/sync/**").uri(props.getCapacitySyncUrl()))
                 .route(BOOKING_API, r -> r.order(3).path("/api/v1/**").uri(props.getBookingApiUrl()))

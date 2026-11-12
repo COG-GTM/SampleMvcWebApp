@@ -1,4 +1,5 @@
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -30,6 +31,21 @@ def test_only_runtime_timestamps_of_volatile_columns_are_normalized():
            "LoggedAt": "2026-12-01T00:00:00", "earliestRetakeDate": "2026-12-18"}
     assert n.apply(row) == {"BookedAt": "<now>", "CancelledAt": "2026-11-09T09:00:00", "StartsAt": "2026-11-12T09:00",
                             "LoggedAt": "<now>", "earliestRetakeDate": "2026-12-18"}
+
+
+def test_runtime_timestamps_from_another_clock_are_normalized():
+    # MBA-3825: the modern service stamps bookedAt/cancelledAt with its JVM clock; the scenario start is the DB clock
+    # truncated to the second, so the service value can land just before it or arrive with an offset
+    n = Normalizer(BASE, "2026-11-11T10:00:01")
+    local = datetime(2026, 11, 11, 10, 0, 5).astimezone()
+    utc = local.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    body = {"bookedAt": "2026-11-11T10:00:00.998", "cancelledAt": "2026-11-11 09:59:58.4", "lastModified": utc,
+            "addedAt": local.isoformat(), "BookedAt": "2026-11-11T09:58:00", "CancelledAt": "2026-11-09T09:00:00",
+            "StartsAt": "2026-11-11T10:00:00", "cancelReason": "2026-11-11T10:00:00"}
+    assert n.apply(body) == {"bookedAt": "<now>", "cancelledAt": "<now>", "lastModified": "<now>", "addedAt": "<now>",
+                             "BookedAt": "2026-11-11T09:58:00", "CancelledAt": "2026-11-09T09:00:00",
+                             "StartsAt": "2026-11-11T10:00:00", "cancelReason": "2026-11-11T10:00:00"}
+    assert n.apply({"bookedAt": "not a date", "cancelledAt": None}) == {"bookedAt": "not a date", "cancelledAt": None}
 
 
 def test_diff_reports_paths():
@@ -92,3 +108,43 @@ def test_apply_seed_accepts_assessmentdelivery_in_any_case(monkeypatch):
                                         database="assessmentdelivery"))
     db.apply_seed()
     assert len(calls) == 1
+
+
+def test_wait_settled_polls_until_nothing_is_pending():
+    from harness.web import wait_settled
+    answers = iter([ConnectionError("restarting"), {"pending": 3}, {"pending": "0", "total": 9}])
+    sleeps = []
+
+    def fetch():
+        answer = next(answers)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    assert wait_settled(fetch, sleep=sleeps.append) == {"pending": "0", "total": 9}
+    assert len(sleeps) == 2
+
+
+def test_wait_settled_gives_up_after_the_timeout():
+    import pytest
+    from harness.web import wait_settled
+    ticks = iter([0.0, 0.5, 1.5])
+    with pytest.raises(RuntimeError, match="did not settle"):
+        wait_settled(lambda: {"pending": 1}, timeout=1.0, clock=lambda: next(ticks), sleep=lambda _: None)
+
+
+def test_wait_settled_needs_a_pending_count_and_accepts_an_empty_outbox():
+    from harness.web import wait_settled
+    # an error body is not "settled"; the relay reports pending null (SUM over no rows) when the outbox is empty
+    answers = iter([{"status": 500, "error": "Internal Server Error"}, {"total": 0, "pending": None}])
+    sleeps = []
+    assert wait_settled(lambda: next(answers), sleep=sleeps.append) == {"total": 0, "pending": None}
+    assert len(sleeps) == 1
+
+
+def test_offset_timestamps_are_compared_in_the_db_timezone():
+    # DB at UTC-6 (scenario start 10:00:01 local = 16:00:01Z), whatever the harness machine's timezone is
+    n = Normalizer(BASE, "2026-11-11T10:00:01", -360)
+    assert n.apply({"bookedAt": "2026-11-11T16:00:03Z", "cancelledAt": "2026-11-11T10:00:02-06:00",
+                    "lastModified": "2026-11-11T15:00:03Z", "BookedAt": "2026-11-11T10:00:05"}) == \
+        {"bookedAt": "<now>", "cancelledAt": "<now>", "lastModified": "2026-11-11T15:00:03Z", "BookedAt": "<now>"}

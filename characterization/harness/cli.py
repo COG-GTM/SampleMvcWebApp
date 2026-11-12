@@ -13,7 +13,8 @@ from .runner import Runner, load_catalogue, read_transcript, transcript_path, va
 
 
 def build_target(args):
-    common = dict(sql_server=args.sql_server, database=args.database, reseed_cmd=args.reseed_cmd, seed_as_of=args.seed_as_of)
+    common = dict(sql_server=args.sql_server, database=args.database, reseed_cmd=args.reseed_cmd, seed_as_of=args.seed_as_of,
+                  settle_url=args.settle_url)
     urls = dict(portal_url=args.portal_url, api_url=args.api_url, sync_url=args.sync_url)
     if args.target == "modern":
         if not args.base_url:
@@ -57,6 +58,8 @@ def main(argv=None):
     p.add_argument("--reseed-cmd")
     p.add_argument("--compare", choices=["all", "http"], help="all (default) compares HTTP and DB snapshots; http skips DB")
     p.add_argument("--seed-as-of", default=SEED_AS_OF)
+    p.add_argument("--settle-url", help="JSON endpoint polled until its 'pending' count is 0 after the reseed and every "
+                                        "step, before DB snapshots (modern: http://localhost:8090/internal/relay)")
     p.add_argument("--report", help="report path (default reports/replay-<target>-<sha>.md)")
     p.add_argument("scenarios", nargs="*", help="scenario id or file globs (default: all)")
     args = p.parse_args(argv)
