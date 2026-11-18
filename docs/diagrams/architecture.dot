@@ -1,0 +1,60 @@
+// Architecture of SampleMvcWebApp on master (ASP.NET MVC 5 / .NET Framework 4.5.1).
+// Render with ./render.sh (needs Graphviz: sudo apt-get install -y graphviz).
+digraph SampleMvcWebApp {
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=16, nodesep=0.35, ranksep=0.7, pad=0.3,
+         label="SampleMvcWebApp (master): request path and startup wiring", labelloc=t];
+  node  [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=16, fillcolor=white, color="#555555"];
+  edge  [fontname="DejaVu Sans", fontsize=13, color="#444444"];
+
+  browser [label="Browser\n(Bootstrap 3 + jQuery\nunobtrusive validation)", shape=box, fillcolor="#eeeeee"];
+
+  subgraph cluster_web {
+    label="SampleWebApp  (ASP.NET MVC 5 web project, IIS / IIS Express)"; style="rounded,filled"; fillcolor="#e8f1fb"; color="#4a7ab5";
+    global   [label="Global.asax\nApplication_Start\nroutes, bundles, filters"];
+    init     [label="WebUiInitialise\nHostTypeString: LocalHost |\nWebWiz | Azure\nlog4net or Trace logger"];
+    autofac  [label="AutofacDi + AutofacDependencyResolver\nDiModelBinder\n(injects services as action params)"];
+    ctrls    [label="Controllers\nPosts / PostsAsync\nTags / TagsAsync\nBlogs, Home"];
+    views    [label="Razor views\n_Layout, CodeView pages,\nEditorTemplates"];
+  }
+
+  subgraph cluster_svc {
+    label="ServiceLayer"; style="rounded,filled"; fillcolor="#eaf6ea"; color="#4f9a4f";
+    svcmod   [label="ServiceLayerModule\nServiceLayerInitialise"];
+    dtos     [label="DTOs (EfGenericDto / EfGenericDtoAsync)\nSimplePostDto, DetailPostDto,\nTagListDto, BlogListDto"];
+  }
+
+  gs [label="GenericServices 1.0.9 (NuGet)\nIListService, IDetailService,\nICreate/IUpdate/IDeleteService (+Async)", fillcolor="#fff6dd", color="#b58b2a"];
+
+  subgraph cluster_data {
+    label="DataLayer"; style="rounded,filled"; fillcolor="#f6ecf8"; color="#8a55a0";
+    datamod  [label="DataLayerModule\nDataLayerInitialise\n(CreateDatabaseIfNotExists)"];
+    db       [label="SampleWebAppDb : DbContext\n(EF 6.1.3)\nBlog, Post, Tag"];
+    seed     [label="BlogsContentSimple.xml\nBlogsContextMedium.xml\n(embedded seed data)"];
+  }
+
+  sql [label="SQL Server\n(localdb)\\mssqllocaldb\nSampleWebAppDb", shape=cylinder, fillcolor="#eeeeee"];
+
+  biz [label="BizLayer\n(empty, not in .sln,\nnot referenced)", style="rounded,dashed", fontcolor="#777777", color="#999999"];
+  tests [label="Tests (NUnit 2.6)\nDataLayer, DI, MVC validation\nagainst TestSampleWebAppDb", fillcolor="#eeeeee"];
+
+  { rank=min; browser; }
+  browser -> ctrls [label="HTTP GET/POST\n{controller}/{action}/{id}\n(HTML response)", dir=both];
+  ctrls -> views [label="View(dto)"];
+
+  global -> init [label="startup"];
+  init -> svcmod [label="InitialiseThis()"];
+  init -> autofac;
+  autofac -> svcmod [label="RegisterModule"];
+  svcmod -> datamod [label="registers /\ninitialises"];
+  autofac -> ctrls [style=dashed, label="resolves services"];
+
+  ctrls -> gs [label="GetAll / Create /\nUpdate / Delete"];
+  gs -> dtos [label="maps via\nAutoMapper"];
+  gs -> db [label="IGenericServicesDbContext"];
+  ctrls -> db [label="NumPosts, Reset", style=dashed];
+  datamod -> seed [label="ResetBlogs()", style=dashed];
+  db -> sql [label="SqlClient"];
+
+  tests -> db [style=dotted];
+  tests -> autofac [style=dotted];
+}
