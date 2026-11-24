@@ -185,6 +185,11 @@ Tests reference DataLayer, ServiceLayer, SampleWebApp.
 - A failed `CreateAndSave`/`UpdateAndSave` leaves the entity tracked → `ChangeTracker.Clear()` before redisplay/retry.
 - Success messages use EfCore.GenericServices wording (expected difference from legacy).
 - Do not `pkill -f SampleWebApp` (kills the calling shell); kill the run shell by id.
+- `UpdateTrackingInfo()` runs after `DetectChanges()`; with `AutoDetectChangesEnabled` off (EfCore.GenericServices, `SaveChangesWithValidation`) the new `LastUpdated` is not saved unless the entry is re-scanned → `entity.DetectChanges()` after setting it.
+- EfCore.GenericServices only knows DTOs from the assemblies passed to `GenericServicesSimpleSetup`; a test-assembly `ILinkToEntity<T>` DTO throws "not registered" through `AddServiceLayer` → tests use entity direct access.
+- Core `ModelStateDictionary.Keys` has no `Count` → `modelState.Count`; key order differs from MVC 5 → compare JSON structurally.
+- NUnit 4 moved `CollectionAssert`/classic asserts to `NUnit.Framework.Legacy` → `Assert.That(x, Is.EquivalentTo(...))`.
+- Tests read `ConnectionStrings__SampleWebAppDbTest` (default `SampleWebAppDb-Test`) and refuse a database name without `Test`.
 
 ## 13. Verification evidence
 _To be filled after integration._
