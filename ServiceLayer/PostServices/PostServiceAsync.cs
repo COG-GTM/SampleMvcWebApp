@@ -127,6 +127,7 @@ namespace ServiceLayer.PostServices
             post.Tags.Clear();
             foreach (var tag in tags)
                 post.Tags.Add(tag);
+            _db.Entry(post).Property(x => x.LastUpdated).IsModified = true;
             status.Message = "Successfully updated the Post";
             return CheckSave(status, await _db.SaveChangesWithValidationAsync(_config));
         }
