@@ -63,7 +63,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(Tag tag, [FromServices] ICrudServices service)
+        public IActionResult Edit([Bind("TagId,Name,Slug")] Tag tag, [FromServices] ICrudServices service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -89,7 +89,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(Tag tag, [FromServices] ICrudServices service)
+        public IActionResult Create([Bind("TagId,Name,Slug")] Tag tag, [FromServices] ICrudServices service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately

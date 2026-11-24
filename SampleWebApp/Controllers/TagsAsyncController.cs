@@ -65,7 +65,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Tag tag, [FromServices] ICrudServicesAsync service)
+        public async Task<IActionResult> Edit([Bind("TagId,Name,Slug")] Tag tag, [FromServices] ICrudServicesAsync service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -91,7 +91,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Tag tag, [FromServices] ICrudServicesAsync service)
+        public async Task<IActionResult> Create([Bind("TagId,Name,Slug")] Tag tag, [FromServices] ICrudServicesAsync service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
