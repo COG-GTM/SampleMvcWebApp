@@ -25,11 +25,13 @@
 // SOFTWARE.
 #endregion
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using GenericLibsBase.Core;
-using GenericServices.Core;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using NUnit.Framework;
 using SampleWebApp.Infrastructure;
+using StatusGeneric;
 using Tests.Helpers;
 
 namespace Tests.UnitTests.Group06Mvc
@@ -66,7 +68,7 @@ namespace Tests.UnitTests.Group06Mvc
 
             //VERIFY
             modelState.IsValid.ShouldEqual(false);
-            modelState.Keys.Count.ShouldEqual(1);
+            modelState.Count.ShouldEqual(1);
             modelState.Keys.First().ShouldEqual("");
             modelState[modelState.Keys.First()].Errors.Count.ShouldEqual(2);
             modelState[modelState.Keys.First()].Errors[0].ErrorMessage.ShouldEqual("This is a top level error caused by CreateValidationError being set.");
@@ -84,7 +86,7 @@ namespace Tests.UnitTests.Group06Mvc
 
             //VERIFY
             modelState.IsValid.ShouldEqual(false);
-            modelState.Keys.Count.ShouldEqual(1);
+            modelState.Count.ShouldEqual(1);
             modelState.Keys.First().ShouldEqual("");
             modelState[modelState.Keys.First()].Errors.Count.ShouldEqual(1);
             modelState[modelState.Keys.First()].Errors[0].ErrorMessage.ShouldEqual("This is a top level error caused by CreateValidationError being set.");
@@ -101,7 +103,7 @@ namespace Tests.UnitTests.Group06Mvc
 
             //VERIFY
             modelState.IsValid.ShouldEqual(false);
-            modelState.Keys.Count.ShouldEqual(1);
+            modelState.Count.ShouldEqual(1);
             modelState.Keys.First().ShouldEqual("MyInt");
             modelState[modelState.Keys.First()].Errors.Count.ShouldEqual(1);
             modelState[modelState.Keys.First()].Errors[0].ErrorMessage.ShouldEqual("The field MyInt must be between 0 and 100.");
@@ -119,14 +121,13 @@ namespace Tests.UnitTests.Group06Mvc
 
             //VERIFY
             modelState.IsValid.ShouldEqual(false);
-            modelState.Keys.Count.ShouldEqual(1);
+            modelState.Count.ShouldEqual(1);
             modelState.Keys.First().ShouldEqual("MyString");
-            CollectionAssert.AreEquivalent(new[]
+            Assert.That(modelState[modelState.Keys.First()].Errors.Select( x => x.ErrorMessage), Is.EquivalentTo(new[]
             {
                 "The field MyString must be a string or array type with a minimum length of '2'.",
                 "The MyString field is required."
-            }, 
-            modelState[modelState.Keys.First()].Errors.Select( x => x.ErrorMessage));
+            }));
 
 
         }
@@ -142,7 +143,7 @@ namespace Tests.UnitTests.Group06Mvc
 
             //VERIFY
             modelState.IsValid.ShouldEqual(false);
-            CollectionAssert.AreEquivalent(new[] { "MyInt", "MyString" }, modelState.Keys);     //Note: only runs Validate if no attribute errors
+            Assert.That(modelState.Keys, Is.EquivalentTo(new[] { "MyInt", "MyString" }));     //Note: only runs Validate if no attribute errors
             modelState["MyInt"].Errors.Count.ShouldEqual(1);
             modelState["MyString"].Errors.Count.ShouldEqual(2);
         }
@@ -160,7 +161,7 @@ namespace Tests.UnitTests.Group06Mvc
             var jsonResult = model.ReturnModelState().ReturnModelErrorsAsJson();
 
             //VERIFY
-            var json = jsonResult.Data.SerialiseToJson();
+            var json = jsonResult.Value.SerialiseToJson();
             json.ShouldEqual("{\"errorsDict\":{\"\":{\"errors\":[\"This is a top level error caused by CreateValidationError being set.\",\"This is a top level error caused by MyInt having value 50.\"]}}}");
         }
 
@@ -174,7 +175,7 @@ namespace Tests.UnitTests.Group06Mvc
             var jsonResult = model.ReturnModelState().ReturnModelErrorsAsJson();
 
             //VERIFY
-            var json = jsonResult.Data.SerialiseToJson();
+            var json = jsonResult.Value.SerialiseToJson();
             json.ShouldEqual("{\"errorsDict\":{\"\":{\"errors\":[\"This is a top level error caused by CreateValidationError being set.\"]}}}");
         }
 
@@ -189,7 +190,7 @@ namespace Tests.UnitTests.Group06Mvc
             var jsonResult = model.ReturnModelState().ReturnModelErrorsAsJson();
 
             //VERIFY
-            var json = jsonResult.Data.SerialiseToJson();
+            var json = jsonResult.Value.SerialiseToJson();
             json.ShouldEqual("{\"errorsDict\":{\"MyInt\":{\"errors\":[\"The field MyInt must be between 0 and 100.\"]}}}");
         }
 
@@ -203,11 +204,8 @@ namespace Tests.UnitTests.Group06Mvc
             var jsonResult = model.ReturnModelState().ReturnModelErrorsAsJson();
 
             //VERIFY
-            var json = jsonResult.Data.SerialiseToJson();
-            const string order1 = "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The field MyString must be a string or array type with a minimum length of '2'.\",\"The MyString field is required.\"]}}}";
+            var json = jsonResult.Value.SerialiseToJson();
             const string order1Json = "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The field MyString must be a string or array type with a minimum length of \\u00272\\u0027.\",\"The MyString field is required.\"]}}}";
-
-            const string order2 = "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The MyString field is required.\",\"The field MyString must be a string or array type with a minimum length of '2'.\"]}}}";
             const string order2Json =
                 "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The MyString field is required.\",\"The field MyString must be a string or array type with a minimum length of \\u00272\\u0027.\"]}}}";
             (json == order1Json || json == order2Json).ShouldEqual(true);
@@ -224,14 +222,15 @@ namespace Tests.UnitTests.Group06Mvc
             var jsonResult = model.ReturnModelState().ReturnModelErrorsAsJson();
 
             //VERIFY
-            var json = jsonResult.Data.SerialiseToJson();
-            const string order1 = "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The field MyString must be a string or array type with a minimum length of '2'.\",\"The MyString field is required.\"]},";
-            const string order1Json = "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The field MyString must be a string or array type with a minimum length of \\u00272\\u0027.\",\"The MyString field is required.\"]},";
-            const string order2 = "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The MyString field is required.\",\"The field MyString must be a string or array type with a minimum length of '2'.\"]},";
-            const string order2Json =
-                "{\"errorsDict\":{\"MyString\":{\"errors\":[\"The MyString field is required.\",\"The field MyString must be a string or array type with a minimum length of \\u00272\\u0027.\"]},";
-            const string part2 = "\"MyInt\":{\"errors\":[\"The field MyInt must be between 0 and 100.\"]}}}";
-            (json == order1Json + part2 || json == order2Json + part2).ShouldEqual(true);
+            var json = jsonResult.Value.SerialiseToJson();
+            var errorsDict = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, Dictionary<string, List<string>>>>>(json)["errorsDict"];
+            Assert.That(errorsDict.Keys, Is.EquivalentTo(new[] { "MyString", "MyInt" }));
+            Assert.That(errorsDict["MyString"]["errors"], Is.EquivalentTo(new[]
+            {
+                "The field MyString must be a string or array type with a minimum length of '2'.",
+                "The MyString field is required."
+            }));
+            Assert.That(errorsDict["MyInt"]["errors"], Is.EqualTo(new[] { "The field MyInt must be between 0 and 100." }));
         }
 
         //-------------------------------------------------------------------
@@ -241,15 +240,15 @@ namespace Tests.UnitTests.Group06Mvc
         public void Check20StatusToJsonTopLevel()
         {
             //SETUP  
-            var status = new SuccessOrErrors();
+            var status = new StatusGenericHandler();
             var dto = new {MyInt = 1};
 
             //ATTEMPT
-            status.AddSingleError("This is a top level error.");
+            status.AddError("This is a top level error.");
             var jsonResult = status.ReturnErrorsAsJson(dto);
 
             //VERIFY
-            var json = jsonResult.Data.SerialiseToJson();
+            var json = jsonResult.Value.SerialiseToJson();
             json.ShouldEqual("{\"errorsDict\":{\"\":{\"errors\":[\"This is a top level error.\"]}}}");
         }
 
@@ -257,17 +256,72 @@ namespace Tests.UnitTests.Group06Mvc
         public void Check21StatusToJsonProperty()
         {
             //SETUP  
-            var status = new SuccessOrErrors();
+            var status = new StatusGenericHandler();
             var dto = new { MyInt = 1 };
 
             //ATTEMPT
-            status.AddNamedParameterError("MyInt", "This is a property level error.");
+            status.AddError("This is a property level error.", "MyInt");
             var jsonResult = status.ReturnErrorsAsJson(dto);
 
             //VERIFY
-            var json = jsonResult.Data.SerialiseToJson();
+            var json = jsonResult.Value.SerialiseToJson();
             json.ShouldEqual("{\"errorsDict\":{\"MyInt\":{\"errors\":[\"This is a property level error.\"]}}}");
         }
 
+        [Test]
+        public void Check22StatusToJsonPropertyNotInDtoGoesToTopLevel()
+        {
+            //SETUP  
+            var status = new StatusGenericHandler();
+            var dto = new { MyInt = 1 };
+
+            //ATTEMPT
+            status.AddError("This is a property level error.", "NotInDto");
+            var jsonResult = status.ReturnErrorsAsJson(dto);
+
+            //VERIFY
+            var json = jsonResult.Value.SerialiseToJson();
+            json.ShouldEqual("{\"errorsDict\":{\"\":{\"errors\":[\"This is a property level error.\"]}}}");
+        }
+
+        [Test]
+        public void Check25StatusCopyErrorsToModelStateSlug()
+        {
+            //SETUP  
+            var status = new StatusGenericHandler();
+            var modelState = new ModelStateDictionary();
+
+            //ATTEMPT
+            status.AddError("The Slug on tag 'x' must be unique and is already being used.", "Slug");
+            status.CopyErrorsToModelState(modelState, new SimpleTagDto());
+
+            //VERIFY
+            modelState.IsValid.ShouldEqual(false);
+            modelState["Slug"].Errors.Single().ErrorMessage.ShouldEqual("The Slug on tag 'x' must be unique and is already being used.");
+        }
+
+        [Test]
+        public void Check26StatusErrorsAsHtmlEncodes()
+        {
+            //SETUP  
+            var status = new StatusGenericHandler();
+
+            //ATTEMPT
+            status.AddError("<b>first</b>");
+            status.AddError("second", "MyInt");
+
+            //VERIFY
+            status.ErrorsAsHtml().ShouldEqual("&lt;b&gt;first&lt;/b&gt;<br/>second");
+        }
+
+        [Test]
+        public void Check27ReturnModelErrorsAsJsonValidModelStateThrows()
+        {
+            //SETUP  
+            var modelState = new ModelStateDictionary();
+
+            //ATTEMPT & VERIFY
+            Assert.Throws<ArgumentException>(() => modelState.ReturnModelErrorsAsJson());
+        }
     }
 }
