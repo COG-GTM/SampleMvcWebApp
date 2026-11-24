@@ -56,10 +56,11 @@ namespace DataLayer.Startup
             if (!canCreateDatabase)
                 return;
 
+            var isNewDatabase = !context.Database.GetAppliedMigrations().Any();
             context.Database.Migrate();
-            if (!context.Blogs.Any())
+            if (isNewDatabase)
             {
-                (logger ?? NullLogger.Instance).LogInformation("Empty database, so seeding the blogs data");
+                (logger ?? NullLogger.Instance).LogInformation("New database, so seeding the blogs data");
                 ResetBlogs(context, TestDataSelection.Medium, logger);
             }
         }

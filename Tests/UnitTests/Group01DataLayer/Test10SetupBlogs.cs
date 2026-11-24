@@ -29,6 +29,7 @@ using System.Linq;
 using DataLayer.DataClasses;
 using DataLayer.Startup;
 using DataLayer.Startup.Internal;
+using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 using Tests.Helpers;
 
@@ -109,15 +110,37 @@ namespace Tests.UnitTests.Group01DataLayer
             using (var db = TestDb.Create())
             {
                 //SETUP
+                db.Posts.ExecuteDelete();
+                db.Blogs.ExecuteDelete();
 
                 //ATTEMPT
-                DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
+                DataLayerInitialise.InitialiseThis(db, false);
 
                 //VERIFY
-                db.Blogs.Count().ShouldEqual(2);
-                db.Posts.Count().ShouldEqual(3);
+                db.Blogs.Count().ShouldEqual(0);
                 db.Tags.Count().ShouldEqual(3);
             }
+            Check10BlogsResetSmallOk();
+        }
+
+        [Test]
+        public void Check21InitialiserDoesNotReseedExistingDatabase()
+        {
+            Check10BlogsResetSmallOk();
+            using (var db = TestDb.Create())
+            {
+                //SETUP
+                db.Posts.ExecuteDelete();
+                db.Blogs.ExecuteDelete();
+
+                //ATTEMPT
+                DataLayerInitialise.InitialiseThis(db, true);
+
+                //VERIFY
+                db.Blogs.Count().ShouldEqual(0);
+                db.Tags.Count().ShouldEqual(3);
+            }
+            Check10BlogsResetSmallOk();
         }
     }
 }
