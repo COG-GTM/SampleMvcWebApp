@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: InternalsInfo.cs
@@ -25,6 +25,7 @@
 // SOFTWARE.
 #endregion
 using System;
+using System.ComponentModel.DataAnnotations;
 
 using System.Threading;
 
@@ -37,6 +38,7 @@ namespace SampleWebApp.Models
 
         public int AvailableThreads { get; private set; }
 
+        [Display(Name = "GC available memory (MB)")]
         public int AvailableMbytes { get; private set; }
 
         public int HeapMemoryUsedKbytes { get; private set; }
