@@ -193,6 +193,7 @@ Tests reference DataLayer, ServiceLayer, SampleWebApp.
 - `ErrorsAsHtml()` returns pre-encoded HTML stored in `TempData["errorMessage"]` → render with `@Html.Raw(...)` or the `<br/>`s show as text.
 - Legacy layout bundles (`~/bundles/javascript`, `~/bundles/jqueryval`, `~/Content/css`) map to `jquery-1.10.2.min.js` + `bootstrap.min.js` + `respond.min.js`, `jquery.validate(.unobtrusive).min.js`, and `bootstrap.min.css` + `Site.css`.
 - `HostType` (was `Properties/Settings.HostTypeString`) lives in appsettings and is injected into `_Layout` via `@inject HostSettings`.
+- The legacy `AzureRelease`/`WebWizRelease` build configurations no longer select the host: set `HostType` (`Azure` → SQL retry strategy, `WebWiz` → no migrate on startup) per deployment via appsettings or the `HostType` environment variable; it defaults to `LocalHost`.
 - `UpdateTrackingInfo()` runs after `DetectChanges()`; with `AutoDetectChangesEnabled` off (EfCore.GenericServices, `SaveChangesWithValidation`) the new `LastUpdated` is not saved unless the entry is re-scanned → `entity.DetectChanges()` after setting it.
 - EfCore.GenericServices only knows DTOs from the assemblies passed to `GenericServicesSimpleSetup`; a test-assembly `ILinkToEntity<T>` DTO throws "not registered" through `AddServiceLayer` → tests use entity direct access.
 - Core `ModelStateDictionary.Keys` has no `Count` → `modelState.Count`; key order differs from MVC 5 → compare JSON structurally.
