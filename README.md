@@ -5,13 +5,15 @@ This app now runs on **ASP.NET Core MVC / .NET 10** with EF Core 10, EfCore.Gene
 ## Run locally
 
 ```bash
-docker run -d --name mssql -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='Str0ng!Passw0rd' -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+docker run -d --name mssql -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='Str0ng!Passw0rd' -p 127.0.0.1:1433:1433 mcr.microsoft.com/mssql/server:2022-latest
 dotnet build
 dotnet test     # uses the SampleWebAppDb-Test database (override with ConnectionStrings__SampleWebAppDbTest)
 ASPNETCORE_ENVIRONMENT=Development dotnet run --project SampleWebApp --urls http://localhost:5000
 ```
 
-The app applies EF Core migrations and seeds the blogs data on first start.
+The app applies EF Core migrations and seeds the blogs data when it creates a new database.
+EF Core migrations cannot upgrade a database created by the old EF6 version, so point
+`ConnectionStrings:SampleWebAppDb` at a new (or empty) database name if you ran the EF6 app before.
 
 ---
 
