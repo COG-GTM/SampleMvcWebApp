@@ -1,6 +1,24 @@
 SampleMvcWebApp
 ===============
 
+> **.NET 10 port.** This branch runs on ASP.NET Core MVC / `net10.0` with EF Core 10, EfCore.GenericServices 10
+> and the built-in dependency injection container (it replaces ASP.NET MVC 5 / .NET Framework 4.5.1 / EF6 /
+> GenericServices 1.x / Autofac). The text below describes the original MVC5 design; see
+> [MIGRATION_NOTES.md](MIGRATION_NOTES.md) for what changed.
+>
+> **Run locally** (needs the .NET 10 SDK and SQL Server):
+>
+> ```bash
+> docker run -d --name mssql -e ACCEPT_EULA=Y -e 'MSSQL_SA_PASSWORD=Str0ng!Passw0rd' -e MSSQL_PID=Developer \
+>   -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+> dotnet build SampleWebApp.sln
+> dotnet test SampleWebApp.sln            # uses database SampleWebAppDb-Test (ConnectionStrings__SampleWebAppDbTest)
+> ASPNETCORE_ENVIRONMENT=Development dotnet run --project SampleWebApp --urls http://localhost:5000
+> ```
+>
+> The app migrates and seeds a fresh `SampleWebAppDb` database on startup. An EF6-created database cannot be upgraded
+> by the EF Core `InitialCreate` migration; use a new database.
+
 SampleMvcWebApp is a ASP.NET MVC5 web site designed to show number of useful methods for building enterprise
  grade web applications using ASP.NET MVC5 and Entity Framework 6. 
 The code for this sample MVC web application, and the associated 
