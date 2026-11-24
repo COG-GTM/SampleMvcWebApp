@@ -26,7 +26,6 @@
 #endregion
 using System;
 using System.Linq;
-using DataLayer.DataClasses;
 using DataLayer.Startup;
 using DataLayer.Startup.Internal;
 using NUnit.Framework;
@@ -39,7 +38,6 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check01XmlFileLoadOk()
         {
-
             //SETUP
 
             //ATTEMPT
@@ -49,13 +47,11 @@ namespace Tests.UnitTests.Group01DataLayer
             bloggers.Count().ShouldEqual(2);
             bloggers.SelectMany( x => x.Posts).Count().ShouldEqual(3);
             bloggers.SelectMany( x => x.Posts.SelectMany( y => y.Tags)).Distinct().Count().ShouldEqual(3);
-
         }
 
         [Test]
         public void Check02XmlFileLoadBad()
         {
-
             //SETUP
 
             //ATTEMPT
@@ -63,16 +59,15 @@ namespace Tests.UnitTests.Group01DataLayer
 
             //VERIFY
             ex.Message.ShouldStartWith("Could not find the xml file you asked for.");
-
         }
 
         [Test]
         public void Check10BlogsResetSmallOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, true);
+                DataLayerInitialise.InitialiseThis(db, true);
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
@@ -87,15 +82,60 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check11BlogsResetMediumOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, true);
+                DataLayerInitialise.InitialiseThis(db, true);
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
 
                 //VERIFY
+                db.Blogs.Count().ShouldEqual(4);
+                db.Posts.Count().ShouldEqual(17);
+                db.Tags.Count().ShouldEqual(8);
+            }
+        }
+
+        [Test]
+        public void Check12BlogsResetMediumReplacesExistingDataOk()
+        {
+            //SETUP
+            TestDb.ResetBlogs(TestDataSelection.Small);
+
+            //ATTEMPT
+            TestDb.ResetBlogs(TestDataSelection.Medium);
+
+            //VERIFY
+            using (var db = TestDb.CreateDb())
+            {
+                db.Blogs.Count().ShouldEqual(4);
+                db.Posts.Count().ShouldEqual(17);
+                db.Tags.Count().ShouldEqual(8);
+                db.Posts.SelectMany(x => x.Tags).Count().ShouldNotEqual(0);
+            }
+        }
+
+        [Test]
+        public void Check13InitialiseSeedsMediumWhenNoBlogsOk()
+        {
+            //SETUP
+            using (var db = TestDb.CreateDb())
+            {
+                DataLayerInitialise.InitialiseThis(db, true);
+                db.Posts.RemoveRange(db.Posts);
+                db.Tags.RemoveRange(db.Tags);
+                db.Blogs.RemoveRange(db.Blogs);
+                db.SaveChanges();
+            }
+
+            //ATTEMPT
+            using (var db = TestDb.CreateDb())
+                DataLayerInitialise.InitialiseThis(db, true);
+
+            //VERIFY
+            using (var db = TestDb.CreateDb())
+            {
                 db.Blogs.Count().ShouldEqual(4);
                 db.Posts.Count().ShouldEqual(17);
                 db.Tags.Count().ShouldEqual(8);
@@ -108,10 +148,10 @@ namespace Tests.UnitTests.Group01DataLayer
         public void Check20NullInitialiserOk()
         {
             Check10BlogsResetSmallOk();             //we call this to ensure the database is setup
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, false);           //select null initialiser
+                DataLayerInitialise.InitialiseThis(db, false);           //select null initialiser
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);

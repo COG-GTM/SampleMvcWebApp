@@ -25,10 +25,9 @@
 // SOFTWARE.
 #endregion
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using DataLayer.DataClasses;
 using DataLayer.Startup;
+using Microsoft.Extensions.DependencyInjection;
 
 
 namespace ServiceLayer.Startup
@@ -41,15 +40,13 @@ namespace ServiceLayer.Startup
         /// <summary>
         /// This should be called at Startup
         /// </summary>
-        /// <param name="isAzure">true if working with azure database</param>
-        /// <param name="canCreateDatabase">true if the database provider allows the app to drop/create a database</param>
-        public static void InitialiseThis(bool isAzure, bool canCreateDatabase)
+        /// <param name="services">the application's root service provider</param>
+        /// <param name="canCreateDatabase">true if the database provider allows the app to create/migrate the database</param>
+        public static void InitialiseThis(IServiceProvider services, bool canCreateDatabase)
         {
-
-            //Place any tasks that need initialising here
-
-            DataLayerInitialise.InitialiseThis(isAzure, canCreateDatabase);
-
+            using var scope = services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<SampleWebAppDb>();
+            DataLayerInitialise.InitialiseThis(context, canCreateDatabase);
         }
     }
 }
