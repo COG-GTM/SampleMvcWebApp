@@ -190,6 +190,11 @@ Tests reference DataLayer, ServiceLayer, SampleWebApp.
 - `GenericServicesSimpleSetup` does not register `IGenericServicesConfig`; `AddServiceLayer` registers the config instance as a singleton.
 - `dotnet new tool-manifest` on the .NET 10 SDK writes `dotnet-tools.json` to the repo root, not `.config/`; move it.
 - EF Core SqlServer 10.0.0 pulls `System.Security.Cryptography.Pkcs`/`.Xml` 9.0.x (NU1902/NU1903); DataLayer pins both to 10.0.15.
+- .NET 10 `dotnet new sln` writes `.slnx` by default → use `--format sln` to keep `SampleWebApp.sln`.
+- `ErrorsAsHtml()` returns pre-encoded HTML stored in `TempData["errorMessage"]` → render with `@Html.Raw(...)` or the `<br/>`s show as text.
+- Legacy layout bundles (`~/bundles/javascript`, `~/bundles/jqueryval`, `~/Content/css`) map to `jquery-1.10.2.min.js` + `bootstrap.min.js` + `respond.min.js`, `jquery.validate(.unobtrusive).min.js`, and `bootstrap.min.css` + `Site.css`.
+- `HostType` (was `Properties/Settings.HostTypeString`) lives in appsettings and is injected into `_Layout` via `@inject HostSettings`.
+- EfCore.GenericServices saves with `AutoDetectChangesEnabled` off, so setting `LastUpdated` in `SaveChanges` after `DetectChanges` is lost → mark the property `IsModified` explicitly.
 
 ## 13. Verification evidence
 _To be filled after integration._

@@ -1,8 +1,8 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: FilterConfig.cs
-// Date Created: 2014/05/20
+// Filename: HostSettings.cs
+// Date Created: 2026/11/24
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -24,16 +24,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Web;
-using System.Web.Mvc;
-
-namespace SampleWebApp
+namespace SampleWebApp.Infrastructure
 {
-    public class FilterConfig
+    public enum HostTypes { NotSet, LocalHost, WebWiz, Azure };
+
+    public class HostSettings
     {
-        public static void RegisterGlobalFilters(GlobalFilterCollection filters)
+        public const string DatabaseConnectionStringName = "SampleWebAppDb";
+
+        public HostSettings(HostTypes hostType)
         {
-            filters.Add(new HandleErrorAttribute());
+            HostType = hostType;
         }
+
+        public HostTypes HostType { get; }
+
+        public bool IsAzure => HostType == HostTypes.Azure;
+
+        //WebWiz does not allow drop/create database
+        public bool CanCreateDatabase => HostType != HostTypes.WebWiz;
     }
 }
