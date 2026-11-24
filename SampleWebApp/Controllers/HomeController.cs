@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: HomeController.cs
@@ -51,6 +51,12 @@ namespace SampleWebApp.Controllers
         public IActionResult Internals()
         {
             return View(new InternalsInfo());
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View();
         }
 
         public IActionResult CodeView()
