@@ -26,13 +26,12 @@
 #endregion
 using System.ComponentModel.DataAnnotations;
 using DataLayer.DataClasses.Concrete;
-using GenericServices.Core;
+using GenericServices;
 
 namespace Tests.Helpers
 {
-    class SimpleTagDto : InstrumentedEfGenericDto<Tag, SimpleTagDto>
+    public class SimpleTagDto : ILinkToEntity<Tag>
     {
-
         [Key]
         public int TagId { get; set; }
 
@@ -44,13 +43,5 @@ namespace Tests.Helpers
         [MaxLength(128)]
         [Required]
         public string Name { get; set; }
-
-        //--------------------------------------
-
-        protected internal override CrudFunctions SupportedFunctions
-        {
-            get { return CrudFunctions.AllCrud; }
-        }
-
     }
 }

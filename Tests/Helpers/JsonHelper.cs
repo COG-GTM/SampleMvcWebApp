@@ -28,29 +28,26 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Web.Helpers;
-using Newtonsoft.Json;
+using System.Text.Json;
 using NUnit.Framework;
 
 namespace Tests.Helpers
 {
     static class JsonHelper
     {
+        private static readonly JsonSerializerOptions MvcJsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
-        //public static string SerialiseToJsonUsingJsonNet(this object data)
-        //{
-        //    JsonConvert.SerializeObject(data);
-        //    
-        //}
-
-        //public static string SerialiseToJsonIndentedUsingJsonNet(this object data)
-        //{
-        //    return JsonConvert.SerializeObject(data, Formatting.Indented);
-        //}
+        private static readonly JsonSerializerOptions MvcJsonIndentedOptions =
+            new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true };
 
         public static string SerialiseToJson(this object data)
         {
-            return Json.Encode(data);
+            return JsonSerializer.Serialize(data, MvcJsonOptions);
+        }
+
+        public static string SerialiseToJsonIndented(this object data)
+        {
+            return JsonSerializer.Serialize(data, MvcJsonIndentedOptions);
         }
 
         public static string AssertJsonPropertyPresentAndReturnValue<TSource, TProperty>
@@ -74,21 +71,19 @@ namespace Tests.Helpers
              TSource source, Expression<Func<TSource, TProperty>> propertyLambda,
              bool doesNotContain)
         {
-
             var stringToFind = string.Format("\"{0}\":", source.GetPropertyInfo(propertyLambda).Name);
             var startIndex = jsonString.IndexOf(stringToFind, StringComparison.InvariantCultureIgnoreCase);
             if (doesNotContain)
             {
                 if (startIndex == -1) return null;      //all good
-                Assert.Fail("The property '{0}' should NOT be in the in json string", stringToFind);
+                Assert.Fail($"The property '{stringToFind}' should NOT be in the in json string");
             }
 
             //otherwise we expect it to be in
             if (startIndex == -1)
-                Assert.Fail("Looked for '{0}' in json and could not find it", stringToFind);
+                Assert.Fail($"Looked for '{stringToFind}' in json and could not find it");
 
             //now return value after it
-
             var closingIndex = jsonString.IndexOf('\n', startIndex + 1);
             if (closingIndex == -1)
                 throw new ValidationException("This only works on indented json, and this doesn't seem to be indented");
@@ -124,6 +119,5 @@ namespace Tests.Helpers
 
             return propInfo;
         }
-
     }
 }
