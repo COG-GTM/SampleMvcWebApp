@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: BlogsController.cs
@@ -25,88 +25,91 @@
 // SOFTWARE.
 #endregion
 using System.Linq;
-using System.Web.Mvc;
 using DataLayer.DataClasses.Concrete;
 using GenericServices;
+using Microsoft.AspNetCore.Mvc;
 using SampleWebApp.Infrastructure;
 using ServiceLayer.BlogServices;
 
 namespace SampleWebApp.Controllers
 {
-
-    /// <summary>
-    /// This is an example of a Controller using GenericServices database commands directly to the data class (other that List, which needs a DTO)
-    /// In this case we are using normal, non-async commands
-    /// </summary>
     public class BlogsController : Controller
     {
-       
-        public ActionResult Index(IListService service)
+        private readonly ICrudServices _service;
+
+        public BlogsController(ICrudServices service)
         {
-            return View(service.GetAll<BlogListDto>().ToList());
+            _service = service;
         }
 
-        public ActionResult Edit(int id, IUpdateSetupService service)
+        public IActionResult Index()
         {
-            return View(service.GetOriginal<Blog>(id).Result);
+            return View(_service.ReadManyNoTracked<BlogListDto>().ToList());
+        }
+
+
+        public IActionResult Edit(int id)
+        {
+            var blog = _service.ReadSingle<Blog>(id);
+            return blog == null ? NotFound() : View(blog);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(Blog blog, IUpdateService service)
+        public IActionResult Edit([Bind("BlogId,Name,EmailAddress")] Blog blog)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
                 return View(blog);
 
-            var response = service.Update(blog);
-            if (response.IsValid)
+            _service.UpdateAndSave(blog);
+            if (_service.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
+                TempData["message"] = _service.Message;
                 return RedirectToAction("Index");
             }
 
             //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, blog);
+            _service.CopyErrorsToModelState(ModelState, blog);
+            _service.Context.ChangeTracker.Clear();
             return View(blog);
         }
 
-        public ActionResult Create()
+        public IActionResult Create()
         {
             return View(new Blog());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(Blog blog, ICreateService service)
+        public IActionResult Create([Bind("BlogId,Name,EmailAddress")] Blog blog)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
                 return View(blog);
 
-            var response = service.Create(blog);
-            if (response.IsValid)
+            _service.CreateAndSave(blog);
+            if (_service.IsValid)
             {
-                TempData["message"] = response.SuccessMessage;
+                TempData["message"] = _service.Message;
                 return RedirectToAction("Index");
             }
 
             //else errors, so copy the errors over to the ModelState and return to view
-            response.CopyErrorsToModelState(ModelState, blog);
+            _service.CopyErrorsToModelState(ModelState, blog);
+            _service.Context.ChangeTracker.Clear();
             return View(blog);
         }
 
-        public ActionResult Delete(int id, IDeleteService service)
+        public IActionResult Delete(int id)
         {
-
-            var response = service.Delete<Blog>(id);
-            if (response.IsValid)
-                TempData["message"] = response.SuccessMessage;
-            //else it throws a concurrecy error, which shows the default error page.
-
+            _service.DeleteAndSave<Blog>(id);
+            if (_service.IsValid)
+                TempData["message"] = _service.Message;
+            else
+                TempData["errorMessage"] = _service.ErrorsAsHtml();
             return RedirectToAction("Index");
         }
-
 
     }
 }

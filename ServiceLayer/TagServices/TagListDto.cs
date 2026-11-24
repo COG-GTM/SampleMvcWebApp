@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: TagListDto.cs
@@ -24,19 +24,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Runtime.CompilerServices;
 using DataLayer.DataClasses.Concrete;
-using GenericServices.Core;
-
-[assembly: InternalsVisibleTo("Tests")]
+using GenericServices;
 
 namespace ServiceLayer.TagServices
 {
-    public class TagListDto : EfGenericDto<Tag, TagListDto>
+    public class TagListDto : ILinkToEntity<Tag>
     {
-
         [UIHint("HiddenInput")]
         [Key]
         public int TagId { get; set; }
@@ -45,14 +41,7 @@ namespace ServiceLayer.TagServices
 
         public string Slug { get; set; }
 
-        public int PostsCount { get; set; }         //uses AutoMapper Aggregate
-
-        //----------------------------------------------
-        //overridden properties or methods
-
-        protected override CrudFunctions SupportedFunctions
-        {
-            get { return CrudFunctions.List; }
-        }
+        [ReadOnly(true)]
+        public int PostsCount { get; set; }         //Uses AutoMapper flattening of Posts.Count
     }
 }

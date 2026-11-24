@@ -1,4 +1,4 @@
-﻿@model IEnumerable<ServiceLayer.BlogServices.BlogListDto>
+@model IEnumerable<ServiceLayer.BlogServices.BlogListDto>
 
 
 <h2>Blogs</h2>
@@ -9,7 +9,7 @@
 }
 @if (TempData["errorMessage"] != null)
 {
-    <div class="text-danger"><strong>@TempData["errorMessage"]</strong></div>
+    <div class="text-danger"><strong>@Html.Raw(TempData["errorMessage"])</strong></div>
 }
 
 <p>

@@ -163,3 +163,10 @@ SampleWebApp/Properties/PublishProfiles/samplemvcwebapp - Web Deploy.pubxml
 SampleWebApp/Properties/PublishProfiles/samplemvcwebapp.net - WebWiz.pubxml
 git/.gitattributes
 git/.gitignore
+
+# .NET SDK-style build output
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+TestResults/

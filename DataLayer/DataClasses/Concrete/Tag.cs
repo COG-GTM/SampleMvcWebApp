@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: Tag.cs
@@ -26,10 +26,12 @@
 #endregion
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 
 namespace DataLayer.DataClasses.Concrete
 {
-    public class Tag
+    public class Tag : IValidatableObject
     {
         [UIHint("HiddenInput")]
         public int TagId { get; set; }
@@ -48,6 +50,20 @@ namespace DataLayer.DataClasses.Concrete
         public override string ToString()
         {
             return string.Format("TagId: {0}, Name: {1}, Slug: {2}", TagId, Name, Slug);
+        }
+
+        /// <summary>
+        /// Checks the uniqueness of the Slug (excluding itself) when a DbContext is available via the ValidationContext
+        /// </summary>
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            var db = (validationContext.GetService(typeof(DbContext)) ?? validationContext.GetService(typeof(SampleWebAppDb))) as SampleWebAppDb;
+            if (db == null || Slug == null)
+                yield break;
+
+            if (db.Tags.AsNoTracking().Any(x => x.TagId != TagId && x.Slug == Slug))
+                yield return new ValidationResult(
+                    string.Format("The Slug on tag '{0}' must be unique and is already being used.", Name), new[] { "Slug" });
         }
     }
 }

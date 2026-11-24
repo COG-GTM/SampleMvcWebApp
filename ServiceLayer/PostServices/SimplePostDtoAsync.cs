@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: SimplePostDtoAsync.cs
@@ -26,23 +26,24 @@
 #endregion
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using DataLayer.DataClasses.Concrete;
-using GenericServices.Core;
-
-[assembly: InternalsVisibleTo("Tests")]
+using GenericServices;
 
 namespace ServiceLayer.PostServices
 {
-    public class SimplePostDtoAsync : EfGenericDtoAsync<Post, SimplePostDtoAsync>
+    public class SimplePostDtoAsync : ILinkToEntity<Post>
     {
-
         [UIHint("HiddenInput")]
         [Key]
         public int PostId { get; set; }
 
+        [UIHint("HiddenInput")]
+        public int BlogId { get; set; }
+
+        [ReadOnly(true)]
         public string BloggerName { get; set; }
 
         [MinLength(2), MaxLength(128)]
@@ -52,6 +53,7 @@ namespace ServiceLayer.PostServices
         public ICollection<Tag> Tags { get; set; }
 
         [ScaffoldColumn(false)]
+        [ReadOnly(true)]
         public DateTime LastUpdated { get; set; }
 
         /// <summary>
@@ -59,14 +61,6 @@ namespace ServiceLayer.PostServices
         /// </summary>
         public DateTime LastUpdatedUtc { get { return DateTime.SpecifyKind(LastUpdated, DateTimeKind.Utc); } }
 
-        public string TagNames { get { return string.Join(", ", Tags.Select(x => x.Name)); } }
-
-        //----------------------------------------------
-        //overridden properties or methods
-
-        protected override CrudFunctions SupportedFunctions
-        {
-            get { return CrudFunctions.List; }
-        }
+        public string TagNames { get { return string.Join(", ", (Tags ?? new List<Tag>()).Select(x => x.Name)); } }
     }
 }

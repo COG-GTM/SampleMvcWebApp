@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: ModelStateTester.cs
@@ -25,16 +25,14 @@
 // SOFTWARE.
 #endregion
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
-using System.Web.Mvc;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Tests.Helpers
 {
     static class ModelStateTester
     {
-
         public class TestModel : IValidatableObject
         {
             [MinLength(2)]
@@ -50,7 +48,6 @@ namespace Tests.Helpers
             {
                 if (CreateValidationError)
                     yield return new ValidationResult("This is a top level error caused by CreateValidationError being set.");
-
                 if (MyInt == 50)
                     yield return new ValidationResult("This is a top level error caused by MyInt having value 50.");
             }
@@ -67,36 +64,29 @@ namespace Tests.Helpers
             }
         }
 
-
-        private class TestController : Controller
-        {
-            public ActionResult ValidDateTestModel(TestModel model)
-            {
-                // ReSharper disable once Mvc.ViewNotResolved
-                return View(model);
-            }
-        }
-
+        /// <summary>
+        /// Validates the model the same way as ASP.NET Core MVC: property attributes first, and
+        /// IValidatableObject.Validate only if all the properties are valid
+        /// </summary>
         public static ModelStateDictionary ReturnModelState(this TestModel model)
         {
-            var testController = new TestController();
+            var modelState = new ModelStateDictionary();
+            var results = new List<ValidationResult>();
+            var context = new ValidationContext(model);
+            foreach (var property in typeof(TestModel).GetProperties())
+                foreach (var attribute in property.GetCustomAttributes(typeof(ValidationAttribute), true).Cast<ValidationAttribute>())
+                {
+                    var result = attribute.GetValidationResult(property.GetValue(model),
+                        new ValidationContext(model) { MemberName = property.Name, DisplayName = property.Name });
+                    if (result != ValidationResult.Success)
+                        results.Add(result);
+                }
+            if (!results.Any())
+                results.AddRange(model.Validate(context));
 
-            var modelBinder = new ModelBindingContext()
-            {
-                ModelMetadata = ModelMetadataProviders.Current.GetMetadataForType(
-                                  () => model, model.GetType()),
-                ValueProvider = new NameValueCollectionValueProvider(
-                                    new NameValueCollection(), CultureInfo.InvariantCulture)
-            };
-            var binder = new DefaultModelBinder().BindModel(
-                             new ControllerContext(), modelBinder);
-            testController.ModelState.Clear();
-            testController.ModelState.Merge(modelBinder.ModelState);
-
-            var viewResult = (ViewResult) testController.ValidDateTestModel(model);
-            return viewResult.ViewData.ModelState;
+            foreach (var result in results)
+                modelState.AddModelError(result.MemberNames.FirstOrDefault() ?? "", result.ErrorMessage);
+            return modelState;
         }
-
-
     }
 }

@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: InternalsInfo.cs
@@ -25,7 +25,8 @@
 // SOFTWARE.
 #endregion
 using System;
-using System.Diagnostics;
+using System.ComponentModel.DataAnnotations;
+
 using System.Threading;
 
 namespace SampleWebApp.Models
@@ -37,6 +38,7 @@ namespace SampleWebApp.Models
 
         public int AvailableThreads { get; private set; }
 
+        [Display(Name = "GC available memory (MB)")]
         public int AvailableMbytes { get; private set; }
 
         public int HeapMemoryUsedKbytes { get; private set; }
@@ -53,7 +55,7 @@ namespace SampleWebApp.Models
             WorkerThreads = workerThreads;
             AvailableThreads = availableThreads;
 
-            AvailableMbytes = (int)new PerformanceCounter("Memory", "Available MBytes", true).RawValue;
+            AvailableMbytes = (int)(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024 * 1024));
 
             HeapMemoryUsedKbytes = (int)(GC.GetTotalMemory(true)/1000);
         }
