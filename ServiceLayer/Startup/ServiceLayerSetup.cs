@@ -55,13 +55,14 @@ namespace ServiceLayer.Startup
                         sqlOptions.EnableRetryOnFailure();
                 }));
 
-            services.GenericServicesSimpleSetup<SampleWebAppDb>(new GenericServicesConfig
-                {
-                    DtoAccessValidateOnSave = true,
-                    DirectAccessValidateOnSave = true,
-                    SaveChangesExceptionHandler = HandleSaveChangesException
-                },
-                typeof(DetailPostDto).Assembly);
+            var genericServicesConfig = new GenericServicesConfig
+            {
+                DtoAccessValidateOnSave = true,
+                DirectAccessValidateOnSave = true,
+                SaveChangesExceptionHandler = HandleSaveChangesException
+            };
+            services.GenericServicesSimpleSetup<SampleWebAppDb>(genericServicesConfig, typeof(DetailPostDto).Assembly);
+            services.AddSingleton<IGenericServicesConfig>(genericServicesConfig);
 
             services.AddScoped<IPostService, PostService>();
             services.AddScoped<IPostServiceAsync, PostServiceAsync>();

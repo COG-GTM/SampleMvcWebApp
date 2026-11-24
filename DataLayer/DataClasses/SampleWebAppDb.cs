@@ -122,6 +122,7 @@ namespace DataLayer.DataClasses
                     tagsToCheck.Add(tag);
                 }
             }
+            ChangeTracker.DetectChanges();
             return tagsToCheck;
         }
 

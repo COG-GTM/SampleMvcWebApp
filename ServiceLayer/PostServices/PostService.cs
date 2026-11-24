@@ -29,6 +29,7 @@ using System.Linq;
 using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using GenericServices;
+using GenericServices.Configuration;
 using Microsoft.EntityFrameworkCore;
 using StatusGeneric;
 
@@ -40,12 +41,12 @@ namespace ServiceLayer.PostServices
     public class PostService : IPostService
     {
         private readonly SampleWebAppDb _db;
-        private readonly ICrudServices _crud;
+        private readonly IGenericServicesConfig _config;
 
-        public PostService(SampleWebAppDb db, ICrudServices crud)
+        public PostService(SampleWebAppDb db, IGenericServicesConfig config)
         {
             _db = db;
-            _crud = crud;
+            _config = config;
         }
 
         public DetailPostDto GetDetail(int postId)
@@ -100,7 +101,8 @@ namespace ServiceLayer.PostServices
                 BlogId = dto.BlogId,
                 Tags = tags
             };
-            return SaveAndCheck(status, () => _crud.CreateAndSave(post));
+            _db.Posts.Add(post);
+            return SaveAndCheck(status, "Successfully created the Post");
         }
 
         public IStatusGeneric Update(DetailPostDto dto)
@@ -123,16 +125,16 @@ namespace ServiceLayer.PostServices
             post.Tags.Clear();
             foreach (var tag in tags)
                 post.Tags.Add(tag);
-            return SaveAndCheck(status, () => _crud.UpdateAndSave(post));
+            return SaveAndCheck(status, "Successfully updated the Post");
         }
 
         //---------------------------------------------------
         //private helpers
 
-        private IStatusGeneric SaveAndCheck(StatusGenericHandler status, System.Action save)
+        private IStatusGeneric SaveAndCheck(StatusGenericHandler status, string successMessage)
         {
-            save();
-            status.CombineStatuses(_crud);
+            status.Message = successMessage;
+            status.CombineStatuses(_db.SaveChangesWithValidation(_config));
             if (!status.IsValid)
                 _db.ChangeTracker.Clear();
             return status;

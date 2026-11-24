@@ -30,6 +30,7 @@ using System.Threading.Tasks;
 using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using GenericServices;
+using GenericServices.Configuration;
 using Microsoft.EntityFrameworkCore;
 using StatusGeneric;
 
@@ -41,12 +42,12 @@ namespace ServiceLayer.PostServices
     public class PostServiceAsync : IPostServiceAsync
     {
         private readonly SampleWebAppDb _db;
-        private readonly ICrudServicesAsync _crud;
+        private readonly IGenericServicesConfig _config;
 
-        public PostServiceAsync(SampleWebAppDb db, ICrudServicesAsync crud)
+        public PostServiceAsync(SampleWebAppDb db, IGenericServicesConfig config)
         {
             _db = db;
-            _crud = crud;
+            _config = config;
         }
 
         public async Task<DetailPostDtoAsync> GetDetailAsync(int postId)
@@ -101,8 +102,9 @@ namespace ServiceLayer.PostServices
                 BlogId = dto.BlogId,
                 Tags = tags
             };
-            await _crud.CreateAndSaveAsync(post);
-            return CheckSave(status);
+            _db.Posts.Add(post);
+            status.Message = "Successfully created the Post";
+            return CheckSave(status, await _db.SaveChangesWithValidationAsync(_config));
         }
 
         public async Task<IStatusGeneric> UpdateAsync(DetailPostDtoAsync dto)
@@ -125,16 +127,16 @@ namespace ServiceLayer.PostServices
             post.Tags.Clear();
             foreach (var tag in tags)
                 post.Tags.Add(tag);
-            await _crud.UpdateAndSaveAsync(post);
-            return CheckSave(status);
+            status.Message = "Successfully updated the Post";
+            return CheckSave(status, await _db.SaveChangesWithValidationAsync(_config));
         }
 
         //---------------------------------------------------
         //private helpers
 
-        private IStatusGeneric CheckSave(StatusGenericHandler status)
+        private IStatusGeneric CheckSave(StatusGenericHandler status, IStatusGeneric saveStatus)
         {
-            status.CombineStatuses(_crud);
+            status.CombineStatuses(saveStatus);
             if (!status.IsValid)
                 _db.ChangeTracker.Clear();
             return status;
