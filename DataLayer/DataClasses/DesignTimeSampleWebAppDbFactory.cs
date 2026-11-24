@@ -1,8 +1,8 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: BizLayerModule.cs
-// Date Created: 2014/07/11
+// Filename: DesignTimeSampleWebAppDbFactory.cs
+// Date Created: 2026/11/24
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -24,23 +24,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using Autofac;
+using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 
-namespace BizLayer.Startup
+namespace DataLayer.DataClasses
 {
-    public class BizLayerModule : Module
+    /// <summary>
+    /// Used by the dotnet-ef tools to create the context when adding migrations
+    /// </summary>
+    public class DesignTimeSampleWebAppDbFactory : IDesignTimeDbContextFactory<SampleWebAppDb>
     {
-
-        /// <summary>
-        /// This registers all items in service layer and below
-        /// </summary>
-        /// <param name="builder"></param>
-        protected override void Load(ContainerBuilder builder)
+        public SampleWebAppDb CreateDbContext(string[] args)
         {
-            //---------------------------
-            //Register service layer: autowire all 
-            builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
+            var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__SampleWebAppDb")
+                ?? "Server=localhost;Database=SampleWebAppDb;Trusted_Connection=True;TrustServerCertificate=True";
+            var options = new DbContextOptionsBuilder<SampleWebAppDb>()
+                .UseSqlServer(connectionString)
+                .Options;
+            return new SampleWebAppDb(options);
         }
-
     }
 }

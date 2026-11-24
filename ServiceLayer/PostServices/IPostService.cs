@@ -1,8 +1,8 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: EfConfiguration.cs
-// Date Created: 2014/08/14
+// Filename: IPostService.cs
+// Date Created: 2026/11/24
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -24,25 +24,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
+using StatusGeneric;
 
-using System.Data.Entity;
-using System.Data.Entity.SqlServer;
-
-namespace DataLayer.DataClasses
+namespace ServiceLayer.PostServices
 {
-    public class EfConfiguration : DbConfiguration
+    public interface IPostService
     {
-        /// <summary>
-        /// This flag should be set to true if we are working with an Azure database.
-        /// It should be set before EF uses the configuration, i.e. beofre the first access 
-        /// </summary>
-        public static bool IsAzure { get; internal set; }
-
-        public EfConfiguration()
-        {
-            if (IsAzure)
-                SetExecutionStrategy("System.Data.SqlClient", () => new SqlAzureExecutionStrategy());
-        }
-
+        DetailPostDto GetDetail(int postId);
+        DetailPostDto GetForEdit(int postId);
+        DetailPostDto GetNewForCreate();
+        DetailPostDto ResetDto(DetailPostDto dto);
+        IStatusGeneric Create(DetailPostDto dto);
+        IStatusGeneric Update(DetailPostDto dto);
     }
 }
