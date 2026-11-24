@@ -113,7 +113,10 @@ namespace DataLayer.DataClasses
                                                     e.State == EntityState.Added || e.State == EntityState.Modified))
             {
                 if (entity.Entity is TrackUpdate trackUpdateClass)
+                {
                     trackUpdateClass.UpdateTrackingInfo();
+                    entity.Property(nameof(TrackUpdate.LastUpdated)).IsModified = entity.State == EntityState.Modified;
+                }
 
                 if (entity.Entity is Tag tag)
                 {
