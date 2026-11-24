@@ -185,6 +185,11 @@ Tests reference DataLayer, ServiceLayer, SampleWebApp.
 - A failed `CreateAndSave`/`UpdateAndSave` leaves the entity tracked → `ChangeTracker.Clear()` before redisplay/retry.
 - Success messages use EfCore.GenericServices wording (expected difference from legacy).
 - Do not `pkill -f SampleWebApp` (kills the calling shell); kill the run shell by id.
+- `ChangeTracker.DetectChanges()` is also needed AFTER `TrackUpdate.UpdateTrackingInfo()` in `HandleChangeTracking`, otherwise `LastUpdated` is not saved on updates (EfCore.GenericServices saves with auto-detect off).
+- `ICrudServices`/`ICrudServicesAsync` are scoped and their status accumulates: a second call in the same scope after a failed one still reports the old errors. `PostService(Async)` saves via `SaveChangesWithValidation(Async)(IGenericServicesConfig)` instead.
+- `GenericServicesSimpleSetup` does not register `IGenericServicesConfig`; `AddServiceLayer` registers the config instance as a singleton.
+- `dotnet new tool-manifest` on the .NET 10 SDK writes `dotnet-tools.json` to the repo root, not `.config/`; move it.
+- EF Core SqlServer 10.0.0 pulls `System.Security.Cryptography.Pkcs`/`.Xml` 9.0.x (NU1902/NU1903); DataLayer pins both to 10.0.15.
 
 ## 13. Verification evidence
 _To be filled after integration._
