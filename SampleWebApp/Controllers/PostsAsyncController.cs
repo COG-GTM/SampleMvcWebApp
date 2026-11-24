@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: PostsAsyncController.cs
@@ -32,6 +32,7 @@ using Microsoft.EntityFrameworkCore;
 using DataLayer.Startup;
 using GenericServices;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using SampleWebApp.Infrastructure;
 using ServiceLayer.PostServices;
 
@@ -41,11 +42,13 @@ namespace SampleWebApp.Controllers
     {
         private readonly ICrudServicesAsync _service;
         private readonly SampleWebAppDb _db;
+        private readonly ILogger<PostsAsyncController> _logger;
 
-        public PostsAsyncController(ICrudServicesAsync service, SampleWebAppDb db)
+        public PostsAsyncController(ICrudServicesAsync service, SampleWebAppDb db, ILogger<PostsAsyncController> logger)
         {
             _service = service;
             _db = db;
+            _logger = logger;
         }
 
         /// <summary>
@@ -175,7 +178,7 @@ namespace SampleWebApp.Controllers
 
         public async Task<IActionResult> Reset()
         {
-            await Task.Run(() => DataLayerInitialise.ResetBlogs(_db, TestDataSelection.Medium));
+            await Task.Run(() => DataLayerInitialise.ResetBlogs(_db, TestDataSelection.Medium, _logger));
             TempData["message"] = "Successfully reset the blogs data";
             return RedirectToAction("Index");
         }

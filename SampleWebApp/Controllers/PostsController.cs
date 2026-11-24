@@ -31,6 +31,7 @@ using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
 using GenericServices;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using SampleWebApp.Infrastructure;
 using ServiceLayer.PostServices;
 
@@ -40,11 +41,13 @@ namespace SampleWebApp.Controllers
     {
         private readonly ICrudServices _service;
         private readonly SampleWebAppDb _db;
+        private readonly ILogger<PostsController> _logger;
 
-        public PostsController(ICrudServices service, SampleWebAppDb db)
+        public PostsController(ICrudServices service, SampleWebAppDb db, ILogger<PostsController> logger)
         {
             _service = service;
             _db = db;
+            _logger = logger;
         }
 
         /// <summary>
@@ -174,7 +177,7 @@ namespace SampleWebApp.Controllers
 
         public IActionResult Reset()
         {
-            DataLayerInitialise.ResetBlogs(_db, TestDataSelection.Medium);
+            DataLayerInitialise.ResetBlogs(_db, TestDataSelection.Medium, _logger);
             TempData["message"] = "Successfully reset the blogs data";
             return RedirectToAction("Index");
         }
