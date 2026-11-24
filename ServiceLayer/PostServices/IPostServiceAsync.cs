@@ -1,8 +1,8 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: ServiceLayerModule.cs
-// Date Created: 2014/05/20
+// Filename: IPostServiceAsync.cs
+// Date Created: 2026/11/24
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -24,34 +24,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
+using System.Threading.Tasks;
+using StatusGeneric;
 
-using Autofac;
-using DataLayer.Startup;
-using GenericServices;
-
-namespace ServiceLayer.Startup
+namespace ServiceLayer.PostServices
 {
-    public class ServiceLayerModule : Module
+    public interface IPostServiceAsync
     {
-
-        /// <summary>
-        /// This registers all items in service layer and below
-        /// </summary>
-        /// <param name="builder"></param>
-        protected override void Load(ContainerBuilder builder)
-        {
-
-            //Now register the DataLayer
-            builder.RegisterModule(new DataLayerModule());
-
-            //---------------------------
-            //Register service layer: autowire all 
-            builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
-
-            //and register the GenericServices assembly
-            builder.RegisterAssemblyTypes(typeof(IListService).Assembly).AsImplementedInterfaces();
-
-        }
-
+        Task<DetailPostDtoAsync> GetDetailAsync(int postId);
+        Task<DetailPostDtoAsync> GetForEditAsync(int postId);
+        Task<DetailPostDtoAsync> GetNewForCreateAsync();
+        Task<DetailPostDtoAsync> ResetDtoAsync(DetailPostDtoAsync dto);
+        Task<IStatusGeneric> CreateAsync(DetailPostDtoAsync dto);
+        Task<IStatusGeneric> UpdateAsync(DetailPostDtoAsync dto);
     }
 }
