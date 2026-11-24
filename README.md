@@ -10,11 +10,14 @@ SampleMvcWebApp
 >
 > ```bash
 > docker run -d --name mssql -e ACCEPT_EULA=Y -e 'MSSQL_SA_PASSWORD=Str0ng!Passw0rd' -e MSSQL_PID=Developer \
->   -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+>   -p 127.0.0.1:1433:1433 mcr.microsoft.com/mssql/server:2022-latest
 > dotnet build SampleWebApp.sln
 > dotnet test SampleWebApp.sln            # uses database SampleWebAppDb-Test (ConnectionStrings__SampleWebAppDbTest)
 > ASPNETCORE_ENVIRONMENT=Development dotnet run --project SampleWebApp --urls http://localhost:5000
 > ```
+>
+> For `dotnet tool run dotnet-ef ...`, export `ConnectionStrings__SampleWebAppDb` (same value as in
+> `SampleWebApp/appsettings.Development.json`); without it the design-time factory uses Windows integrated auth.
 >
 > The app migrates and seeds a fresh `SampleWebAppDb` database on startup. An EF6-created database cannot be upgraded
 > by the EF Core `InitialCreate` migration; use a new database.
