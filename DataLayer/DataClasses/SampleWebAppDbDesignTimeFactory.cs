@@ -12,7 +12,8 @@ namespace DataLayer.DataClasses
         public SampleWebAppDb CreateDbContext(string[] args)
         {
             var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__SampleWebAppDb")
-                ?? "Server=(localdb)\\mssqllocaldb;Database=SampleWebAppDb;Trusted_Connection=True";
+                ?? throw new InvalidOperationException(
+                    "Set the ConnectionStrings__SampleWebAppDb environment variable to the database the EF Core tools should use.");
             var options = new DbContextOptionsBuilder<SampleWebAppDb>().UseSqlServer(connectionString).Options;
             return new SampleWebAppDb(options);
         }
