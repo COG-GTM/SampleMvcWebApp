@@ -24,14 +24,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System;
 using System.Collections.Generic;
-using System.Data.Entity;
 using System.Linq;
 using DataLayer.DataClasses;
 using DataLayer.Startup.Internal;
-using GenericLibsBase;
-using GenericServices;
+using Microsoft.EntityFrameworkCore;
 
 namespace DataLayer.Startup
 {
@@ -39,8 +36,6 @@ namespace DataLayer.Startup
 
     public static class DataLayerInitialise
     {
-
-        private static IGenericLogger _logger;
 
         private static readonly Dictionary<TestDataSelection, string> XmlBlogsDataFileManifestPath = new Dictionary<TestDataSelection, string>
             {
@@ -51,46 +46,36 @@ namespace DataLayer.Startup
         /// <summary>
         /// This should be called at Startup
         /// </summary>
-        /// <param name="isAzure">true if running on azure (used for configuring retry policy and BuildSqlConnectionString UserId)</param>
-        /// <param name="canCreateDatabase">true if the database provider allows the app to drop/create a database</param>
-        public static void InitialiseThis(bool isAzure, bool canCreateDatabase)
+        /// <param name="context">the application's DbContext</param>
+        /// <param name="canCreateDatabase">true if the database provider allows the app to create/migrate the database</param>
+        public static void InitialiseThis(SampleWebAppDb context, bool canCreateDatabase)
         {
-            EfConfiguration.IsAzure = isAzure;
-            _logger = GenericLibsBaseConfig.GetLogger("DataLayerInitialise");
-
-            //Initialiser for the database. Only used when first access is made
             if (canCreateDatabase)
-                Database.SetInitializer(new CreateDatabaseIfNotExists<SampleWebAppDb>());
-            else
-                //This initializer will not try to change the database
-                Database.SetInitializer(new NullDatabaseInitializer<SampleWebAppDb>());
+                context.Database.Migrate();
+
+            if (!context.Blogs.Any())
+                ResetBlogs(context, TestDataSelection.Medium);
         }
 
         public static void ResetBlogs(SampleWebAppDb context, TestDataSelection selection)
         {
-            try
+            var strategy = context.Database.CreateExecutionStrategy();
+            strategy.Execute(() =>
             {
-                context.Posts.ToList().ForEach(x => context.Posts.Remove(x));
-                context.Tags.ToList().ForEach(x => context.Tags.Remove(x));
-                context.Blogs.ToList().ForEach(x => context.Blogs.Remove(x));
+                context.ChangeTracker.Clear();
+                using var transaction = context.Database.BeginTransaction();
+
+                context.Posts.ExecuteDelete();
+                context.Tags.ExecuteDelete();
+                context.Blogs.ExecuteDelete();
+
+                var bloggers = LoadDbDataFromXml.FormBlogsWithPosts(XmlBlogsDataFileManifestPath[selection]);
+                context.Blogs.AddRange(bloggers);
                 context.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                _logger.Critical("Exception when resetting the blogs", ex);
-                throw;
-            }
 
-            var bloggers = LoadDbDataFromXml.FormBlogsWithPosts(XmlBlogsDataFileManifestPath[selection]);
-
-            context.Blogs.AddRange(bloggers);
-            var status = context.SaveChangesWithChecking();
-            if (!status.IsValid)
-            {
-                _logger.CriticalFormat("Error when resetting courses data. Error:\n{0}",
-                    string.Join(",", status.Errors));
-                throw new FormatException("problem writing to database. See log.");
-            }
+                transaction.Commit();
+                context.ChangeTracker.Clear();
+            });
         }
 
     }

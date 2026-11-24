@@ -1,8 +1,8 @@
 ﻿#region licence
 // The MIT License (MIT)
 // 
-// Filename: DataLayerModule.cs
-// Date Created: 2014/05/20
+// Filename: SlugNotUniqueException.cs
+// Date Created: 2026/11/24
 // 
 // Copyright (c) 2014 Jon Smith (www.selectiveanalytics.com & www.thereformedprogrammer.net)
 // 
@@ -24,27 +24,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Runtime.CompilerServices;
-using Autofac;
-using DataLayer.DataClasses;
-using GenericServices;
+using DataLayer.DataClasses.Concrete;
+using Microsoft.EntityFrameworkCore;
 
-[assembly: InternalsVisibleTo("Tests")]
-
-namespace DataLayer.Startup
+namespace DataLayer.DataClasses
 {
-    public class DataLayerModule : Module
+    /// <summary>
+    /// Thrown by SaveChanges when an added or updated Tag has a Slug that another Tag already uses
+    /// </summary>
+    public class SlugNotUniqueException : DbUpdateException
     {
+        public SlugNotUniqueException(Tag tag)
+            : base(string.Format("The Slug on tag '{0}' must be unique and is already being used.", tag.Name)) {}
 
-        protected override void Load(ContainerBuilder builder)
-        {
-
-            //Autowire the classes with interfaces
-            builder.RegisterAssemblyTypes(GetType().Assembly).AsImplementedInterfaces();
-
-            //set Entity Framework context to instance per lifetime scope. 
-            //This is important as we get one context per lifetime, so all db classes are tracked together.
-            builder.RegisterType<SampleWebAppDb>().As<SampleWebAppDb>().As<IGenericServicesDbContext>().InstancePerLifetimeScope();
-        }
+        public string MemberName => "Slug";
     }
 }
