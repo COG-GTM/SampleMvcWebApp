@@ -35,7 +35,7 @@
 - **DelegateDecompiler**: package referenced, no `.Decompile()`/`[Computed]` usage → drop.
 - **JsonNetResult**: only referenced in comments → delete; `ValidationHelper` returns `JsonResult`.
 - **Publish profiles**: none in repo.
-- **Seeding**: the app applies migrations and seeds the Medium XML data on startup when the DB has no blogs (legacy needed a manual Reset).
+- **Seeding**: the app applies migrations and seeds the Medium XML data on startup when the DB has no blogs and no tags (legacy needed a manual Reset).
 
 ## 5. DataLayer (EF6 → EF Core 10)
 - Options-based ctor; `OnModelCreating`: unique index on `Tag.Slug`, `Post`↔`Tag` many-to-many, `Post.Blogger` → `BlogId` FK.
@@ -96,7 +96,7 @@ namespace DataLayer.Startup
 public enum TestDataSelection { Small = 0, Medium = 1 }
 public static class DataLayerInitialise
 {
-    public static void InitialiseThis(SampleWebAppDb db, bool canCreateDatabase); // Migrate() if allowed; seed Medium if no blogs
+    public static void InitialiseThis(SampleWebAppDb db, bool canCreateDatabase); // Migrate() if allowed; seed Medium if no blogs and no tags
     public static void ResetBlogs(SampleWebAppDb db, TestDataSelection selection); // transactional, see §5
 }
 ```
