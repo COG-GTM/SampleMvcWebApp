@@ -55,7 +55,7 @@ namespace SampleWebApp.Models
             HeapMemoryUsedKbytes = (int)(GC.GetTotalMemory(true)/1000);
 
             var memoryInfo = GC.GetGCMemoryInfo();
-            AvailableMbytes = (int)((memoryInfo.TotalAvailableMemoryBytes - memoryInfo.MemoryLoadBytes) / (1024 * 1024));
+            AvailableMbytes = (int)(Math.Max(0, memoryInfo.TotalAvailableMemoryBytes - memoryInfo.MemoryLoadBytes) / (1024 * 1024));
         }
     }
 }
