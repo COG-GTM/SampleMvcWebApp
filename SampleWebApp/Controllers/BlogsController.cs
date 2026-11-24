@@ -56,7 +56,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(Blog blog)
+        public IActionResult Edit([Bind("BlogId,Name,EmailAddress")] Blog blog)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -82,7 +82,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(Blog blog)
+        public IActionResult Create([Bind("BlogId,Name,EmailAddress")] Blog blog)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
