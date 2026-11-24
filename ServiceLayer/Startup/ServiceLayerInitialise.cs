@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: ServiceLayerInitialise.cs
@@ -25,11 +25,10 @@
 // SOFTWARE.
 #endregion
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using DataLayer.DataClasses;
 using DataLayer.Startup;
-
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace ServiceLayer.Startup
 {
@@ -39,17 +38,16 @@ namespace ServiceLayer.Startup
     public static class ServiceLayerInitialise
     {
         /// <summary>
-        /// This should be called at Startup
+        /// This should be called at Startup, after the DI container has been built
         /// </summary>
-        /// <param name="isAzure">true if working with azure database</param>
-        /// <param name="canCreateDatabase">true if the database provider allows the app to drop/create a database</param>
-        public static void InitialiseThis(bool isAzure, bool canCreateDatabase)
+        /// <param name="services">the application's root service provider</param>
+        /// <param name="canCreateDatabase">true if the database provider allows the app to create/migrate the database</param>
+        public static void InitialiseThis(IServiceProvider services, bool canCreateDatabase)
         {
-
-            //Place any tasks that need initialising here
-
-            DataLayerInitialise.InitialiseThis(isAzure, canCreateDatabase);
-
+            using var scope = services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<SampleWebAppDb>();
+            var logger = scope.ServiceProvider.GetService<ILoggerFactory>()?.CreateLogger("DataLayerInitialise");
+            DataLayerInitialise.InitialiseThis(db, canCreateDatabase, logger);
         }
     }
 }

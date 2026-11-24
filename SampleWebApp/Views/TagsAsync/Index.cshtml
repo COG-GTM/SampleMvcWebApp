@@ -1,4 +1,4 @@
-﻿@model IEnumerable<ServiceLayer.TagServices.TagListDto>
+@model IEnumerable<ServiceLayer.TagServices.TagListDto>
 
 @{
     ViewBag.Title = "TagsAsync";
@@ -12,7 +12,7 @@
 }
 @if (TempData["errorMessage"] != null)
 {
-    <div class="text-danger"><strong>@TempData["errorMessage"]</strong></div>
+    <div class="text-danger"><strong>@Html.Raw(TempData["errorMessage"])</strong></div>
 }
 
 @Html.ValidationSummary(false, "", new { @class = "text-danger" })

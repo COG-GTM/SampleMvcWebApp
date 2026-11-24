@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: Test10SetupBlogs.cs
@@ -69,10 +69,9 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check10BlogsResetSmallOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.Create())
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, true);
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
@@ -87,10 +86,9 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check11BlogsResetMediumOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.Create())
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, true);
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Medium);
@@ -108,10 +106,9 @@ namespace Tests.UnitTests.Group01DataLayer
         public void Check20NullInitialiserOk()
         {
             Check10BlogsResetSmallOk();             //we call this to ensure the database is setup
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.Create())
             {
                 //SETUP
-                DataLayerInitialise.InitialiseThis(false, false);           //select null initialiser
 
                 //ATTEMPT
                 DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);

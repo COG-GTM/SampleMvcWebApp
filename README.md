@@ -1,3 +1,20 @@
+# SampleMvcWebApp (.NET 10)
+
+This app now runs on **ASP.NET Core MVC / .NET 10** with EF Core 10, EfCore.GenericServices and the built-in DI container (migrated from ASP.NET MVC 5 / .NET Framework 4.5.1 / EF6 / GenericServices / Autofac; see `MIGRATION_PLAN.md`).
+
+## Run locally
+
+```bash
+docker run -d --name mssql -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='Str0ng!Passw0rd' -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+dotnet build
+dotnet test     # uses the SampleWebAppDb-Test database (override with ConnectionStrings__SampleWebAppDbTest)
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project SampleWebApp --urls http://localhost:5000
+```
+
+The app applies EF Core migrations and seeds the blogs data on first start.
+
+---
+
 SampleMvcWebApp
 ===============
 

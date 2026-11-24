@@ -1,4 +1,4 @@
-﻿#region licence
+#region licence
 // The MIT License (MIT)
 // 
 // Filename: SampleWebAppDb.cs
@@ -24,83 +24,64 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #endregion
-using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using System.Data.Entity.Validation;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.DataClasses.Concrete.Helpers;
-using GenericServices;
+using Microsoft.EntityFrameworkCore;
 
 [assembly: InternalsVisibleTo("Tests")]
 
 namespace DataLayer.DataClasses
 {
 
-    public class SampleWebAppDb : DbContext, IGenericServicesDbContext
+    public class SampleWebAppDb : DbContext
     {
-        internal const string NameOfConnectionString = "SampleWebAppDb";
+        public const string NameOfConnectionString = "SampleWebAppDb";
 
         public DbSet<Blog> Blogs { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Tag> Tags { get; set; }
 
-        public SampleWebAppDb() : base("name=" + NameOfConnectionString) {}
+        public SampleWebAppDb(DbContextOptions<SampleWebAppDb> options) : base(options) {}
 
-        internal SampleWebAppDb(string connectionString) : base(connectionString) { }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Post>()
+                .HasOne(p => p.Blogger)
+                .WithMany(b => b.Posts)
+                .HasForeignKey(p => p.BlogId);
 
+            modelBuilder.Entity<Post>()
+                .HasMany(p => p.Tags)
+                .WithMany(t => t.Posts)
+                .UsingEntity(j => j.ToTable("TagPosts"));
+
+            modelBuilder.Entity<Tag>()
+                .HasIndex(t => t.Slug)
+                .IsUnique();
+        }
 
         /// <summary>
         /// This has been overridden to handle:
         /// a) Updating of modified items (see p194 in DbContext book)
         /// </summary>
-        /// <returns></returns>
-        public override int SaveChanges()
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
             HandleChangeTracking();
-            return base.SaveChanges();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
         }
 
         /// <summary>
         /// Same for async
         /// </summary>
-        /// <returns></returns>
-        public override Task<int> SaveChangesAsync()
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
         {
             HandleChangeTracking();
-            return base.SaveChangesAsync();
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         }
-
-        /// <summary>
-        /// This does validations that can only be done at the database level
-        /// </summary>
-        /// <param name="entityEntry"></param>
-        /// <param name="items"></param>
-        /// <returns></returns>
-        protected override DbEntityValidationResult ValidateEntity(DbEntityEntry entityEntry,
-            IDictionary<object, object> items)
-        {
-
-            if (entityEntry.Entity is Tag && (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified))
-            {
-                var tagToCheck = ((Tag)entityEntry.Entity);
-
-                //check for uniqueness of Tag's Slug property (note: because we may alter a Tag we need to exclude check against itself)
-                if (Tags.Any(x => x.TagId != tagToCheck.TagId && x.Slug == tagToCheck.Slug))
-                    return new DbEntityValidationResult(entityEntry,
-                                                        new List<DbValidationError>
-                                                            {
-                                                                new DbValidationError( "Slug",
-                                                                    string.Format( "The Slug on tag '{0}' must be unique and is already being used.", tagToCheck.Name))
-                                                            });
-            }
-
-            return base.ValidateEntity(entityEntry, items);
-        }
-
 
         //--------------------------------------------------
         //private helpers
@@ -110,25 +91,12 @@ namespace DataLayer.DataClasses
         /// </summary>
         private void HandleChangeTracking()
         {
-            //Debug.WriteLine("----------------------------------------------");
-            //foreach (var entity in ChangeTracker.Entries()
-            //.Where(
-            //    e =>
-            //    e.State == EntityState.Added || e.State == EntityState.Modified))
-            //{
-            //    Debug.WriteLine("Entry {0}, state {1}", entity.Entity, entity.State);
-            //}       
-
             foreach (var entity in ChangeTracker.Entries()
-                                                .Where(
-                                                    e =>
-                                                    e.State == EntityState.Added || e.State == EntityState.Modified))
+                                                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified))
             {
-                var trackUpdateClass = entity.Entity as TrackUpdate;
-                if (trackUpdateClass == null) return;
-                trackUpdateClass.UpdateTrackingInfo();
+                if (entity.Entity is TrackUpdate trackUpdateClass)
+                    trackUpdateClass.UpdateTrackingInfo();
             }
         }
-
     }
 }
