@@ -189,6 +189,7 @@ Tests reference DataLayer, ServiceLayer, SampleWebApp.
 - `ErrorsAsHtml()` returns pre-encoded HTML stored in `TempData["errorMessage"]` → render with `@Html.Raw(...)` or the `<br/>`s show as text.
 - Legacy layout bundles (`~/bundles/javascript`, `~/bundles/jqueryval`, `~/Content/css`) map to `jquery-1.10.2.min.js` + `bootstrap.min.js` + `respond.min.js`, `jquery.validate(.unobtrusive).min.js`, and `bootstrap.min.css` + `Site.css`.
 - `HostType` (was `Properties/Settings.HostTypeString`) lives in appsettings and is injected into `_Layout` via `@inject HostSettings`.
+- EfCore.GenericServices saves with `AutoDetectChangesEnabled` off, so setting `LastUpdated` in `SaveChanges` after `DetectChanges` is lost → mark the property `IsModified` explicitly.
 
 ## 13. Verification evidence
 _To be filled after integration._
