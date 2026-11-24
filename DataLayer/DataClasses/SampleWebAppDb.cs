@@ -25,80 +25,72 @@
 // SOFTWARE.
 #endregion
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
-using System.Data.Entity.Validation;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.DataClasses.Concrete.Helpers;
-using GenericServices;
+using Microsoft.EntityFrameworkCore;
 
 [assembly: InternalsVisibleTo("Tests")]
 
 namespace DataLayer.DataClasses
 {
 
-    public class SampleWebAppDb : DbContext, IGenericServicesDbContext
+    public class SampleWebAppDb : DbContext
     {
-        internal const string NameOfConnectionString = "SampleWebAppDb";
-
         public DbSet<Blog> Blogs { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Tag> Tags { get; set; }
 
-        public SampleWebAppDb() : base("name=" + NameOfConnectionString) {}
+        public SampleWebAppDb(DbContextOptions<SampleWebAppDb> options) : base(options) {}
 
-        internal SampleWebAppDb(string connectionString) : base(connectionString) { }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Tag>()
+                .HasIndex(x => x.Slug)
+                .IsUnique();
 
+            modelBuilder.Entity<Post>()
+                .HasOne(x => x.Blogger)
+                .WithMany(x => x.Posts)
+                .HasForeignKey(x => x.BlogId);
+
+            modelBuilder.Entity<Post>()
+                .HasMany(x => x.Tags)
+                .WithMany(x => x.Posts);
+        }
 
         /// <summary>
         /// This has been overridden to handle:
         /// a) Updating of modified items (see p194 in DbContext book)
+        /// b) Checking that a Tag's Slug is unique
         /// </summary>
-        /// <returns></returns>
-        public override int SaveChanges()
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
-            HandleChangeTracking();
-            return base.SaveChanges();
+            var tagsToCheck = HandleChangeTracking();
+            foreach (var tag in tagsToCheck)
+            {
+                if (Tags.Any(x => x.TagId != tag.TagId && x.Slug == tag.Slug))
+                    throw new SlugNotUniqueException(tag);
+            }
+            return base.SaveChanges(acceptAllChangesOnSuccess);
         }
 
         /// <summary>
         /// Same for async
         /// </summary>
-        /// <returns></returns>
-        public override Task<int> SaveChangesAsync()
+        public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess,
+            CancellationToken cancellationToken = default)
         {
-            HandleChangeTracking();
-            return base.SaveChangesAsync();
-        }
-
-        /// <summary>
-        /// This does validations that can only be done at the database level
-        /// </summary>
-        /// <param name="entityEntry"></param>
-        /// <param name="items"></param>
-        /// <returns></returns>
-        protected override DbEntityValidationResult ValidateEntity(DbEntityEntry entityEntry,
-            IDictionary<object, object> items)
-        {
-
-            if (entityEntry.Entity is Tag && (entityEntry.State == EntityState.Added || entityEntry.State == EntityState.Modified))
+            var tagsToCheck = HandleChangeTracking();
+            foreach (var tag in tagsToCheck)
             {
-                var tagToCheck = ((Tag)entityEntry.Entity);
-
-                //check for uniqueness of Tag's Slug property (note: because we may alter a Tag we need to exclude check against itself)
-                if (Tags.Any(x => x.TagId != tagToCheck.TagId && x.Slug == tagToCheck.Slug))
-                    return new DbEntityValidationResult(entityEntry,
-                                                        new List<DbValidationError>
-                                                            {
-                                                                new DbValidationError( "Slug",
-                                                                    string.Format( "The Slug on tag '{0}' must be unique and is already being used.", tagToCheck.Name))
-                                                            });
+                if (await Tags.AnyAsync(x => x.TagId != tag.TagId && x.Slug == tag.Slug, cancellationToken))
+                    throw new SlugNotUniqueException(tag);
             }
-
-            return base.ValidateEntity(entityEntry, items);
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         }
 
 
@@ -107,27 +99,31 @@ namespace DataLayer.DataClasses
 
         /// <summary>
         /// This handles going through all the entities that have changed and seeing if they need any special handling.
+        /// It returns the added/modified tags whose Slug must be checked for uniqueness.
         /// </summary>
-        private void HandleChangeTracking()
+        private List<Tag> HandleChangeTracking()
         {
-            //Debug.WriteLine("----------------------------------------------");
-            //foreach (var entity in ChangeTracker.Entries()
-            //.Where(
-            //    e =>
-            //    e.State == EntityState.Added || e.State == EntityState.Modified))
-            //{
-            //    Debug.WriteLine("Entry {0}, state {1}", entity.Entity, entity.State);
-            //}       
+            ChangeTracker.DetectChanges();
 
+            var tagsToCheck = new List<Tag>();
+            var slugsSeen = new HashSet<string>();
             foreach (var entity in ChangeTracker.Entries()
                                                 .Where(
                                                     e =>
                                                     e.State == EntityState.Added || e.State == EntityState.Modified))
             {
-                var trackUpdateClass = entity.Entity as TrackUpdate;
-                if (trackUpdateClass == null) return;
-                trackUpdateClass.UpdateTrackingInfo();
+                if (entity.Entity is TrackUpdate trackUpdateClass)
+                    trackUpdateClass.UpdateTrackingInfo();
+
+                if (entity.Entity is Tag tag)
+                {
+                    if (!slugsSeen.Add(tag.Slug))
+                        throw new SlugNotUniqueException(tag);
+                    tagsToCheck.Add(tag);
+                }
             }
+            ChangeTracker.DetectChanges();
+            return tagsToCheck;
         }
 
     }
