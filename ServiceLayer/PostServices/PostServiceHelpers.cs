@@ -61,9 +61,9 @@ namespace ServiceLayer.PostServices
                 var chosenIds = userChosenTags.FinalSelection
                     .Select(x => int.TryParse(x, out var id) ? id : (int?)null)
                     .Where(x => x != null)
-                    .ToList();
-                preselectedTags = chosenIds
-                    .SelectMany(id => allOptions.Where(x => x.Value == id))
+                    .ToHashSet();
+                preselectedTags = allOptions
+                    .Where(x => chosenIds.Contains(x.Value))
                     .ToList();
             }
             else if (postId != 0 && postTags != null)
