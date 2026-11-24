@@ -201,4 +201,13 @@ Tests reference DataLayer, ServiceLayer, SampleWebApp.
 - Tests read `ConnectionStrings__SampleWebAppDbTest` (default `SampleWebAppDb-Test`) and refuse a database name without `Test`.
 
 ## 13. Verification evidence
-_To be filled after integration._
+| | Legacy (master) | .NET 10 (this branch) |
+|---|---|---|
+| Stack | MVC 5 / .NET Framework 4.5.1 / EF6 / GenericServices 1.x / Autofac | ASP.NET Core MVC / net10.0 / EF Core 10 / EfCore.GenericServices 10 / built-in DI |
+| Build | 0 errors (Windows only) | `dotnet build` 0 errors on Linux (NU1903 AutoMapper pin only) |
+| Tests | NUnit 2.6.3, 54/54 | NUnit 4, 72/72 (54 legacy + 18 new) on SQL Server `SampleWebAppDb-Test` |
+| Seed | manual `/Posts/Reset` → 4 / 17 / 8 | migrate + seed on startup → 4 / 17 / 8; Reset restores the same |
+| CRUD | all UI flows pass | browser E2E on Kestrel + fresh DB: Blogs, Tags, TagsAsync, Posts, PostsAsync CRUD; duplicate slug error inline; required-title validation; Reset; data persists across restart |
+
+E2E recording and screenshots: see the verification comment on PR #106. `LastUpdated` changing on edit is covered by the unit tests (the UI shows only the date).
+
