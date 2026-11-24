@@ -115,7 +115,7 @@ namespace DataLayer.DataClasses
                 if (entity.Entity is TrackUpdate trackUpdateClass)
                 {
                     trackUpdateClass.UpdateTrackingInfo();
-                    entity.Property(nameof(TrackUpdate.LastUpdated)).IsModified = entity.State == EntityState.Modified;
+                    entity.DetectChanges();
                 }
 
                 if (entity.Entity is Tag tag)
@@ -125,7 +125,6 @@ namespace DataLayer.DataClasses
                     tagsToCheck.Add(tag);
                 }
             }
-            ChangeTracker.DetectChanges();
             return tagsToCheck;
         }
 

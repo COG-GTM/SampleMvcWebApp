@@ -56,7 +56,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit([Bind("BlogId,Name,EmailAddress")] Blog blog, [FromServices] ICrudServices service)
+        public IActionResult Edit([Bind(nameof(Blog.BlogId), nameof(Blog.Name), nameof(Blog.EmailAddress))] Blog blog, [FromServices] ICrudServices service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately
@@ -82,7 +82,7 @@ namespace SampleWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create([Bind("BlogId,Name,EmailAddress")] Blog blog, [FromServices] ICrudServices service)
+        public IActionResult Create([Bind(nameof(Blog.Name), nameof(Blog.EmailAddress))] Blog blog, [FromServices] ICrudServices service)
         {
             if (!ModelState.IsValid)
                 //model errors so return immediately

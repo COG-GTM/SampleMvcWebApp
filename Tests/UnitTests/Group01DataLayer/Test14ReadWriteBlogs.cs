@@ -25,13 +25,12 @@
 // SOFTWARE.
 #endregion
 using System;
-using System.Data.Entity;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using DataLayer.DataClasses;
 using DataLayer.DataClasses.Concrete;
 using DataLayer.Startup;
-using GenericServices;
+using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 using Tests.Helpers;
 
@@ -39,21 +38,16 @@ namespace Tests.UnitTests.Group01DataLayer
 {
     class Test14ReadWriteBlogs
     {
-
         [SetUp]
         public void SetUp()
         {
-            using (var db = new SampleWebAppDb())
-            {
-                DataLayerInitialise.InitialiseThis(false, true);
-                DataLayerInitialise.ResetBlogs(db, TestDataSelection.Small);
-            }
+            TestDb.ResetBlogs(TestDataSelection.Small);
         }
 
         [Test]
         public void Check01ReadBlogsNoPostsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
 
@@ -69,7 +63,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check02ReadBlogsWithPostsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
 
@@ -86,30 +80,29 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check03ReadBlogsWithPostTagsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
 
                 //ATTEMPT
-                var blogs = db.Blogs.Include(x => x.Posts.Select(y => y.Tags)).ToList();
+                var blogs = db.Blogs.Include(x => x.Posts).ThenInclude(y => y.Tags).ToList();
 
                 //VERIFY
                 blogs.Count.ShouldEqual(2);
                 blogs.All(x => x.Posts != null).ShouldEqual(true);
                 blogs.All(x => x.Posts.All(y => y.Tags != null)).ShouldEqual(true);
-
             }
         }
 
         [Test]
         public void Check05ReadPostsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
 
                 //ATTEMPT
-                var posts = db.Posts.ToList();
+                var posts = db.Posts.Include(x => x.Blogger).ToList();
 
                 //VERIFY
                 posts.Count.ShouldEqual(3);
@@ -118,16 +111,15 @@ namespace Tests.UnitTests.Group01DataLayer
             }
         }
 
-
         [Test]
         public void Check06ReadPostsWithTagsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
 
                 //ATTEMPT
-                var posts = db.Posts.Include(x => x.Tags).ToList();
+                var posts = db.Posts.Include(x => x.Blogger).Include(x => x.Tags).ToList();
 
                 //VERIFY
                 posts.Count.ShouldEqual(3);
@@ -139,7 +131,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check10ReadTAllocatedTagsWithUglySlugOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
 
@@ -159,7 +151,7 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check20AddPostOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
@@ -172,14 +164,14 @@ namespace Tests.UnitTests.Group01DataLayer
                     Blogger = jonBlogger,
                     Content = "a few simple words.",
                     Title = "A new post",
-                    Tags = new[] { uglyTag }
+                    Tags = new List<Tag> { uglyTag }
                 };
 
                 db.Posts.Add(newPost);
                 var status = db.SaveChangesWithChecking();
 
                 //VERIFY
-                status.IsValid.ShouldEqual(true, status.Errors);
+                status.IsValid.ShouldEqual(true, status.GetAllErrors());
                 snap.CheckSnapShot(db, 1, 1);
                 var uglyPosts = db.Tags.Include(x => x.Posts).Single(y => y.Slug == "ugly").Posts;
                 uglyPosts.Count.ShouldEqual(3);
@@ -189,33 +181,32 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check21CheckUpdateSimpleOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
                 var newGuid = Guid.NewGuid().ToString();
 
                 //ATTEMPT
-                var firstPost = db.Posts.First();
+                var firstPost = db.Posts.OrderBy(x => x.PostId).First();
                 firstPost.Title = newGuid;
                 var status = db.SaveChangesWithChecking();
 
                 //VERIFY
-                status.IsValid.ShouldEqual(true, status.Errors);
+                status.IsValid.ShouldEqual(true, status.GetAllErrors());
                 snap.CheckSnapShot(db);
-                db.Posts.First().Title.ShouldEqual(newGuid);
+                db.Posts.OrderBy(x => x.PostId).First().Title.ShouldEqual(newGuid);
             }
         }
-
 
         [Test]
         public void Check22CheckUpdateLastUpdatedOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
-                var firstPost = db.Posts.First();
+                var firstPost = db.Posts.OrderBy(x => x.PostId).First();
                 var originalDateTime = firstPost.LastUpdated;
                 Thread.Sleep(400);
 
@@ -224,21 +215,50 @@ namespace Tests.UnitTests.Group01DataLayer
                 var status = db.SaveChangesWithChecking();
 
                 //VERIFY
-                status.IsValid.ShouldEqual(true, status.Errors);
+                status.IsValid.ShouldEqual(true, status.GetAllErrors());
                 snap.CheckSnapShot(db);
-                Assert.GreaterOrEqual(db.Posts.First().LastUpdated.Subtract(originalDateTime).Milliseconds, 400);
+                using (var checkDb = TestDb.CreateDb())
+                {
+                    var reloaded = checkDb.Posts.Single(x => x.PostId == firstPost.PostId);
+                    Assert.That(reloaded.LastUpdated.Subtract(originalDateTime).TotalMilliseconds, Is.GreaterThanOrEqualTo(400));
+                }
+            }
+        }
+
+        [Test]
+        public void Check23CheckUpdateLastUpdatedAutoDetectChangesOffOk()
+        {
+            using (var db = TestDb.CreateDb())
+            {
+                //SETUP
+                var firstPost = db.Posts.OrderBy(x => x.PostId).First();
+                var originalDateTime = firstPost.LastUpdated;
+                Thread.Sleep(400);
+
+                //ATTEMPT
+                db.ChangeTracker.AutoDetectChangesEnabled = false;
+                firstPost.Title = Guid.NewGuid().ToString();
+                db.SaveChanges();
+
+                //VERIFY
+                using (var checkDb = TestDb.CreateDb())
+                {
+                    var reloaded = checkDb.Posts.Single(x => x.PostId == firstPost.PostId);
+                    reloaded.Title.ShouldEqual(firstPost.Title);
+                    Assert.That(reloaded.LastUpdated.Subtract(originalDateTime).TotalMilliseconds, Is.GreaterThanOrEqualTo(400));
+                }
             }
         }
 
         [Test]
         public void Check25UpdatePostToAddTagOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
                 var badTag = db.Tags.Single(x => x.Slug == "bad");
-                var firstPost = db.Posts.First();
+                var firstPost = db.Posts.OrderBy(x => x.PostId).First();
 
                 //ATTEMPT
                 db.Entry(firstPost).Collection(x => x.Tags).Load();
@@ -246,9 +266,10 @@ namespace Tests.UnitTests.Group01DataLayer
                 var status = db.SaveChangesWithChecking();
 
                 //VERIFY
-                status.IsValid.ShouldEqual(true, status.Errors);
+                status.IsValid.ShouldEqual(true, status.GetAllErrors());
                 snap.CheckSnapShot(db, 0, 1);
-                firstPost = db.Blogs.Include(x => x.Posts.Select(y => y.Tags)).First().Posts.First();
+                firstPost = db.Blogs.Include(x => x.Posts).ThenInclude(y => y.Tags)
+                    .Single(x => x.BlogId == firstPost.BlogId).Posts.Single(x => x.PostId == firstPost.PostId);
                 firstPost.Tags.Count.ShouldEqual(3);
             }
         }
@@ -256,75 +277,80 @@ namespace Tests.UnitTests.Group01DataLayer
         [Test]
         public void Check26ReplaceTagsOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
-                var firstPost = db.Posts.First();
+                var firstPost = db.Posts.OrderBy(x => x.PostId).First();
                 var tagsNotInFirstPostTracked = db.Tags.Where(x => x.Posts.All(y => y.PostId != firstPost.PostId)).ToList();
 
                 //ATTEMPT
-
                 db.Entry(firstPost).Collection(x => x.Tags).Load();
                 firstPost.Tags = tagsNotInFirstPostTracked;
                 var status = db.SaveChangesWithChecking();
 
                 //VERIFY
-                status.IsValid.ShouldEqual(true, status.Errors);
+                status.IsValid.ShouldEqual(true, status.GetAllErrors());
                 snap.CheckSnapShot(db, 0, -1);
-                firstPost = db.Blogs.Include(x => x.Posts.Select(y => y.Tags)).First().Posts.First();
-                firstPost.Tags.Count.ShouldEqual(1);
+                using (var checkDb = TestDb.CreateDb())
+                {
+                    var reloaded = checkDb.Posts.Include(x => x.Tags).Single(x => x.PostId == firstPost.PostId);
+                    reloaded.Tags.Count.ShouldEqual(1);
+                }
             }
         }
 
         [Test]
         public void Check30CheckCreateLastUpdatedOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
-                var firstPostUntracked = db.Posts.AsNoTracking().First();
+                var firstPostUntracked = db.Posts.AsNoTracking().OrderBy(x => x.PostId).First();
                 var originalDateTime = firstPostUntracked.LastUpdated;
                 Thread.Sleep(400);
 
                 //ATTEMPT
+                firstPostUntracked.PostId = 0;
                 firstPostUntracked.Title = Guid.NewGuid().ToString();
-                firstPostUntracked.Blogger = db.Blogs.First();
-                firstPostUntracked.Tags = db.Tags.Take(2).ToList();
+                firstPostUntracked.Blogger = db.Blogs.OrderBy(x => x.BlogId).First();
+                firstPostUntracked.Tags = db.Tags.OrderBy(x => x.TagId).Take(2).ToList();
                 db.Posts.Add(firstPostUntracked);
                 var status = db.SaveChangesWithChecking();
 
                 //VERIFY
-                status.IsValid.ShouldEqual(true, status.Errors);
+                status.IsValid.ShouldEqual(true, status.GetAllErrors());
                 snap.CheckSnapShot(db,1,2);
                 var loadedPost = db.Posts.Single(x => x.PostId == firstPostUntracked.PostId);
-                Assert.GreaterOrEqual(loadedPost.LastUpdated.Subtract(originalDateTime).Milliseconds, 400);
+                Assert.That(loadedPost.LastUpdated.Subtract(originalDateTime).TotalMilliseconds, Is.GreaterThanOrEqualTo(400));
             }
         }
 
         [Test]
         public void Check31CheckCreateDataOk()
         {
-            using (var db = new SampleWebAppDb())
+            using (var db = TestDb.CreateDb())
             {
                 //SETUP
                 var snap = new DbSnapShot(db);
-                var firstPostUntracked = db.Posts.AsNoTracking().First();
+                var firstPostUntracked = db.Posts.AsNoTracking().OrderBy(x => x.PostId).First();
 
                 //ATTEMPT
+                firstPostUntracked.PostId = 0;
                 firstPostUntracked.Title = Guid.NewGuid().ToString();
-                firstPostUntracked.Blogger = db.Blogs.First();
-                firstPostUntracked.Tags = db.Tags.Take(2).ToList();
+                firstPostUntracked.Blogger = db.Blogs.OrderBy(x => x.BlogId).First();
+                firstPostUntracked.Tags = db.Tags.OrderBy(x => x.TagId).Take(2).ToList();
                 db.Posts.Add(firstPostUntracked);
                 var status = db.SaveChangesWithChecking();
 
                 //VERIFY
-                status.IsValid.ShouldEqual(true, status.Errors);
+                status.IsValid.ShouldEqual(true, status.GetAllErrors());
                 snap.CheckSnapShot(db,1,2);
                 var loadedPost = db.Posts.Include( x => x.Blogger).Include( x => x.Tags).Single(x => x.PostId == firstPostUntracked.PostId);
-                loadedPost.Blogger.BlogId.ShouldEqual(db.Blogs.First().BlogId);
-                CollectionAssert.AreEquivalent(db.Tags.Take(2).Select(x => x.TagId), loadedPost.Tags.Select(x => x.TagId));
+                loadedPost.Blogger.BlogId.ShouldEqual(db.Blogs.OrderBy(x => x.BlogId).First().BlogId);
+                Assert.That(loadedPost.Tags.Select(x => x.TagId),
+                    Is.EquivalentTo(db.Tags.OrderBy(x => x.TagId).Take(2).Select(x => x.TagId)));
             }
         }
     }

@@ -185,7 +185,6 @@ Tests reference DataLayer, ServiceLayer, SampleWebApp.
 - A failed `CreateAndSave`/`UpdateAndSave` leaves the entity tracked → `ChangeTracker.Clear()` before redisplay/retry.
 - Success messages use EfCore.GenericServices wording (expected difference from legacy).
 - Do not `pkill -f SampleWebApp` (kills the calling shell); kill the run shell by id.
-- `ChangeTracker.DetectChanges()` is also needed AFTER `TrackUpdate.UpdateTrackingInfo()` in `HandleChangeTracking`, otherwise `LastUpdated` is not saved on updates (EfCore.GenericServices saves with auto-detect off).
 - `ICrudServices`/`ICrudServicesAsync` are scoped and their status accumulates: a second call in the same scope after a failed one still reports the old errors. `PostService(Async)` saves via `SaveChangesWithValidation(Async)(IGenericServicesConfig)` instead.
 - `GenericServicesSimpleSetup` does not register `IGenericServicesConfig`; `AddServiceLayer` registers the config instance as a singleton.
 - `dotnet new tool-manifest` on the .NET 10 SDK writes `dotnet-tools.json` to the repo root, not `.config/`; move it.
@@ -194,7 +193,11 @@ Tests reference DataLayer, ServiceLayer, SampleWebApp.
 - `ErrorsAsHtml()` returns pre-encoded HTML stored in `TempData["errorMessage"]` → render with `@Html.Raw(...)` or the `<br/>`s show as text.
 - Legacy layout bundles (`~/bundles/javascript`, `~/bundles/jqueryval`, `~/Content/css`) map to `jquery-1.10.2.min.js` + `bootstrap.min.js` + `respond.min.js`, `jquery.validate(.unobtrusive).min.js`, and `bootstrap.min.css` + `Site.css`.
 - `HostType` (was `Properties/Settings.HostTypeString`) lives in appsettings and is injected into `_Layout` via `@inject HostSettings`.
-- EfCore.GenericServices saves with `AutoDetectChangesEnabled` off, so setting `LastUpdated` in `SaveChanges` after `DetectChanges` is lost → mark the property `IsModified` explicitly.
+- `UpdateTrackingInfo()` runs after `DetectChanges()`; with `AutoDetectChangesEnabled` off (EfCore.GenericServices, `SaveChangesWithValidation`) the new `LastUpdated` is not saved unless the entry is re-scanned → `entity.DetectChanges()` after setting it.
+- EfCore.GenericServices only knows DTOs from the assemblies passed to `GenericServicesSimpleSetup`; a test-assembly `ILinkToEntity<T>` DTO throws "not registered" through `AddServiceLayer` → tests use entity direct access.
+- Core `ModelStateDictionary.Keys` has no `Count` → `modelState.Count`; key order differs from MVC 5 → compare JSON structurally.
+- NUnit 4 moved `CollectionAssert`/classic asserts to `NUnit.Framework.Legacy` → `Assert.That(x, Is.EquivalentTo(...))`.
+- Tests read `ConnectionStrings__SampleWebAppDbTest` (default `SampleWebAppDb-Test`) and refuse a database name without `Test`.
 
 ## 13. Verification evidence
 _To be filled after integration._
