@@ -53,7 +53,7 @@ namespace DataLayer.Startup
             if (canCreateDatabase)
                 context.Database.Migrate();
 
-            if (!context.Blogs.Any())
+            if (!context.Blogs.Any() && !context.Tags.Any())
                 ResetBlogs(context, TestDataSelection.Medium);
         }
 
