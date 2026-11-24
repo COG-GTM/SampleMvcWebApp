@@ -185,6 +185,10 @@ Tests reference DataLayer, ServiceLayer, SampleWebApp.
 - A failed `CreateAndSave`/`UpdateAndSave` leaves the entity tracked → `ChangeTracker.Clear()` before redisplay/retry.
 - Success messages use EfCore.GenericServices wording (expected difference from legacy).
 - Do not `pkill -f SampleWebApp` (kills the calling shell); kill the run shell by id.
+- .NET 10 `dotnet new sln` writes `.slnx` by default → use `--format sln` to keep `SampleWebApp.sln`.
+- `ErrorsAsHtml()` returns pre-encoded HTML stored in `TempData["errorMessage"]` → render with `@Html.Raw(...)` or the `<br/>`s show as text.
+- Legacy layout bundles (`~/bundles/javascript`, `~/bundles/jqueryval`, `~/Content/css`) map to `jquery-1.10.2.min.js` + `bootstrap.min.js` + `respond.min.js`, `jquery.validate(.unobtrusive).min.js`, and `bootstrap.min.css` + `Site.css`.
+- `HostType` (was `Properties/Settings.HostTypeString`) lives in appsettings and is injected into `_Layout` via `@inject HostSettings`.
 
 ## 13. Verification evidence
 _To be filled after integration._
