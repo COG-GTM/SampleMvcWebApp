@@ -75,6 +75,7 @@ namespace Tests.UnitTests.Group03ServiceLayer
         public void Test20CreateUpdateDeletePostViaDto()
         {
             int postId;
+            System.DateTime lastUpdatedBeforeEdit;
             using (var scope = _provider.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<SampleWebAppDb>();
@@ -92,6 +93,7 @@ namespace Tests.UnitTests.Group03ServiceLayer
                 var db = scope.ServiceProvider.GetRequiredService<SampleWebAppDb>();
                 var service = scope.ServiceProvider.GetRequiredService<ICrudServices>();
                 var dto = service.ReadSingle<DetailPostDto>(postId).SetupSecondaryData(db);
+                lastUpdatedBeforeEdit = dto.LastUpdated;
                 dto.Tags.Count.ShouldEqual(2);
                 dto.Title = "Updated post";
                 dto.Bloggers.SelectedValue = dto.BlogId.ToString();
@@ -106,6 +108,7 @@ namespace Tests.UnitTests.Group03ServiceLayer
                 var post = db.Posts.Include(x => x.Tags).Single(x => x.PostId == postId);
                 post.Title.ShouldEqual("Updated post");
                 post.Tags.Count.ShouldEqual(1);
+                (post.LastUpdated > lastUpdatedBeforeEdit).ShouldEqual(true);
                 var service = scope.ServiceProvider.GetRequiredService<ICrudServices>();
                 service.DeleteAndSave<Post>(postId);
                 service.IsValid.ShouldEqual(true, service.GetAllErrors());

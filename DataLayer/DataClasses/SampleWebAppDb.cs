@@ -91,11 +91,17 @@ namespace DataLayer.DataClasses
         /// </summary>
         private void HandleChangeTracking()
         {
+            //GenericServices can turn off AutoDetectChanges, so detect changes explicitly
+            ChangeTracker.DetectChanges();
             foreach (var entity in ChangeTracker.Entries()
-                                                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified))
+                                                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+                                                .ToList())
             {
                 if (entity.Entity is TrackUpdate trackUpdateClass)
+                {
                     trackUpdateClass.UpdateTrackingInfo();
+                    entity.DetectChanges();
+                }
             }
         }
     }
